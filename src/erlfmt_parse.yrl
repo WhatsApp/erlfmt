@@ -33,7 +33,7 @@ list tail
 list_comprehension lc_expr lc_exprs
 binary_comprehension
 tuple
-record_expr record_name record_name_type record_tuple record_field record_fields
+record_expr record_name record_tuple record_field record_fields
 map_expr map_tuple map_field map_field_assoc map_field_exact map_fields map_key
 if_expr if_clause if_clauses case_expr cr_clause cr_clauses receive_expr
 fun_expr fun_clause fun_clauses atom_or_var integer_or_var
@@ -160,19 +160,14 @@ type -> '#' '{' '}'                       : {type, ?anno('$1'), map, []}.
 type -> '#' '{' map_pair_types '}'        : {type, ?anno('$1'), map, '$3'}.
 type -> '{' '}'                           : {type, ?anno('$1'), tuple, []}.
 type -> '{' top_types '}'                 : {type, ?anno('$1'), tuple, '$2'}.
-type -> '#' record_name_type '{' '}'      : {type, ?anno('$1'), record, ['$2']}.
-type -> '#' record_name_type '{' field_types '}' : {type, ?anno('$1'), record, ['$2'|'$4']}.
+type -> '#' record_name '{' '}'           : {type, ?anno('$1'), record, ['$2']}.
+type -> '#' record_name '{' field_types '}' : {type, ?anno('$1'), record, ['$2'|'$4']}.
 type -> binary_type                       : '$1'.
 type -> integer                           : '$1'.
 type -> char                              : '$1'.
 type -> 'fun' '(' ')'                     : {type, ?anno('$1'), 'fun', []}.
 type -> 'fun' '(' fun_type_anon ')'       : '$3'.
 type -> 'fun' '(' fun_type ')'            : '$3'.
-
-record_name_type -> atom ':' atom :
-    {qualified_record, '$1', '$3'}.
-record_name_type -> atom :
-    '$1'.
 
 fun_type_anon -> '(' '...' ')' '->' top_type
                                           : {type, ?anno('$1'), 'fun',
@@ -287,14 +282,10 @@ map_pat_expr -> pat_expr_max '#' map_tuple :
 map_pat_expr -> map_pat_expr '#' map_tuple :
         {map, ?anno('$2'),'$1','$3'}.
 
-record_pat_expr -> '#' atom ':' atom '.' atom :
-        {record_index,?anno('$1'),{qualified_record,element(3, '$2'),element(3, '$4')},'$6'}.
-record_pat_expr -> '#' atom '.' atom :
-        {record_index,?anno('$1'),element(3, '$2'),'$4'}.
-record_pat_expr -> '#' atom ':' atom record_tuple :
-        {record,?anno('$1'),{qualified_record,element(3, '$2'),element(3, '$4')},'$5'}.
-record_pat_expr -> '#' atom record_tuple :
-        {record,?anno('$1'),element(3, '$2'),'$3'}.
+record_pat_expr -> '#' record_name '.' atom :
+        {record_index,?anno('$1'),'$2','$4'}.
+record_pat_expr -> '#' record_name record_tuple :
+        {record,?anno('$1'),'$2','$3'}.
 
 list -> '[' ']' : {nil,?anno('$1')}.
 list -> '[' expr tail : {cons,?anno('$1'),'$2','$3'}.
@@ -387,11 +378,6 @@ record_expr -> record_expr '#' record_name '.' atom :
 record_expr -> record_expr '#' record_name record_tuple :
     {record,?anno('$2'),'$1','$3','$4'}.
 
-record_name -> atom ':' atom :
-    {qualified_record,element(3, '$1'), element(3, '$3')}.
-record_name -> atom :
-    element(3, '$1').
-
 record_tuple -> '{' '}' : [].
 record_tuple -> '{' record_fields '}' : '$2'.
 
@@ -400,6 +386,8 @@ record_fields -> record_field ',' record_fields : ['$1' | '$3'].
 
 record_field -> var '=' expr : {record_field,?anno('$1'),'$1','$3'}.
 record_field -> atom '=' expr : {record_field,?anno('$1'),'$1','$3'}.
+
+record_name -> atom : '$1'.
 
 %% N.B. This is called from expr.
 
@@ -621,7 +609,7 @@ Erlang code.
 -type af_file() :: {'attribute', anno(), 'file', {string(), anno()}}.
 
 -type af_record_decl() ::
-        {'attribute', anno(), 'record', {record_name(), [af_field_decl()]}}.
+        {'attribute', anno(), 'record', {af_record_name(), [af_field_decl()]}}.
 
 -type af_field_decl() :: af_typed_field() | af_field().
 
@@ -683,7 +671,7 @@ Erlang code.
 -type af_record_update(T) :: {'record',
                               anno(),
                               abstract_expr(),
-                              record_name(),
+                              af_record_name(),
                               [af_record_field(T)]}.
 
 -type af_catch() :: {'catch', anno(), abstract_expr()}.
@@ -776,7 +764,7 @@ Erlang code.
                        | af_remote_guard_call().
 
 -type af_record_field_access(T) ::
-        {'record_field', anno(), T, record_name(), af_field_name()}.
+        {'record_field', anno(), T, af_record_name(), af_field_name()}.
 
 -type af_map_creation(T) :: {'map', anno(), [af_assoc(T)]}.
 
@@ -808,10 +796,10 @@ Erlang code.
                     | af_map_pattern().
 
 -type af_record_index() ::
-        {'record_index', anno(), record_name(), af_field_name()}.
+        {'record_index', anno(), af_record_name(), af_field_name()}.
 
 -type af_record_creation(T) ::
-        {'record', anno(), record_name(), [af_record_field(T)]}.
+        {'record', anno(), af_record_name(), [af_record_field(T)]}.
 
 -type af_record_field(T) :: {'record_field', anno(), af_field_name(), T}.
 
@@ -982,7 +970,11 @@ Erlang code.
 
 -type unit() :: {'unit', 1..256}.
 
--type record_name() :: atom().
+-type af_record_name() :: af_local_record_name() | af_remote_record_name().
+
+-type af_local_record_name() :: af_atom().
+
+-type af_remote_record_name() :: {remote, anno(), af_atom(), af_atom()}.
 
 -type af_field_name() :: af_atom().
 
@@ -1084,12 +1076,8 @@ parse_term(Tokens) ->
 -type attributes() :: 'export' | 'file' | 'import' | 'module'
                     | 'opaque' | 'record' | 'type'.
 
-build_typed_attribute({atom,Aa,record},
-                      {typed_record, {atom,_An,RecordName}, RecTuple}) ->
-    {attribute,Aa,record,{RecordName,record_tuple(RecTuple)}};
-build_typed_attribute({atom,Aa,record},
-                      {typed_record, {remote,_,{atom,MRa,Name1},{atom,_,Name2}}, RecTuple}) ->
-    {attribute,Aa,record,{{module_record,MRa,Name1,Name2},record_tuple(RecTuple)}};
+build_typed_attribute({atom,Aa,record},{typed_record, Name, RecTuple}) ->
+    {attribute,Aa,record,{record_name(Name),record_tuple(RecTuple)}};
 build_typed_attribute({atom,Aa,Attr},
                       {type_def, {call,_,{atom,_,TypeName},Args}, Type})
   when Attr =:= 'type' ; Attr =:= 'opaque' ->
@@ -1215,10 +1203,8 @@ build_attribute({atom,Aa,import}, Val) ->
     end;
 build_attribute({atom,Aa,record}, Val) ->
     case Val of
-        [{atom,_An,Record},RecTuple] ->
-            {attribute,Aa,record,{Record,record_tuple(RecTuple)}};
-        [{remote,_,{atom,MRa,Name1},{atom,_,Name2}},RecTuple] ->
-        {attribute,Aa,record,{{module_record,MRa,Name1,Name2},record_tuple(RecTuple)}};
+        [Name,RecTuple] ->
+            {attribute,Aa,record,{record_name(Name),record_tuple(RecTuple)}};
         _Other -> error_bad_decl(Aa, record)
     end;
 build_attribute({atom,Aa,file}, Val) ->
@@ -1275,6 +1261,9 @@ record_tuple({tuple,_At,Fields}) ->
     record_fields(Fields);
 record_tuple(Other) ->
     ret_err(?anno(Other), "bad record declaration").
+
+record_name({atom, _, _} = Name) -> Name;
+record_name(Other) -> ret_err(?anno(Other), "bad record declaration").
 
 record_fields([{atom,Aa,A}|Fields]) ->
     [{record_field,Aa,{atom,Aa,A}}|record_fields(Fields)];
@@ -1667,8 +1656,9 @@ modify_anno1({function,M,F,A}, Ac, Mf) ->
     {{function,M1,F1,A1},Ac3};
 modify_anno1({attribute,A,record,{Name,Fields}}, Ac, Mf) ->
     {A1,Ac1} = Mf(A, Ac),
-    {Fields1,Ac2} = modify_anno1(Fields, Ac1, Mf),
-    {{attribute,A1,record,{Name,Fields1}},Ac2};
+    {Name1,Ac2} = modify_anno1(Name, Ac1, Mf),
+    {Fields1,Ac3} = modify_anno1(Fields, Ac2, Mf),
+    {{attribute,A1,record,{Name1,Fields1}},Ac3};
 modify_anno1({attribute,A,spec,{Fun,Types}}, Ac, Mf) ->
     {A1,Ac1} = Mf(A, Ac),
     {Types1,Ac2} = modify_anno1(Types, Ac1, Mf),
