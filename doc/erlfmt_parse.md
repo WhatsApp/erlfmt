@@ -9,5 +9,9 @@ In `erlfmt_parse` the following AST nodes have different definitions:
   * `{record, Anno, Name, Fields}`
   * `{record, Anno, Expr, Name, Updates}`
   * `{record_index, Anno, Name, Field}`
+  * `{record_field, Anno, Expr, Name, Field}`
   * `{type, Anno, record, [Name | Fields]}`
   * `{attribute, Anno, record, {Name, Fields}}`
+
+* The attribute values are not "normalized" - they are represented in the
+  abstract term format instead of as concrete terms.
