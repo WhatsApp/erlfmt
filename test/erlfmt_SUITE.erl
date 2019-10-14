@@ -26,6 +26,8 @@
 
 %% Test cases
 -export([
+    records/1,
+    attributes/1,
     smoke_test_cli/1
 ]).
 
@@ -52,14 +54,71 @@ end_per_testcase(_TestCase, _Config) ->
 
 groups() ->
     [
-        {smoke_tests, [parallel], [smoke_test_cli]}
+        {parser, [parallel], [
+            records,
+            attributes
+        ]},
+        {smoke_tests, [parallel, {timetrap, {minutes, 1}}], [
+            smoke_test_cli
+        ]}
     ].
 
 all() ->
-    [{group, smoke_tests}].
+    [{group, smoke_tests}, {group, parser}].
 
 %%--------------------------------------------------------------------
 %% TEST CASES
+
+records(Config) when is_list(Config) ->
+    ?assertMatch(
+        {record, _, {atom, _, foo}, []},
+        parse_expr("#foo{}")
+    ),
+    ?assertMatch(
+        {record_index, _, {atom, _, foo}, {atom, _, bar}},
+        parse_expr("#foo.bar")
+    ),
+    ?assertMatch(
+        {record_field, _, {var, _, 'X'}, {atom, _, foo}, {atom, _, bar}},
+        parse_expr("X#foo.bar")
+    ),
+    ?assertMatch(
+        {record, _, {var, _, 'X'}, {atom, _, foo}, []},
+        parse_expr("X#foo{}")
+    ),
+    ?assertMatch(
+        {attribute, _, record, {{atom, _, foo}, []}},
+        parse_form("-record(foo, {}).")
+    ),
+    ?assertMatch(
+        {attribute, _, type, {foo, {type, _, record, [{atom, _, foo}]}, []}},
+        parse_form("-type foo() :: #foo{}.")
+    ).
+
+attributes(Config) when is_list(Config) ->
+    ?assertMatch(
+        {attribute, _, foo, {atom, _, bar}},
+        parse_form("-foo(bar).")
+    ).
+
+parse_expr(String) ->
+    {ok, Tokens, _} = erl_scan:string(String),
+    Wrapped = [{atom, 0, f}, {'(', 0} ,{')', 0}, {'->', 0}] ++ Tokens ++ [{dot, 0}],
+    case erlfmt_parse:parse_form(Wrapped) of
+        {ok, {function, _, f, _, [{clause, _, [], [], [Expr]}]}} ->
+            Expr;
+        {error, {_, Mod, Reason}} ->
+            ct:fail("Expected successful parse:\n~ts\ngot: ~ts", [String, Mod:format_error(Reason)])
+    end.
+
+parse_form(String) ->
+    {ok, Tokens, _} = erl_scan:string(String),
+    case erlfmt_parse:parse_form(Tokens) of
+        {ok, Form} ->
+            Form;
+        {error, {_, Mod, Reason}} ->
+            ct:fail("Expected successful parse:\n~ts\ngot: ~ts", [String, Mod:format_error(Reason)])
+    end.
 
 smoke_test_cli(Config) when is_list(Config) ->
     %% this relies on the _build structure rebar3 uses
