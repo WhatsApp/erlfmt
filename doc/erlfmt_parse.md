@@ -25,3 +25,24 @@ In `erlfmt_parse` the following AST nodes have different definitions:
     * for `expr`, it is a list of lists of expressions (equivalent to guards in clauses),
       an atom `empty` or a `{record_name, Anno, Name}` node,
     * for `clause`, it is a `clause` node as used in functions.
+
+* The `clause` node as used in functions or funs has a different AST representation:
+  `{clause, Anno, Name, Args, Guards, Body}`, where the newly added `Name` field
+  is an `atom` node, a `var` node or an atom `'fun'` for anonymous funs.
+
+* The `function` node has a different AST representation:
+  `{function, Anno, Clauses}`, where `Clauses` is a list of `clause` nodes.
+  Additionally it is less strict - it does not enforce all clauses have
+  the same name and arity.
+
+* The `fun` node has a different AST representation:
+  `{'fun', Anno, Value}`, where `Value` is one of:
+  * `{function, Name, Arity}`, where `Name` and `Arity` are an `atom` node
+    and an `integer` node respectively,
+  * `{function, Module, Name, Arity}`, where `Module`, `Name`, and `Arity`
+    are `atom`, `atom`, and `integer` nodes respectively or a `var` node.
+  * `{clauses, Clauses}`, where `Clauses` is a list of `clause` nodes.
+    Additionally it is less strict - the clauses aren't checked for the same
+    name or arity.
+
+* The `named_fun` node is not used.
