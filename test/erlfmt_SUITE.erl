@@ -32,6 +32,7 @@
     records/1,
     attributes/1,
     macro_definitions/1,
+    functions_and_funs/1,
     smoke_test_cli/1
 ]).
 
@@ -61,7 +62,8 @@ groups() ->
         {parser, [parallel], [
             records,
             attributes,
-            macro_definitions
+            macro_definitions,
+            functions_and_funs
         ]},
         {smoke_tests, [parallel, {timetrap, {minutes, 1}}], [
             smoke_test_cli
@@ -135,15 +137,37 @@ macro_definitions(Config) when is_list(Config) ->
         parse_form("-define(foo,).")
     ),
     ?assertMatch(
-        {attribute, _, define, {clause, {atom, _, foo}, none, {clause, _, foo, [], [], [{atom, _, ok}]}}},
+        {attribute, _, define, {clause, {atom, _, foo}, none, {clause, _, {atom, _, foo}, [], [], [{atom, _, ok}]}}},
         parse_form("-define(foo, foo() -> ok).")
+    ).
+
+functions_and_funs(Config) when is_list(Config) ->
+    ?assertMatch(
+        {'fun', _, {function, {atom, _, foo}, {integer, _, 1}}},
+        parse_expr("fun foo/1")
+    ),
+    ?assertMatch(
+        {'fun', _, {function, {var, _, 'Mod'}, {atom, _, foo}, {integer, _, 1}}},
+        parse_expr("fun Mod:foo/1")
+    ),
+    ?assertMatch(
+        {'fun', _, {clauses, [{clause, _, 'fun', [], [], [{atom, _, ok}]}]}},
+        parse_expr("fun () -> ok end")
+    ),
+    ?assertMatch(
+        {'fun', _, {clauses, [{clause, _, {var, _, 'Foo'}, [], [], [{atom, _, ok}]}]}},
+        parse_expr("fun Foo() -> ok end")
+    ),
+    ?assertMatch(
+        {function, _, [{clause, _, {atom, _, foo}, [], [], [{atom, _, ok}]}]},
+        parse_form("foo() -> ok.")
     ).
 
 parse_expr(String) ->
     {ok, Tokens, _} = erl_scan:string(String),
     Wrapped = [{atom, 0, f}, {'(', 0} ,{')', 0}, {'->', 0}] ++ Tokens ++ [{dot, 0}],
     case erlfmt_parse:parse_form(Wrapped) of
-        {ok, {function, _, f, _, [{clause, _, [], [], [Expr]}]}} ->
+        {ok, {function, _, [{clause, _, _, [], [], [Expr]}]}} ->
             Expr;
         {error, {_, Mod, Reason}} ->
             ct:fail("Expected successful parse:\n~ts\ngot: ~ts", [String, Mod:format_error(Reason)])
