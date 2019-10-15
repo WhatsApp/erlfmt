@@ -15,3 +15,13 @@ In `erlfmt_parse` the following AST nodes have different definitions:
 
 * The attribute values are not "normalized" - they are represented in the
   abstract term format instead of as concrete terms.
+
+* A new attribute with a special value is recognised:
+  `{attribute, Anno, define, {Type, Name, Args, Body}}`, where
+  * `Type` is `expr` or `clause`,
+  * `Name` is either an `atom` node or a `var` node,
+  * `Args` is either a list of vars or an atom `none`,
+  * `Body` is:
+    * for `expr`, it is a list of lists of expressions (equivalent to guards in clauses),
+      an atom `empty` or a `{record_name, Anno, Name}` node,
+    * for `clause`, it is a `clause` node as used in functions.
