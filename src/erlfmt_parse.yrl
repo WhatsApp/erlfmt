@@ -39,7 +39,7 @@ if_expr if_clause if_clauses case_expr cr_clause cr_clauses receive_expr
 fun_expr fun_clause fun_clauses atom_or_var integer_or_var
 try_expr try_catch try_clause try_clauses try_opt_stacktrace
 function_call argument_list
-exprs guard
+exprs guard vars
 atomic strings
 prefix_op mult_op add_op list_op comp_op
 binary bin_elements bin_element bit_expr
@@ -48,7 +48,8 @@ top_type top_types type typed_expr typed_attr_val
 type_sig type_sigs type_guard type_guards fun_type fun_type_anon binary_type
 type_spec spec_fun typed_exprs typed_record_fields field_types field_type
 map_pair_types map_pair_type
-bin_base_type bin_unit_type.
+bin_base_type bin_unit_type
+macro_name macro_def_expr macro_def_expr_body macro_def_clause.
 
 Terminals
 char integer float atom string var
@@ -63,7 +64,7 @@ char integer float atom string var
 '==' '/=' '=<' '<' '>=' '>' '=:=' '=/=' '<=' '=>' ':='
 '<<' '>>'
 '!' '=' '::' '..' '...'
-'spec' 'callback' % helper
+spec callback define_expr define_clause % helper
 dot.
 
 Expect 0.
@@ -97,8 +98,10 @@ form -> function dot : '$1'.
 attribute -> '-' atom attr_val               : build_attribute('$2', '$3').
 attribute -> '-' atom typed_attr_val         : build_typed_attribute('$2','$3').
 attribute -> '-' atom '(' typed_attr_val ')' : build_typed_attribute('$2','$4').
-attribute -> '-' 'spec' type_spec            : build_type_spec('$2', '$3').
-attribute -> '-' 'callback' type_spec        : build_type_spec('$2', '$3').
+attribute -> '-' spec type_spec              : build_type_spec('$2', '$3').
+attribute -> '-' callback type_spec          : build_type_spec('$2', '$3').
+attribute -> '-' define_expr macro_def_expr  : build_macro_def(expr, '$1', '$3').
+attribute -> '-' define_clause macro_def_clause : build_macro_def(clause, '$1', '$3').
 
 type_spec -> spec_fun type_sigs : {'$1', '$2'}.
 type_spec -> '(' spec_fun type_sigs ')' : {'$2', '$3'}.
@@ -220,7 +223,6 @@ clause_guard -> 'when' guard : '$2'.
 clause_guard -> '$empty' : [].
 
 clause_body -> '->' exprs: '$2'.
-
 
 expr -> 'catch' expr : {'catch',?anno('$1'),'$2'}.
 expr -> expr '=' expr : {match,?anno('$2'),'$1','$3'}.
@@ -354,7 +356,6 @@ map_field_exact -> map_key ':=' expr :
 
 map_key -> expr : '$1'.
 
-
 %% N.B. This is called from expr.
 %% N.B. Field names are returned as the complete object, even if they are
 %% always atoms for the moment, this might change in the future.
@@ -468,8 +469,21 @@ try_clause -> var ':' pat_expr try_opt_stacktrace clause_guard clause_body :
         A = ?anno('$1'),
         {clause,A,[{tuple,A,['$1','$3',{var,A,'$4'}]}],'$5','$6'}.
 
+%% TODO: don't drop annos
 try_opt_stacktrace -> ':' var : element(3, '$2').
 try_opt_stacktrace -> '$empty' : '_'.
+
+macro_def_expr -> '(' macro_name ',' macro_def_expr_body ')' : {'$2', '$4'}.
+
+macro_def_clause -> '(' macro_name ',' function_clause ')' : {'$2', '$4'}.
+
+macro_def_expr_body -> '$empty' : empty.
+macro_def_expr_body -> '#' atom : {record_name, ?anno('$1'), '$2'}.
+macro_def_expr_body -> guard : '$1'.
+
+macro_name -> atom_or_var : {'$1', none}.
+macro_name -> atom_or_var '(' ')' : {'$1', []}.
+macro_name -> atom_or_var '(' vars ')' : {'$1', '$3'}.
 
 argument_list -> '(' ')' : {[],?anno('$1')}.
 argument_list -> '(' exprs ')' : {'$2',?anno('$1')}.
@@ -482,6 +496,9 @@ exprs -> expr ',' exprs : ['$1' | '$3'].
 
 pat_exprs -> pat_expr : ['$1'].
 pat_exprs -> pat_expr ',' pat_exprs : ['$1' | '$3'].
+
+vars -> var : ['$1'].
+vars -> var ',' vars : ['$1' | '$3'].
 
 guard -> exprs : ['$1'].
 guard -> exprs ';' guard : ['$1'|'$3'].
@@ -1009,16 +1026,27 @@ parse_form([{'-',A1},{atom,A2,spec}|Tokens]) ->
 parse_form([{'-',A1},{atom,A2,callback}|Tokens]) ->
     NewTokens = [{'-',A1},{'callback',A2}|Tokens],
     parse(NewTokens);
+parse_form([{'-',A1},{atom,A2,define}|Tokens]) ->
+    NewTokens1 = [{'-',A1},{define_expr,A2}|Tokens],
+    case parse(NewTokens1) of
+        {ok, _} = Res ->
+            Res;
+        _ ->
+            NewTokens3 = [{'-',A1},{define_clause,A2}|Tokens],
+            parse(NewTokens3)
+    end;
 parse_form(Tokens) ->
     parse(Tokens).
+
+build_macro_def(Type, {_,A}, {{Name, Args}, Body}) ->
+    {attribute,A,define,{Type,Name,Args,Body}}.
 
 -type attributes() :: 'export' | 'file' | 'import' | 'module'
                     | 'opaque' | 'record' | 'type'.
 
-build_typed_attribute({atom,Aa,record},{typed_record, Name, RecTuple}) ->
+build_typed_attribute({atom,Aa,record},{typed_record,Name,RecTuple}) ->
     {attribute,Aa,record,{record_name(Name),record_tuple(RecTuple)}};
-build_typed_attribute({atom,Aa,Attr},
-                      {type_def, {call,_,{atom,_,TypeName},Args}, Type})
+build_typed_attribute({atom,Aa,Attr},{type_def,{call,_,{atom,_,TypeName},Args}, Type})
   when Attr =:= 'type' ; Attr =:= 'opaque' ->
     lists:foreach(fun({var, A, '_'}) -> ret_err(A, "bad type variable");
                      (_)             -> ok

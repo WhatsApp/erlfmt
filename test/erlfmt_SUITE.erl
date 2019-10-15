@@ -28,6 +28,7 @@
 -export([
     records/1,
     attributes/1,
+    macro_definitions/1,
     smoke_test_cli/1
 ]).
 
@@ -56,7 +57,8 @@ groups() ->
     [
         {parser, [parallel], [
             records,
-            attributes
+            attributes,
+            macro_definitions
         ]},
         {smoke_tests, [parallel, {timetrap, {minutes, 1}}], [
             smoke_test_cli
@@ -99,6 +101,39 @@ attributes(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, foo, {atom, _, bar}},
         parse_form("-foo(bar).")
+    ).
+
+macro_definitions(Config) when is_list(Config) ->
+    ?assertMatch(
+        {attribute, _, define, {expr, {var, _, 'FOO'}, none, [[{atom, _, foo}]]}},
+        parse_form("-define(FOO, foo).")
+    ),
+    ?assertMatch(
+        {attribute, _, define, {expr, {var, _, 'FOO'}, [], [[{atom, _, foo}]]}},
+        parse_form("-define(FOO(), foo).")
+    ),
+    ?assertMatch(
+        {attribute, _, define, {expr, {var, _, 'FOO'}, [{var, _, 'X'}], [[{atom, _, foo}]]}},
+        parse_form("-define(FOO(X), foo).")
+    ),
+    ?assertMatch(
+        {attribute, _, define, {expr, {atom, _, is_nice}, [{var, _, 'X'}], [[
+            {call, _, {atom, _, is_tuple}, [{var, _, 'X'}]},
+            {op, _, '=:=', {call, _, {atom, _,element}, [{integer, _, 1},{var, _, 'X'}]}, {atom, _, nice}}
+        ]]}},
+        parse_form("-define(is_nice(X), is_tuple(X), element(1, X) =:= nice).")
+    ),
+    ?assertMatch(
+        {attribute, _, define, {expr, {atom, _, foo}, none, {record_name, _, {atom, _,bar}}}},
+        parse_form("-define(foo, #bar).")
+    ),
+    ?assertMatch(
+        {attribute, _, define, {expr, {atom, _, foo}, none, empty}},
+        parse_form("-define(foo,).")
+    ),
+    ?assertMatch(
+        {attribute, _, define, {clause, {atom, _, foo}, none, {clause, _, foo, [], [], [{atom, _, ok}]}}},
+        parse_form("-define(foo, foo() -> ok).")
     ).
 
 parse_expr(String) ->
