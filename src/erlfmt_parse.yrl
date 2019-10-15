@@ -209,13 +209,14 @@ attr_val -> expr                     : ['$1'].
 attr_val -> expr ',' exprs           : ['$1' | '$3'].
 attr_val -> '(' expr ',' exprs ')'   : ['$2' | '$4'].
 
-function -> function_clauses : build_function('$1').
+function -> function_clauses :
+    {function,?anno(hd('$1')),'$1'}.
 
 function_clauses -> function_clause : ['$1'].
 function_clauses -> function_clause ';' function_clauses : ['$1'|'$3'].
 
 function_clause -> atom clause_args clause_guard clause_body :
-        {clause,?anno('$1'),element(3, '$1'),'$2','$3','$4'}.
+    {clause,?anno('$1'),'$1','$2','$3','$4'}.
 
 clause_args -> pat_argument_list : element(1, '$1').
 
@@ -422,11 +423,11 @@ receive_expr -> 'receive' cr_clauses 'after' expr clause_body 'end' :
 
 
 fun_expr -> 'fun' atom '/' integer :
-        {'fun',?anno('$1'),{function,element(3, '$2'),element(3, '$4')}}.
+    {'fun',?anno('$1'),{function,'$2','$4'}}.
 fun_expr -> 'fun' atom_or_var ':' atom_or_var '/' integer_or_var :
-        {'fun',?anno('$1'),{function,'$2','$4','$6'}}.
+    {'fun',?anno('$1'),{function,'$2','$4','$6'}}.
 fun_expr -> 'fun' fun_clauses 'end' :
-        build_fun(?anno('$1'), '$2').
+    {'fun',?anno('$1'),{clauses,'$2'}}.
 
 atom_or_var -> atom : '$1'.
 atom_or_var -> var : '$1'.
@@ -438,11 +439,10 @@ fun_clauses -> fun_clause : ['$1'].
 fun_clauses -> fun_clause ';' fun_clauses : ['$1' | '$3'].
 
 fun_clause -> pat_argument_list clause_guard clause_body :
-        {Args,Anno} = '$1',
-        {clause,Anno,'fun',Args,'$2','$3'}.
-
+    {Args,Anno} = '$1',
+    {clause,Anno,'fun',Args,'$2','$3'}.
 fun_clause -> var pat_argument_list clause_guard clause_body :
-        {clause,element(2, '$1'),element(3, '$1'),element(1, '$2'),'$3','$4'}.
+    {clause,?anno('$1'),'$1',element(1, '$2'),'$3','$4'}.
 
 try_expr -> 'try' exprs 'of' cr_clauses try_catch :
         build_try(?anno('$1'),'$2','$4','$5').
@@ -1238,34 +1238,6 @@ record_fields([{typed,Expr,TypeInfo}|Fields]) ->
 record_fields([Other|_Fields]) ->
     ret_err(?anno(Other), "bad record field");
 record_fields([]) -> [].
-
-%% build_function([Clause]) -> {function,Anno,Name,Arity,[Clause]}
-
-build_function(Cs) ->
-    Name = element(3, hd(Cs)),
-    Arity = length(element(4, hd(Cs))),
-    {function,?anno(hd(Cs)),Name,Arity,check_clauses(Cs, Name, Arity)}.
-
-%% build_fun(Anno, [Clause]) -> {'fun',Anno,{clauses,[Clause]}}.
-
-build_fun(Anno, Cs) ->
-    Name = element(3, hd(Cs)),
-    Arity = length(element(4, hd(Cs))),
-    CheckedCs = check_clauses(Cs, Name, Arity),
-    case Name of
-        'fun' ->
-            {'fun',Anno,{clauses,CheckedCs}};
-        Name ->
-            {named_fun,Anno,Name,CheckedCs}
-    end.
-
-check_clauses(Cs, Name, Arity) ->
-    [case C of
-         {clause,A,N,As,G,B} when N =:= Name, length(As) =:= Arity ->
-             {clause,A,As,G,B};
-         {clause,A,_N,_As,_G,_B} ->
-             ret_err(A, "head mismatch")
-     end || C <- Cs].
 
 build_try(A,Es,Scs,{Ccs,As}) ->
     {'try',A,Es,Scs,Ccs,As}.
