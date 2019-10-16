@@ -240,6 +240,12 @@ macro_definitions(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, define, {clause, {atom, _, foo}, none, {clause, _, {atom, _, foo}, [], [], [{atom, _, ok}]}}},
         parse_form("-define(foo, foo() -> ok).")
+    ),
+    ?assertMatch(
+        {attribute, _, define, {clause, {var, _, 'FOO'}, [{var, _, 'Name'}],
+            {clause, _, {var, _, 'Name'}, [], [], [{atom, _, ok}]}}
+        },
+        parse_form("-define(FOO(Name), Name() -> ok).")
     ).
 
 functions_and_funs(Config) when is_list(Config) ->
@@ -262,6 +268,24 @@ functions_and_funs(Config) when is_list(Config) ->
     ?assertMatch(
         {function, _, [{clause, _, {atom, _, foo}, [], [], [{atom, _, ok}]}]},
         parse_form("foo() -> ok.")
+    ),
+    ?assertMatch(
+        {function, _, [{clause, _, {macro_call, _, {var, _, 'FOO'}, none}, [], [], [{atom, _, ok}]}]},
+        parse_form("?FOO() -> ok.")
+    ),
+    ?assertMatch(
+        {function, _, [
+            {clause, _, {atom, _, foo}, [], [], [{atom, _, ok}]},
+            {macro_call, _, {atom, _, bar}, []}
+        ]},
+        parse_form("foo() -> ok; ?bar().")
+    ),
+    ?assertMatch(
+        {function, _, [{macro_call, _, {var, _,'TESTS_WITH_SETUP'}, [
+            {atom, _, all_tests_},
+            {'fun', _, {clauses, [{clause, _, 'fun', [], [], [{atom, _, ok}]}]}}
+        ]}]},
+        parse_form("?TESTS_WITH_SETUP(all_tests_, fun() -> ok end).")
     ).
 
 parse_expr(String) ->

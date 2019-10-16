@@ -221,8 +221,13 @@ function -> function_clauses :
 function_clauses -> function_clause : ['$1'].
 function_clauses -> function_clause ';' function_clauses : ['$1'|'$3'].
 
-function_clause -> atom clause_args clause_guard clause_body :
+function_clause -> atom_or_var clause_args clause_guard clause_body :
     {clause,?anno('$1'),'$1','$2','$3','$4'}.
+function_clause -> macro_call_expr clause_guard clause_body :
+    {macro_call,A,Name,Args} = '$1',
+    {clause,A,{macro_call,A,Name,none},Args,'$2','$3'}.
+function_clause -> macro_call_expr :
+    '$1'.
 
 clause_args -> pat_argument_list : element(1, '$1').
 
