@@ -28,6 +28,7 @@
 -export([
     records/1,
     attributes/1,
+    macro_call_exprs/1,
     macro_definitions/1,
     functions_and_funs/1,
     smoke_test_cli/1
@@ -59,6 +60,7 @@ groups() ->
         {parser, [parallel], [
             records,
             attributes,
+            macro_call_exprs,
             macro_definitions,
             functions_and_funs
         ]},
@@ -103,6 +105,29 @@ attributes(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, foo, {atom, _, bar}},
         parse_form("-foo(bar).")
+    ).
+
+
+macro_call_exprs(Config) when is_list(Config) ->
+    ?assertMatch(
+        {macro_call, _, {var, _, 'FOO'}, none},
+        parse_expr("?FOO")
+    ),
+    ?assertMatch(
+        {macro_call, _, {var, _, 'FOO'}, []},
+        parse_expr("?FOO()")
+    ),
+    ?assertMatch(
+        {macro_call, _, {var, _, 'FOO'}, [{integer, _, 1}]},
+        parse_expr("?FOO(1)")
+    ),
+    ?assertMatch(
+        {macro_string, _, {var, _, 'FOO'}},
+        parse_expr("??FOO")
+    ),
+    ?assertMatch(
+        {macro_call, _, {atom, _, foo}, [{guard, _, {atom, _, x}, {atom, _, true}}]},
+        parse_expr("?foo(x when true)")
     ).
 
 macro_definitions(Config) when is_list(Config) ->
