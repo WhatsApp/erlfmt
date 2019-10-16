@@ -59,3 +59,7 @@ In `erlfmt_parse` the following AST nodes have different definitions:
 
 * A new node `{macro_string, Anno, Name}` is introduced, where `Name` is either
   an `atom` or a `var` node. It represents `??Name` macro syntax.
+
+* A new node `{concat, Anno, Concatables}`, where `Concatables` is a list of
+  `atom`, `var`, and `macro_call` nodes. This is used to represent implicit
+  string concatenation, for example `"foo" "bar"`.

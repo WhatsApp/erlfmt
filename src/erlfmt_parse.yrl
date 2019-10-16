@@ -34,7 +34,7 @@ fun_expr fun_clause fun_clauses atom_or_var integer_or_var
 try_expr try_catch try_clause try_clauses try_opt_stacktrace
 function_call argument_list
 exprs guard vars
-atomic strings
+atomic concatable concatables
 prefix_op mult_op add_op list_op comp_op
 binary bin_elements bin_element bit_expr
 opt_bit_size_expr bit_size_expr opt_bit_type_list bit_type_list bit_type
@@ -544,11 +544,16 @@ atomic -> char : '$1'.
 atomic -> integer : '$1'.
 atomic -> float : '$1'.
 atomic -> atom : '$1'.
-atomic -> strings : '$1'.
+atomic -> string : '$1'.
+atomic -> concatable concatables : {concat, ?anno('$1'), ['$1' | '$2']}.
 
-strings -> string : '$1'.
-strings -> string strings :
-        {string,?anno('$1'),element(3, '$1') ++ element(3, '$2')}.
+concatables -> concatable : ['$1'].
+concatables -> concatable concatables : ['$1' | '$2'].
+
+concatable -> string : '$1'.
+concatable -> var : '$1'.
+concatable -> macro_call_none : '$1'.
+concatable -> macro_string : '$1'.
 
 prefix_op -> '+' : '$1'.
 prefix_op -> '-' : '$1'.
