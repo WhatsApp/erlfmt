@@ -14,7 +14,9 @@ In `erlfmt_parse` the following AST nodes have different definitions:
   * `{attribute, Anno, record, {Name, Fields}}`
 
 * The attribute values are not "normalized" - they are represented in the
-  abstract term format instead of as concrete terms.
+  abstract term format instead of as concrete terms. An additional value of
+  `undefined` is allowed as a value of an attribute, indicating the attribute
+  was defined without arguments, for example `-else.`.
 
 * A new attribute with a special value is recognised:
   `{attribute, Anno, define, {Type, Name, Args, Body}}`, where

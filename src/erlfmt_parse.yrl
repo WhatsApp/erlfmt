@@ -98,6 +98,8 @@ Nonassoc 200 '*'. % for binary expressions
 form -> attribute dot : '$1'.
 form -> function dot : '$1'.
 
+attribute -> '-' 'if' attr_val               : build_attribute({atom,?anno('$2'),'if'}, '$3').
+attribute -> '-' atom                        : build_attribute('$2', []).
 attribute -> '-' atom attr_val               : build_attribute('$2', '$3').
 attribute -> '-' atom typed_attr_val         : build_typed_attribute('$2','$3').
 attribute -> '-' atom '(' typed_attr_val ')' : build_typed_attribute('$2','$4').
@@ -1216,6 +1218,12 @@ build_attribute({atom,Aa,file}, Val) ->
         [{string,_An,Name},{integer,_Al,Line}] ->
             {attribute,Aa,file,{Name,Line}};
         _Other -> error_bad_decl(Aa, file)
+    end;
+build_attribute({atom,Aa,Epp}, Val) when Epp =:= else; Epp =:= endif ->
+    case Val of
+        [] -> {attribute,Aa,Epp,undefined};
+        [Value] -> {attribute,Aa,Epp,Value};
+        _Other -> ret_err(Aa, "bad attribute")
     end;
 build_attribute({atom,Aa,Attr}, Val) ->
     case Val of
