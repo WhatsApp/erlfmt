@@ -30,12 +30,12 @@ In `erlfmt_parse` the following AST nodes have different definitions:
 
 * The `clause` node as used in functions or funs has a different AST representation:
   `{clause, Anno, Name, Args, Guards, Body}`, where the newly added `Name` field
-  is an `atom` node, a `var` node or an atom `'fun'` for anonymous funs.
+  is an `atom`, `var`, or `macro_call` node or an atom `'fun'` for anonymous funs.
 
 * The `function` node has a different AST representation:
-  `{function, Anno, Clauses}`, where `Clauses` is a list of `clause` nodes.
-  Additionally it is less strict - it does not enforce all clauses have
-  the same name and arity.
+  `{function, Anno, Clauses}`, where `Clauses` is a list of `clause` nodes
+  or `macro_call` nodes. Additionally it is less strict - it does not enforce
+  all clauses have the same name and arity.
 
 * The `fun` node has a different AST representation:
   `{'fun', Anno, Value}`, where `Value` is one of:
