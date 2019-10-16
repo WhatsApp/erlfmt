@@ -151,6 +151,34 @@ macro_call_exprs(Config) when is_list(Config) ->
     ?assertMatch(
         {macro_call, _, {atom, _, foo}, [{guard, _, {atom, _, x}, {atom, _, true}}]},
         parse_expr("?foo(x when true)")
+    ),
+    ?assertMatch(
+        {concat, _, [{macro_call, _, {atom, _, foo}, none}, {string, _, "suffix"}]},
+        parse_expr("?foo \"suffix\"")
+    ),
+    ?assertMatch(
+        {concat, _, [{macro_string, _, {atom, _, foo}}, {string, _, "suffix"}]},
+        parse_expr("??foo \"suffix\"")
+    ),
+    ?assertMatch(
+        {concat, _, [{var, _, 'Var'}, {string, _, "suffix"}]},
+        parse_expr("Var \"suffix\"")
+    ),
+    ?assertMatch(
+        {concat, _, [{string, _, "prefix"}, {string, _, "suffix"}]},
+        parse_expr("\"prefix\" \"suffix\"")
+    ),
+    ?assertMatch(
+        {concat, _, [{string, _, "prefix"}, {macro_call, _, {atom, _, foo}, none}]},
+        parse_expr("\"prefix\" ?foo")
+    ),
+    ?assertMatch(
+        {concat, _, [{string, _, "prefix"}, {macro_string, _, {atom, _, foo}}]},
+        parse_expr("\"prefix\" ??foo")
+    ),
+    ?assertMatch(
+        {concat, _, [{string, _, "prefix"}, {var, _, 'Var'}]},
+        parse_expr("\"prefix\" Var")
     ).
 
 macro_call_pats(Config) when is_list(Config) ->
