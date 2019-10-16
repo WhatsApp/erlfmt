@@ -29,6 +29,8 @@
     records/1,
     attributes/1,
     macro_call_exprs/1,
+    macro_call_pats/1,
+    macro_call_types/1,
     macro_definitions/1,
     functions_and_funs/1,
     smoke_test_cli/1
@@ -61,6 +63,8 @@ groups() ->
             records,
             attributes,
             macro_call_exprs,
+            macro_call_pats,
+            macro_call_types,
             macro_definitions,
             functions_and_funs
         ]},
@@ -130,6 +134,35 @@ macro_call_exprs(Config) when is_list(Config) ->
         parse_expr("?foo(x when true)")
     ).
 
+macro_call_pats(Config) when is_list(Config) ->
+    ?assertMatch(
+        {macro_call, _, {var, _, 'FOO'}, none},
+        parse_pat("?FOO")
+    ),
+    ?assertMatch(
+        {macro_call, _, {var, _, 'FOO'}, []},
+        parse_pat("?FOO()")
+    ),
+    ?assertMatch(
+        {macro_call, _, {var, _, 'FOO'}, [{integer, _, 1}]},
+        parse_pat("?FOO(1)")
+    ).
+
+macro_call_types(Config) when is_list(Config) ->
+    ?assertMatch(
+        {macro_call, _, {var, _, 'FOO'}, none},
+        parse_type("?FOO")
+    ),
+    ?assertMatch(
+        {macro_call, _, {var, _, 'FOO'}, []},
+        parse_type("?FOO()")
+    ),
+    ?assertMatch(
+        {macro_call, _, {var, _, 'FOO'}, [{type, _, union, [{integer, _, 1}, {integer, _, 2}]}]},
+        parse_type("?FOO(1 | 2)")
+    ).
+
+
 macro_definitions(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, define, {expr, {var, _, 'FOO'}, none, [[{atom, _, foo}]]}},
@@ -186,14 +219,19 @@ functions_and_funs(Config) when is_list(Config) ->
     ).
 
 parse_expr(String) ->
-    {ok, Tokens, _} = erl_scan:string(String),
-    Wrapped = [{atom, 0, f}, {'(', 0} ,{')', 0}, {'->', 0}] ++ Tokens ++ [{dot, 0}],
-    case erlfmt_parse:parse_form(Wrapped) of
-        {ok, {function, _, [{clause, _, _, [], [], [Expr]}]}} ->
-            Expr;
-        {error, {_, Mod, Reason}} ->
-            ct:fail("Expected successful parse:\n~ts\ngot: ~ts", [String, Mod:format_error(Reason)])
-    end.
+    {function, _, [{clause, _, _, [], [], [Expr]}]} =
+        parse_form("f() -> " ++ String ++ "."),
+    Expr.
+
+parse_pat(String) ->
+    {function, _, [{clause, _, _, [Pat], [], [_]}]} =
+        parse_form("f(" ++ String ++ ") -> ok."),
+    Pat.
+
+parse_type(String) ->
+    {attribute, _, type, {_, Type, []}} =
+        parse_form("-type foo() :: " ++ String ++ "."),
+    Type.
 
 parse_form(String) ->
     {ok, Tokens, _} = erl_scan:string(String),
