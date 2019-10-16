@@ -30,7 +30,8 @@ tuple
 record_expr record_name record_tuple record_field record_fields
 map_expr map_tuple map_field map_field_assoc map_field_exact map_fields map_key
 if_expr if_clause if_clauses case_expr cr_clause cr_clauses receive_expr
-fun_expr fun_clause fun_clauses atom_or_var integer_or_var
+fun_expr fun_clause fun_clauses
+atom_or_var atom_or_var_or_macro integer_or_var_or_macro
 try_expr try_catch try_clause try_clauses try_opt_stacktrace
 function_call argument_list
 exprs guard vars
@@ -428,10 +429,9 @@ receive_expr -> 'receive' 'after' expr clause_body 'end' :
 receive_expr -> 'receive' cr_clauses 'after' expr clause_body 'end' :
         {'receive',?anno('$1'),'$2','$4','$5'}.
 
-
-fun_expr -> 'fun' atom '/' integer :
+fun_expr -> 'fun' atom_or_var_or_macro '/' integer_or_var_or_macro :
     {'fun',?anno('$1'),{function,'$2','$4'}}.
-fun_expr -> 'fun' atom_or_var ':' atom_or_var '/' integer_or_var :
+fun_expr -> 'fun' atom_or_var_or_macro ':' atom_or_var_or_macro '/' integer_or_var_or_macro :
     {'fun',?anno('$1'),{function,'$2','$4','$6'}}.
 fun_expr -> 'fun' fun_clauses 'end' :
     {'fun',?anno('$1'),{clauses,'$2'}}.
@@ -439,8 +439,12 @@ fun_expr -> 'fun' fun_clauses 'end' :
 atom_or_var -> atom : '$1'.
 atom_or_var -> var : '$1'.
 
-integer_or_var -> integer : '$1'.
-integer_or_var -> var : '$1'.
+atom_or_var_or_macro -> atom_or_var : '$1'.
+atom_or_var_or_macro -> macro_call_none : '$1'.
+
+integer_or_var_or_macro -> integer : '$1'.
+integer_or_var_or_macro -> var : '$1'.
+integer_or_var_or_macro -> macro_call_none : '$1'.
 
 fun_clauses -> fun_clause : ['$1'].
 fun_clauses -> fun_clause ';' fun_clauses : ['$1' | '$3'].

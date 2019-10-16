@@ -39,10 +39,10 @@ In `erlfmt_parse` the following AST nodes have different definitions:
 
 * The `fun` node has a different AST representation:
   `{'fun', Anno, Value}`, where `Value` is one of:
-  * `{function, Name, Arity}`, where `Name` and `Arity` are an `atom` node
-    and an `integer` node respectively,
+  * `{function, Name, Arity}`, where `Name` and `Arity` are an `atom` and
+    `integer` node respectively or `var` or `macro_call` nodes.
   * `{function, Module, Name, Arity}`, where `Module`, `Name`, and `Arity`
-    are `atom`, `atom`, and `integer` nodes respectively or a `var` node.
+    are `atom`, `atom`, and `integer` nodes respectively or a `var` or `macro_call` node.
   * `{clauses, Clauses}`, where `Clauses` is a list of `clause` nodes.
     Additionally it is less strict - the clauses aren't checked for the same
     name or arity.
