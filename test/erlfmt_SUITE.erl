@@ -112,8 +112,27 @@ attributes(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, foo, {atom, _, bar}},
         parse_form("-foo(bar).")
+    ),
+    ?assertMatch(
+        {attribute, _, ifdef, {atom, _, foo}},
+        parse_form("-ifdef(foo).")
+    ),
+    ?assertMatch(
+        {attribute, _, 'if', {op, _, '==', {macro_call, _, {atom, _, foo}, none}, {integer, _, 2}}},
+        parse_form("-if(?foo == 2).")
+    ),
+    ?assertMatch(
+        {attribute, _, else, undefined},
+        parse_form("-else.")
+    ),
+    ?assertMatch(
+        {attribute, _, endif, undefined},
+        parse_form("-endif.")
+    ),
+    ?assertMatch(
+        {attribute, _, endif, {macro_call, _, {var, _, 'BAR'}, none}},
+        parse_form("-endif(?BAR).")
     ).
-
 
 macro_call_exprs(Config) when is_list(Config) ->
     ?assertMatch(
@@ -164,7 +183,6 @@ macro_call_types(Config) when is_list(Config) ->
         {macro_call, _, {var, _, 'FOO'}, [{type, _, union, [{integer, _, 1}, {integer, _, 2}]}]},
         parse_type("?FOO(1 | 2)")
     ).
-
 
 macro_definitions(Config) when is_list(Config) ->
     ?assertMatch(
