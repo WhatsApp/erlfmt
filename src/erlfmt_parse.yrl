@@ -43,6 +43,8 @@ type_sig type_sigs type_guard type_guards fun_type fun_type_anon binary_type
 type_spec spec_fun typed_exprs typed_record_fields field_types field_type
 map_pair_types map_pair_type
 bin_base_type bin_unit_type
+macro_call_expr macro_string macro_call_none
+macro_expr macro_exprs
 macro_name macro_def_expr macro_def_expr_body macro_def_clause.
 
 Terminals
@@ -57,11 +59,12 @@ char integer float atom string var
 '++' '--'
 '==' '/=' '=<' '<' '>=' '>' '=:=' '=/=' '<=' '=>' ':='
 '<<' '>>'
-'!' '=' '::' '..' '...'
+'?' '!' '=' '::' '..' '...'
 spec callback define_expr define_clause % helper
 dot.
 
-Expect 0.
+%% Conflict comes from optional parens on macro calls.
+Expect 1.
 
 Rootsymbol form.
 
@@ -234,6 +237,7 @@ expr -> function_call : '$1'.
 expr -> record_expr : '$1'.
 expr -> expr_max : '$1'.
 
+expr_max -> macro_call_expr : '$1'.
 expr_max -> var : '$1'.
 expr_max -> atomic : '$1'.
 expr_max -> list : '$1'.
@@ -479,6 +483,24 @@ macro_name -> atom_or_var : {'$1', none}.
 macro_name -> atom_or_var '(' ')' : {'$1', []}.
 macro_name -> atom_or_var '(' vars ')' : {'$1', '$3'}.
 
+macro_call_expr -> macro_string :
+    '$1'.
+macro_call_expr -> macro_call_none :
+    '$1'.
+macro_call_expr -> '?' atom_or_var '(' ')' :
+    {macro_call, ?anno('$1'), '$2', []}.
+macro_call_expr -> '?' atom_or_var '(' macro_exprs ')' :
+    {macro_call, ?anno('$1'), '$2', '$4'}.
+
+macro_call_none -> '?' atom_or_var :
+    {macro_call, ?anno('$1'), '$2', none}.
+
+macro_string -> '?' '?' atom_or_var :
+    {macro_string, ?anno('$1'), '$3'}.
+
+macro_expr -> expr : '$1'.
+macro_expr -> expr 'when' expr : {guard,?anno('$2'),'$1','$3'}.
+
 argument_list -> '(' ')' : {[],?anno('$1')}.
 argument_list -> '(' exprs ')' : {'$2',?anno('$1')}.
 
@@ -490,6 +512,9 @@ exprs -> expr ',' exprs : ['$1' | '$3'].
 
 pat_exprs -> pat_expr : ['$1'].
 pat_exprs -> pat_expr ',' pat_exprs : ['$1' | '$3'].
+
+macro_exprs -> macro_expr : ['$1'].
+macro_exprs -> macro_expr ',' macro_exprs : ['$1' | '$3'].
 
 vars -> var : ['$1'].
 vars -> var ',' vars : ['$1' | '$3'].
