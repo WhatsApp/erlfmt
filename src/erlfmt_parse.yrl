@@ -43,7 +43,7 @@ type_sig type_sigs type_guard type_guards fun_type fun_type_anon binary_type
 type_spec spec_fun typed_exprs typed_record_fields field_types field_type
 map_pair_types map_pair_type
 bin_base_type bin_unit_type
-macro_call_expr macro_string macro_call_none
+macro_call_expr macro_string macro_call_pat macro_call_type macro_call_none
 macro_expr macro_exprs
 macro_name macro_def_expr macro_def_expr_body macro_def_clause.
 
@@ -140,6 +140,7 @@ top_type -> type                          : '$1'.
 
 type -> type '..' type                    : {type, ?anno('$1'), range,
                                              ['$1', '$3']}.
+type -> macro_call_type                   : '$1'.
 type -> type add_op type                  : ?mkop2('$1', '$2', '$3').
 type -> type mult_op type                 : ?mkop2('$1', '$2', '$3').
 type -> prefix_op type                    : ?mkop1('$1', '$2').
@@ -263,6 +264,7 @@ pat_expr -> map_pat_expr : '$1'.
 pat_expr -> record_pat_expr : '$1'.
 pat_expr -> pat_expr_max : '$1'.
 
+pat_expr_max -> macro_call_pat : '$1'.
 pat_expr_max -> var : '$1'.
 pat_expr_max -> atomic : '$1'.
 pat_expr_max -> list : '$1'.
@@ -490,6 +492,20 @@ macro_call_expr -> macro_call_none :
 macro_call_expr -> '?' atom_or_var '(' ')' :
     {macro_call, ?anno('$1'), '$2', []}.
 macro_call_expr -> '?' atom_or_var '(' macro_exprs ')' :
+    {macro_call, ?anno('$1'), '$2', '$4'}.
+
+macro_call_pat -> macro_call_none :
+    '$1'.
+macro_call_pat -> '?' atom_or_var '(' ')' :
+    {macro_call, ?anno('$1'), '$2', []}.
+macro_call_pat -> '?' atom_or_var '(' pat_exprs ')' :
+    {macro_call, ?anno('$1'), '$2', '$4'}.
+
+macro_call_type -> macro_call_none :
+    '$1'.
+macro_call_type -> '?' atom_or_var '(' ')' :
+    {macro_call, ?anno('$1'), '$2', []}.
+macro_call_type -> '?' atom_or_var '(' top_types ')' :
     {macro_call, ?anno('$1'), '$2', '$4'}.
 
 macro_call_none -> '?' atom_or_var :

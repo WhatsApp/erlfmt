@@ -48,8 +48,8 @@ In `erlfmt_parse` the following AST nodes have different definitions:
 * The `named_fun` node is not used.
 
 * A new node `{macro_call, Anno, Name, Args}` is introduced, where `Name` is
-  either an `atom` or a `var` node and `Args` is a list of expressions or
-  special `guard` nodes.
+  either an `atom` or a `var` node and `Args` is a list of expressions, types,
+  or special `guard` nodes.
 
 * A new node `{guard, Anno, Expr, Guard}` is introduced, used only as argument
   for a macro. It represents "free-standing" `Expr when Guard` expressions as used,
