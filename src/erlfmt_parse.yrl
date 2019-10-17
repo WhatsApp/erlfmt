@@ -252,6 +252,7 @@ expr -> function_call : '$1'.
 expr -> record_expr : '$1'.
 expr -> expr_max : '$1'.
 
+expr_max -> expr_max ':' expr_max : {remote,?anno('$2'),'$1','$3'}.
 expr_max -> macro_call_expr : '$1'.
 expr_max -> var : '$1'.
 expr_max -> atomic : '$1'.
@@ -400,9 +401,6 @@ record_field -> atom '=' expr : {record_field,?anno('$1'),'$1','$3'}.
 record_name -> atom : '$1'.
 
 %% N.B. This is called from expr.
-
-function_call -> expr_max ':' expr_max argument_list :
-    {call,?anno('$2'),{remote,?anno('$2'),'$1','$3'},element(1, '$4')}.
 function_call -> expr_max argument_list :
     {call,?anno('$1'),'$1',element(1, '$2')}.
 
