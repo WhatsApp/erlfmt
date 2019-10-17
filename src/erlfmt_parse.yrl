@@ -1206,13 +1206,13 @@ build_attribute({atom,Aa,module}, Val) ->
 build_attribute({atom,Aa,export}, Val) ->
     case Val of
         [ExpList] ->
-            {attribute,Aa,export,farity_list(ExpList)};
+            {attribute,Aa,export,ExpList};
         _Other -> error_bad_decl(Aa, export)
     end;
 build_attribute({atom,Aa,import}, Val) ->
     case Val of
-        [{atom,_Am,Mod},ImpList] ->
-            {attribute,Aa,import,{Mod,farity_list(ImpList)}};
+        [Mod,ImpList] ->
+            {attribute,Aa,import,{Mod,ImpList}};
         _Other -> error_bad_decl(Aa, import)
     end;
 build_attribute({atom,Aa,record}, Val) ->
@@ -1235,8 +1235,7 @@ build_attribute({atom,Aa,Epp}, Val) when Epp =:= else; Epp =:= endif ->
     end;
 build_attribute({atom,Aa,Attr}, Val) ->
     case Val of
-        [Expr0] ->
-            Expr = attribute_farity(Expr0),
+        [Expr] ->
             {attribute,Aa,Attr,Expr};
         _Other -> ret_err(Aa, "bad attribute")
     end.
@@ -1247,35 +1246,10 @@ var_list({nil,_An}) -> [];
 var_list(Other) ->
     ret_err(?anno(Other), "bad variable list").
 
-attribute_farity({cons,A,H,T}) ->
-    {cons,A,attribute_farity(H),attribute_farity(T)};
-attribute_farity({tuple,A,Args0}) ->
-    Args = attribute_farity_list(Args0),
-    {tuple,A,Args};
-attribute_farity({map,A,Args0}) ->
-    Args = attribute_farity_map(Args0),
-    {map,A,Args};
-attribute_farity({op,A,'/',{atom,_,_}=Name,{integer,_,_}=Arity}) ->
-    {tuple,A,[Name,Arity]};
-attribute_farity(Other) -> Other.
-
-attribute_farity_list(Args) ->
-    [attribute_farity(A) || A <- Args].
-
-%% It is not meaningful to have farity keys.
-attribute_farity_map(Args) ->
-    [{Op,A,K,attribute_farity(V)} || {Op,A,K,V} <- Args].
-
 -spec error_bad_decl(erl_anno:anno(), attributes()) -> no_return().
 
 error_bad_decl(Anno, S) ->
     ret_err(Anno, io_lib:format("bad ~tw declaration", [S])).
-
-farity_list({cons,_Ac,{op,_Ao,'/',{atom,_Aa,A},{integer,_Ai,I}},Tail}) ->
-    [{A,I}|farity_list(Tail)];
-farity_list({nil,_An}) -> [];
-farity_list(Other) ->
-    ret_err(?anno(Other), "bad function arity").
 
 record_tuple({tuple,_At,Fields}) ->
     record_fields(Fields);
