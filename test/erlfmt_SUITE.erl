@@ -132,6 +132,18 @@ attributes(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, endif, {macro_call, _, {var, _, 'BAR'}, none}},
         parse_form("-endif(?BAR).")
+    ),
+    ?assertMatch(
+        {attribute, _, spec, {{{macro_call, _, {atom, _, 'foo'}, none}, 0}, [
+            {type, _, 'fun', [{type, _, product, []}, {atom, _, ok}]}
+        ]}},
+        parse_form("-spec ?foo() -> ok.")
+    ),
+    ?assertMatch(
+        {attribute, _, callback, {{{macro_call, _, {var, _, 'FOO'}, none}, 0}, [
+            {type, _, 'fun', [{type, _, product, []}, {atom, _, ok}]}
+        ]}},
+        parse_form("-callback ?FOO() -> ok.")
     ).
 
 macro_call_exprs(Config) when is_list(Config) ->
