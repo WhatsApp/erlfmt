@@ -41,7 +41,7 @@ atom_or_var atom_or_var_or_macro integer_or_var_or_macro
 try_expr try_catch try_clause try_clauses try_opt_stacktrace
 function_call argument_list
 exprs guard vars
-atomic concatable concatables
+atomic concatable concatables macro_record_or_concatable
 prefix_op mult_op add_op list_op comp_op
 binary bin_elements bin_element bit_expr
 opt_bit_size_expr bit_size_expr opt_bit_type_list bit_type_list bit_type
@@ -172,6 +172,8 @@ type -> '{' '}'                           : {type, ?anno('$1'), tuple, []}.
 type -> '{' top_types '}'                 : {type, ?anno('$1'), tuple, '$2'}.
 type -> '#' record_name '{' '}'           : {type, ?anno('$1'), record, ['$2']}.
 type -> '#' record_name '{' field_types '}' : {type, ?anno('$1'), record, ['$2'|'$4']}.
+type -> macro_call_none '{' '}'           : {type, ?anno('$1'), record, ['$1']}.
+type -> macro_call_none '{' field_types '}' : {type, ?anno('$1'), record, ['$1'|'$3']}.
 type -> binary_type                       : '$1'.
 type -> integer                           : '$1'.
 type -> char                              : '$1'.
@@ -254,6 +256,7 @@ expr -> expr_max : '$1'.
 
 expr_max -> expr_max ':' expr_max : {remote,?anno('$2'),'$1','$3'}.
 expr_max -> macro_call_expr : '$1'.
+expr_max -> macro_record_or_concatable : '$1'.
 expr_max -> var : '$1'.
 expr_max -> atomic : '$1'.
 expr_max -> list : '$1'.
@@ -389,6 +392,13 @@ record_expr -> record_expr '#' record_name '.' atom :
 record_expr -> record_expr '#' record_name record_tuple :
     {record,?anno('$2'),'$1','$3','$4'}.
 
+macro_record_or_concatable -> var macro_call_none '.' atom :
+    {record_field,?anno('$2'),'$1','$2','$4'}.
+macro_record_or_concatable -> var macro_call_none record_tuple :
+    {record,?anno('$2'),'$1','$2','$3'}.
+macro_record_or_concatable -> var concatables :
+    {concat, ?anno('$1'), ['$1' | '$2']}.
+
 record_tuple -> '{' '}' : [].
 record_tuple -> '{' record_fields '}' : '$2'.
 
@@ -399,6 +409,7 @@ record_field -> var '=' expr : {record_field,?anno('$1'),'$1','$3'}.
 record_field -> atom '=' expr : {record_field,?anno('$1'),'$1','$3'}.
 
 record_name -> atom : '$1'.
+record_name -> macro_call_none : '$1'.
 
 %% N.B. This is called from expr.
 function_call -> expr_max argument_list :
@@ -508,6 +519,10 @@ macro_call_expr -> '?' atom_or_var '(' ')' :
     {macro_call, ?anno('$1'), '$2', []}.
 macro_call_expr -> '?' atom_or_var '(' macro_exprs ')' :
     {macro_call, ?anno('$1'), '$2', '$4'}.
+macro_call_expr -> '?' atom_or_var record_tuple :
+    {record, ?anno('$1'), {macro_call, ?anno('$1'), '$2', none}, '$3'}.
+macro_call_expr -> '?' atom_or_var '.' atom :
+    {record_index, ?anno('$1'), {macro_call, ?anno('$1'), '$2', none} ,'$4'}.
 
 macro_call_pat -> macro_call_none :
     '$1'.
@@ -515,6 +530,10 @@ macro_call_pat -> '?' atom_or_var '(' ')' :
     {macro_call, ?anno('$1'), '$2', []}.
 macro_call_pat -> '?' atom_or_var '(' pat_exprs ')' :
     {macro_call, ?anno('$1'), '$2', '$4'}.
+macro_call_pat -> '?' atom_or_var record_tuple :
+    {record, ?anno('$1'), {macro_call, ?anno('$1'), '$2', none}, '$3'}.
+macro_call_pat -> '?' atom_or_var '.' atom :
+    {record_index, ?anno('$1'), {macro_call, ?anno('$1'), '$2', none} ,'$4'}.
 
 macro_call_type -> macro_call_none :
     '$1'.
@@ -558,7 +577,9 @@ atomic -> integer : '$1'.
 atomic -> float : '$1'.
 atomic -> atom : '$1'.
 atomic -> string : '$1'.
-atomic -> concatable concatables : {concat, ?anno('$1'), ['$1' | '$2']}.
+atomic -> string concatables : {concat, ?anno('$1'), ['$1' | '$2']}.
+atomic -> macro_call_none concatables : {concat, ?anno('$1'), ['$1' | '$2']}.
+atomic -> macro_string concatables : {concat, ?anno('$1'), ['$1' | '$2']}.
 
 concatables -> concatable : ['$1'].
 concatables -> concatable concatables : ['$1' | '$2'].
@@ -1263,6 +1284,7 @@ record_tuple(Other) ->
     ret_err(?anno(Other), "bad record declaration").
 
 record_name({atom, _, _} = Name) -> Name;
+record_name({macro_call, _, _, _} = Name) -> Name;
 record_name(Other) -> ret_err(?anno(Other), "bad record declaration").
 
 record_fields([{atom,Aa,A}|Fields]) ->

@@ -211,6 +211,38 @@ macro_call_exprs(Config) when is_list(Config) ->
     ?assertMatch(
         {concat, _, [{string, _, "prefix"}, {var, _, 'Var'}]},
         parse_expr("\"prefix\" Var")
+    ),
+    ?assertMatch(
+        {record, _, {macro_call, _, {atom, _, foo}, none}, []},
+        parse_expr("?foo{}")
+    ),
+    ?assertMatch(
+        {record_index, _, {macro_call, _, {atom, _, foo}, none}, {atom, _, bar}},
+        parse_expr("?foo.bar")
+    ),
+    ?assertMatch(
+        {record, _, {var, _, 'S'}, {macro_call, _, {atom, _, foo}, none}, []},
+        parse_expr("S?foo{}")
+    ),
+    ?assertMatch(
+        {record_field, _, {var, _, 'S'}, {macro_call, _, {atom, _, foo}, none}, {atom, _, bar}},
+        parse_expr("S?foo.bar")
+    ),
+    ?assertMatch(
+        {record, _, {macro_call, _, {atom, _, foo}, none}, []},
+        parse_expr("#?foo{}")
+    ),
+    ?assertMatch(
+        {record_index, _, {macro_call, _, {atom, _, foo}, none}, {atom, _, bar}},
+        parse_expr("#?foo.bar")
+    ),
+    ?assertMatch(
+        {record, _, {var, _, 'S'}, {macro_call, _, {atom, _, foo}, none}, []},
+        parse_expr("S#?foo{}")
+    ),
+    ?assertMatch(
+        {record_field, _, {var, _, 'S'}, {macro_call, _, {atom, _, foo}, none}, {atom, _, bar}},
+        parse_expr("S#?foo.bar")
     ).
 
 macro_call_pats(Config) when is_list(Config) ->
@@ -225,6 +257,22 @@ macro_call_pats(Config) when is_list(Config) ->
     ?assertMatch(
         {macro_call, _, {var, _, 'FOO'}, [{integer, _, 1}]},
         parse_pat("?FOO(1)")
+    ),
+    ?assertMatch(
+        {record, _, {macro_call, _, {atom, _, foo}, none}, []},
+        parse_pat("?foo{}")
+    ),
+    ?assertMatch(
+        {record_index, _, {macro_call, _, {atom, _, foo}, none}, {atom, _, bar}},
+        parse_pat("?foo.bar")
+    ),
+    ?assertMatch(
+        {record, _, {macro_call, _, {atom, _, foo}, none}, []},
+        parse_pat("#?foo{}")
+    ),
+    ?assertMatch(
+        {record_index, _, {macro_call, _, {atom, _, foo}, none}, {atom, _, bar}},
+        parse_pat("#?foo.bar")
     ).
 
 macro_call_types(Config) when is_list(Config) ->
@@ -239,6 +287,14 @@ macro_call_types(Config) when is_list(Config) ->
     ?assertMatch(
         {macro_call, _, {var, _, 'FOO'}, [{type, _, union, [{integer, _, 1}, {integer, _, 2}]}]},
         parse_type("?FOO(1 | 2)")
+    ),
+    ?assertMatch(
+        {type, _, record, [{macro_call, _, {atom, _, foo}, none}]},
+        parse_type("?foo{}")
+    ),
+    ?assertMatch(
+        {type, _, record, [{macro_call, _, {atom, _, foo}, none}]},
+        parse_type("#?foo{}")
     ).
 
 macro_definitions(Config) when is_list(Config) ->
