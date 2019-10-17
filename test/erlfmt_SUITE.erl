@@ -141,6 +141,26 @@ attributes(Config) when is_list(Config) ->
             {type, _, 'fun', [{type, _, product, []}, {atom, _, ok}]}
         ]}},
         parse_form("-callback ?FOO() -> ok.")
+    ),
+    ?assertMatch(
+        {attribute, _, export,
+            {cons, _, {op, _, '/', {macro_call, _, {var, _, 'FOO'}, none}, {integer, _, 1}},
+                {cons, _, {op, _, '/', {atom, _, foo}, {integer, _, 2}},
+                    {nil, _}}}},
+        parse_form("-export([?FOO/1, foo/2]).")
+    ),
+    ?assertMatch(
+        {attribute, _, import, {
+            {atom, _, foo},
+            {cons, _, {op, _, '/', {atom, _, bar}, {integer, _, 1}}, {nil, _}}
+        }},
+        parse_form("-import(foo, [bar/1]).")
+    ),
+    ?assertMatch(
+        {attribute, _, something_else,
+            {tuple, _, [{atom, _, foo}, {op, _, '/', {atom, _, bar}, {integer, _, 1}}]}
+        },
+        parse_form("-something_else({foo, bar/1}).")
     ).
 
 macro_call_exprs(Config) when is_list(Config) ->

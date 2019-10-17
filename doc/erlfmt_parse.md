@@ -63,3 +63,8 @@ In `erlfmt_parse` the following AST nodes have different definitions:
 * A new node `{concat, Anno, Concatables}`, where `Concatables` is a list of
   `atom`, `var`, and `macro_call` nodes. This is used to represent implicit
   string concatenation, for example `"foo" "bar"`.
+
+* Attributes are not processed to convert the `fun/arity` syntax into tuples,
+  they are left as the `op` nodes with the `/` operator. Additionally, the
+  `import` and `export` attributes are not processed to convert the `cons` node
+  chains into lists.
