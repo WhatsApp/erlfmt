@@ -112,8 +112,8 @@ attribute -> '-' define_clause macro_def_clause : build_macro_def(clause, '$1', 
 type_spec -> spec_fun type_sigs : {'$1', '$2'}.
 type_spec -> '(' spec_fun type_sigs ')' : {'$2', '$3'}.
 
-spec_fun ->                           atom : '$1'.
-spec_fun ->                  atom ':' atom : {'$1', '$3'}.
+spec_fun -> atom_or_var_or_macro : '$1'.
+spec_fun -> atom ':' atom : {'$1', '$3'}.
 
 typed_attr_val -> expr ',' typed_record_fields : {typed_record, '$1', '$3'}.
 typed_attr_val -> expr '::' top_type           : {type_def, '$1', '$3'}.
@@ -1124,9 +1124,11 @@ build_type_spec({Kind,Aa}, {SpecFun, TypeSpecs})
   when Kind =:= spec ; Kind =:= callback ->
     NewSpecFun =
         case SpecFun of
-            {atom, _, Fun} ->
+            {Tag, _, _} = Fun when Tag =:= atom; Tag =:= var ->
                 {Fun, find_arity_from_specs(TypeSpecs)};
-            {{atom, _, Mod}, {atom, _, Fun}} ->
+            {macro_call, _, _, _} = Fun ->
+                {Fun, find_arity_from_specs(TypeSpecs)};
+            {{atom, _, _} = Mod, {atom, _, _} = Fun} ->
                 {Mod, Fun, find_arity_from_specs(TypeSpecs)}
         end,
     {attribute,Aa,Kind,{NewSpecFun, TypeSpecs}}.
