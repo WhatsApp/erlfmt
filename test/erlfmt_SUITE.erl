@@ -22,6 +22,7 @@
     suite/0,
     all/0,
     groups/0,
+    group/1,
     init_per_suite/1, end_per_suite/1,
     init_per_group/2, end_per_group/2,
     init_per_testcase/2, end_per_testcase/2
@@ -71,10 +72,12 @@ groups() ->
             macro_definitions,
             functions_and_funs
         ]},
-        {smoke_tests, [parallel, {timetrap, {minutes, 1}}], [
+        {smoke_tests, [parallel], [
             smoke_test_cli
         ]}
     ].
+
+group(_) -> [].
 
 all() ->
     [{group, smoke_tests}, {group, parser}].
