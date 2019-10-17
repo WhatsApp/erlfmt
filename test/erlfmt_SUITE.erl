@@ -255,6 +255,10 @@ macro_definitions(Config) when is_list(Config) ->
             {clause, _, {var, _, 'Name'}, [], [], [{atom, _, ok}]}}
         },
         parse_form("-define(FOO(Name), Name() -> ok).")
+    ),
+    ?assertMatch(
+        {attribute, _, define, {expr, {var, _, 'HASH_FUN'}, none, [[{remote, _, {atom, _, erlang}, {atom, _, phash}}]]}},
+        parse_form("-define(HASH_FUN, erlang:phash).")
     ).
 
 functions_and_funs(Config) when is_list(Config) ->
