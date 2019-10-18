@@ -62,6 +62,7 @@
     smoke_test_parser_ipsd/1,
     smoke_test_parser_keyd/1,
     smoke_test_parser_llcd/1,
+    smoke_test_parser_loader/1,
     smoke_test_parser_locd/1,
     smoke_test_parser_mmsd/1,
     smoke_test_parser_mnfd/1,
@@ -184,6 +185,7 @@ groups() ->
             smoke_test_parser_ipsd,
             smoke_test_parser_keyd,
             smoke_test_parser_llcd,
+            smoke_test_parser_loader,
             smoke_test_parser_locd,
             smoke_test_parser_mmsd,
             smoke_test_parser_mnfd,
@@ -632,6 +634,7 @@ smoke_test_parser_grpd(Config) -> smoke_test_parser(grpd, Config).
 smoke_test_parser_ipsd(Config) -> smoke_test_parser(ipsd, Config).
 smoke_test_parser_keyd(Config) -> smoke_test_parser(keyd, Config).
 smoke_test_parser_llcd(Config) -> smoke_test_parser(llcd, Config).
+smoke_test_parser_loader(Config) -> smoke_test_parser(loader, Config).
 smoke_test_parser_locd(Config) -> smoke_test_parser(locd, Config).
 smoke_test_parser_mmsd(Config) -> smoke_test_parser(mmsd, Config).
 smoke_test_parser_mnfd(Config) -> smoke_test_parser(mnfd, Config).
