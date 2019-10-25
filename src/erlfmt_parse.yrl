@@ -27,7 +27,7 @@ list tail
 list_comprehension lc_expr lc_exprs
 binary_comprehension
 tuple
-record_expr record_name record_tuple record_field record_fields
+record_expr record_name record_field_name record_tuple record_field record_fields
 map_expr map_tuple map_field map_field_assoc map_field_exact map_fields map_key
 if_expr if_clause if_clauses case_expr cr_clause cr_clauses receive_expr
 fun_expr fun_clause fun_clauses
@@ -291,7 +291,7 @@ map_pat_expr -> pat_expr_max '#' map_tuple :
 map_pat_expr -> map_pat_expr '#' map_tuple :
         {map, ?anno('$2'),'$1','$3'}.
 
-record_pat_expr -> '#' record_name '.' atom :
+record_pat_expr -> '#' record_name '.' record_field_name :
         {record_index,?anno('$1'),'$2','$4'}.
 record_pat_expr -> '#' record_name record_tuple :
         {record,?anno('$1'),'$2','$3'}.
@@ -373,20 +373,20 @@ map_key -> expr : '$1'.
 %% N.B. Field names are returned as the complete object, even if they are
 %% always atoms for the moment, this might change in the future.
 
-record_expr -> '#' record_name '.' atom :
+record_expr -> '#' record_name '.' record_field_name :
     {record_index,?anno('$1'),'$2','$4'}.
 record_expr -> '#' record_name record_tuple :
     {record,?anno('$1'),'$2','$3'}.
-record_expr -> expr_max '#' record_name '.' atom :
+record_expr -> expr_max '#' record_name '.' record_field_name :
     {record_field,?anno('$2'),'$1','$3','$5'}.
 record_expr -> expr_max '#' record_name record_tuple :
     {record,?anno('$2'),'$1','$3','$4'}.
-record_expr -> record_expr '#' record_name '.' atom :
+record_expr -> record_expr '#' record_name '.' record_field_name :
     {record_field,?anno('$2'),'$1','$3','$5'}.
 record_expr -> record_expr '#' record_name record_tuple :
     {record,?anno('$2'),'$1','$3','$4'}.
 
-macro_record_or_concatable -> var macro_call_none '.' atom :
+macro_record_or_concatable -> var macro_call_none '.' record_field_name :
     {record_field,?anno('$2'),'$1','$2','$4'}.
 macro_record_or_concatable -> var macro_call_none record_tuple :
     {record,?anno('$2'),'$1','$2','$3'}.
@@ -404,6 +404,10 @@ record_field -> atom '=' expr : {record_field,?anno('$1'),'$1','$3'}.
 
 record_name -> atom : '$1'.
 record_name -> macro_call_none : '$1'.
+
+record_field_name -> atom : '$1'.
+record_field_name -> var : '$1'.
+record_field_name -> macro_call_none : '$1'.
 
 %% N.B. This is called from expr.
 function_call -> expr_max argument_list :

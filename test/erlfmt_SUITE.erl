@@ -249,6 +249,14 @@ macro_call_exprs(Config) when is_list(Config) ->
     ?assertMatch(
         {record_field, _, {var, _, 'S'}, {macro_call, _, {atom, _, foo}, none}, {atom, _, bar}},
         parse_expr("S#?foo.bar")
+    ),
+    ?assertMatch(
+        {record_index, _, {atom, _, foo}, {var, _, 'Bar'}},
+        parse_expr("#foo.Bar")
+    ),
+    ?assertMatch(
+        {record_field, _, {var, _, 'S'}, {atom, _, foo}, {var, _, 'Bar'}},
+        parse_expr("S#foo.Bar")
     ).
 
 macro_call_pats(Config) when is_list(Config) ->
@@ -279,6 +287,10 @@ macro_call_pats(Config) when is_list(Config) ->
     ?assertMatch(
         {record_index, _, {macro_call, _, {atom, _, foo}, none}, {atom, _, bar}},
         parse_pat("#?foo.bar")
+    ),
+    ?assertMatch(
+        {record_index, _, {atom, _, foo}, {var, _, 'Bar'}},
+        parse_pat("#foo.Bar")
     ).
 
 macro_call_types(Config) when is_list(Config) ->
