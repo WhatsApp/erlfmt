@@ -129,6 +129,11 @@ init_per_suite(Config) ->
 end_per_suite(_Config) ->
     ok.
 
+init_per_group(smoke_test_parser, Config) ->
+    case os:getenv("PURPOSE") of
+        "diff" -> {skip, "skipping on diffs - see D18138121"};
+        _ -> Config
+    end;
 init_per_group(_GroupName, Config) ->
     Config.
 
