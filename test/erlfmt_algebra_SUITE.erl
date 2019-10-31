@@ -31,7 +31,8 @@
 -export([
     string_append_case/1,
     string_spaces_case/1,
-    lines_combine_case/1
+    lines_combine_case/1,
+    metric_combine_case/1
 ]).
 
 -define(alg, erlfmt_algebra).
@@ -60,11 +61,12 @@ end_per_testcase(_TestCase, _Config) ->
 groups() ->
     [
         {string_api, [parallel], [string_append_case, string_spaces_case]},
-        {lines_api, [parallel], [lines_combine_case]}
+        {lines_api, [parallel], [lines_combine_case]},
+        {metric_api, [parallel], [metric_combine_case]}
     ].
 
 all() ->
-    [{group, string_api}, {group, lines_api}].
+    [{group, string_api}, {group, lines_api}, {group, metric_api}].
 
 %%--------------------------------------------------------------------
 %% TEST CASESS
@@ -93,23 +95,43 @@ string_spaces_prop() ->
 string_spaces_case(Config) when is_list(Config) ->
     ct_proper:quickcheck(string_spaces_prop()).
 
-lines_combine_assoc_prop() ->
-    ?FORALL({Lines1, Lines2, Lines3}, {lines(), lines(), lines()}, begin
-        Combined1 = ?alg:lines_combine(Lines1, ?alg:lines_combine(Lines2, Lines3)),
-        Combined2 = ?alg:lines_combine(?alg:lines_combine(Lines1, Lines2), Lines3),
-        string:equal(?alg:lines_render(Combined1), ?alg:lines_render(Combined2))
+-record(layout, {new, flush, combine, render}).
+
+combine_assoc_prop(#layout{combine = Combine, render = Render} = Layout) ->
+    Gen = layout(Layout),
+    ?FORALL({L1, L2, L3}, {Gen, Gen, Gen}, begin
+        Combined1 = Combine(L1, Combine(L2, L3)),
+        Combined2 = Combine(Combine(L1, L2), L3),
+        string:equal(Render(Combined1), Render(Combined2))
     end).
 
-lines_combine_flush_prop() ->
-    ?FORALL({Lines1, Lines2}, {lines(), lines()}, begin
-        Combined1 = ?alg:lines_combine(?alg:lines_flush(Lines1), ?alg:lines_flush(Lines2)),
-        Combined2 = ?alg:lines_flush(?alg:lines_combine(?alg:lines_flush(Lines1), Lines2)),
-        string:equal(?alg:lines_render(Combined1), ?alg:lines_render(Combined2))
+combine_flush_prop(#layout{combine = Combine, render = Render, flush = Flush} = Layout) ->
+    Gen = layout(Layout),
+    ?FORALL({L1, L2}, {Gen, Gen}, begin
+        Combined1 = Combine(Flush(L1), Flush(L2)),
+        Combined2 = Flush(Combine(Flush(L1), L2)),
+        string:equal(Render(Combined1), Render(Combined2))
     end).
 
 lines_combine_case(Config) when is_list(Config) ->
-    ct_proper:quickcheck(lines_combine_assoc_prop()),
-    ct_proper:quickcheck(lines_combine_flush_prop()).
+    Lines = #layout{
+        new = fun ?alg:lines_new/1,
+        flush = fun ?alg:lines_flush/1,
+        combine = fun ?alg:lines_combine/2,
+        render = fun ?alg:lines_render/1
+    },
+    ct_proper:quickcheck(combine_assoc_prop(Lines)),
+    ct_proper:quickcheck(combine_flush_prop(Lines)).
+
+metric_combine_case(Config) when is_list(Config) ->
+    Metric = #layout{
+        new = fun ?alg:metric_new/1,
+        flush = fun ?alg:metric_flush/1,
+        combine = fun ?alg:metric_combine/2,
+        render = fun ?alg:metric_render/1
+    },
+    ct_proper:quickcheck(combine_assoc_prop(Metric)),
+    ct_proper:quickcheck(combine_flush_prop(Metric)).
 
 
 %% It's possible for the utf8 generator to produce strings that start or end with
@@ -122,15 +144,15 @@ str() ->
     end),
     ?LET(Str, ClosedUTF8, ?alg:string_new(string:replace(Str, [<<"\n">>, <<"\r">>], <<>>))).
 
-lines() ->
-    ?SIZED(Size, limited_lines(Size)).
+layout(Layout) ->
+    ?SIZED(Size, limited_layout(Size, Layout)).
 
-limited_lines(Size) when Size =< 1 ->
-    ?LET(Str, str(), ?alg:lines_new(Str));
-limited_lines(Size) ->
-    Self = ?LAZY(limited_lines(Size - 1)),
+limited_layout(Size, #layout{new = New}) when Size =< 1 ->
+    ?LET(Str, str(), New(Str));
+limited_layout(Size, #layout{new = New, flush = Flush, combine = Combine} = Layout) ->
+    Self = ?LAZY(limited_layout(Size - 1, Layout)),
     union([
-        ?LET(Str, str(), ?alg:lines_new(Str)),
-        ?LET(Lines, Self, ?alg:lines_flush(Lines)),
-        ?LET({Left, Right}, {Self, Self}, ?alg:lines_combine(Left, Right))
+        ?LET(Str, str(), New(Str)),
+        ?LET(Lines, Self, Flush(Lines)),
+        ?LET({Left, Right}, {Self, Self}, Combine(Left, Right))
     ]).
