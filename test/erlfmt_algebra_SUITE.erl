@@ -30,7 +30,9 @@
     string_append_case/1,
     string_spaces_case/1,
     lines_combine_case/1,
-    metric_combine_case/1
+    lines_unit/1,
+    metric_combine_case/1,
+    metric_unit/1
 ]).
 
 -define(alg, erlfmt_algebra).
@@ -59,8 +61,8 @@ end_per_testcase(_TestCase, _Config) ->
 groups() ->
     [
         {string_api, [parallel], [string_append_case, string_spaces_case]},
-        {lines_api, [parallel], [lines_combine_case]},
-        {metric_api, [parallel], [metric_combine_case]}
+        {lines_api, [parallel], [lines_combine_case, lines_unit]},
+        {metric_api, [parallel], [metric_combine_case, metric_unit]}
     ].
 
 all() ->
@@ -112,25 +114,106 @@ combine_flush_prop(#layout{combine = Combine, render = Render, flush = Flush} = 
     end).
 
 lines_combine_case(Config) when is_list(Config) ->
-    Lines = #layout{
+    Lines = lines_layout(),
+    ct_proper:quickcheck(combine_assoc_prop(Lines)),
+    ct_proper:quickcheck(combine_flush_prop(Lines)).
+
+lines_unit(Config) when is_list(Config) ->
+    % xxxxxxxx      yyyyyyyy     xxxxxxxx
+    % xxx       <>  yyyy      =  xxx
+    % xxxxxxx                    xxxxxxx
+    % xxxxx                      xxxxxyyyyyyyy
+    %                                 yyyy
+    New = fun (Text) -> ?alg:lines_new(?alg:string_new(Text)) end,
+    #layout{flush = Flush, combine = Combine, render = Render} = lines_layout(),
+
+    Left = Combine(
+        Flush(New("xxxxxxxx")),
+        Combine(Flush(New("xxx")), Combine(Flush(New("xxxxxxx")), New("xxxxx")))
+    ),
+    ?assertEqual(
+        "xxxxxxxx\n"
+        "xxx\n"
+        "xxxxxxx\n"
+        "xxxxx",
+        unicode:characters_to_list(Render(Left))
+    ),
+
+    Right = Combine(Flush(New("yyyyyyyy")), New("yyyy")),
+    ?assertEqual(
+        "yyyyyyyy\n"
+        "yyyy",
+        unicode:characters_to_list(Render(Right))
+    ),
+
+    Combined = Combine(Left, Right),
+    ?assertEqual(
+        "xxxxxxxx\n"
+        "xxx\n"
+        "xxxxxxx\n"
+        "xxxxxyyyyyyyy\n"
+        "     yyyy",
+        unicode:characters_to_list(Render(Combined))
+    ).
+
+metric_combine_case(Config) when is_list(Config) ->
+    Metric = metric_layout(),
+    ct_proper:quickcheck(combine_assoc_prop(Metric)),
+    ct_proper:quickcheck(combine_flush_prop(Metric)).
+
+metric_unit(Config) when is_list(Config) ->
+    % xxxxxxxx      yyyyyyyy     xxxxxxxxxxxxx
+    % xxx       <>  yyyy      =  xxxxxxxxxxxxx
+    % xxxxxxx                    xxxxxxxxxxxxx
+    % xxxxx                      xxxxxxxxxxxxx
+    %                            xxxxxxxxx
+    New = fun (Text) -> ?alg:metric_new(?alg:string_new(Text)) end,
+    #layout{flush = Flush, combine = Combine, render = Render} = metric_layout(),
+
+    Left = Combine(
+        Flush(New("xxxxxxxx")),
+        Combine(Flush(New("xxx")), Combine(Flush(New("xxxxxxx")), New("xxxxx")))
+    ),
+    ?assertEqual(
+        "xxxxxxxx\n"
+        "xxxxxxxx\n"
+        "xxxxxxxx\n"
+        "xxxxx",
+        unicode:characters_to_list(Render(Left))
+    ),
+
+    Right = Combine(Flush(New("yyyyyyyy")), New("yyyy")),
+    ?assertEqual(
+        "xxxxxxxx\n"
+        "xxxx",
+        unicode:characters_to_list(Render(Right))
+    ),
+
+    Combined = Combine(Left, Right),
+    ?assertEqual(
+        "xxxxxxxxxxxxx\n"
+        "xxxxxxxxxxxxx\n"
+        "xxxxxxxxxxxxx\n"
+        "xxxxxxxxxxxxx\n"
+        "xxxxxxxxx",
+        unicode:characters_to_list(Render(Combined))
+    ).
+
+lines_layout() ->
+    #layout{
         new = fun ?alg:lines_new/1,
         flush = fun ?alg:lines_flush/1,
         combine = fun ?alg:lines_combine/2,
         render = fun ?alg:lines_render/1
-    },
-    ct_proper:quickcheck(combine_assoc_prop(Lines)),
-    ct_proper:quickcheck(combine_flush_prop(Lines)).
+    }.
 
-metric_combine_case(Config) when is_list(Config) ->
-    Metric = #layout{
+metric_layout() ->
+    #layout{
         new = fun ?alg:metric_new/1,
         flush = fun ?alg:metric_flush/1,
         combine = fun ?alg:metric_combine/2,
         render = fun ?alg:metric_render/1
-    },
-    ct_proper:quickcheck(combine_assoc_prop(Metric)),
-    ct_proper:quickcheck(combine_flush_prop(Metric)).
-
+    }.
 
 %% It's possible for the utf8 generator to produce strings that start or end with
 %% a decomposed accent or something else like this - this means that when appended
