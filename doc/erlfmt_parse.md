@@ -68,3 +68,6 @@ In `erlfmt_parse` the following AST nodes have different definitions:
   they are left as the `op` nodes with the `/` operator. Additionally, the
   `import` and `export` attributes are not processed to convert the `cons` node
   chains into lists.
+
+* Bit type definitions inside binaries are represented as full nodes instead
+  of raw atoms and integers.
