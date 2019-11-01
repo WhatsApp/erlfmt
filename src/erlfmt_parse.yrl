@@ -325,8 +325,9 @@ opt_bit_type_list -> '$empty' : default.
 bit_type_list -> bit_type '-' bit_type_list : ['$1' | '$3'].
 bit_type_list -> bit_type : ['$1'].
 
-bit_type -> atom             : element(3,'$1').
-bit_type -> atom ':' integer : { element(3,'$1'), element(3,'$3') }.
+bit_type -> macro_call_none  : '$1'.
+bit_type -> atom             : '$1'.
+bit_type -> atom ':' integer : {'$1', '$3'}.
 
 bit_size_expr -> expr_max : '$1'.
 
@@ -1221,9 +1222,9 @@ type_tag(TypeName, NumberOfTypeVariables) ->
 
 build_attribute({atom,Aa,module}, Val) ->
     case Val of
-        [{atom,_Am,Module}] ->
+        [Module] ->
             {attribute,Aa,module,Module};
-        [{atom,_Am,Module},ExpList] ->
+        [Module,ExpList] ->
             {attribute,Aa,module,{Module,var_list(ExpList)}};
         _Other ->
             error_bad_decl(Aa, module)
