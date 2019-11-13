@@ -3,8 +3,15 @@
 -export([string_new/1, string_append/2, string_spaces/1, string_text/1, string_length/1]).
 -export([lines_new/1, lines_combine/2, lines_flush/1, lines_render/1]).
 -export([metric_new/1, metric_combine/2, metric_flush/1, metric_render/1, metric_dominates/2]).
+-export([
+    document_text/1,
+    document_combine/2,
+    document_flush/1,
+    document_choice/2,
+    document_render/2
+]).
 
--export_type([text/0, str/0, lines/0, metric/0]).
+-export_type([text/0, str/0, lines/0, metric/0, document/0, option/0]).
 
 -type text() :: unicode:chardata().
 
@@ -18,6 +25,18 @@
 
 -opaque lines() :: #string{} | #lines_combine{} | #lines_flush{}.
 
+%% TODO: could we use a more efficient data structure here?
+%% We'd benefit from efficient operations at both ends, could a queue be the answer?
+-record(doc_seq, {seq :: nonempty_list(document())}).
+
+-record(doc_flush, {doc :: document()}).
+
+-record(doc_choice, {choices :: nonempty_list(document())}).
+
+-record(doc_fail, {}).
+
+-opaque document() :: #string{} | #doc_seq{} | #doc_flush{} | #doc_choice{} | #doc_fail{}.
+
 %% Order of fields is important for comparisons!
 -record(metric, {
     height :: non_neg_integer(),
@@ -26,6 +45,10 @@
 }).
 
 -opaque metric() :: #metric{}.
+
+-type option() :: {page_width, pos_integer()}.
+
+-define(DEFAULT_PAGE_WIDTH, 80).
 
 -spec string_new(text()) -> str().
 string_new(Text) -> #string{length = string:length(Text), text = Text}.
@@ -121,3 +144,133 @@ metric_dominates(Metric0, Metric1) ->
     Metric0#metric.height =< Metric1#metric.height andalso
         Metric0#metric.last_width =< Metric1#metric.last_width andalso
         Metric0#metric.max_width =< Metric1#metric.max_width.
+
+-spec document_text(text()) -> document().
+document_text(Text) -> string_new(Text).
+
+-spec document_combine(document(), document()) -> document().
+%% TODO: optimisation - combine neighbouring strings
+document_combine(#doc_fail{}, _) -> #doc_fail{};
+document_combine(_, #doc_fail{}) -> #doc_fail{};
+document_combine(#doc_seq{seq = Seq1}, #doc_seq{seq = Seq2}) ->
+    #doc_seq{seq = Seq1 ++ Seq2};
+document_combine(#doc_seq{seq = Seq}, Document) ->
+    #doc_seq{seq = Seq ++ [Document]};
+document_combine(Document, #doc_seq{seq = Seq}) ->
+    #doc_seq{seq = [Document | Seq]};
+document_combine(Document1, Document2) ->
+    #doc_seq{seq = [Document1, Document2]}.
+
+-spec document_flush(document()) -> document().
+document_flush(Document) -> #doc_flush{doc = Document}.
+
+-spec document_choice(document(), document()) -> document().
+%% TODO: try to reduce the number of choices if both alternatives have the same
+%% elements by folidng them together - e.g. same prefix/suffix for seq or both flush.
+document_choice(#doc_fail{}, Document) -> Document;
+document_choice(Document, #doc_fail{}) -> Document;
+document_choice(#doc_choice{choices = Choices1}, #doc_choice{choices = Choices2}) ->
+    #doc_choice{choices = Choices1 ++ Choices2};
+document_choice(#doc_choice{choices = Choices}, Document) ->
+    #doc_choice{choices = [Document | Choices]};
+document_choice(Document, #doc_choice{choices = Choices}) ->
+    #doc_choice{choices = [Document | Choices]};
+document_choice(Document1, Document2) ->
+    #doc_choice{choices = [Document1, Document2]}.
+
+-spec document_render(document(), [option()]) -> text().
+document_render(Document, Options) ->
+    PageWidth = proplists:get_value(page_width, Options, ?DEFAULT_PAGE_WIDTH),
+    Layouts0 = document_interpret(Document, PageWidth),
+    case reject_invalid(Layouts0, PageWidth, Options) of
+        [] -> error(no_viable_layout);
+        Layouts ->
+            [{_Metric, Lines} | _] = lists:keysort(1, Layouts),
+            lines_render(Lines)
+    end.
+
+-spec document_interpret(document(), non_neg_integer()) -> [{metric(), lines()}].
+document_interpret(#string{} = String, _PageWidth) ->
+    [{metric_new(String), lines_new(String)}];
+document_interpret(#doc_flush{doc = Document}, PageWidth) ->
+    Layouts0 = document_interpret(Document, PageWidth),
+    Layouts = [{metric_flush(Metric), lines_flush(Lines)} || {Metric, Lines} <- Layouts0],
+    lists:foldl(fun pareto_frontier_add/2, [], Layouts);
+document_interpret(#doc_fail{}, _PageWidth) ->
+    [];
+document_interpret(#doc_seq{seq = [Doc | Seq]}, PageWidth) ->
+    interpret_seq(Seq, document_interpret(Doc, PageWidth), PageWidth);
+document_interpret(#doc_choice{choices = [Choice | Choices]}, PageWidth) ->
+    interpret_choice(Choices, document_interpret(Choice, PageWidth), PageWidth).
+
+interpret_choice([Choice | Choices], Frontier0, PageWidth) ->
+    Layouts = document_interpret(Choice, PageWidth),
+    Frontier = lists:foldl(fun pareto_frontier_add/2, Frontier0, Layouts),
+    interpret_choice(Choices, Frontier, PageWidth);
+interpret_choice([], Frontier, _PageWidth) -> Frontier.
+
+interpret_seq([Doc | Seq], Lefts, PageWidth) ->
+    case document_interpret(Doc, PageWidth) of
+        [] ->
+            [];
+        Rights ->
+            CombinedFrontier = layout_combine_many(Lefts, Rights, PageWidth, [], []),
+            interpret_seq(Seq, CombinedFrontier, PageWidth)
+    end;
+interpret_seq(_Seq, [], _PageWidth) -> [];
+interpret_seq([], Acc, _PageWidth) -> Acc.
+
+layout_combine_many([Left | Lefts], Rights, PageWidth, Frontier0, Unfit0) ->
+    {Frontier, Unfit} = layout_combine_many1(Left, Rights, PageWidth, Frontier0, Unfit0),
+    layout_combine_many(Lefts, Rights, PageWidth, Frontier, Unfit);
+layout_combine_many([], _Rights, _PageWidth, [], Unfit) ->
+    best_unfit(Unfit);
+layout_combine_many([], _Rights, _PageWidth, Frontier, _Unfit) ->
+    Frontier.
+
+layout_combine_many1({LMetric, LLines} = Left, [{RMetric, RLines} | Rights], PageWidth, Frontier0, Unfit0) ->
+    Metric = metric_combine(LMetric, RMetric),
+    Layout = {Metric, lines_combine(LLines, RLines)},
+    case Metric#metric.max_width =< PageWidth of
+        true ->
+            Frontier = pareto_frontier_add(Layout, Frontier0),
+            %% We can discard unfit, since we know there's at least one fitting layout
+            layout_combine_many1(Left, Rights, PageWidth, Frontier, []);
+        false ->
+            layout_combine_many1(Left, Rights, PageWidth, Frontier0, [Layout | Unfit0])
+    end;
+layout_combine_many1(_Left, [], _PageWidth, Frontier, Unfit) ->
+    {Frontier, Unfit}.
+
+%% TODO: if we kept some order in how we add new layouts, we could probably
+%% avoid this re-filtering step.
+pareto_frontier_add({Metric, _} = Layout, Layouts) ->
+    case any_dominates(Metric, Layouts) of
+        true -> Layouts;
+        false -> [Layout | filter_dominated(Metric, Layouts)]
+    end.
+
+any_dominates(Metric, [Layout | Layouts]) ->
+    metric_dominates(element(1, Layout), Metric) orelse any_dominates(Metric, Layouts);
+any_dominates(_Metric, []) -> false.
+
+filter_dominated(Metric, Layouts) ->
+    [Layout || Layout <- Layouts, not metric_dominates(Metric, element(1, Layout))].
+
+reject_invalid(Layouts, PageWidth, Options) ->
+    AllowUnfit = proplists:get_value(allow_unfit, Options, true),
+    case [Layout || {Metric, _} = Layout <- Layouts, Metric#metric.max_width =< PageWidth] of
+        [] when AllowUnfit -> best_unfit(Layouts);
+        [] -> [];
+        Filtered -> Filtered
+    end.
+
+best_unfit([]) -> [];
+best_unfit([First | Rest]) -> [best_unfit(Rest, First)].
+
+best_unfit([{CandidateMetric, _} = Candidate | Rest], {BestMetric, _})
+  when CandidateMetric#metric.max_width < BestMetric#metric.max_width ->
+    best_unfit(Rest, Candidate);
+best_unfit([_Candidate | Rest], Best) ->
+    best_unfit(Rest, Best);
+best_unfit([], Best) -> Best.

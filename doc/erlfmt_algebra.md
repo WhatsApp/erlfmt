@@ -1,6 +1,8 @@
 # `erlfmt_algebra`
 
 The algebra module contains APIs for composing pretty-printing documents at multiple different levels.
+The API and algorithm implemented by this module are based on the approach outlined in the paper
+["A pretty but not greedy printer" by Jean-Philippe Bernardy](https://jyp.github.io/pdf/Prettiest.pdf).
 
 ## `str()` type
 
@@ -37,3 +39,23 @@ doing the same composition with metrics would yield:
     xxxxxxxx                   xxxxxxxxxxxxx
     xxxxx                      xxxxxxxxxxxxx
                                xxxxxxxxx
+
+## `document()` type
+
+This is the main API for composing flexible layouts and pretty-printing them. It offers the same
+`combine` and `flush` API that lower layers offer, but it adds a `choice` operator that allows
+choosing between two layouts depending on which one is "better" - for example laying out function
+arguments either horizontally or vertically.
+
+Conceptually, the `document()` type can be thought as a list of all possible `line()` layouts
+produced from the composition. Doing this naively, though, would lead to a exponential explosion
+of layouts to consider. To avoid this, at each step we also track `metric()` related to a particular
+layout, which is used in two ways:
+
+  * We can discard layouts that won't fit on the page - since composing it with anything will also
+    yield a layout that won't fit on the page;
+  * We can discard layouts that are dominated by another layout - since composing a smaller or shorter
+    layout with another will always yield a smaller or shorter layout overall.
+
+This means that to consider the set of all possible layouts, it's enough to consider only the set of
+non-dominated layouts, known as "pareto frontier".
