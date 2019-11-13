@@ -1,5 +1,9 @@
 -module(erlfmt).
 
+-oncall("whatsapp_erlang").
+
+-typing([dialyzer]).
+
 %% API exports
 -export([main/1]).
 
@@ -12,10 +16,11 @@
 main(Argv) ->
     try run_command(Argv) of
         ok ->
-            erlang:halt(0);
-        {error, Error} ->
-            print_error(Error),
-            erlang:halt(1)
+            erlang:halt(0)
+        % Commented out for now to satisfy dialyzer
+        % {error, Error} ->
+        %     print_error(Error),
+        %     erlang:halt(1)
     catch
         Class:Error:Stacktrace ->
             Msg = "internal error while running ~s:\n\t~p\nStacktrace:\n~p\n",
@@ -46,30 +51,22 @@ Options:
     ]]).
 
 run_command(Argv) ->
-    case parse_args(Argv) of
-        {Args, []} ->
-            run_format(Args);
-        {_Args, Errs} ->
-            Formatted = lists:join("\n", Errs),
-            {error, ["invalid files given to ", command_name(), ":\n" | Formatted]}
-    end.
+    Args = parse_args(Argv),
+    run_format(Args).
 
-parse_args(Argv) -> parse_args(Argv, #args{}, []).
+parse_args(Argv) -> parse_args(Argv, #args{}).
 
-parse_args(["-v" | Rest], Args, Errs) ->
-    parse_args(Rest, Args#args{verbose = true}, Errs);
-parse_args(["-h" | _Rest], _Args, _Errs) ->
+parse_args(["-v" | Rest], Args) ->
+    parse_args(Rest, Args#args{verbose = true});
+parse_args(["-h" | _Rest], _Args) ->
     print_usage(),
     erlang:halt(0);
-parse_args([Name | Rest], Args0, Errs) ->
+parse_args([Name | Rest], Args0) ->
     Args = Args0#args{files = [Name | Args0#args.files]},
-    parse_args(Rest, Args, Errs);
-parse_args([], Args, Errs) ->
-    {
-        Args#args{
-            files = lists:reverse(Args#args.files)
-        },
-        lists:reverse(Errs)
+    parse_args(Rest, Args);
+parse_args([], Args) ->
+    Args#args{
+        files = lists:reverse(Args#args.files)
     }.
 
 run_format(#args{files = FileNames} = Args) ->
@@ -83,7 +80,3 @@ format_file(FileName, Args) ->
     end,
     %% TODO: actual formatting
     ok.
-
-print_error(Error) ->
-    %% TODO: print nicely
-    io:format(standard_error, "~p\n", [Error]).

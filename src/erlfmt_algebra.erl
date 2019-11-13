@@ -1,5 +1,9 @@
 -module(erlfmt_algebra).
 
+-oncall("whatsapp_erlang").
+
+-typing([dialyzer]).
+
 -export([string_new/1, string_append/2, string_spaces/1, string_text/1, string_length/1]).
 -export([lines_new/1, lines_combine/2, lines_flush/1, lines_render/1]).
 -export([metric_new/1, metric_combine/2, metric_flush/1, metric_render/1, metric_dominates/2]).
