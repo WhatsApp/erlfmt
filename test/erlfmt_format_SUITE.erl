@@ -28,7 +28,10 @@
 -export([
     int_decimal_base/1,
     int_binary_base/1,
-    int_hex_base/1
+    int_hex_base/1,
+    float_normal/1,
+    float_scientific/1,
+    char/1
 ]).
 
 suite() ->
@@ -54,11 +57,19 @@ end_per_testcase(_TestCase, _Config) ->
 
 groups() ->
     [
-        {literals, [parallel], [{group, integers}]},
+        {literals, [parallel], [
+            {group, integers},
+            {group, floats},
+            char
+        ]},
         {integers, [parallel], [
             int_decimal_base,
             int_binary_base,
             int_hex_base
+        ]},
+        {floats, [parallel], [
+            float_normal,
+            float_scientific
         ]}
     ].
 
@@ -93,6 +104,40 @@ int_hex_base(Config) when is_list(Config) ->
     ?assertSameExpr("16#1"),
     ?assertSameExpr("16#01"),
     ?assertFormatExpr("16#deadbeef", "16#DEADBEEF").
+
+float_normal(Config) when is_list(Config) ->
+    ?assertSameExpr("0.0"),
+    ?assertSameExpr("1.0"),
+    ?assertSameExpr("123.456"),
+    ?assertSameExpr("001.100").
+
+float_scientific(Config) when is_list(Config) ->
+    ?assertSameExpr("1.0e1"),
+    ?assertSameExpr("1.0e-1"),
+    ?assertSameExpr("1.0e+1"),
+    ?assertSameExpr("1.0e01"),
+    ?assertSameExpr("001.100e-010"),
+    ?assertFormatExpr("1.0E01", "1.0e01"),
+    ?assertFormatExpr("1.0E-01", "1.0e-01").
+
+char(Config) when is_list(Config) ->
+    ?assertSameExpr("$a"),
+    ?assertSameExpr("$Z"),
+    ?assertSameExpr("$😅"),
+    ?assertSameExpr("$\\0"),
+    ?assertSameExpr("$\\n"),
+    ?assertSameExpr("$\\r"),
+    ?assertSameExpr("$\\t"),
+    ?assertSameExpr("$\\v"),
+    ?assertSameExpr("$\\b"),
+    ?assertSameExpr("$\\f"),
+    ?assertSameExpr("$\\e"),
+    ?assertSameExpr("$\\d"),
+    ?assertFormatExpr("$ ", "$\\s"),
+    ?assertFormatExpr("$\\237", "$\\x9F"),
+    ?assertFormatExpr("$\\xab", "$\\xAB"),
+    ?assertFormatExpr("$\\x{ab}", "$\\x{AB}"),
+    ?assertFormatExpr("$\\2", "$\\x02").
 
 format_expr(String) ->
     {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),
