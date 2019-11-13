@@ -645,6 +645,10 @@ Header
 
 Erlang code.
 
+-oncall("whatsapp_erlang").
+
+-typing([dialyzer]).
+
 -export([parse_form/1]).
 
 %% The following directive is needed for (significantly) faster compilation
