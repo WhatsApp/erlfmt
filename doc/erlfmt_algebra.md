@@ -59,3 +59,13 @@ layout, which is used in two ways:
 
 This means that to consider the set of all possible layouts, it's enough to consider only the set of
 non-dominated layouts, known as "pareto frontier".
+
+### Choosing between multiple layouts
+
+There are 2 cases where one layout has to be chosen from many where the partial order over metrics
+can't be used alone:
+
+  * When none of the layouts matches, but we still want to print something, we need to pick
+    "the best looser". This is done by picking the layout with the minimal width.
+  * At the very end where multiple layouts are possible. All the possible layouts are compared
+    by height, max width and last line width (in that order) and the smallest one is picked.

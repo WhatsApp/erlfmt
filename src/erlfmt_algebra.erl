@@ -53,8 +53,8 @@
 %% Order of fields is important for comparisons!
 -record(metric, {
     height :: non_neg_integer(),
-    last_width :: non_neg_integer(),
-    max_width :: non_neg_integer()
+    max_width :: non_neg_integer(),
+    last_width :: non_neg_integer()
 }).
 
 -opaque metric() :: #metric{}.
