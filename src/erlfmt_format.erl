@@ -13,16 +13,22 @@
     document_choice/2
 ]).
 
+-import(erl_anno, [text/1]).
+
+-define(IN_RANGE(Value, Low, High), (Value) >= (Low) andalso (Value) =< (High)).
+-define(IS_OCT_DIGIT(C), ?IN_RANGE(C, $0, $7)).
+
 -spec expr_to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:document().
 expr_to_algebra({integer, Meta, _Value}) ->
-    {text, Text} = proplists:lookup(text, Meta),
-    document_text(format_integer(Text));
+    document_text(format_integer(text(Meta)));
 expr_to_algebra({float, Meta, _Value}) ->
-    {text, Text} = proplists:lookup(text, Meta),
-    document_text(format_float(Text));
+    document_text(format_float(text(Meta)));
 expr_to_algebra({char, Meta, Value}) ->
-    {text, Text} = proplists:lookup(text, Meta),
-    document_text(format_char(Text, Value)).
+    document_text(format_char(text(Meta), Value));
+expr_to_algebra({atom, Meta, Value}) ->
+    document_text(format_atom(text(Meta), Value));
+expr_to_algebra({string, Meta, Value}) ->
+    document_text(format_string(text(Meta), Value)).
 
 %% TODO: handle underscores once on OTP 23
 format_integer([B1, B2, $# | Digits]) -> [B1, B2, $# | string:uppercase(Digits)];
@@ -33,20 +39,59 @@ format_float(FloatText) ->
     [IntPart, DecimalPart] = string:split(FloatText, "."),
     [IntPart, "." | string:lowercase(DecimalPart)].
 
-%% Keep \\x escapes as they were, but upcased, special-case space in chars vs strings
-format_char("$\\x" ++ Escape, _)  -> ["$\\x" | string:uppercase(Escape)];
-format_char(_, $\s) -> "$\\s";
-format_char(_, Value) -> [$$ | escape_char(Value)].
+format_char("$ ", $\s) -> "$\\s";
+format_char("$\\s", $\s) -> "$\\s";
+format_char([$$ | String], Value) ->
+    [$$ | escape_string_loop(String, [Value], -1)].
 
-escape_char(Char) when Char > $\s, Char =< $~; Char > 16#9F -> [Char];
-escape_char($\0) -> "\\0";
-escape_char($\n) -> "\\n";
-escape_char($\r) -> "\\r";
-escape_char($\t) -> "\\t";
-escape_char($\v) -> "\\v";
-escape_char($\b) -> "\\b";
-escape_char($\f) -> "\\f";
-escape_char($\e) -> "\\e";
-escape_char($\d) -> "\\d";
-escape_char(Char) when Char =< 16#9F ->
-    ["\\x" | string:pad(integer_to_binary(Char, 16), 2, leading, $0)].
+format_atom(Text, Atom) ->
+    RawString = atom_to_list(Atom),
+    case erl_scan:reserved_word(Atom) orelse atom_needs_quotes(RawString) of
+        true -> escape_string(Text, RawString, $');
+        false -> RawString
+    end.
+
+format_string(String, Original) ->
+    escape_string(String, Original, $").
+
+atom_needs_quotes([C0 | Cs]) when C0 >= $a, C0 =< $z ->
+    lists:any(fun
+        (C) when ?IN_RANGE(C, $a, $z); ?IN_RANGE(C, $A, $Z); ?IN_RANGE(C, $0, $9); C =:= $_; C=:= $@ -> false;
+        (_) -> true
+    end, Cs);
+atom_needs_quotes(_) -> true.
+
+escape_string([Quote | Rest], Original, Quote) ->
+    [Quote | escape_string_loop(Rest, Original, Quote)].
+
+%% Remove unneeded escapes, upcase hex escapes
+escape_string_loop(Tail, [], _Quote) -> Tail;
+escape_string_loop([$\\, $x | EscapeAndRest], [_Escaped | Original], Quote) ->
+    {Escape, Rest} = escape_hex(EscapeAndRest),
+    [$\\, $x, Escape | escape_string_loop(Rest, Original, Quote)];
+escape_string_loop([$\\, Escape | Rest], [Value | Original], Quote) ->
+    if
+        ?IS_OCT_DIGIT(Escape) ->
+            case Rest of
+                [D2, D3 | Rest1] when ?IS_OCT_DIGIT(D2), ?IS_OCT_DIGIT(D3) ->
+                    [$\\, Escape, D2, D3 | escape_string_loop(Rest1, Original, Quote)];
+                [D2 | Rest1] when ?IS_OCT_DIGIT(D2) ->
+                    [$\\, Escape, D2 | escape_string_loop(Rest1, Original, Quote)];
+                _ ->
+                    [$\\, Escape | escape_string_loop(Rest, Original, Quote)]
+            end;
+        Escape =:= $s ->
+            [Value | escape_string_loop(Rest, Original, Quote)];
+        Escape =:= Quote; Escape =:= $\\; Escape =/= Value ->
+            [$\\, Escape | escape_string_loop(Rest, Original, Quote)];
+        true ->
+            [Escape | escape_string_loop(Rest, Original, Quote)]
+    end;
+escape_string_loop([C | Rest], [C | Original], Quote) ->
+    [C | escape_string_loop(Rest, Original, Quote)].
+
+escape_hex([${ | Rest0]) ->
+    [Escape, Rest] = string:split(Rest0, "}"),
+    {[${, string:uppercase(Escape), $}], Rest};
+escape_hex([X1, X2 | Rest]) ->
+    {string:uppercase([X1, X2]), Rest}.
