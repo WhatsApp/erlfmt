@@ -37,7 +37,9 @@ expr_to_algebra({char, Meta, Value}) ->
 expr_to_algebra({atom, Meta, Value}) ->
     document_text(format_atom(text(Meta), Value));
 expr_to_algebra({string, Meta, Value}) ->
-    document_text(format_string(text(Meta), Value)).
+    document_text(format_string(text(Meta), Value));
+expr_to_algebra({var, Meta, _Value}) ->
+    document_text(text(Meta)).
 
 %% TODO: handle underscores once on OTP 23
 format_integer([B1, B2, $# | Digits]) -> [B1, B2, $# | string:uppercase(Digits)];
