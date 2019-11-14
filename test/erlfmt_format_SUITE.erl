@@ -33,7 +33,10 @@
     int_hex_base/1,
     float_normal/1,
     float_scientific/1,
-    char/1
+    char/1,
+    atom_keywords/1,
+    atom_escapes/1,
+    string_escapes/1
 ]).
 
 suite() ->
@@ -62,7 +65,9 @@ groups() ->
         {literals, [parallel], [
             {group, integers},
             {group, floats},
-            char
+            char,
+            {group, atoms},
+            {group, strings}
         ]},
         {integers, [parallel], [
             int_decimal_base,
@@ -72,6 +77,13 @@ groups() ->
         {floats, [parallel], [
             float_normal,
             float_scientific
+        ]},
+        {atoms, [parallel], [
+            atom_keywords,
+            atom_escapes
+        ]},
+        {strings, [parallel], [
+            string_escapes
         ]}
     ].
 
@@ -127,6 +139,7 @@ char(Config) when is_list(Config) ->
     ?assertSameExpr("$Z"),
     ?assertSameExpr("$😅"),
     ?assertSameExpr("$\\0"),
+    ?assertSameExpr("$\\\\"),
     ?assertSameExpr("$\\n"),
     ?assertSameExpr("$\\r"),
     ?assertSameExpr("$\\t"),
@@ -135,11 +148,67 @@ char(Config) when is_list(Config) ->
     ?assertSameExpr("$\\f"),
     ?assertSameExpr("$\\e"),
     ?assertSameExpr("$\\d"),
+    ?assertFormatExpr("$\\z", "$z"),
     ?assertFormatExpr("$ ", "$\\s"),
-    ?assertFormatExpr("$\\237", "$\\x9F"),
+    ?assertFormatExpr("$\\040", "$\\040"),
     ?assertFormatExpr("$\\xab", "$\\xAB"),
-    ?assertFormatExpr("$\\x{ab}", "$\\x{AB}"),
-    ?assertFormatExpr("$\\2", "$\\x02").
+    ?assertFormatExpr("$\\x{ab}", "$\\x{AB}").
+
+atom_keywords(Config) when is_list(Config) ->
+    ?assertSameExpr("'after'"),
+    ?assertSameExpr("'begin'"),
+    ?assertSameExpr("'case'"),
+    ?assertSameExpr("'try'"),
+    ?assertSameExpr("'cond'"),
+    ?assertSameExpr("'catch'"),
+    ?assertSameExpr("'andalso'"),
+    ?assertSameExpr("'orelse'"),
+    ?assertSameExpr("'end'"),
+    ?assertSameExpr("'fun'"),
+    ?assertSameExpr("'if'"),
+    ?assertSameExpr("'let'"),
+    ?assertSameExpr("'of'"),
+    ?assertSameExpr("'receive'"),
+    ?assertSameExpr("'when'"),
+    ?assertSameExpr("'bnot'"),
+    ?assertSameExpr("'not'"),
+    ?assertSameExpr("'div'"),
+    ?assertSameExpr("'rem'"),
+    ?assertSameExpr("'band'"),
+    ?assertSameExpr("'and'"),
+    ?assertSameExpr("'bor'"),
+    ?assertSameExpr("'bxor'"),
+    ?assertSameExpr("'bsl'"),
+    ?assertSameExpr("'bsr'"),
+    ?assertSameExpr("'or'"),
+    ?assertSameExpr("'xor'"),
+    ?assertFormatExpr("'not_A_keyword'", "not_A_keyword").
+
+atom_escapes(Config) when is_list(Config) ->
+    ?assertSameExpr("foobar"),
+    ?assertSameExpr("foo123456789"),
+    ?assertSameExpr("'foo bar'"),
+    ?assertSameExpr("'foo\\tbar'"),
+    ?assertSameExpr("''"),
+    ?assertSameExpr("'\\''"),
+    ?assertSameExpr("'\\\\'"),
+    ?assertSameExpr("'Var'"),
+    ?assertSameExpr("'\\1a'"),
+    ?assertSameExpr("'\\12a'"),
+    ?assertSameExpr("'\\123a'"),
+    ?assertFormatExpr("'foo\\xab'", "'foo\\xAB'"),
+    ?assertFormatExpr("'foo\\x{ab}'", "'foo\\x{AB}'"),
+    ?assertFormatExpr("'foo\\z'", "fooz"),
+    ?assertFormatExpr("'foo\\s'", "'foo '"),
+    ?assertFormatExpr("'foo\\ '", "'foo '").
+
+string_escapes(Config) when is_list(Config) ->
+    ?assertSameExpr("\"'\""),
+    ?assertSameExpr("\"\\\"\""),
+    ?assertSameExpr("\"😱\""),
+    ?assertSameExpr("\" \\40\\x32\\x{0032}\""),
+    ?assertSameExpr("\"The quick brown fox jumps over the lazy dog\""),
+    ?assertFormatExpr("\"\\s\"", "\" \"").
 
 format_expr(String) ->
     {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),
