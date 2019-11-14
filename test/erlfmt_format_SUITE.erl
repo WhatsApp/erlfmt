@@ -34,7 +34,8 @@
     char/1,
     atom_keywords/1,
     atom_escapes/1,
-    string_escapes/1
+    string_escapes/1,
+    variable/1
 ]).
 
 suite() ->
@@ -65,7 +66,8 @@ groups() ->
             {group, floats},
             char,
             {group, atoms},
-            {group, strings}
+            {group, strings},
+            variable
         ]},
         {integers, [parallel], [
             int_decimal_base,
@@ -207,6 +209,10 @@ string_escapes(Config) when is_list(Config) ->
     ?assertSameExpr("\" \\40\\x32\\x{0032}\""),
     ?assertSameExpr("\"The quick brown fox jumps over the lazy dog\""),
     ?assertFormatExpr("\"\\s\"", "\" \"").
+
+variable(Config) when is_list(Config) ->
+    ?assertSameExpr("Foo"),
+    ?assertSameExpr("_Bar").
 
 format_expr(String) ->
     {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),
