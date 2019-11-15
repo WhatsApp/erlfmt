@@ -722,7 +722,7 @@ smoke_test_parser(App, Config) ->
 
 -define(EXCLUDE_FILES, [
     "wa/src/gen_factory_sample.erl",
-    "wa/src/wlib.erl",
+    "wa/src/wa_table_formatter.erl",
     "wa/include/wa_remote_fun.hrl"
 ]).
 
