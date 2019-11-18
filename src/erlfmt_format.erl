@@ -19,7 +19,8 @@
     document_text/1,
     document_combine/2,
     document_flush/1,
-    document_choice/2
+    document_choice/2,
+    document_reduce/2
 ]).
 
 -import(erl_anno, [text/1]).
@@ -39,7 +40,18 @@ expr_to_algebra({atom, Meta, Value}) ->
 expr_to_algebra({string, Meta, Value}) ->
     document_text(format_string(text(Meta), Value));
 expr_to_algebra({var, Meta, _Value}) ->
-    document_text(text(Meta)).
+    document_text(text(Meta));
+expr_to_algebra({concat, _Meta, Values0}) ->
+    Values = lists:map(fun expr_to_algebra/1, Values0),
+    Horizontal = document_reduce(fun combine_space/2, Values),
+    Vertical = document_reduce(fun combine_newline/2, Values),
+    document_choice(Horizontal, Vertical).
+
+combine_space(D1, D2) ->
+    document_combine(D1, document_combine(document_text(" "), D2)).
+
+combine_newline(D1, D2) ->
+    document_combine(document_flush(D1), D2).
 
 %% TODO: handle underscores once on OTP 23
 format_integer([B1, B2, $# | Digits]) -> [B1, B2, $# | string:uppercase(Digits)];

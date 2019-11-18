@@ -358,16 +358,18 @@ pretty_sexpr(List) when is_list(List) ->
     Lparen = ?alg:document_text("("),
     Rparen = ?alg:document_text(")"),
     Space = ?alg:document_text(" "),
+
+    HorizontalFold = fun (Elem, Acc) -> ?alg:document_combine(Elem, ?alg:document_combine(Space, Acc)) end,
+    VerticalFold = fun (Elem, Acc) -> ?alg:document_combine(?alg:document_flush(Elem), Acc) end,
+
     Rendered = lists:map(fun pretty_sexpr/1, List),
-    Horizontal = fold(fun (Elem, Acc) -> ?alg:document_combine(Elem, ?alg:document_combine(Space, Acc)) end, Rendered),
-    Vertical = fold(fun (Elem, Acc) -> ?alg:document_combine(?alg:document_flush(Elem), Acc) end, Rendered),
+    Horizontal = ?alg:document_reduce(HorizontalFold, Rendered),
+    Vertical = ?alg:document_reduce(VerticalFold, Rendered),
     Elements = ?alg:document_choice(Horizontal, Vertical),
+
     ?alg:document_combine(Lparen, ?alg:document_combine(Elements, Rparen));
 pretty_sexpr(Atom) when is_atom(Atom) ->
     ?alg:document_text(atom_to_binary(Atom, utf8)).
-
-fold(_Fun, [Doc]) -> Doc;
-fold(Fun, [Doc | Rest]) -> Fun(Doc, fold(Fun, Rest)).
 
 lines_layout() ->
     #layout{
