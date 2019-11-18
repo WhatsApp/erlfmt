@@ -35,6 +35,7 @@
     atom_keywords/1,
     atom_escapes/1,
     string_escapes/1,
+    string_concat/1,
     variable/1
 ]).
 
@@ -83,7 +84,8 @@ groups() ->
             atom_escapes
         ]},
         {strings, [parallel], [
-            string_escapes
+            string_escapes,
+            string_concat
         ]}
     ].
 
@@ -93,11 +95,13 @@ all() ->
 %%--------------------------------------------------------------------
 %% TEST CASES
 
--define(assertSameExpr(String), ?assertEqual(String, format_expr(String))).
+-define(assertSameExpr(String), ?assertSameExpr(String, 80)).
+-define(assertSameExpr(String, PageWidth), ?assertEqual(String, format_expr(String, PageWidth))).
 
--define(assertFormatExpr(Bad, Good), begin
-    ?assertEqual(Good, format_expr(Good)),
-    ?assertEqual(Good, format_expr(Bad))
+-define(assertFormatExpr(Bad, Good), ?assertFormatExpr(Bad, Good, 80)).
+-define(assertFormatExpr(Bad, Good, PageWidth), begin
+    ?assertEqual(Good, format_expr(Good, PageWidth)),
+    ?assertEqual(Good, format_expr(Bad, PageWidth))
 end).
 
 
@@ -210,14 +214,24 @@ string_escapes(Config) when is_list(Config) ->
     ?assertSameExpr("\"The quick brown fox jumps over the lazy dog\""),
     ?assertFormatExpr("\"\\s\"", "\" \"").
 
+string_concat(Config) when is_list(Config) ->
+    ?assertSameExpr("\"foo\" \"bar\""),
+    ?assertFormatExpr("\"foo\" \"bar\"", "\"foo\"\n\"bar\"", 5),
+
+    %% Measures text size in graphemes (\x{61}\x{301} is á in NFD normalisation)
+    ?assertSameExpr("\"\x{61}\x{301}\" \"á\"", 7),
+    ?assertFormatExpr("\"\x{61}\x{301}\" \"á\"", "\"\x{61}\x{301}\"\n\"á\"", 6),
+
+    ?assertSameExpr("\"foo\" Foo \"bar\"").
+
 variable(Config) when is_list(Config) ->
     ?assertSameExpr("Foo"),
     ?assertSameExpr("_Bar").
 
-format_expr(String) ->
+format_expr(String, PageWidth) ->
     {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),
     {ok, {function, _, [{clause, _, _, [], [], [Expr]}]}} =
         erlfmt_parse:parse_form(Tokens),
     Doc = erlfmt_format:expr_to_algebra(Expr),
-    Rendered = erlfmt_algebra:document_render(Doc, [{page_width, 80}]),
+    Rendered = erlfmt_algebra:document_render(Doc, [{page_width, PageWidth}]),
     unicode:characters_to_list(Rendered).
