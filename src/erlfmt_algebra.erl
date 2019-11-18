@@ -12,7 +12,8 @@
     document_combine/2,
     document_flush/1,
     document_choice/2,
-    document_render/2
+    document_render/2,
+    document_reduce/2
 ]).
 
 -export_type([text/0, str/0, lines/0, metric/0, document/0, option/0]).
@@ -192,6 +193,13 @@ document_render(Document, Options) ->
             [{_Metric, Lines} | _] = lists:keysort(1, Layouts),
             lines_render(Lines)
     end.
+
+%% Same as lists:foldr/3 except it doesn't need initial accumulator
+%%   and just uses the last element of the list for that purpose.
+-spec document_reduce(Reducer, [document(), ...]) -> document() when
+    Reducer :: fun ((document(), document()) -> document()).
+document_reduce(_Fun, [Doc]) -> Doc;
+document_reduce(Fun, [Doc | Rest]) -> Fun(Doc, document_reduce(Fun, Rest)).
 
 -spec document_interpret(document(), non_neg_integer()) -> [{metric(), lines()}].
 document_interpret(#string{} = String, _PageWidth) ->
