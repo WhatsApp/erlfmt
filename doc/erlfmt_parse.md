@@ -71,3 +71,7 @@ In `erlfmt_parse` the following AST nodes have different definitions:
 
 * Bit type definitions inside binaries are represented as full nodes instead
   of raw atoms and integers.
+
+* The special `match` node is encoded as regular binary operator node.
+
+* The special `catch` node is encoded as regular unary operator node.

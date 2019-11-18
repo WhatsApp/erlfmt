@@ -37,6 +37,7 @@
     macro_call_types/1,
     macro_definitions/1,
     functions_and_funs/1,
+    operators/1,
     smoke_test_cli/1
 ]).
 
@@ -70,7 +71,8 @@ groups() ->
             macro_call_pats,
             macro_call_types,
             macro_definitions,
-            functions_and_funs
+            functions_and_funs,
+            operators
         ]},
         {smoke_tests, [parallel], [
             smoke_test_cli
@@ -103,8 +105,8 @@ records(Config) when is_list(Config) ->
         parse_expr("X#foo{}")
     ),
     ?assertMatch(
-        {attribute, _, record, {{atom, _, foo}, []}},
-        parse_form("-record(foo, {}).")
+        {attribute, _, record, {{atom, _, foo}, [{record_field, _, {atom, _, a}, {integer, _, 1}}]}},
+        parse_form("-record(foo, {a = 1}).")
     ),
     ?assertMatch(
         {attribute, _, type, {foo, {type, _, record, [{atom, _, foo}]}, []}},
@@ -422,6 +424,20 @@ functions_and_funs(Config) when is_list(Config) ->
             {'fun', _, {clauses, [{clause, _, 'fun', [], [], [{atom, _, ok}]}]}}
         ]}]},
         parse_form("?TESTS_WITH_SETUP(all_tests_, fun() -> ok end).")
+    ).
+
+operators(Config) when is_list(Config) ->
+    ?assertMatch(
+        {op, _, '=', {integer, _, 1}, {integer, _, 2}},
+        parse_expr("1 = 2")
+    ),
+    ?assertMatch(
+        {op, _, '=', {integer, _, 1}, {integer, _, 2}},
+        parse_pat("1 = 2")
+    ),
+    ?assertMatch(
+        {op, _, 'catch', {integer, _, 1}},
+        parse_expr("catch 1")
     ).
 
 parse_expr(String) ->
