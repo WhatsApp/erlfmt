@@ -239,8 +239,8 @@ clause_guard -> '$empty' : [].
 
 clause_body -> '->' exprs: '$2'.
 
-expr -> 'catch' expr : {'catch',?anno('$1'),'$2'}.
-expr -> expr '=' expr : {match,?anno('$2'),'$1','$3'}.
+expr -> 'catch' expr : ?mkop1('$1', '$2').
+expr -> expr '=' expr : ?mkop2('$1', '$2', '$3').
 expr -> expr '!' expr : ?mkop2('$1', '$2', '$3').
 expr -> expr 'orelse' expr : ?mkop2('$1', '$2', '$3').
 expr -> expr 'andalso' expr : ?mkop2('$1', '$2', '$3').
@@ -272,7 +272,7 @@ expr_max -> receive_expr : '$1'.
 expr_max -> fun_expr : '$1'.
 expr_max -> try_expr : '$1'.
 
-pat_expr -> pat_expr '=' pat_expr : {match,?anno('$2'),'$1','$3'}.
+pat_expr -> pat_expr '=' pat_expr : ?mkop2('$1', '$2', '$3').
 pat_expr -> pat_expr comp_op pat_expr : ?mkop2('$1', '$2', '$3').
 pat_expr -> pat_expr list_op pat_expr : ?mkop2('$1', '$2', '$3').
 pat_expr -> pat_expr add_op pat_expr : ?mkop2('$1', '$2', '$3').
@@ -729,7 +729,6 @@ Erlang code.
         {'function', anno(), function_name(), arity(), af_clause_seq()}.
 
 -type abstract_expr() :: af_literal()
-                       | af_match(abstract_expr())
                        | af_variable()
                        | af_tuple(abstract_expr())
                        | af_nil()
@@ -743,7 +742,6 @@ Erlang code.
                        | af_record_field_access(abstract_expr())
                        | af_map_creation(abstract_expr())
                        | af_map_update(abstract_expr())
-                       | af_catch()
                        | af_local_call()
                        | af_remote_call()
                        | af_list_comprehension()
@@ -763,8 +761,6 @@ Erlang code.
                               abstract_expr(),
                               af_record_name(),
                               [af_record_field(T)]}.
-
--type af_catch() :: {'catch', anno(), abstract_expr()}.
 
 -type af_local_call() :: {'call', anno(), af_local_function(), af_args()}.
 
@@ -873,7 +869,6 @@ Erlang code.
          [af_guard_test()]}.
 
 -type af_pattern() :: af_literal()
-                    | af_match(af_pattern())
                     | af_variable()
                     | af_tuple(af_pattern())
                     | af_nil()
@@ -1003,8 +998,6 @@ Erlang code.
 
 -type af_string() :: {'string', anno(), string()}.
 
--type af_match(T) :: {'match', anno(), af_pattern(), T}.
-
 -type af_variable() :: {'var', anno(), atom()}.
 
 -type af_tuple(T) :: {'tuple', anno(), [T]}.
@@ -1028,11 +1021,11 @@ Erlang code.
 -type binary_op() :: '/' | '*' | 'div' | 'rem' | 'band' | 'and' | '+' | '-'
                    | 'bor' | 'bxor' | 'bsl' | 'bsr' | 'or' | 'xor' | '++'
                    | '--' | '==' | '/=' | '=<' | '<'  | '>=' | '>' | '=:='
-                   | '=/='.
+                   | '=/=' | '='.
 
 -type af_unary_op(T) :: {'op', anno(), unary_op(), T}.
 
--type unary_op() :: '+' | '-' | 'bnot' | 'not'.
+-type unary_op() :: '+' | '-' | 'bnot' | 'not' | 'catch'.
 
 %% See also lib/stdlib/{src/erl_bits.erl,include/erl_bits.hrl}.
 -type type_specifier_list() :: 'default' | [type_specifier(), ...].
@@ -1298,7 +1291,7 @@ record_name(Other) -> ret_err(?anno(Other), "bad record declaration").
 
 record_fields([{atom,Aa,A}|Fields]) ->
     [{record_field,Aa,{atom,Aa,A}}|record_fields(Fields)];
-record_fields([{match,_Am,{atom,Aa,A},Expr}|Fields]) ->
+record_fields([{op,_Am,'=',{atom,Aa,A},Expr}|Fields]) ->
     [{record_field,Aa,{atom,Aa,A},Expr}|record_fields(Fields)];
 record_fields([{typed,Expr,TypeInfo}|Fields]) ->
     [Field] = record_fields([Expr]),
