@@ -20,7 +20,7 @@ form
 attribute attr_val
 function function_clauses function_clause
 clause_args clause_guard clause_body
-expr expr_max
+expr expr_max expr_max_remote
 pat_expr pat_expr_max map_pat_expr record_pat_expr
 pat_argument_list pat_exprs
 list list_exprs
@@ -246,9 +246,11 @@ expr -> prefix_op expr : ?mkop1('$1', '$2').
 expr -> map_expr : '$1'.
 expr -> function_call : '$1'.
 expr -> record_expr : '$1'.
-expr -> expr_max : '$1'.
+expr -> expr_max_remote : '$1'.
 
-expr_max -> expr_max ':' expr_max : {remote,?anno('$2'),'$1','$3'}.
+expr_max_remote -> expr_max ':' expr_max : {remote,?anno('$2'),'$1','$3'}.
+expr_max_remote -> expr_max : '$1'.
+
 expr_max -> macro_call_expr : '$1'.
 expr_max -> macro_record_or_concatable : '$1'.
 expr_max -> var : '$1'.
@@ -330,7 +332,6 @@ bit_type -> atom ':' integer : {'$1', '$3'}.
 
 bit_size_expr -> expr_max : '$1'.
 
-
 list_comprehension -> '[' expr '||' lc_exprs ']' :
         {lc,?anno('$1'),'$2','$4'}.
 binary_comprehension -> '<<' expr_max '||' lc_exprs '>>' :
@@ -409,8 +410,7 @@ record_field_name -> atom : '$1'.
 record_field_name -> var : '$1'.
 record_field_name -> macro_call_none : '$1'.
 
-%% N.B. This is called from expr.
-function_call -> expr_max argument_list :
+function_call -> expr_max_remote argument_list :
     {call,?anno('$1'),'$1',element(1, '$2')}.
 
 if_expr -> 'if' if_clauses 'end' : {'if',?anno('$1'),'$2'}.
@@ -420,7 +420,6 @@ if_clauses -> if_clause ';' if_clauses : ['$1' | '$3'].
 
 if_clause -> guard clause_body :
         {clause,?anno(hd(hd('$1'))),[],'$1','$2'}.
-
 
 case_expr -> 'case' expr 'of' cr_clauses 'end' :
         {'case',?anno('$1'),'$2','$4'}.

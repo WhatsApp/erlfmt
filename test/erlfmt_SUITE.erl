@@ -38,6 +38,8 @@
     macro_definitions/1,
     functions_and_funs/1,
     operators/1,
+    lists/1,
+    binaries/1,
     smoke_test_cli/1
 ]).
 
@@ -73,7 +75,8 @@ groups() ->
             macro_definitions,
             functions_and_funs,
             operators,
-            lists
+            lists,
+            binaries
         ]},
         {smoke_tests, [parallel], [
             smoke_test_cli
@@ -464,6 +467,12 @@ lists(Config) when is_list(Config) ->
             {op, _, '!', {integer, _, 2}, {integer, _,3}}
         }]},
         parse_expr("[catch 1 | 2 ! 3]")
+    ).
+
+binaries(Config) when is_list(Config) ->
+    ?assertMatch(
+        {bin, _, [{bin_element, _, {integer, _, 1}, {integer, _, 4}, default}]},
+        parse_expr("<<1:4>>")
     ).
 
 parse_expr(String) ->
