@@ -23,7 +23,7 @@ clause_args clause_guard clause_body
 expr expr_max
 pat_expr pat_expr_max map_pat_expr record_pat_expr
 pat_argument_list pat_exprs
-list tail
+list list_exprs
 list_comprehension lc_expr lc_exprs
 binary_comprehension
 tuple
@@ -296,13 +296,12 @@ record_pat_expr -> '#' record_name '.' record_field_name :
 record_pat_expr -> '#' record_name record_tuple :
         {record,?anno('$1'),'$2','$3'}.
 
-list -> '[' ']' : {nil,?anno('$1')}.
-list -> '[' expr tail : {cons,?anno('$1'),'$2','$3'}.
+list -> '[' ']' : {list, ?anno('$1'), []}.
+list -> '[' list_exprs ']' : {list, ?anno('$1'), '$2'}.
 
-tail -> ']' : {nil,?anno('$1')}.
-tail -> '|' expr ']' : '$2'.
-tail -> ',' expr tail : {cons,?anno('$2'),'$2','$3'}.
-
+list_exprs -> expr : ['$1'].
+list_exprs -> expr '|' expr : [{cons, ?anno('$2'), '$1', '$3'}].
+list_exprs -> expr ',' list_exprs : ['$1' | '$3'].
 
 binary -> '<<' '>>' : {bin,?anno('$1'),[]}.
 binary -> '<<' bin_elements '>>' : {bin,?anno('$1'),'$2'}.
@@ -721,8 +720,7 @@ Erlang code.
 -type abstract_expr() :: af_literal()
                        | af_variable()
                        | af_tuple(abstract_expr())
-                       | af_nil()
-                       | af_cons(abstract_expr())
+                       | af_list(abstract_expr())
                        | af_bin(abstract_expr())
                        | af_binary_op(abstract_expr())
                        | af_unary_op(abstract_expr())
@@ -826,8 +824,7 @@ Erlang code.
 -type af_guard_test() :: af_literal()
                        | af_variable()
                        | af_tuple(af_guard_test())
-                       | af_nil()
-                       | af_cons(af_guard_test())
+                       | af_list(af_guard_test())
                        | af_bin(af_guard_test())
                        | af_binary_op(af_guard_test())
                        | af_unary_op(af_guard_test())
@@ -861,8 +858,7 @@ Erlang code.
 -type af_pattern() :: af_literal()
                     | af_variable()
                     | af_tuple(af_pattern())
-                    | af_nil()
-                    | af_cons(af_pattern())
+                    | af_list(af_pattern())
                     | af_bin(af_pattern())
                     | af_binary_op(af_pattern())
                     | af_unary_op(af_pattern())
@@ -992,9 +988,7 @@ Erlang code.
 
 -type af_tuple(T) :: {'tuple', anno(), [T]}.
 
--type af_nil() :: {'nil', anno()}.
-
--type af_cons(T) :: {'cons', anno(), T, T}.
+-type af_list(T) :: {'list', anno(), [T | {cons, anno(), T, T}]}.
 
 -type af_bin(T) :: {'bin', anno(), [af_binelement(T)]}.
 
@@ -1218,7 +1212,7 @@ build_attribute({atom,Aa,module}, Val) ->
         [Module] ->
             {attribute,Aa,module,Module};
         [Module,ExpList] ->
-            {attribute,Aa,module,{Module,var_list(ExpList)}};
+            {attribute,Aa,module,{Module,ExpList}};
         _Other ->
             error_bad_decl(Aa, module)
     end;
@@ -1258,12 +1252,6 @@ build_attribute({atom,Aa,Attr}, Val) ->
             {attribute,Aa,Attr,Expr};
         _Other -> ret_err(Aa, "bad attribute")
     end.
-
-var_list({cons,_Ac,{var,_,V},Tail}) ->
-    [V|var_list(Tail)];
-var_list({nil,_An}) -> [];
-var_list(Other) ->
-    ret_err(?anno(Other), "bad variable list").
 
 -spec error_bad_decl(erl_anno:anno(), attributes()) -> no_return().
 
