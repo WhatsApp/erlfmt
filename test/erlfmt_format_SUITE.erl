@@ -38,7 +38,8 @@
     string_concat/1,
     variable/1,
     unary_operator/1,
-    binary_operator/1
+    binary_operator/1,
+    tuple/1
 ]).
 
 suite() ->
@@ -71,7 +72,8 @@ groups() ->
             {group, atoms},
             {group, strings},
             variable,
-            {group, operators}
+            {group, operators},
+            {group, containers}
         ]},
         {integers, [parallel], [
             int_decimal_base,
@@ -93,6 +95,9 @@ groups() ->
         {operators, [parallel], [
             unary_operator,
             binary_operator
+        ]},
+        {containers, [parallel], [
+            tuple
         ]}
     ].
 
@@ -287,6 +292,13 @@ binary_operator(Config) when is_list(Config) ->
     ?assertFormatExpr("Foo * (B + C) * D", "Foo *\n    (B + C) *\n    D", 10),
     ?assertFormatExpr("A * (B + C) * D", "A * (B + C) *\n    D", 10),
     ?assertFormatExpr("One * (Two + Three + Four) * Five", "One *\n    (Two + Three +\n         Four) * Five", 25).
+
+tuple(Config) when is_list(Config) ->
+    ?assertFormatExpr("{ }", "{}"),
+    ?assertFormatExpr("{1,2}", "{1, 2}"),
+    ?assertFormatExpr("{1,{2,3}}", "{1, {2, 3}}"),
+    ?assertFormatExpr("{1,{2,3}}", "{\n    1,\n    {2, 3}\n}", 10),
+    ?assertFormatExpr("{1,{long,word}}", "{\n    1,\n    {\n        long,\n        word\n    }\n}", 15).
 
 format_expr(String, PageWidth) ->
     {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),
