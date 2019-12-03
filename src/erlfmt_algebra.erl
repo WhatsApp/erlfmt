@@ -18,9 +18,11 @@
 -export([metric_new/1, metric_combine/2, metric_flush/1, metric_render/1, metric_dominates/2]).
 -export([
     document_text/1,
+    document_spaces/1,
     document_combine/2,
     document_flush/1,
     document_choice/2,
+    document_single_line/1,
     document_render/2,
     document_reduce/2
 ]).
@@ -162,10 +164,14 @@ metric_dominates(Metric0, Metric1) ->
 -spec document_text(text()) -> document().
 document_text(Text) -> string_new(Text).
 
+-spec document_spaces(integer()) -> document().
+document_spaces(Count) -> string_spaces(Count).
+
 -spec document_combine(document(), document()) -> document().
-%% TODO: optimisation - combine neighbouring strings
 document_combine(#doc_fail{}, _) -> #doc_fail{};
 document_combine(_, #doc_fail{}) -> #doc_fail{};
+document_combine(#string{} = Left, #string{} = Right) ->
+    string_append(Left, Right);
 document_combine(#doc_seq{seq = Seq1}, #doc_seq{seq = Seq2}) ->
     #doc_seq{seq = Seq1 ++ Seq2};
 document_combine(#doc_seq{seq = Seq}, Document) ->
@@ -191,6 +197,29 @@ document_choice(Document, #doc_choice{choices = Choices}) ->
     #doc_choice{choices = [Document | Choices]};
 document_choice(Document1, Document2) ->
     #doc_choice{choices = [Document1, Document2]}.
+
+-spec document_single_line(document()) -> document().
+document_single_line(#doc_flush{}) -> #doc_fail{};
+document_single_line(#string{} = String) -> String;
+document_single_line(#doc_fail{} = Fail) -> Fail;
+document_single_line(#doc_choice{choices = Choices}) -> choice_single_line(Choices, []);
+document_single_line(#doc_seq{seq = Seq}) -> seq_single_line(Seq, []).
+
+choice_single_line([Choice | Choices], Acc) ->
+    case document_single_line(Choice) of
+        #doc_fail{} -> choice_single_line(Choices, Acc);
+        Document -> choice_single_line(Choices, [Document | Acc])
+    end;
+choice_single_line([], []) -> #doc_fail{};
+choice_single_line([], [SingleChoice]) -> SingleChoice;
+choice_single_line([], Choices) -> #doc_choice{choices = Choices}.
+
+seq_single_line([Doc0 | Docs], Acc) ->
+    case document_single_line(Doc0) of
+        #doc_fail{} -> #doc_fail{};
+        Doc -> seq_single_line(Docs, [Doc | Acc])
+    end;
+seq_single_line([], Acc) -> #doc_seq{seq = lists:reverse(Acc)}.
 
 -spec document_render(document(), [option()]) -> text().
 document_render(Document, Options) ->

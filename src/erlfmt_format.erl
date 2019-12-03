@@ -17,9 +17,11 @@
 
 -import(erlfmt_algebra, [
     document_text/1,
+    document_spaces/1,
     document_combine/2,
     document_flush/1,
     document_choice/2,
+    document_single_line/1,
     document_reduce/2
 ]).
 
@@ -27,6 +29,12 @@
 
 -define(IN_RANGE(Value, Low, High), (Value) >= (Low) andalso (Value) =< (High)).
 -define(IS_OCT_DIGIT(C), ?IN_RANGE(C, $0, $7)).
+
+%% Thses operators when mixed, force parens on nested operators
+-define(MIXED_REQUIRE_PARENS_OPS, ['or', 'and', 'andalso', 'orelse']).
+
+%% These operators always force parens on nested operators
+-define(REQUIRE_PARENS_OPS, ['bor', 'band', 'bxor', 'bsl', 'bsr', '++', '--']).
 
 -spec expr_to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:document().
 expr_to_algebra({integer, Meta, _Value}) ->
@@ -45,7 +53,11 @@ expr_to_algebra({concat, _Meta, Values0}) ->
     Values = lists:map(fun expr_to_algebra/1, Values0),
     Horizontal = document_reduce(fun combine_space/2, Values),
     Vertical = document_reduce(fun combine_newline/2, Values),
-    document_choice(Horizontal, Vertical).
+    document_choice(Horizontal, Vertical);
+expr_to_algebra({op, _Meta, Op, Expr}) ->
+    unary_op_to_algebra(Op, Expr);
+expr_to_algebra({op, _Meta, Op, Left, Right}) ->
+    binary_op_to_algebra(Op, Left, Right).
 
 combine_space(D1, D2) ->
     document_combine(D1, document_combine(document_text(" "), D2)).
@@ -76,6 +88,74 @@ format_atom(Text, Atom) ->
 
 format_string(String, Original) ->
     escape_string(String, Original, $").
+
+unary_op_to_algebra(Op, Expr) ->
+    OpD = document_text(atom_to_binary(Op, utf8)),
+    ExprD = unary_operand_to_algebra(Op, Expr),
+    if
+        Op =:= 'not'; Op =:= 'bnot'; Op =:= 'catch' ->
+            combine_space(OpD, ExprD);
+        true ->
+            document_combine(OpD, ExprD)
+    end.
+
+binary_op_to_algebra(Op, Left, Right) ->
+    binary_op_to_algebra(Op, Left, Right, 4, erl_parse:inop_prec(Op)).
+
+binary_op_to_algebra(Op, Left, Right, Indent, {PrecL, _, PrecR}) ->
+    OpD = document_text(atom_to_binary(Op, utf8)),
+    %% Propagate indent for left-associative operators,
+    %% for right-associative ones document algebra does it for us
+    LeftD = binary_operand_to_algebra(Op, Left, Indent, PrecL),
+    RightD = binary_operand_to_algebra(Op, Right, 0, PrecR),
+    LeftOpD = combine_space(LeftD, OpD),
+
+    document_choice(
+        combine_space(LeftOpD, document_single_line(RightD)),
+        combine_newline(LeftOpD, document_combine(document_spaces(Indent), RightD))
+    ).
+
+%% not and bnot are nestable without parens, others are not
+unary_operand_to_algebra(Op, {op, _, Op, Expr}) when Op =:= 'not'; Op =:= 'bnot' ->
+    unary_op_to_algebra(Op, Expr);
+unary_operand_to_algebra(_, {op, _, Op, Expr}) ->
+    wrap_in_parens(unary_op_to_algebra(Op, Expr));
+unary_operand_to_algebra(_, {op, _, Op, Left, Right}) ->
+    wrap_in_parens(binary_op_to_algebra(Op, Left, Right));
+unary_operand_to_algebra(_, Expr) ->
+    expr_to_algebra(Expr).
+
+binary_operand_to_algebra(_ParentOp, {op, _, 'catch', Expr}, _Indent, _Prec) ->
+    wrap_in_parens(unary_op_to_algebra('catch', Expr));
+binary_operand_to_algebra(_ParentOp, {op, _, Op, Expr}, _Indent, _Prec) ->
+    unary_op_to_algebra(Op, Expr);
+binary_operand_to_algebra(ParentOp, {op, _, ParentOp, Left, Right}, Indent, Prec) ->
+    %% Same operator on correct side - no parens and no repeated nesting
+    case erl_parse:inop_prec(ParentOp) of
+        {Prec, Prec, _} = Precs ->
+            binary_op_to_algebra(ParentOp, Left, Right, Indent, Precs);
+        {_, Prec, Prec} = Precs ->
+            binary_op_to_algebra(ParentOp, Left, Right, Indent, Precs);
+        Precs ->
+            wrap_in_parens(binary_op_to_algebra(ParentOp, Left, Right, 4, Precs))
+    end;
+binary_operand_to_algebra(ParentOp, {op, _, Op, Left, Right}, _Indent, Prec) ->
+    {_, NestedPrec, _} = Precs = erl_parse:inop_prec(Op),
+    NeedsParens =
+        lists:member(ParentOp, ?REQUIRE_PARENS_OPS) orelse
+        (lists:member(ParentOp, ?MIXED_REQUIRE_PARENS_OPS) andalso
+            lists:member(Op, ?MIXED_REQUIRE_PARENS_OPS)) orelse
+        NestedPrec < Prec,
+
+    case NeedsParens of
+        true -> wrap_in_parens(binary_op_to_algebra(Op, Left, Right, 4, Precs));
+        false -> binary_op_to_algebra(Op, Left, Right, 4, Precs)
+    end;
+binary_operand_to_algebra(_ParentOp, Expr, _Indent, _Prec) ->
+    expr_to_algebra(Expr).
+
+wrap_in_parens(Doc) ->
+    document_combine(document_text("("), document_combine(Doc, document_text(")"))).
 
 atom_needs_quotes([C0 | Cs]) when C0 >= $a, C0 =< $z ->
     lists:any(fun

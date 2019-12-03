@@ -69,3 +69,9 @@ can't be used alone:
     "the best looser". This is done by picking the layout with the minimal width.
   * At the very end where multiple layouts are possible. All the possible layouts are compared
     by height, max width and last line width (in that order) and the smallest one is picked.
+
+### Additional API
+
+  * `document_single_line` takes a document as input and retuns only single-line documents.
+    Since this can return documents that would produce no layouts, its use has to always be
+    paired with some alternative.
