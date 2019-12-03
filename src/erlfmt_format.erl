@@ -54,11 +54,17 @@ expr_to_algebra({tuple, _Meta, Values}) ->
 expr_to_algebra({list, _Meta, Values}) ->
     container_to_algebra(Values, "[", "]");
 expr_to_algebra({cons, _, Head, Tail}) ->
-    cons_to_algebra(Head, Tail).
+    cons_to_algebra(Head, Tail);
+expr_to_algebra({bin, _Meta, Values}) ->
+    container_to_algebra(Values, "<<", ">>");
+expr_to_algebra({bin_element, _Meta, Expr, Size, Types}) ->
+    bin_element_to_algebra(Expr, Size, Types).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
 combine_comma_space(D1, D2) -> combine_sep(D1, ", ", D2).
+
+combine_dash(D1, D2) -> combine_sep(D1, "-", D2).
 
 combine_sep(D1, Sep, D2) ->
     document_combine(D1, document_combine(document_text(Sep), D2)).
@@ -188,6 +194,36 @@ cons_to_algebra(Head, Tail) ->
         combine_space(document_single_line(HeadD), document_single_line(TailD)),
         combine_newline(HeadD, TailD)
     ).
+
+bin_element_to_algebra(Expr, Size, Types) ->
+    Docs =
+        [bin_expr_to_algebra(Expr)] ++
+        [bin_size_to_algebra(Size) || Size =/= default] ++
+        [bin_types_to_algebra(Types) || Types =/= default],
+    document_reduce(fun erlfmt_algebra:document_combine/2, Docs).
+
+bin_expr_to_algebra({op, _, Op, Expr}) when Op =/= 'catch' -> unary_op_to_algebra(Op, Expr);
+bin_expr_to_algebra(Expr) -> expr_max_to_algebra(Expr).
+
+bin_size_to_algebra(Expr) ->
+    document_combine(document_text(":"), expr_max_to_algebra(Expr)).
+
+bin_types_to_algebra(Types) ->
+    TypesD = lists:map(fun bin_type_to_algebra/1, Types),
+    document_combine(document_text("/"), document_reduce(fun combine_dash/2, TypesD)).
+
+bin_type_to_algebra({Type, Size}) ->
+    combine_sep(expr_to_algebra(Type), ":", expr_to_algebra(Size));
+bin_type_to_algebra(Type) ->
+    expr_to_algebra(Type).
+
+expr_max_to_algebra({op, _, Op, Expr}) ->
+    wrap_in_parens(unary_op_to_algebra(Op, Expr));
+expr_max_to_algebra({op, _, Op, Left, Right}) ->
+    wrap_in_parens(binary_op_to_algebra(Op, Left, Right));
+%% TODO: map, calls & records also get wrapped in parens
+expr_max_to_algebra(Expr) ->
+    expr_to_algebra(Expr).
 
 atom_needs_quotes([C0 | Cs]) when C0 >= $a, C0 =< $z ->
     lists:any(fun
