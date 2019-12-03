@@ -36,7 +36,9 @@
     atom_escapes/1,
     string_escapes/1,
     string_concat/1,
-    variable/1
+    variable/1,
+    unary_operator/1,
+    binary_operator/1
 ]).
 
 suite() ->
@@ -68,7 +70,8 @@ groups() ->
             char,
             {group, atoms},
             {group, strings},
-            variable
+            variable,
+            {group, operators}
         ]},
         {integers, [parallel], [
             int_decimal_base,
@@ -86,6 +89,10 @@ groups() ->
         {strings, [parallel], [
             string_escapes,
             string_concat
+        ]},
+        {operators, [parallel], [
+            unary_operator,
+            binary_operator
         ]}
     ].
 
@@ -227,6 +234,59 @@ string_concat(Config) when is_list(Config) ->
 variable(Config) when is_list(Config) ->
     ?assertSameExpr("Foo"),
     ?assertSameExpr("_Bar").
+
+unary_operator(Config) when is_list(Config) ->
+    %% Formats symbolic operators without space
+    ?assertFormatExpr("+ 1", "+1"),
+    ?assertFormatExpr("- 1", "-1"),
+
+    %% Formats word operators with space
+    ?assertSameExpr("bnot 1"),
+    ?assertSameExpr("not true"),
+    ?assertSameExpr("catch 1"),
+
+    %% Wraps nested operators
+    ?assertFormatExpr("bnot+1", "bnot (+1)"),
+    ?assertFormatExpr("+ +1", "+(+1)"),
+    ?assertFormatExpr("not catch 1", "not (catch 1)"),
+    ?assertFormatExpr("not(1 + 1)", "not (1 + 1)"),
+    ?assertFormatExpr("(bnot 1) * 1", "bnot 1 * 1"),
+
+    %% Unless it's nested not or bnot
+    ?assertSameExpr("bnot bnot Var"),
+    ?assertSameExpr("not not true").
+
+binary_operator(Config) when is_list(Config) ->
+    %% Bitwise operators force parens
+    ?assertFormatExpr("CRC bxor Byte band 16#ff", "CRC bxor (Byte band 16#FF)"),
+    ?assertSameExpr("(CRC bsl 8) bxor Byte"),
+
+    %% Mixed operators force parens only when mixed
+    ?assertFormatExpr("Foo ++ Bar ++ Baz -- Bat", "Foo ++ Bar ++ (Baz -- Bat)"),
+    ?assertSameExpr("Foo > Bar andalso Baz =:= Bat"),
+    ?assertFormatExpr("Foo and Bar or Baz and Bat", "(Foo and Bar) or (Baz and Bat)"),
+
+    %% Nested same operator right-associative
+    ?assertSameExpr("Foo ++ Bar ++ Baz"),
+    ?assertFormatExpr("Foo ++ Bar ++ Baz", "Foo ++\n    Bar ++ Baz", 15),
+    ?assertFormatExpr("Foo ++ Bar ++ Baz", "Foo ++\n    Bar ++\n    Baz", 5),
+    ?assertFormatExpr("((Foo ++ Bar) ++ Baz)", "(Foo ++ Bar) ++\n    Baz", 15),
+    ?assertFormatExpr("((Foo ++ Bar) ++ Baz)", "(Foo ++\n     Bar) ++\n    Baz", 5),
+
+    %% Nested same operator left-associative
+    ?assertSameExpr("Foo + Bar + Baz"),
+    ?assertFormatExpr("Foo + Bar + Baz", "Foo + Bar +\n    Baz", 14),
+    ?assertFormatExpr("Foo + Bar + Baz", "Foo +\n    Bar +\n    Baz", 5),
+    ?assertFormatExpr("(Foo + (Bar + Baz))", "Foo +\n    (Bar + Baz)", 15),
+    ?assertFormatExpr("(Foo + (Bar + Baz))", "Foo +\n    (Bar +\n         Baz)", 5),
+
+    %% With precedence
+    ?assertFormatExpr("(A + B) == (C + D)", "A + B == C + D"),
+    ?assertSameExpr("A + (B == C) + D"),
+    ?assertFormatExpr("(A + B) == (C + D)", "A + B ==\n    C + D", 10),
+    ?assertFormatExpr("Foo * (B + C) * D", "Foo *\n    (B + C) *\n    D", 10),
+    ?assertFormatExpr("A * (B + C) * D", "A * (B + C) *\n    D", 10),
+    ?assertFormatExpr("One * (Two + Three + Four) * Five", "One *\n    (Two + Three +\n         Four) * Five", 25).
 
 format_expr(String, PageWidth) ->
     {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),
