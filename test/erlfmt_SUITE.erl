@@ -35,6 +35,7 @@
     macro_definitions/1,
     functions_and_funs/1,
     operators/1,
+    lists/1,
     smoke_test_cli/1,
     smoke_test_parser_ac2d/1,
     smoke_test_parser_adsd/1,
@@ -156,7 +157,8 @@ groups() ->
             macro_call_types,
             macro_definitions,
             functions_and_funs,
-            operators
+            operators,
+            lists
         ]},
         {smoke_tests, [parallel], [
             {group, smoke_test_parser},
@@ -321,16 +323,16 @@ attributes(Config) when is_list(Config) ->
         parse_form("-callback ?FOO() -> ok.")
     ),
     ?assertMatch(
-        {attribute, _, export,
-            {cons, _, {op, _, '/', {macro_call, _, {var, _, 'FOO'}, none}, {integer, _, 1}},
-                {cons, _, {op, _, '/', {atom, _, foo}, {integer, _, 2}},
-                    {nil, _}}}},
+        {attribute, _, export, {list, _, [
+            {op, _, '/', {macro_call, _, {var, _, 'FOO'}, none}, {integer, _, 1}},
+            {op, _, '/', {atom, _, foo}, {integer, _, 2}}
+        ]}},
         parse_form("-export([?FOO/1, foo/2]).")
     ),
     ?assertMatch(
         {attribute, _, import, {
             {atom, _, foo},
-            {cons, _, {op, _, '/', {atom, _, bar}, {integer, _, 1}}, {nil, _}}
+            {list, _, [{op, _, '/', {atom, _, bar}, {integer, _, 1}}]}
         }},
         parse_form("-import(foo, [bar/1]).")
     ),
@@ -608,6 +610,31 @@ operators(Config) when is_list(Config) ->
     ?assertMatch(
         {op, _, 'catch', {integer, _, 1}},
         parse_expr("catch 1")
+    ).
+
+lists(Config) when is_list(Config) ->
+    ?assertMatch(
+        {list, _, []},
+        parse_expr("[]")
+    ),
+    ?assertMatch(
+        {list, _, [{integer, _, 1}, {integer, _, 2}]},
+        parse_expr("[1,2]")
+    ),
+    ?assertMatch(
+        {list, _, [{cons, _, {integer, _, 1}, {integer, _, 2}}]},
+        parse_expr("[1 | 2]")
+    ),
+    ?assertMatch(
+        {list, _, [{integer, _, 1}, {cons, _, {integer, _, 2}, {integer, _, 3}}]},
+        parse_expr("[1, 2 | 3]")
+    ),
+    ?assertMatch(
+        {list, _, [{cons, _,
+            {op, _, 'catch', {integer, _, 1}},
+            {op, _, '!', {integer, _, 2}, {integer, _,3}}
+        }]},
+        parse_expr("[catch 1 | 2 ! 3]")
     ).
 
 parse_expr(String) ->
