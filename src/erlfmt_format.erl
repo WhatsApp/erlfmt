@@ -58,19 +58,12 @@ expr_to_algebra({op, _Meta, Op, Expr}) ->
     unary_op_to_algebra(Op, Expr);
 expr_to_algebra({op, _Meta, Op, Left, Right}) ->
     binary_op_to_algebra(Op, Left, Right);
-expr_to_algebra({tuple, _Meta, []}) ->
-    document_text("{}");
-expr_to_algebra({tuple, _Meta, Values0}) ->
-    Values = lists:map(fun expr_to_algebra/1, Values0),
-    SingleLine = lists:map(fun erlfmt_algebra:document_single_line/1, Values),
-
-    Horizontal = document_reduce(fun combine_comma_space/2, SingleLine),
-    Vertical = document_reduce(fun combine_comma_newline/2, Values),
-
-    document_choice(
-        wrap("{", Horizontal, "}"),
-        wrap_nested("{", Vertical, "}")
-    ).
+expr_to_algebra({tuple, _Meta, Values}) ->
+    container_to_algebra(Values, "{", "}");
+expr_to_algebra({list, _Meta, Values}) ->
+    container_to_algebra(Values, "[", "]");
+expr_to_algebra({cons, _, Head, Tail}) ->
+    cons_to_algebra(Head, Tail).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
@@ -182,6 +175,28 @@ binary_operand_to_algebra(ParentOp, {op, _, Op, Left, Right}, _Indent, Prec) ->
     end;
 binary_operand_to_algebra(_ParentOp, Expr, _Indent, _Prec) ->
     expr_to_algebra(Expr).
+
+container_to_algebra([], Left, Right) -> document_text([Left | Right]);
+container_to_algebra(Values0, Left, Right) ->
+    Values = lists:map(fun expr_to_algebra/1, Values0),
+    SingleLine = lists:map(fun erlfmt_algebra:document_single_line/1, Values),
+
+    Horizontal = document_reduce(fun combine_comma_space/2, SingleLine),
+    Vertical = document_reduce(fun combine_comma_newline/2, Values),
+
+    document_choice(
+        wrap(Left, Horizontal, Right),
+        wrap_nested(Left, Vertical, Right)
+    ).
+
+cons_to_algebra(Head, Tail) ->
+    HeadD = expr_to_algebra(Head),
+    TailD = document_combine(document_text("| "), expr_to_algebra(Tail)),
+
+    document_choice(
+        combine_space(document_single_line(HeadD), document_single_line(TailD)),
+        combine_newline(HeadD, TailD)
+    ).
 
 atom_needs_quotes([C0 | Cs]) when C0 >= $a, C0 =< $z ->
     lists:any(fun

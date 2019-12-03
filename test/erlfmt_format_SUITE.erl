@@ -41,7 +41,8 @@
     variable/1,
     unary_operator/1,
     binary_operator/1,
-    tuple/1
+    tuple/1,
+    list/1
 ]).
 
 suite() ->
@@ -99,7 +100,8 @@ groups() ->
             binary_operator
         ]},
         {containers, [parallel], [
-            tuple
+            tuple,
+            list
         ]}
     ].
 
@@ -301,6 +303,15 @@ tuple(Config) when is_list(Config) ->
     ?assertFormatExpr("{1,{2,3}}", "{1, {2, 3}}"),
     ?assertFormatExpr("{1,{2,3}}", "{\n    1,\n    {2, 3}\n}", 10),
     ?assertFormatExpr("{1,{long,word}}", "{\n    1,\n    {\n        long,\n        word\n    }\n}", 15).
+
+list(Config) when is_list(Config) ->
+    ?assertFormatExpr("[\n]", "[]"),
+    ?assertSameExpr("[1 | [2 | []]]"),
+    ?assertFormatExpr("[ 1 ,2,3, 4]", "[1, 2, 3, 4]"),
+    ?assertFormatExpr("[1,2,3|4]", "[1, 2, 3 | 4]"),
+    ?assertFormatExpr("[1,[2,3]]", "[\n    1,\n    [2, 3]\n]", 10),
+    ?assertFormatExpr("[11,2|3]", "[\n    11,\n    2 | 3\n]", 10),
+    ?assertFormatExpr("[11,22|33]", "[\n    11,\n    22\n    | 33\n]", 10).
 
 format_expr(String, PageWidth) ->
     {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),
