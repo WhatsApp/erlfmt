@@ -57,13 +57,42 @@ expr_to_algebra({concat, _Meta, Values0}) ->
 expr_to_algebra({op, _Meta, Op, Expr}) ->
     unary_op_to_algebra(Op, Expr);
 expr_to_algebra({op, _Meta, Op, Left, Right}) ->
-    binary_op_to_algebra(Op, Left, Right).
+    binary_op_to_algebra(Op, Left, Right);
+expr_to_algebra({tuple, _Meta, []}) ->
+    document_text("{}");
+expr_to_algebra({tuple, _Meta, Values0}) ->
+    Values = lists:map(fun expr_to_algebra/1, Values0),
+    SingleLine = lists:map(fun erlfmt_algebra:document_single_line/1, Values),
 
-combine_space(D1, D2) ->
-    document_combine(D1, document_combine(document_text(" "), D2)).
+    Horizontal = document_reduce(fun combine_comma_space/2, SingleLine),
+    Vertical = document_reduce(fun combine_comma_newline/2, Values),
+
+    document_choice(
+        wrap("{", Horizontal, "}"),
+        wrap_nested("{", Vertical, "}")
+    ).
+
+combine_space(D1, D2) -> combine_sep(D1, " ", D2).
+
+combine_comma_space(D1, D2) -> combine_sep(D1, ", ", D2).
+
+combine_sep(D1, Sep, D2) ->
+    document_combine(D1, document_combine(document_text(Sep), D2)).
 
 combine_newline(D1, D2) ->
     document_combine(document_flush(D1), D2).
+
+combine_comma_newline(D1, D2) ->
+    document_combine(document_flush(document_combine(D1, document_text(","))), D2).
+
+wrap(Left, Doc, Right) ->
+    document_combine(document_text(Left), document_combine(Doc, document_text(Right))).
+
+wrap_in_parens(Doc) -> wrap("(", Doc, ")").
+
+wrap_nested(Left, Doc, Right) ->
+    Nested = document_combine(document_spaces(4), Doc),
+    combine_newline(document_text(Left), combine_newline(Nested, document_text(Right))).
 
 %% TODO: handle underscores once on OTP 23
 format_integer([B1, B2, $# | Digits]) -> [B1, B2, $# | string:uppercase(Digits)];
@@ -153,9 +182,6 @@ binary_operand_to_algebra(ParentOp, {op, _, Op, Left, Right}, _Indent, Prec) ->
     end;
 binary_operand_to_algebra(_ParentOp, Expr, _Indent, _Prec) ->
     expr_to_algebra(Expr).
-
-wrap_in_parens(Doc) ->
-    document_combine(document_text("("), document_combine(Doc, document_text(")"))).
 
 atom_needs_quotes([C0 | Cs]) when C0 >= $a, C0 =< $z ->
     lists:any(fun
