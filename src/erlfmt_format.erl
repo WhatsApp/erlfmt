@@ -67,7 +67,13 @@ expr_to_algebra({cons, _, Head, Tail}) ->
 expr_to_algebra({bin, _Meta, Values}) ->
     container_to_algebra(Values, "<<", ">>");
 expr_to_algebra({bin_element, _Meta, Expr, Size, Types}) ->
-    bin_element_to_algebra(Expr, Size, Types).
+    bin_element_to_algebra(Expr, Size, Types);
+expr_to_algebra({map, _Meta, Values}) ->
+    container_to_algebra(Values, "#{", "}");
+expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
+    field_to_algebra("=>", Key, Value);
+expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
+    field_to_algebra(":=", Key, Value).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
@@ -230,9 +236,21 @@ expr_max_to_algebra({op, _, Op, Expr}) ->
     wrap_in_parens(unary_op_to_algebra(Op, Expr));
 expr_max_to_algebra({op, _, Op, Left, Right}) ->
     wrap_in_parens(binary_op_to_algebra(Op, Left, Right));
+expr_max_to_algebra({map, _, _} = Expr) ->
+    wrap_in_parens(expr_to_algebra(Expr));
 %% TODO: map, calls & records also get wrapped in parens
 expr_max_to_algebra(Expr) ->
     expr_to_algebra(Expr).
+
+field_to_algebra(Op, Key, Value) ->
+    KeyD = expr_to_algebra(Key),
+    ValueD = expr_to_algebra(Value),
+    KeyOpD = combine_space(KeyD, document_text(Op)),
+
+    document_choice(
+        combine_space(KeyOpD, document_single_line(ValueD)),
+        combine_newline(KeyOpD, document_combine(document_spaces(4), ValueD))
+    ).
 
 atom_needs_quotes([C0 | Cs]) when C0 >= $a, C0 =< $z ->
     lists:any(fun
