@@ -75,3 +75,7 @@ In `erlfmt_parse` the following AST nodes have different definitions:
 * The special `match` node is encoded as regular binary operator node.
 
 * The special `catch` node is encoded as regular unary operator node.
+
+* Lists are represented as a `list` node instead of a chain of `cons` and `nil` nodes,
+  similar to the `tuple` node. The last elemenent of the list can be a `cons` node
+  representing explicit consing syntax.
