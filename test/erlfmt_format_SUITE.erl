@@ -40,7 +40,8 @@
     unary_operator/1,
     binary_operator/1,
     tuple/1,
-    list/1
+    list/1,
+    binary/1
 ]).
 
 suite() ->
@@ -99,7 +100,8 @@ groups() ->
         ]},
         {containers, [parallel], [
             tuple,
-            list
+            list,
+            binary
         ]}
     ].
 
@@ -310,6 +312,15 @@ list(Config) when is_list(Config) ->
     ?assertFormatExpr("[1,[2,3]]", "[\n    1,\n    [2, 3]\n]", 10),
     ?assertFormatExpr("[11,2|3]", "[\n    11,\n    2 | 3\n]", 10),
     ?assertFormatExpr("[11,22|33]", "[\n    11,\n    22\n    | 33\n]", 10).
+
+binary(Config) when is_list(Config) ->
+    ?assertFormatExpr("<< >>", "<<>>"),
+    ?assertFormatExpr("<<(1), (1 + 1)>>", "<<1, (1 + 1)>>"),
+    ?assertSameExpr("<<+1:5/unit:8, (catch 1)>>"),
+    ?assertSameExpr("<<\"żółć\"/utf8>>"),
+    ?assertFormatExpr("<<1/float,<<22,33>>/binary>>", "<<1/float, <<22, 33>>/binary>>"),
+    ?assertFormatExpr("<<1/float,<<22,33>>>>", "<<\n    1/float,\n    <<22, 33>>\n>>", 15),
+    ?assertFormatExpr("<<1/float,<<22,33>>>>", "<<\n    1/float,\n    <<\n        22,\n        33\n    >>\n>>", 10).
 
 format_expr(String, PageWidth) ->
     {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),
