@@ -36,7 +36,7 @@
 %% These operators always force parens on nested operators
 -define(REQUIRE_PARENS_OPS, ['bor', 'band', 'bxor', 'bsl', 'bsr', '++', '--']).
 
--spec expr_to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:document().
+-spec expr_to_algebra(erlfmt_parse:abstract_expr()) -> erlfmt_algebra:document().
 expr_to_algebra({integer, Meta, _Value}) ->
     document_text(format_integer(text(Meta)));
 expr_to_algebra({float, Meta, _Value}) ->
