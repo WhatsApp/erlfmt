@@ -236,11 +236,21 @@ string_escapes(Config) when is_list(Config) ->
 
 string_concat(Config) when is_list(Config) ->
     ?assertSameExpr("\"foo\" \"bar\""),
-    ?assertFormatExpr("\"foo\" \"bar\"", "\"foo\"\n\"bar\"", 5),
+    ?assertFormatExpr(
+        "\"foo\" \"bar\"",
+        "\"foo\"\n"
+        "\"bar\"",
+        5
+    ),
 
     %% Measures text size in graphemes (\x{61}\x{301} is á in NFD normalisation)
     ?assertSameExpr("\"\x{61}\x{301}\" \"á\"", 7),
-    ?assertFormatExpr("\"\x{61}\x{301}\" \"á\"", "\"\x{61}\x{301}\"\n\"á\"", 6),
+    ?assertFormatExpr(
+        "\"\x{61}\x{301}\" \"á\"",
+        "\"\x{61}\x{301}\"\n"
+        "\"á\"",
+        6
+    ),
 
     ?assertSameExpr("\"foo\" Foo \"bar\"").
 
@@ -281,41 +291,146 @@ binary_operator(Config) when is_list(Config) ->
 
     %% Nested same operator right-associative
     ?assertSameExpr("Foo ++ Bar ++ Baz"),
-    ?assertFormatExpr("Foo ++ Bar ++ Baz", "Foo ++\n    Bar ++ Baz", 15),
-    ?assertFormatExpr("Foo ++ Bar ++ Baz", "Foo ++\n    Bar ++\n    Baz", 5),
-    ?assertFormatExpr("((Foo ++ Bar) ++ Baz)", "(Foo ++ Bar) ++\n    Baz", 15),
-    ?assertFormatExpr("((Foo ++ Bar) ++ Baz)", "(Foo ++\n     Bar) ++\n    Baz", 5),
+    ?assertFormatExpr(
+        "Foo ++ Bar ++ Baz",
+        "Foo ++\n"
+        "    Bar ++ Baz",
+        15
+    ),
+    ?assertFormatExpr(
+        "Foo ++ Bar ++ Baz",
+        "Foo ++\n"
+        "    Bar ++\n"
+        "    Baz",
+        5
+    ),
+    ?assertFormatExpr(
+        "((Foo ++ Bar) ++ Baz)",
+        "(Foo ++ Bar) ++\n"
+        "    Baz",
+        15
+    ),
+    ?assertFormatExpr(
+        "((Foo ++ Bar) ++ Baz)",
+        "(Foo ++\n"
+        "     Bar) ++\n"
+        "    Baz",
+        5
+    ),
 
     %% Nested same operator left-associative
     ?assertSameExpr("Foo + Bar + Baz"),
-    ?assertFormatExpr("Foo + Bar + Baz", "Foo + Bar +\n    Baz", 14),
-    ?assertFormatExpr("Foo + Bar + Baz", "Foo +\n    Bar +\n    Baz", 5),
-    ?assertFormatExpr("(Foo + (Bar + Baz))", "Foo +\n    (Bar + Baz)", 15),
-    ?assertFormatExpr("(Foo + (Bar + Baz))", "Foo +\n    (Bar +\n         Baz)", 5),
+    ?assertFormatExpr(
+        "Foo + Bar + Baz",
+        "Foo + Bar +\n"
+        "    Baz",
+        14
+    ),
+    ?assertFormatExpr(
+        "Foo + Bar + Baz",
+        "Foo +\n"
+        "    Bar +\n"
+        "    Baz",
+        5
+    ),
+    ?assertFormatExpr(
+        "(Foo + (Bar + Baz))",
+        "Foo +\n"
+        "    (Bar + Baz)",
+        15
+    ),
+    ?assertFormatExpr(
+        "(Foo + (Bar + Baz))",
+        "Foo +\n"
+        "    (Bar +\n"
+        "         Baz)",
+        5
+    ),
 
     %% With precedence
     ?assertFormatExpr("(A + B) == (C + D)", "A + B == C + D"),
     ?assertSameExpr("A + (B == C) + D"),
-    ?assertFormatExpr("(A + B) == (C + D)", "A + B ==\n    C + D", 10),
-    ?assertFormatExpr("Foo * (B + C) * D", "Foo *\n    (B + C) *\n    D", 10),
-    ?assertFormatExpr("A * (B + C) * D", "A * (B + C) *\n    D", 10),
-    ?assertFormatExpr("One * (Two + Three + Four) * Five", "One *\n    (Two + Three +\n         Four) * Five", 25).
+    ?assertFormatExpr(
+        "(A + B) == (C + D)",
+        "A + B ==\n"
+        "    C + D",
+        10
+    ),
+    ?assertFormatExpr(
+        "Foo * (B + C) * D",
+        "Foo *\n"
+        "    (B + C) *\n"
+        "    D",
+        10
+    ),
+    ?assertFormatExpr(
+        "A * (B + C) * D",
+        "A * (B + C) *\n"
+        "    D",
+        10
+    ),
+    ?assertFormatExpr(
+        "One * (Two + Three + Four) * Five",
+        "One *\n"
+        "    (Two + Three +\n"
+        "         Four) * Five",
+        25
+    ).
 
 tuple(Config) when is_list(Config) ->
     ?assertFormatExpr("{ }", "{}"),
     ?assertFormatExpr("{1,2}", "{1, 2}"),
     ?assertFormatExpr("{1,{2,3}}", "{1, {2, 3}}"),
-    ?assertFormatExpr("{1,{2,3}}", "{\n    1,\n    {2, 3}\n}", 10),
-    ?assertFormatExpr("{1,{long,word}}", "{\n    1,\n    {\n        long,\n        word\n    }\n}", 15).
+    ?assertFormatExpr(
+        "{1,{2,3}}",
+        "{\n"
+        "    1,\n"
+        "    {2, 3}\n"
+        "}",
+        10
+    ),
+    ?assertFormatExpr(
+        "{1,{long,word}}",
+        "{\n"
+        "    1,\n"
+        "    {\n"
+        "        long,\n"
+        "        word\n"
+        "    }\n"
+        "}",
+        15
+    ).
 
 list(Config) when is_list(Config) ->
     ?assertFormatExpr("[\n]", "[]"),
     ?assertSameExpr("[1 | [2 | []]]"),
     ?assertFormatExpr("[ 1 ,2,3, 4]", "[1, 2, 3, 4]"),
     ?assertFormatExpr("[1,2,3|4]", "[1, 2, 3 | 4]"),
-    ?assertFormatExpr("[1,[2,3]]", "[\n    1,\n    [2, 3]\n]", 10),
-    ?assertFormatExpr("[11,2|3]", "[\n    11,\n    2 | 3\n]", 10),
-    ?assertFormatExpr("[11,22|33]", "[\n    11,\n    22\n    | 33\n]", 10).
+    ?assertFormatExpr(
+        "[1,[2,3]]",
+        "[\n"
+        "    1,\n"
+        "    [2, 3]\n"
+        "]",
+        10
+    ),
+    ?assertFormatExpr(
+        "[11,2|3]",
+        "[\n"
+        "    11,\n"
+        "    2 | 3\n"
+        "]",
+        10
+    ),
+    ?assertFormatExpr(
+        "[11,22|33]",
+        "[\n"
+        "    11,\n"
+        "    22\n"
+        "    | 33\n"
+        "]",
+        10
+    ).
 
 binary(Config) when is_list(Config) ->
     ?assertFormatExpr("<< >>", "<<>>"),
@@ -323,14 +438,47 @@ binary(Config) when is_list(Config) ->
     ?assertSameExpr("<<+1:5/unit:8, (catch 1)>>"),
     ?assertSameExpr("<<\"żółć\"/utf8>>"),
     ?assertFormatExpr("<<1/float,<<22,33>>/binary>>", "<<1/float, <<22, 33>>/binary>>"),
-    ?assertFormatExpr("<<1/float,<<22,33>>>>", "<<\n    1/float,\n    <<22, 33>>\n>>", 15),
-    ?assertFormatExpr("<<1/float,<<22,33>>>>", "<<\n    1/float,\n    <<\n        22,\n        33\n    >>\n>>", 10).
+    ?assertFormatExpr(
+        "<<1/float,<<22,33>>>>",
+        "<<\n"
+        "    1/float,\n"
+        "    <<22, 33>>\n"
+        ">>",
+        15
+    ),
+    ?assertFormatExpr(
+        "<<1/float,<<22,33>>>>",
+        "<<\n"
+        "    1/float,\n"
+        "    <<\n"
+        "        22,\n"
+        "        33\n"
+        "    >>\n"
+        ">>",
+        10
+    ).
 
 map(Config) when is_list(Config) ->
     ?assertFormatExpr("#{\n}", "#{}"),
     ?assertFormatExpr("#{1:=2,  3=>4}", "#{1 := 2, 3 => 4}"),
-    ?assertFormatExpr("#{11 => 22, 33 => 44}", "#{\n    11 => 22,\n    33 => 44\n}", 15),
-    ?assertFormatExpr("#{11 => 22, 33 => 44}", "#{\n    11 =>\n        22,\n    33 =>\n        44\n}", 10).
+    ?assertFormatExpr(
+        "#{11 => 22, 33 => 44}",
+        "#{\n"
+        "    11 => 22,\n"
+        "    33 => 44\n"
+        "}",
+        15
+    ),
+    ?assertFormatExpr(
+        "#{11 => 22, 33 => 44}",
+        "#{\n"
+        "    11 =>\n"
+        "        22,\n"
+        "    33 =>\n"
+        "        44\n"
+        "}",
+        10
+    ).
 
 format_expr(String, PageWidth) ->
     {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),
