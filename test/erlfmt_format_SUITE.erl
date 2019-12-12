@@ -280,6 +280,7 @@ unary_operator(Config) when is_list(Config) ->
     ?assertFormatExpr("not catch 1", "not (catch 1)"),
     ?assertFormatExpr("not(1 + 1)", "not (1 + 1)"),
     ?assertFormatExpr("(bnot 1) * 1", "bnot 1 * 1"),
+    ?assertSameExpr("(catch 1) + 1"),
 
     %% Unless it's nested not or bnot
     ?assertSameExpr("bnot bnot Var"),
@@ -440,8 +441,9 @@ list(Config) when is_list(Config) ->
 
 binary(Config) when is_list(Config) ->
     ?assertFormatExpr("<< >>", "<<>>"),
-    ?assertFormatExpr("<<(1), (1 + 1), (#{})>>", "<<1, (1 + 1), (#{})>>"),
-    ?assertSameExpr("<<+1:5/unit:8, (catch 1)>>"),
+    ?assertSameExpr("<<(1 + 1), (#{}), (#foo{}), (#{}#{}), (#foo{}#foo{})>>"),
+    ?assertFormatExpr("<<(1)>>", "<<1>>"),
+    ?assertSameExpr("<<+1:5/integer-unit:8>>"),
     ?assertSameExpr("<<\"żółć\"/utf8>>"),
     ?assertFormatExpr("<<1/float,<<22,33>>/binary>>", "<<1/float, <<22, 33>>/binary>>"),
     ?assertFormatExpr(
