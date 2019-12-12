@@ -115,7 +115,16 @@ expr_to_algebra({'fun', _Meta, Expr}) ->
     fun_to_algebra(Expr);
 expr_to_algebra({'case', _Meta, Expr, Clauses}) ->
     Prefix = wrap(document_text("case "), expr_to_algebra(Expr), document_text(" of")),
-    wrap_nested(Prefix, clauses_to_algebra(Clauses), document_text("end")).
+    wrap_nested(Prefix, clauses_to_algebra(Clauses), document_text("end"));
+expr_to_algebra({'receive', _Meta, Clauses}) ->
+    wrap_nested(document_text("receive"), clauses_to_algebra(Clauses), document_text("end"));
+expr_to_algebra({'receive', _Meta, [], AfterExpr, AfterBody}) ->
+    AfterD = after_to_algebra(AfterExpr, AfterBody),
+    combine_newline(document_text("receive"), combine_newline(AfterD, document_text("end")));
+expr_to_algebra({'receive', _Meta, Clauses, AfterExpr, AfterBody}) ->
+    AfterD = after_to_algebra(AfterExpr, AfterBody),
+    Suffix = combine_newline(AfterD, document_text("end")),
+    wrap_nested(document_text("receive"), clauses_to_algebra(Clauses), Suffix).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
@@ -460,6 +469,16 @@ guard_alt_to_algebra_pair(Alt) ->
     SingleLineD = document_reduce(fun combine_comma_space/2, SingleLine),
     MultiLineD = document_reduce(fun combine_comma_newline/2, AltD),
     {SingleLineD, document_choice(SingleLineD, MultiLineD)}.
+
+after_to_algebra(Expr, Body) ->
+    ExprD = expr_to_algebra(Expr),
+    BodyD = block_to_algebra(Body),
+
+    Head = wrap(document_text("after "), ExprD, document_text(" ->")),
+    document_choice(
+        combine_space(Head, document_single_line(BodyD)),
+        combine_newline(Head, document_combine(document_spaces(4), BodyD))
+    ).
 
 atom_needs_quotes([C0 | Cs]) when C0 >= $a, C0 =< $z ->
     lists:any(fun
