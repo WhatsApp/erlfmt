@@ -44,8 +44,10 @@
     tuple/1,
     list/1,
     binary/1,
-    map/1,
-    record/1
+    map_create/1,
+    map_update/1,
+    record_create/1,
+    record_update/1
 ]).
 
 suite() ->
@@ -106,8 +108,10 @@ groups() ->
             tuple,
             list,
             binary,
-            map,
-            record
+            map_create,
+            map_update,
+            record_create,
+            record_update
         ]}
     ].
 
@@ -460,7 +464,7 @@ binary(Config) when is_list(Config) ->
         10
     ).
 
-map(Config) when is_list(Config) ->
+map_create(Config) when is_list(Config) ->
     ?assertFormatExpr("#{\n}", "#{}"),
     ?assertFormatExpr("#{1:=2,  3=>4}", "#{1 := 2, 3 => 4}"),
     ?assertFormatExpr(
@@ -482,8 +486,35 @@ map(Config) when is_list(Config) ->
         10
     ).
 
-record(Config) when is_list(Config) ->
+map_update(Config) when is_list(Config) ->
+    ?assertFormatExpr("X # {\n}", "X#{}"),
+    ?assertSameExpr("#{}#{}"),
+    ?assertSameExpr("#{}#{}#{}"),
+    ?assertSameExpr("(catch 1)#{}"),
+    ?assertSameExpr("X#{A => B, C := D}"),
+    ?assertFormatExpr(
+        "X#{11 => 22, 33 => 44}",
+        "X#{\n"
+        "    11 => 22,\n"
+        "    33 => 44\n"
+        "}",
+        15
+    ),
+    ?assertFormatExpr(
+        "#{55 => 66, 77 => 88}#{11 => 22, 33 => 44}",
+        "#{\n"
+        "    55 => 66,\n"
+        "    77 => 88\n"
+        "}#{\n"
+        "    11 => 22,\n"
+        "    33 => 44\n"
+        "}",
+        15
+    ).
+
+record_create(Config) when is_list(Config) ->
     ?assertFormatExpr("#foo{\n}", "#foo{}"),
+    ?assertFormatExpr("#foo{_=x}", "#foo{_ = x}"),
     ?assertFormatExpr("#foo{a=1,b=2+3}", "#foo{a = 1, b = 2 + 3}"),
     ?assertFormatExpr(
         "#foo{a=1,b=2+3}",
@@ -503,6 +534,32 @@ record(Config) when is_list(Config) ->
         "}",
         10
     ).
+
+record_update(Config) when is_list(Config) ->
+    ?assertFormatExpr("X #foo {\n}", "X#foo{}"),
+    ?assertSameExpr("#foo{}#bar{}"),
+    ?assertSameExpr("#foo{}#bar{}#baz{}"),
+    ?assertSameExpr("(catch 1)#foo{}"),
+    ?assertFormatExpr(
+        "X#foo{aa = aa, bb = bb}",
+        "X#foo{\n"
+        "    aa = aa,\n"
+        "    bb = bb\n"
+        "}",
+        15
+    ),
+    ?assertFormatExpr(
+        "#foo{cc = cc, dd = dd}#foo{aa = aa, bb = bb}",
+        "#foo{\n"
+        "    cc = cc,\n"
+        "    dd = dd\n"
+        "}#foo{\n"
+        "    aa = aa,\n"
+        "    bb = bb\n"
+        "}",
+        15
+    ).
+
 
 format_expr(String, PageWidth) ->
     {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),

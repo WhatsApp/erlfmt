@@ -70,6 +70,9 @@ expr_to_algebra({bin_element, _Meta, Expr, Size, Types}) ->
     bin_element_to_algebra(Expr, Size, Types);
 expr_to_algebra({map, _Meta, Values}) ->
     container_to_algebra(Values, document_text("#{"), document_text("}"));
+expr_to_algebra({map, _Meta, Expr, Values}) ->
+    Prefix = document_combine(map_expr_to_algebra(Expr), document_text("#{")),
+    container_to_algebra(Values, Prefix, document_text("}"));
 expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
     field_to_algebra("=>", Key, Value);
 expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
@@ -77,6 +80,10 @@ expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
 expr_to_algebra({record, _Meta, Name, Values}) ->
     %% TODO: handle ?FOO{} vs #?FOO{} once we handle macros
     Prefix = wrap(document_text("#"), expr_to_algebra(Name), document_text("{")),
+    container_to_algebra(Values, Prefix, document_text("}"));
+expr_to_algebra({record, _Meta, Expr, Name, Values}) ->
+    PrefixName = wrap(document_text("#"), expr_to_algebra(Name), document_text("{")),
+    Prefix = document_combine(record_expr_to_algebra(Expr), PrefixName),
     container_to_algebra(Values, Prefix, document_text("}"));
 expr_to_algebra({record_field, _Meta, Key, Value}) ->
     field_to_algebra("=", Key, Value).
@@ -244,11 +251,30 @@ expr_max_to_algebra({op, _, Op, Left, Right}) ->
     wrap_in_parens(binary_op_to_algebra(Op, Left, Right));
 expr_max_to_algebra({map, _, _} = Expr) ->
     wrap_in_parens(expr_to_algebra(Expr));
+expr_max_to_algebra({map, _, _, _} = Expr) ->
+    wrap_in_parens(expr_to_algebra(Expr));
 expr_max_to_algebra({record, _, _, _} = Expr) ->
+    wrap_in_parens(expr_to_algebra(Expr));
+expr_max_to_algebra({record, _, _, _, _} = Expr) ->
     wrap_in_parens(expr_to_algebra(Expr));
 %% TODO: map, calls & records also get wrapped in parens
 expr_max_to_algebra(Expr) ->
     expr_to_algebra(Expr).
+
+map_expr_to_algebra({map, _, _} = Expr) ->
+    expr_to_algebra(Expr);
+map_expr_to_algebra({map, _, _, _} = Expr) ->
+    expr_to_algebra(Expr);
+map_expr_to_algebra(Expr) ->
+    expr_max_to_algebra(Expr).
+
+record_expr_to_algebra({record, _, _, _} = Expr) ->
+    expr_to_algebra(Expr);
+record_expr_to_algebra({record, _, _, _, _} = Expr) ->
+    expr_to_algebra(Expr);
+record_expr_to_algebra(Expr) ->
+    expr_max_to_algebra(Expr).
+
 
 field_to_algebra(Op, Key, Value) ->
     KeyD = expr_to_algebra(Key),
