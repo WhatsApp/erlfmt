@@ -28,9 +28,15 @@ In `erlfmt_parse` the following AST nodes have different definitions:
       an atom `empty` or a `{record_name, Anno, Name}` node,
     * for `clause`, it is a `clause` node as used in functions.
 
-* The `clause` node as used in functions or funs has a different AST representation:
+* The `clause` node has a different AST representation:
   `{clause, Anno, Name, Args, Guards, Body}`, where the newly added `Name` field
-  is an `atom`, `var`, or `macro_call` node or an atom `'fun'` for anonymous funs.
+  is an `atom`, `var`, or `macro_call` node or an atom `'fun'` for anonymous funs,
+  `'case'` for case, receive and "of" part of try expressions,
+  `'if'` for if expressions and `catch` for "catch" part of try expressions.
+
+* The `clause` nodes tagged with `catch` have 1 to 3 arguments representing
+  the various syntaxes of catch clauses. This replaces a fixed 3-tuple as a single
+  argument of the clause.
 
 * The `function` node has a different AST representation:
   `{function, Anno, Clauses}`, where `Clauses` is a list of `clause` nodes
