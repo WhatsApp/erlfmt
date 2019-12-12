@@ -44,6 +44,8 @@ form_to_algebra({function, _Meta, Clauses}) ->
 form_to_algebra({attribute, Meta, Name, []}) ->
     NameD = document_text(format_atom(text(Meta), Name)),
     wrap(document_text("-"), NameD, document_text("."));
+form_to_algebra({attribute, _Meta, _Name, {_, _}}) ->
+    document_text("%% special skipped");
 form_to_algebra({attribute, Meta, Name, Values}) ->
     NameD = document_text(format_atom(text(Meta), Name)),
     Prefix = wrap(document_text("-"), NameD, document_text("(")),
