@@ -51,7 +51,8 @@
     record_index/1,
     record_field/1,
     list_comprehension/1,
-    binary_comprehension/1
+    binary_comprehension/1,
+    call/1
 ]).
 
 suite() ->
@@ -86,7 +87,8 @@ groups() ->
             variable,
             {group, operators},
             {group, containers},
-            {group, comprehensions}
+            {group, comprehensions},
+            call
         ]},
         {integers, [parallel], [
             int_decimal_base,
@@ -455,7 +457,7 @@ list(Config) when is_list(Config) ->
 
 binary(Config) when is_list(Config) ->
     ?assertFormatExpr("<< >>", "<<>>"),
-    ?assertSameExpr("<<(1 + 1), (#{}), (#foo{}), (#{}#{}), (#foo{}#foo{}), (#foo.bar)>>"),
+    ?assertSameExpr("<<(1 + 1), (#{}), (#foo{}), (#{}#{}), (#foo{}#foo{}), (#foo.bar), (call())>>"),
     ?assertFormatExpr("<<(1)>>", "<<1>>"),
     ?assertSameExpr("<<+1:5/integer-unit:8>>"),
     ?assertSameExpr("<<\"żółć\"/utf8>>"),
@@ -655,6 +657,31 @@ binary_comprehension(Config) when is_list(Config) ->
         "           VeryLongExpression,\n"
         "       X < 10\n"
         ">>",
+        25
+    ).
+
+call(Config) when is_list(Config) ->
+    ?assertFormatExpr("foo(\n)", "foo()"),
+    ?assertSameExpr("foo(1, 2, 3)"),
+    ?assertSameExpr("foo:bar(1, 2, 3)"),
+    ?assertSameExpr("Foo:Bar(1, 2, 3)"),
+    ?assertSameExpr("(get_module()):(get_fun())()"),
+    ?assertFormatExpr(
+        "long_name({Long, Expression})",
+        "long_name(\n"
+        "    {Long, Expression}\n"
+        ")",
+        25
+    ),
+    ?assertFormatExpr(
+        "long_name({Very, Long, Expression})",
+        "long_name(\n"
+        "    {\n"
+        "        Very,\n"
+        "        Long,\n"
+        "        Expression\n"
+        "    }\n"
+        ")",
         25
     ).
 
