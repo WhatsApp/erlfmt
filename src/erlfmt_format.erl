@@ -79,20 +79,19 @@ expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
     field_to_algebra("=>", Key, Value);
 expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
     field_to_algebra(":=", Key, Value);
-expr_to_algebra({record, _Meta, Name, Values}) ->
-    %% TODO: handle ?FOO{} vs #?FOO{} once we handle macros
-    Prefix = wrap(document_text("#"), expr_to_algebra(Name), document_text("{")),
+expr_to_algebra({record, Meta, Name, Values}) ->
+    Prefix = document_combine(record_name_to_algebra(Meta, Name), document_text("{")),
     container_to_algebra(Values, Prefix, document_text("}"));
-expr_to_algebra({record, _Meta, Expr, Name, Values}) ->
-    PrefixName = wrap(document_text("#"), expr_to_algebra(Name), document_text("{")),
+expr_to_algebra({record, Meta, Expr, Name, Values}) ->
+    PrefixName = document_combine(record_name_to_algebra(Meta, Name), document_text("{")),
     Prefix = document_combine(record_expr_to_algebra(Expr), PrefixName),
     container_to_algebra(Values, Prefix, document_text("}"));
 expr_to_algebra({record_field, _Meta, Key, Value}) ->
     field_to_algebra("=", Key, Value);
-expr_to_algebra({record_index, _Meta, Name, Key}) ->
-    record_access_to_algebra(Name, Key);
-expr_to_algebra({record_field, _Meta, Expr, Name, Key}) ->
-    Access = record_access_to_algebra(Name, Key),
+expr_to_algebra({record_index, Meta, Name, Key}) ->
+    record_access_to_algebra(Meta, Name, Key);
+expr_to_algebra({record_field, Meta, Expr, Name, Key}) ->
+    Access = record_access_to_algebra(Meta, Name, Key),
     document_combine(record_expr_to_algebra(Expr), Access);
 expr_to_algebra({lc, _Meta, Expr, LcExprs}) ->
     ExprD = expr_to_algebra(Expr),
@@ -107,6 +106,13 @@ expr_to_algebra({b_generate, _Meta, Left, Right}) ->
 expr_to_algebra({call, _Meta, Name, Args}) ->
     Prefix = document_combine(expr_max_to_algebra(Name), document_text("(")),
     container_to_algebra(Args, Prefix, document_text(")"));
+expr_to_algebra({macro_call, _Meta, Name, none}) ->
+    document_combine(document_text("?"), expr_to_algebra(Name));
+expr_to_algebra({macro_call, _Meta, Name, Args}) ->
+    Prefix = wrap(document_text("?"), expr_to_algebra(Name), document_text("(")),
+    container_to_algebra(Args, Prefix, document_text(")"));
+expr_to_algebra({macro_string, _Meta, Name}) ->
+    document_combine(document_text("??"), expr_to_algebra(Name));
 expr_to_algebra({remote, _Meta, Mod, Name}) ->
     wrap(expr_max_to_algebra(Mod), document_text(":"), expr_max_to_algebra(Name));
 expr_to_algebra({block, _Meta, Exprs}) ->
@@ -126,7 +132,9 @@ expr_to_algebra({'receive', _Meta, Clauses, AfterExpr, AfterBody}) ->
     Suffix = combine_newline(AfterD, document_text("end")),
     wrap_nested(document_text("receive"), clauses_to_algebra(Clauses), Suffix);
 expr_to_algebra({'try', _Meta, Exprs, OfClauses, CatchClauses, After}) ->
-    try_to_algebra(Exprs, OfClauses, CatchClauses, After).
+    try_to_algebra(Exprs, OfClauses, CatchClauses, After);
+expr_to_algebra({guard, _Meta, Expr, Guard}) ->
+    guard_to_algebra(Expr, Guard).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
@@ -340,12 +348,18 @@ record_expr_to_algebra({record_field, _, _, _, _} = Expr) ->
 record_expr_to_algebra(Expr) ->
     expr_max_to_algebra(Expr).
 
-record_access_to_algebra(Name, Key) ->
-    NameD = expr_to_algebra(Name),
+record_access_to_algebra(Meta, Name, Key) ->
+    NameD = record_name_to_algebra(Meta, Name),
     KeyD = expr_to_algebra(Key),
     DotD = document_text("."),
-    NumD = document_text("#"),
-    document_combine(NumD, document_combine(NameD, document_combine(DotD, KeyD))).
+    document_combine(NameD, document_combine(DotD, KeyD)).
+
+record_name_to_algebra(Meta, Name) ->
+    %% Differentiate between #?FOO{} and ?FOO{}
+    case text(Meta) of
+        "#" -> document_combine(document_text("#"), expr_to_algebra(Name));
+        "?" -> expr_to_algebra(Name)
+    end.
 
 field_to_algebra(Op, Key, Value) ->
     KeyD = expr_to_algebra(Key),
@@ -528,6 +542,16 @@ try_of_block(Exprs, OfClauses) ->
                 clauses_to_algebra(OfClauses)
             )
     end.
+
+guard_to_algebra(Expr, Guard) ->
+    WhenD = document_text("when"),
+    ExprD = expr_to_algebra(Expr),
+    GuardD = expr_to_algebra(Guard),
+
+    document_choice(
+        combine_space(document_single_line(ExprD), combine_space(WhenD, document_single_line(GuardD))),
+        combine_newline(ExprD, combine_space(WhenD, GuardD))
+    ).
 
 atom_needs_quotes([C0 | Cs]) when C0 >= $a, C0 =< $z ->
     lists:any(fun

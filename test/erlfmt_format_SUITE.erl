@@ -57,7 +57,8 @@
     fun_expression/1,
     case_expression/1,
     receive_expression/1,
-    try_expression/1
+    try_expression/1,
+    macro/1
 ]).
 
 suite() ->
@@ -98,7 +99,8 @@ groups() ->
             fun_expression,
             case_expression,
             receive_expression,
-            try_expression
+            try_expression,
+            macro
         ]},
         {integers, [parallel], [
             int_decimal_base,
@@ -562,7 +564,9 @@ record_create(Config) when is_list(Config) ->
         "            Bar\n"
         "}",
         10
-    ).
+    ),
+    ?assertSameExpr("#?FOO{}"),
+    ?assertSameExpr("?FOO{}").
 
 record_update(Config) when is_list(Config) ->
     ?assertFormatExpr("X #foo {\n}", "X#foo{}"),
@@ -588,10 +592,14 @@ record_update(Config) when is_list(Config) ->
         "    bb = bb\n"
         "}",
         15
-    ).
+    ),
+    ?assertSameExpr("X#?FOO{}"),
+    ?assertSameExpr("X?FOO{}").
 
 record_index(Config) when is_list(Config) ->
-    ?assertSameExpr("#foo.bar").
+    ?assertSameExpr("#foo.bar"),
+    ?assertSameExpr("#?FOO.bar"),
+    ?assertSameExpr("?FOO.bar").
 
 record_field(Config) when is_list(Config) ->
     ?assertSameExpr("X#foo.bar"),
@@ -602,7 +610,9 @@ record_field(Config) when is_list(Config) ->
         "(Foo +\n"
         "     Bar)#foo.bar",
         5
-    ).
+    ),
+    ?assertSameExpr("X#?FOO.bar"),
+    ?assertSameExpr("X?FOO.bar").
 
 list_comprehension(Config) when is_list(Config) ->
     ?assertFormatExpr("[X||X<-List]", "[X || X <- List]"),
@@ -1029,6 +1039,30 @@ try_expression(Config) when is_list(Config) ->
         "    Expr1,\n"
         "    Expr2\n"
         "end"
+    ).
+
+macro(Config) when is_list(Config) ->
+    ?assertSameExpr("??FOO"),
+    ?assertFormatExpr("? Foo", "?Foo"),
+    ?assertSameExpr("?foo"),
+    ?assertFormatExpr("?FOO(\n)", "?FOO()"),
+    ?assertSameExpr("?assertMatch(X when is_integer(X), Y)"),
+    ?assertFormatExpr(
+        "?assertMatch(X when is_integer(X), Y)",
+        "?assertMatch(\n"
+        "    X when is_integer(X),\n"
+        "    Y\n"
+        ")",
+        30
+    ),
+    ?assertFormatExpr(
+        "?assertMatch(X when is_integer(X), Y)",
+        "?assertMatch(\n"
+        "    X\n"
+        "    when is_integer(X),\n"
+        "    Y\n"
+        ")",
+        23
     ).
 
 format_expr(String, PageWidth) ->
