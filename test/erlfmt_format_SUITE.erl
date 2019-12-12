@@ -50,7 +50,8 @@
     record_field/1,
     list_comprehension/1,
     binary_comprehension/1,
-    call/1
+    call/1,
+    block/1
 ]).
 
 suite() ->
@@ -86,7 +87,8 @@ groups() ->
             {group, operators},
             {group, containers},
             {group, comprehensions},
-            call
+            call,
+            block
         ]},
         {integers, [parallel], [
             int_decimal_base,
@@ -680,6 +682,24 @@ call(Config) when is_list(Config) ->
         "        Expression\n"
         "    }\n"
         ")",
+        25
+    ).
+
+block(Config) when is_list(Config) ->
+    ?assertFormatExpr(
+        "begin 1 end",
+        "begin\n"
+        "    1\n"
+        "end"
+    ),
+    ?assertFormatExpr(
+        "begin long_expression(with_args), {Short, Expr} end",
+        "begin\n"
+        "    long_expression(\n"
+        "        with_args\n"
+        "    ),\n"
+        "    {Short, Expr}\n"
+        "end",
         25
     ).
 
