@@ -58,6 +58,7 @@
     case_expression/1,
     receive_expression/1,
     try_expression/1,
+    if_expression/1,
     macro/1,
     function/1
 ]).
@@ -93,6 +94,7 @@ groups() ->
             case_expression,
             receive_expression,
             try_expression,
+            if_expression,
             macro
         ]},
         {forms, [parallel], [
@@ -1055,6 +1057,49 @@ try_expression(Config) when is_list(Config) ->
         "    Expr1,\n"
         "    Expr2\n"
         "end"
+    ).
+
+if_expression(Config) when is_list(Config) ->
+    ?assertFormatExpr(
+        "if true -> ok end",
+        "if\n"
+        "    true -> ok\n"
+        "end",
+        100
+    ),
+    ?assertFormatExpr(
+        "if long() -> Expression end",
+        "if\n"
+        "    long() -> Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "if even(Longer) -> Expression end",
+        "if\n"
+        "    even(Longer) ->\n"
+        "        Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "if the(Guard); Is, Long -> Expression end",
+        "if\n"
+        "    the(Guard);\n"
+        "    Is, Long ->\n"
+        "        Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "if Short -> Expr; long(Guard, And) -> Expression end",
+        "if\n"
+        "    Short ->\n"
+        "        Expr;\n"
+        "    long(Guard, And) ->\n"
+        "        Expression\n"
+        "end",
+        25
     ).
 
 macro(Config) when is_list(Config) ->

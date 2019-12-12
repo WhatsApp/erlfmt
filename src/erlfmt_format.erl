@@ -137,6 +137,8 @@ expr_to_algebra({'receive', _Meta, Clauses, AfterExpr, AfterBody}) ->
     wrap_nested(document_text("receive"), clauses_to_algebra(Clauses), Suffix);
 expr_to_algebra({'try', _Meta, Exprs, OfClauses, CatchClauses, After}) ->
     try_to_algebra(Exprs, OfClauses, CatchClauses, After);
+expr_to_algebra({'if', _Meta, Clauses}) ->
+    wrap_nested(document_text("if"), clauses_to_algebra(Clauses), document_text("end"));
 expr_to_algebra({guard, _Meta, Expr, Guard}) ->
     guard_to_algebra(Expr, Guard).
 
@@ -437,6 +439,15 @@ clauses_to_algebra(Clauses) ->
         document_reduce(fun combine_semi_newline/2, ClausesD)
     ).
 
+clause_to_algebra_pair({clause, _Meta, 'if', [], Guards, Body}) ->
+    BodyD = block_to_algebra(Body),
+    SingleBodyD = document_single_line(BodyD),
+    {SingleGuardsD, GuardsD} = guards_to_algebra_pair(Guards, document_text("")),
+
+    SingleD = combine_space(SingleGuardsD, SingleBodyD),
+    MultiD = combine_nested(GuardsD, BodyD),
+
+    {SingleD, MultiD};
 clause_to_algebra_pair({clause, _Meta, Name, Args, [], Body}) ->
     {SingleHeadD, HeadD} = clause_head_to_algebra(Name, Args),
     BodyD = block_to_algebra(Body),
@@ -449,7 +460,7 @@ clause_to_algebra_pair({clause, _Meta, Name, Args, [], Body}) ->
     {SingleD, MultiD};
 clause_to_algebra_pair({clause, _Meta, Name, Args, Guards, Body}) ->
     {SingleHeadD, HeadD} = clause_head_to_algebra(Name, Args),
-    {SingleGuardsD, GuardsD} = guards_to_algebra_pair(Guards),
+    {SingleGuardsD, GuardsD} = guards_to_algebra_pair(Guards, document_text("when ")),
     BodyD = block_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
 
@@ -483,15 +494,14 @@ clause_head_to_algebra(Name, Args) ->
     Prefix = document_combine(expr_to_algebra(Name), document_text("(")),
     container_to_algebra_pair(Args, Prefix, document_text(")")).
 
-guards_to_algebra_pair(Guards) ->
+guards_to_algebra_pair(Guards, Prefix) ->
     {SingleLine, MultiLine} = lists:unzip(lists:map(fun guard_alt_to_algebra_pair/1, Guards)),
     SingleLineD = document_reduce(fun combine_semi_space/2, SingleLine),
     MultiLineD = document_reduce(fun combine_semi_newline/2, MultiLine),
-    WhenD = document_text("when "),
     ArrD = document_text(" ->"),
 
-    FullSingle = wrap(WhenD, SingleLineD, ArrD),
-    FullMulti = wrap(WhenD, document_choice(SingleLineD, MultiLineD), ArrD),
+    FullSingle = wrap(Prefix, SingleLineD, ArrD),
+    FullMulti = wrap(Prefix, document_choice(SingleLineD, MultiLineD), ArrD),
 
     {FullSingle, FullMulti}.
 
