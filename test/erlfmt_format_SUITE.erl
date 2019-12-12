@@ -54,7 +54,8 @@
     block/1,
     fun_expression/1,
     case_expression/1,
-    receive_expression/1
+    receive_expression/1,
+    try_expression/1
 ]).
 
 suite() ->
@@ -94,7 +95,8 @@ groups() ->
             block,
             fun_expression,
             case_expression,
-            receive_expression
+            receive_expression,
+            try_expression
         ]},
         {integers, [parallel], [
             int_decimal_base,
@@ -936,6 +938,96 @@ receive_expression(Config) when is_list(Config) ->
         25
     ).
 
+try_expression(Config) when is_list(Config) ->
+    ?assertFormatExpr(
+        "try ok after Expr end",
+        "try ok\n"
+        "after Expr\n"
+        "end"
+    ),
+    ?assertFormatExpr(
+        "try ok after Expr1, Expr2 end",
+        "try ok\n"
+        "after\n"
+        "    Expr1,\n"
+        "    Expr2\n"
+        "end"
+    ),
+    ?assertFormatExpr(
+        "try Expr1, Expr2 after Expr end",
+        "try\n"
+        "    Expr1,\n"
+        "    Expr2\n"
+        "after Expr\n"
+        "end"
+    ),
+    ?assertFormatExpr(
+        "try ok catch _ -> throw end",
+        "try ok\n"
+        "catch\n"
+        "    _ -> throw\n"
+        "end"
+    ),
+    ?assertFormatExpr(
+        "try ok catch throw:_ -> throw; error:_ -> error; exit:_ -> exit end",
+        "try ok\n"
+        "catch\n"
+        "    throw:_ -> throw;\n"
+        "    error:_ -> error;\n"
+        "    exit:_ -> exit\n"
+        "end"
+    ),
+    ?assertFormatExpr(
+        "try ok catch error:Reason:Stack -> {error, {Reason, Stack}} end",
+        "try ok\n"
+        "catch\n"
+        "    error:Reason:Stack ->\n"
+        "        {error, {Reason, Stack}}\n"
+        "end",
+        35
+    ),
+    ?assertFormatExpr(
+        "try Expr of _ -> ok after Expr end",
+        "try Expr of\n"
+        "    _ -> ok\n"
+        "after Expr\n"
+        "end"
+    ),
+    ?assertFormatExpr(
+        "try Expr of _ -> ok after Expr end",
+        "try Expr of\n"
+        "    _ -> ok\n"
+        "after Expr\n"
+        "end"
+    ),
+    ?assertFormatExpr(
+        "try Expr1, Expr2 of _ -> ok after Expr end",
+        "try\n"
+        "    Expr1,\n"
+        "    Expr2\n"
+        "of\n"
+        "    _ -> ok\n"
+        "after Expr\n"
+        "end"
+    ),
+    ?assertFormatExpr(
+        "try Expr1, Expr2 of _ -> Expr1, Expr2 catch _ -> Expr1, Expr2 after Expr1, Expr2 end",
+        "try\n"
+        "    Expr1,\n"
+        "    Expr2\n"
+        "of\n"
+        "    _ ->\n"
+        "        Expr1,\n"
+        "        Expr2\n"
+        "catch\n"
+        "    _ ->\n"
+        "        Expr1,\n"
+        "        Expr2\n"
+        "after\n"
+        "    Expr1,\n"
+        "    Expr2\n"
+        "end"
+    ).
 
 format_expr(String, PageWidth) ->
     {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),
