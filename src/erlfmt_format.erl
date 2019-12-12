@@ -30,6 +30,8 @@
 -define(IN_RANGE(Value, Low, High), (Value) >= (Low) andalso (Value) =< (High)).
 -define(IS_OCT_DIGIT(C), ?IN_RANGE(C, $0, $7)).
 
+-define(INDENT, 4).
+
 %% Thses operators when mixed, force parens on nested operators
 -define(MIXED_REQUIRE_PARENS_OPS, ['or', 'and', 'andalso', 'orelse']).
 
@@ -141,7 +143,7 @@ wrap(Left, Doc, Right) ->
 wrap_in_parens(Doc) -> wrap(document_text("("), Doc, document_text(")")).
 
 wrap_nested(Left, Doc, Right) ->
-    Nested = document_combine(document_spaces(4), Doc),
+    Nested = document_combine(document_spaces(?INDENT), Doc),
     combine_newline(Left, combine_newline(Nested, Right)).
 
 %% TODO: handle underscores once on OTP 23
@@ -179,7 +181,7 @@ unary_op_to_algebra(Op, Expr) ->
     end.
 
 binary_op_to_algebra(Op, Left, Right) ->
-    binary_op_to_algebra(Op, Left, Right, 4, erl_parse:inop_prec(Op)).
+    binary_op_to_algebra(Op, Left, Right, ?INDENT, erl_parse:inop_prec(Op)).
 
 binary_op_to_algebra(Op, Left, Right, Indent, {PrecL, _, PrecR}) ->
     OpD = document_text(atom_to_binary(Op, utf8)),
@@ -216,7 +218,7 @@ binary_operand_to_algebra(ParentOp, {op, _, ParentOp, Left, Right}, Indent, Prec
         {_, Prec, Prec} = Precs ->
             binary_op_to_algebra(ParentOp, Left, Right, Indent, Precs);
         Precs ->
-            wrap_in_parens(binary_op_to_algebra(ParentOp, Left, Right, 4, Precs))
+            wrap_in_parens(binary_op_to_algebra(ParentOp, Left, Right, ?INDENT, Precs))
     end;
 binary_operand_to_algebra(ParentOp, {op, _, Op, Left, Right}, _Indent, Prec) ->
     {_, NestedPrec, _} = Precs = erl_parse:inop_prec(Op),
@@ -227,8 +229,8 @@ binary_operand_to_algebra(ParentOp, {op, _, Op, Left, Right}, _Indent, Prec) ->
         NestedPrec < Prec,
 
     case NeedsParens of
-        true -> wrap_in_parens(binary_op_to_algebra(Op, Left, Right, 4, Precs));
-        false -> binary_op_to_algebra(Op, Left, Right, 4, Precs)
+        true -> wrap_in_parens(binary_op_to_algebra(Op, Left, Right, ?INDENT, Precs));
+        false -> binary_op_to_algebra(Op, Left, Right, ?INDENT, Precs)
     end;
 binary_operand_to_algebra(_ParentOp, Expr, _Indent, _Prec) ->
     expr_to_algebra(Expr).
@@ -333,7 +335,7 @@ field_to_algebra(Op, Key, Value) ->
 
     document_choice(
         combine_space(KeyOpD, document_single_line(ValueD)),
-        combine_newline(KeyOpD, document_combine(document_spaces(4), ValueD))
+        combine_newline(KeyOpD, document_combine(document_spaces(?INDENT), ValueD))
     ).
 
 comprehension_to_algebra(ExprD, LcExprs, Left, Right) ->
@@ -414,7 +416,7 @@ clause_to_algebra_pair({clause, _Meta, Name, Args, Guards, Body}) ->
                 combine_space(HeadD, GuardsD)
             )
         ),
-    MultiD = combine_newline(MultiPrefix, document_combine(document_spaces(4), BodyD)),
+    MultiD = combine_newline(MultiPrefix, document_combine(document_spaces(?INDENT), BodyD)),
 
     {SingleD, MultiD}.
 
