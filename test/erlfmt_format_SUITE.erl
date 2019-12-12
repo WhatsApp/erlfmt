@@ -58,7 +58,8 @@
     case_expression/1,
     receive_expression/1,
     try_expression/1,
-    macro/1
+    macro/1,
+    function/1
 ]).
 
 suite() ->
@@ -84,16 +85,8 @@ end_per_testcase(_TestCase, _Config) ->
 
 groups() ->
     [
-        {literals, [parallel], [
-            {group, integers},
-            {group, floats},
-            char,
-            {group, atoms},
-            {group, strings},
-            variable,
-            {group, operators},
-            {group, containers},
-            {group, comprehensions},
+        {expressions, [parallel], [
+            {group, literals},
             call,
             block,
             fun_expression,
@@ -101,6 +94,17 @@ groups() ->
             receive_expression,
             try_expression,
             macro
+        ]},
+        {forms, [parallel], [
+            function
+        ]},
+        {literals, [parallel], [
+            {group, integers},
+            {group, floats},
+            char,
+            {group, atoms},
+            {group, strings},
+            variable
         ]},
         {integers, [parallel], [
             int_decimal_base,
@@ -144,7 +148,10 @@ groups() ->
     ].
 
 all() ->
-    [{group, literals}].
+    [
+        {group, expressions},
+        {group, forms}
+    ].
 
 %%--------------------------------------------------------------------
 %% TEST CASES
@@ -156,6 +163,15 @@ all() ->
 -define(assertFormatExpr(Bad, Good, PageWidth), begin
     ?assertEqual(Good, format_expr(Good, PageWidth)),
     ?assertEqual(Good, format_expr(Bad, PageWidth))
+end).
+
+-define(assertSameForm(String), ?assertSameForm(String, 80)).
+-define(assertSameForm(String, PageWidth), ?assertEqual(String, format_form(String, PageWidth))).
+
+-define(assertFormatForm(Bad, Good), ?assertFormatForm(Bad, Good, 80)).
+-define(assertFormatForm(Bad, Good, PageWidth), begin
+    ?assertEqual(Good, format_form(Good, PageWidth)),
+    ?assertEqual(Good, format_form(Bad, PageWidth))
 end).
 
 
@@ -1064,6 +1080,33 @@ macro(Config) when is_list(Config) ->
         ")",
         23
     ).
+
+function(Config) when is_list(Config) ->
+    ?assertSameForm("f() -> ok."),
+    ?assertSameForm(
+        "f(1) -> one;\n"
+        "f(2) -> two."
+    ),
+    ?assertFormatForm(
+        "f(1) -> one; f(2) -> begin two end.",
+        "f(1) ->\n"
+        "    one;\n"
+        "f(2) ->\n"
+        "    begin\n"
+        "        two\n"
+        "    end."
+    ),
+    ?assertSameForm(
+        "?FOO(1) -> ok;\n"
+        "?DEFAULT(?FOO)."
+    ).
+
+format_form(String, PageWidth) ->
+    {ok, Tokens, _} = erl_scan:string(String, 1, [text]),
+    {ok, Form} = erlfmt_parse:parse_form(Tokens),
+    Doc = erlfmt_format:form_to_algebra(Form),
+    Rendered = erlfmt_algebra:document_render(Doc, [{page_width, PageWidth}]),
+    unicode:characters_to_list(Rendered).
 
 format_expr(String, PageWidth) ->
     {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),

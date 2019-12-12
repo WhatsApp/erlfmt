@@ -13,7 +13,7 @@
 %% limitations under the License.
 -module(erlfmt_format).
 
--export([expr_to_algebra/1]).
+-export([expr_to_algebra/1, form_to_algebra/1]).
 
 -import(erlfmt_algebra, [
     document_text/1,
@@ -37,6 +37,10 @@
 
 %% These operators always force parens on nested operators
 -define(REQUIRE_PARENS_OPS, ['bor', 'band', 'bxor', 'bsl', 'bsr', '++', '--']).
+
+-spec form_to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:document().
+form_to_algebra({function, _Meta, Clauses}) ->
+    document_combine(clauses_to_algebra(Clauses), document_text(".")).
 
 -spec expr_to_algebra(erlfmt_parse:abstract_expr()) -> erlfmt_algebra:document().
 expr_to_algebra({integer, Meta, _Value}) ->
@@ -460,7 +464,11 @@ clause_to_algebra_pair({clause, _Meta, Name, Args, Guards, Body}) ->
         ),
     MultiD = combine_nested(MultiPrefix, BodyD),
 
-    {SingleD, MultiD}.
+    {SingleD, MultiD};
+clause_to_algebra_pair({macro_call, _, _, _} = Expr) ->
+    %% It's possible the entire clause is defined inside of a macro call
+    Doc = expr_to_algebra(Expr),
+    {document_single_line(Doc), Doc}.
 
 clause_head_to_algebra('fun', Args) ->
     container_to_algebra_pair(Args, document_text("("), document_text(")"));
