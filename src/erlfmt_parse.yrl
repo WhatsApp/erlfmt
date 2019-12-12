@@ -106,14 +106,14 @@ attribute -> '-' atom typed_attr_val         : build_typed_attribute('$2','$3').
 attribute -> '-' atom '(' typed_attr_val ')' : build_typed_attribute('$2','$4').
 attribute -> '-' spec type_spec              : build_type_spec('$2', '$3').
 attribute -> '-' callback type_spec          : build_type_spec('$2', '$3').
-attribute -> '-' define_expr macro_def_expr  : build_macro_def(expr, '$1', '$3').
-attribute -> '-' define_clause macro_def_clause : build_macro_def(clause, '$1', '$3').
+attribute -> '-' define_expr macro_def_expr  : build_macro_def('$1', '$3').
+attribute -> '-' define_clause macro_def_clause : build_macro_def('$1', '$3').
 
 type_spec -> spec_fun type_sigs : {'$1', '$2'}.
 type_spec -> '(' spec_fun type_sigs ')' : {'$2', '$3'}.
 
 spec_fun -> atom_or_var_or_macro : '$1'.
-spec_fun -> atom ':' atom : {'$1', '$3'}.
+spec_fun -> atom ':' atom : {remote, ?anno('$2'), '$1', '$3'}.
 
 typed_attr_val -> expr ',' typed_record_fields : {typed_record, '$1', '$3'}.
 typed_attr_val -> expr '::' top_type           : {type_def, '$1', '$3'}.
@@ -504,9 +504,9 @@ macro_def_expr_body -> '$empty' : empty.
 macro_def_expr_body -> '#' atom : {record_name, ?anno('$1'), '$2'}.
 macro_def_expr_body -> guard : '$1'.
 
-macro_name -> atom_or_var : {'$1', none}.
-macro_name -> atom_or_var '(' ')' : {'$1', []}.
-macro_name -> atom_or_var '(' vars ')' : {'$1', '$3'}.
+macro_name -> atom_or_var : {macro_call, ?anno('$1'), '$1', none}.
+macro_name -> atom_or_var '(' ')' : {macro_call, ?anno('$1'), '$1', []}.
+macro_name -> atom_or_var '(' vars ')' : {macro_call, ?anno('$1'), '$1', '$3'}.
 
 macro_call_expr -> macro_string :
     '$1'.
@@ -654,71 +654,33 @@ Erlang code.
 
 -type anno() :: erl_anno:anno().
 
--type abstract_form() :: af_module()
-                       | af_behavior()
-                       | af_behaviour()
-                       | af_export()
-                       | af_import()
-                       | af_export_type()
-                       | af_compile()
-                       | af_file()
-                       | af_record_decl()
-                       | af_type_decl()
-                       | af_function_spec()
-                       | af_wild_attribute()
-                       | af_function_decl().
+-type abstract_form() ::
+    af_function_decl() | af_attribute().
 
--type af_module() :: {'attribute', anno(), 'module', module()}.
+-type af_attribute() ::
+    af_function_spec() |
+    af_record_decl() |
+    af_type_decl() |
+    {attribute, anno(), atom(), [abstract_expr()]}.
 
--type af_behavior() :: {'attribute', anno(), 'behavior', behaviour()}.
-
--type af_behaviour() :: {'attribute', anno(), 'behaviour', behaviour()}.
-
--type behaviour() :: atom().
-
--type af_export() :: {'attribute', anno(), 'export', af_fa_list()}.
-
--type af_import() :: {'attribute', anno(), 'import', af_fa_list()}.
-
--type af_fa_list() :: [{function_name(), arity()}].
-
--type af_export_type() :: {'attribute', anno(), 'export_type', af_ta_list()}.
-
--type af_ta_list() :: [{type_name(), arity()}].
-
--type af_compile() :: {'attribute', anno(), 'compile', any()}.
-
--type af_file() :: {'attribute', anno(), 'file', {string(), anno()}}.
+-type af_function_spec() ::
+    {attribute, anno(), spec | callback, {af_atom(), af_function_type_list()}} |
+    {attribute, anno(), spec, {af_remote_function(af_atom()), af_function_type_list()}}.
 
 -type af_record_decl() ::
-        {'attribute', anno(), 'record', {af_record_name(), [af_field_decl()]}}.
+    {attribute, anno(), record, {af_record_name(), [af_field_decl()]}}.
+
+-type af_type_decl() ::
+    {attribute, anno(), type | opaque, {af_local_call(), abstract_type()}}.
 
 -type af_field_decl() :: af_typed_field() | af_field().
 
--type af_typed_field() ::
-        {'typed_record_field', af_field(), abstract_type()}.
+-type af_typed_field() :: {'typed_record_field', af_field(), abstract_type()}.
 
 -type af_field() :: {'record_field', anno(), af_field_name()}
                   | {'record_field', anno(), af_field_name(), abstract_expr()}.
 
--type af_type_decl() :: {'attribute', anno(), type_attr(),
-                         {type_name(), abstract_type(), [af_variable()]}}.
-
--type type_attr() :: 'opaque' | 'type'.
-
--type af_function_spec() :: {'attribute', anno(), spec_attr(),
-                             {{function_name(), arity()},
-                              af_function_type_list()}}
-                          | {'attribute', anno(), 'spec',
-                             {{module(), function_name(), arity()},
-                              af_function_type_list()}}.
-
--type spec_attr() :: 'callback' | 'spec'.
-
--type af_wild_attribute() :: {'attribute', anno(), atom(), any()}.
-
--type af_function_decl() ::
-        {'function', anno(), function_name(), arity(), af_clause_seq()}.
+-type af_function_decl() :: {function, anno(), af_clause_seq()}.
 
 -type abstract_expr() :: af_literal()
                        | af_variable()
@@ -742,10 +704,8 @@ Erlang code.
                        | af_case()
                        | af_try()
                        | af_receive()
-                       | af_local_fun()
-                       | af_remote_fun()
                        | af_fun()
-                       | af_named_fun().
+                       | af_macro_call().
 
 -type af_record_update(T) :: {'record',
                               anno(),
@@ -755,14 +715,16 @@ Erlang code.
 
 -type af_local_call() :: {'call', anno(), af_local_function(), af_args()}.
 
--type af_remote_call() :: {'call', anno(), af_remote_function(), af_args()}.
+-type af_remote_call() :: {'call', anno(), af_remote_function(abstract_expr()), af_args()}.
+
+-type af_macro_call() ::
+    {'macro_call', anno(), af_atom() | af_variable(), [abstract_expr()]}.
 
 -type af_args() :: [abstract_expr()].
 
 -type af_local_function() :: abstract_expr().
 
--type af_remote_function() ::
-        {'remote', anno(), abstract_expr(), abstract_expr()}.
+-type af_remote_function(Expr) :: {'remote', anno(), Expr, Expr}.
 
 -type af_list_comprehension() ::
         {'lc', anno(), af_template(), af_qualifier_seq()}.
@@ -800,23 +762,18 @@ Erlang code.
         {'receive', anno(), af_clause_seq()}
       | {'receive', anno(), af_clause_seq(), abstract_expr(), af_body()}.
 
--type af_local_fun() ::
-        {'fun', anno(), {'function', function_name(), arity()}}.
-
--type af_remote_fun() ::
-        {'fun', anno(), {'function', module(), function_name(), arity()}}
-      | {'fun', anno(), {'function', af_atom(), af_atom(), af_integer()}}.
-
--type af_fun() :: {'fun', anno(), {'clauses', af_clause_seq()}}.
-
--type af_named_fun() :: {'named_fun', anno(), fun_name(), af_clause_seq()}.
-
--type fun_name() :: atom().
+-type af_fun() ::
+    {'fun', anno(), {'clauses', af_clause_seq()}} |
+    {'fun', anno(), {function, abstract_expr(), abstract_expr()}} |
+    {'fun', anno(), {function, abstract_expr(), abstract_expr(), abstract_expr()}}.
 
 -type abstract_clause() :: af_clause().
 
 -type af_clause() ::
-        {'clause', anno(), [af_pattern()], af_guard_seq(), af_body()}.
+        {'clause', anno(), af_clause_name(), [af_pattern()], af_guard_seq(), af_body()} |
+        af_macro_call().
+
+-type af_clause_name() :: af_atom() | af_variable() | af_macro_call() | 'fun' | 'case' | 'catch'.
 
 -type af_body() :: [abstract_expr(), ...].
 
@@ -1103,55 +1060,12 @@ parse_form([{'-',A1},{atom,A2,define}|Tokens]) ->
 parse_form(Tokens) ->
     parse(Tokens).
 
-build_macro_def(Type, {_,A}, {{Name, Args}, Body}) ->
-    {attribute,A,define,{Type,Name,Args,Body}}.
+build_macro_def({_, Anno}, {Name, Body}) ->
+    {attribute, Anno, define, {Name, Body}}.
 
--type attributes() :: 'export' | 'file' | 'import' | 'module'
-                    | 'opaque' | 'record' | 'type'.
-
-build_typed_attribute({atom,Aa,record},{typed_record,Name,RecTuple}) ->
-    {attribute,Aa,record,{record_name(Name),record_tuple(RecTuple)}};
-build_typed_attribute({atom,Aa,Attr},{type_def,{call,_,{atom,_,TypeName},Args}, Type})
-  when Attr =:= 'type' ; Attr =:= 'opaque' ->
-    lists:foreach(fun({var, A, '_'}) -> ret_err(A, "bad type variable");
-                     (_)             -> ok
-                  end, Args),
-    case lists:all(fun({var, _, _}) -> true;
-                      (_)           -> false
-                   end, Args) of
-        true -> {attribute,Aa,Attr,{TypeName,Type,Args}};
-        false -> error_bad_decl(Aa, Attr)
-    end;
-build_typed_attribute({atom,Aa,Attr},_) ->
-    case Attr of
-        record -> error_bad_decl(Aa, record);
-        type   -> error_bad_decl(Aa, type);
-        opaque -> error_bad_decl(Aa, opaque);
-        _      -> ret_err(Aa, "bad attribute")
-    end.
-
-build_type_spec({Kind,Aa}, {SpecFun, TypeSpecs})
+build_type_spec({Kind, Anno}, {Name, Specs})
   when Kind =:= spec ; Kind =:= callback ->
-    NewSpecFun =
-        case SpecFun of
-            {Tag, _, _} = Fun when Tag =:= atom; Tag =:= var ->
-                {Fun, find_arity_from_specs(TypeSpecs)};
-            {macro_call, _, _, _} = Fun ->
-                {Fun, find_arity_from_specs(TypeSpecs)};
-            {{atom, _, _} = Mod, {atom, _, _} = Fun} ->
-                {Mod, Fun, find_arity_from_specs(TypeSpecs)}
-        end,
-    {attribute,Aa,Kind,{NewSpecFun, TypeSpecs}}.
-
-find_arity_from_specs([Spec|_]) ->
-    %% Use the first spec to find the arity. If all are not the same,
-    %% erl_lint will find this.
-    Fun = case Spec of
-              {type, _, bounded_fun, [F, _]} -> F;
-              {type, _, 'fun', _} = F -> F
-          end,
-    {type, _, 'fun', [{type, _, product, Args},_]} = Fun,
-    length(Args).
+    {attribute, Anno, Kind, {Name, Specs}}.
 
 %% The 'is_subtype(V, T)' syntax is not supported as of Erlang/OTP
 %% 19.0, but is kept for backward compatibility.
@@ -1202,73 +1116,23 @@ type_tag(TypeName, NumberOfTypeVariables) ->
         false -> user_type
     end.
 
-%% build_attribute(AttrName, AttrValue) ->
-%%	{attribute,Anno,module,Module}
-%%	{attribute,Anno,export,Exports}
-%%	{attribute,Anno,import,Imports}
-%%	{attribute,Anno,record,{Name,Inits}}
-%%	{attribute,Anno,file,{Name,Line}}
-%%	{attribute,Anno,Name,Val}
+build_attribute({atom, Anno, record}, [Name, Tuple]) ->
+    {attribute, Anno, record, {Name, record_tuple(Tuple)}};
+build_attribute({atom, Anno, Name}, Values) ->
+    {attribute, Anno, Name, Values}.
 
-build_attribute({atom,Aa,module}, Val) ->
-    case Val of
-        [Module] ->
-            {attribute,Aa,module,Module};
-        [Module,ExpList] ->
-            {attribute,Aa,module,{Module,ExpList}};
-        _Other ->
-            error_bad_decl(Aa, module)
-    end;
-build_attribute({atom,Aa,export}, Val) ->
-    case Val of
-        [ExpList] ->
-            {attribute,Aa,export,ExpList};
-        _Other -> error_bad_decl(Aa, export)
-    end;
-build_attribute({atom,Aa,import}, Val) ->
-    case Val of
-        [Mod,ImpList] ->
-            {attribute,Aa,import,{Mod,ImpList}};
-        _Other -> error_bad_decl(Aa, import)
-    end;
-build_attribute({atom,Aa,record}, Val) ->
-    case Val of
-        [Name,RecTuple] ->
-            {attribute,Aa,record,{record_name(Name),record_tuple(RecTuple)}};
-        _Other -> error_bad_decl(Aa, record)
-    end;
-build_attribute({atom,Aa,file}, Val) ->
-    case Val of
-        [{string,_An,Name},{integer,_Al,Line}] ->
-            {attribute,Aa,file,{Name,Line}};
-        _Other -> error_bad_decl(Aa, file)
-    end;
-build_attribute({atom,Aa,Epp}, Val) when Epp =:= else; Epp =:= endif ->
-    case Val of
-        [] -> {attribute,Aa,Epp,undefined};
-        [Value] -> {attribute,Aa,Epp,Value};
-        _Other -> ret_err(Aa, "bad attribute")
-    end;
-build_attribute({atom,Aa,Attr}, Val) ->
-    case Val of
-        [Expr] ->
-            {attribute,Aa,Attr,Expr};
-        _Other -> ret_err(Aa, "bad attribute")
-    end.
-
--spec error_bad_decl(erl_anno:anno(), attributes()) -> no_return().
-
-error_bad_decl(Anno, S) ->
-    ret_err(Anno, io_lib:format("bad ~tw declaration", [S])).
+build_typed_attribute({atom, Anno, record}, {typed_record, Name, Tuple}) ->
+    {attribute, Anno, record, {Name, record_tuple(Tuple)}};
+build_typed_attribute({atom, Anno, Attr}, {type_def, {call, _, _, _} = Name, Type})
+  when Attr =:= type; Attr =:= opaque ->
+    {attribute, Anno, Attr, {Name, Type}};
+build_typed_attribute({atom, Anno, _}, _) ->
+    ret_err(Anno, "bad attribute").
 
 record_tuple({tuple,_At,Fields}) ->
     record_fields(Fields);
 record_tuple(Other) ->
     ret_err(?anno(Other), "bad record declaration").
-
-record_name({atom, _, _} = Name) -> Name;
-record_name({macro_call, _, _, _} = Name) -> Name;
-record_name(Other) -> ret_err(?anno(Other), "bad record declaration").
 
 record_fields([{atom,Aa,A}|Fields]) ->
     [{record_field,Aa,{atom,Aa,A}}|record_fields(Fields)];
