@@ -40,6 +40,7 @@
     operators/1,
     lists/1,
     binaries/1,
+    clauses/1,
     smoke_test_cli/1
 ]).
 
@@ -76,7 +77,8 @@ groups() ->
             functions_and_funs,
             operators,
             lists,
-            binaries
+            binaries,
+            clauses
         ]},
         {smoke_tests, [parallel], [
             smoke_test_cli
@@ -473,6 +475,34 @@ binaries(Config) when is_list(Config) ->
     ?assertMatch(
         {bin, _, [{bin_element, _, {integer, _, 1}, {integer, _, 4}, default}]},
         parse_expr("<<1:4>>")
+    ).
+
+clauses(Config) when is_list(Config) ->
+    ?assertMatch(
+        {'if', _, [{clause, _, 'if', [], [[{atom, _, true}]], [{atom, _, ok}]}]},
+        parse_expr("if true -> ok end")
+    ),
+    ?assertMatch(
+        {'case', _, {var, _, 'X'}, [
+            {clause, _, 'case', [{atom, _, true}], [], [{atom, _, ok}]}
+        ]},
+        parse_expr("case X of true -> ok end")
+    ),
+    ?assertMatch(
+        {'receive', _, [{clause, _, 'case', [{var, _, '_'}], [], [{atom, _, true}]}]},
+        parse_expr("receive _ -> true end")
+    ),
+    ?assertMatch(
+        {'try', _, [{atom, _, ok}],
+            [{clause, _, 'case', [{var, _,'_'}], [], [{atom, _, ok}]}],
+            [
+                {clause, _, 'catch', [{var, _, '_'}], [], [{atom, _, ok}]},
+                {clause, _, 'catch', [{var, _, '_'}, {var, _, '_'}], [], [{atom, _, ok}]},
+                {clause, _, 'catch', [{var, _, '_'}, {var, _, '_'}, {var, _, '_'}], [], [{atom, _, ok}]}
+            ],
+            []
+        },
+        parse_expr("try ok of _ -> ok catch _ -> ok; _:_ -> ok; _:_:_ -> ok end")
     ).
 
 parse_expr(String) ->
