@@ -108,18 +108,17 @@ expr_to_algebra({call, _Meta, Name, Args}) ->
 expr_to_algebra({remote, _Meta, Mod, Name}) ->
     wrap(expr_max_to_algebra(Mod), document_text(":"), expr_max_to_algebra(Name));
 expr_to_algebra({block, _Meta, Exprs}) ->
-    ExprsD = lists:map(fun expr_to_algebra/1, Exprs),
-    wrap_nested(
-        document_text("begin"),
-        document_reduce(fun combine_comma_newline/2, ExprsD),
-        document_text("end")
-    ).
+    wrap_nested(document_text("begin"), block_to_algebra(Exprs), document_text("end"));
+expr_to_algebra({'fun', _Meta, Expr}) ->
+    fun_to_algebra(Expr).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
 combine_comma_space(D1, D2) -> combine_sep(D1, ", ", D2).
 
 combine_dash(D1, D2) -> combine_sep(D1, "-", D2).
+
+combine_semi_space(D1, D2) -> combine_sep(D1, "; ", D2).
 
 combine_sep(D1, Sep, D2) ->
     document_combine(D1, document_combine(document_text(Sep), D2)).
@@ -129,6 +128,12 @@ combine_newline(D1, D2) ->
 
 combine_comma_newline(D1, D2) ->
     document_combine(document_flush(document_combine(D1, document_text(","))), D2).
+
+combine_semi_newline(D1, D2) ->
+    document_combine(document_flush(document_combine(D1, document_text(";"))), D2).
+
+combine_all(Docs) ->
+    document_reduce(fun erlfmt_algebra:document_combine/2, Docs).
 
 wrap(Left, Doc, Right) ->
     document_combine(Left, document_combine(Doc, Right)).
@@ -228,18 +233,23 @@ binary_operand_to_algebra(ParentOp, {op, _, Op, Left, Right}, _Indent, Prec) ->
 binary_operand_to_algebra(_ParentOp, Expr, _Indent, _Prec) ->
     expr_to_algebra(Expr).
 
-container_to_algebra([], Left, Right) -> document_combine(Left, Right);
-container_to_algebra(Values0, Left, Right) ->
+container_to_algebra(Values, Left, Right) ->
+    {Single, Multi} = container_to_algebra_pair(Values, Left, Right),
+    document_choice(Single, Multi).
+
+container_to_algebra_pair([], Left, Right) ->
+    Doc = document_combine(Left, Right),
+    {Doc, Doc};
+container_to_algebra_pair(Values0, Left, Right) ->
     Values = lists:map(fun expr_to_algebra/1, Values0),
     SingleLine = lists:map(fun erlfmt_algebra:document_single_line/1, Values),
 
     Horizontal = document_reduce(fun combine_comma_space/2, SingleLine),
     Vertical = document_reduce(fun combine_comma_newline/2, Values),
 
-    document_choice(
-        wrap(Left, Horizontal, Right),
-        wrap_nested(Left, Vertical, Right)
-    ).
+    Single = wrap(Left, Horizontal, Right),
+    Multi = wrap_nested(Left, Vertical, Right),
+    {Single, Multi}.
 
 cons_to_algebra(Head, Tail) ->
     HeadD = expr_to_algebra(Head),
@@ -328,7 +338,7 @@ field_to_algebra(Op, Key, Value) ->
 
 comprehension_to_algebra(ExprD, LcExprs, Left, Right) ->
     PipesD = document_text("|| "),
-    {LcExprsSingleD, LcExprsMultiD} = comprehension_exprs_to_algebra(LcExprs),
+    {LcExprsSingleD, LcExprsMultiD} = comprehension_exprs_to_algebra_pair(LcExprs),
     LcExprsD = document_choice(LcExprsSingleD, LcExprsMultiD),
 
     SingleLine =
@@ -344,7 +354,7 @@ comprehension_to_algebra(ExprD, LcExprs, Left, Right) ->
         wrap_nested(Left, Multiline, Right)
     ).
 
-comprehension_exprs_to_algebra(LcExprs0) ->
+comprehension_exprs_to_algebra_pair(LcExprs0) ->
     LcExprs = lists:map(fun expr_to_algebra/1, LcExprs0),
     SingleLine = lists:map(fun erlfmt_algebra:document_single_line/1, LcExprs),
 
@@ -352,6 +362,87 @@ comprehension_exprs_to_algebra(LcExprs0) ->
     Vertical = document_reduce(fun combine_comma_newline/2, LcExprs),
 
     {Horizontal, Vertical}.
+
+%% TODO: insert extra newlines between expressions to preserve grouping.
+block_to_algebra(Exprs) ->
+    ExprsD = lists:map(fun expr_to_algebra/1, Exprs),
+    document_reduce(fun combine_comma_newline/2, ExprsD).
+
+fun_to_algebra({function, Name, Arity}) ->
+    combine_all([
+        document_text("fun "),
+        expr_to_algebra(Name),
+        document_text("/"),
+        expr_to_algebra(Arity)
+    ]);
+fun_to_algebra({function, Mod, Name, Arity}) ->
+    combine_all([
+        document_text("fun "),
+        expr_to_algebra(Mod),
+        document_text(":"),
+        expr_to_algebra(Name),
+        document_text("/"),
+        expr_to_algebra(Arity)
+    ]);
+fun_to_algebra({clauses, Clauses}) ->
+    ClausesD = clauses_to_algebra(Clauses),
+    document_choice(
+        wrap(document_text("fun "), document_single_line(ClausesD), document_text(" end")),
+        wrap_nested(document_text("fun"), ClausesD, document_text("end"))
+    ).
+
+clauses_to_algebra(Clauses) ->
+    {SingleClausesD, ClausesD} = lists:unzip(lists:map(fun clause_to_algebra_pair/1, Clauses)),
+    document_choice(
+        document_reduce(fun combine_semi_newline/2, SingleClausesD),
+        document_reduce(fun combine_semi_newline/2, ClausesD)
+    ).
+
+clause_to_algebra_pair({clause, _Meta, Name, Args, Guards, Body}) ->
+    Prefix = clause_name_to_algebra(Name),
+    {SingleHeadD, HeadD} = container_to_algebra_pair(Args, Prefix, document_text(")")),
+    {SingleGuardsD, GuardsD} = guards_to_algebra_pair(Guards),
+    BodyD = block_to_algebra(Body),
+    SingleBodyD = document_single_line(BodyD),
+
+    SingleD = combine_space(SingleHeadD, combine_space(SingleGuardsD, SingleBodyD)),
+    MultiPrefix =
+        document_choice(
+            combine_space(SingleHeadD, SingleGuardsD),
+            document_choice(
+                combine_newline(SingleHeadD, GuardsD),
+                combine_space(HeadD, GuardsD)
+            )
+        ),
+    MultiD = combine_newline(MultiPrefix, document_combine(document_spaces(4), BodyD)),
+
+    {SingleD, MultiD}.
+
+clause_name_to_algebra('fun') ->
+    document_text("(");
+clause_name_to_algebra(Name) ->
+    document_combine(expr_to_algebra(Name), document_text("(")).
+
+guards_to_algebra_pair([]) ->
+    Doc = document_text("->"),
+    {Doc, Doc};
+guards_to_algebra_pair(Guards) ->
+    {SingleLine, MultiLine} = lists:unzip(lists:map(fun guard_alt_to_algebra_pair/1, Guards)),
+    SingleLineD = document_reduce(fun combine_semi_space/2, SingleLine),
+    MultiLineD = document_reduce(fun combine_semi_newline/2, MultiLine),
+
+    FullSingle = wrap(document_text("when "), SingleLineD, document_text(" ->")),
+    FullMulti = wrap(document_text("when "), document_choice(SingleLineD, MultiLineD), document_text(" ->")),
+
+    {FullSingle, FullMulti}.
+
+guard_alt_to_algebra_pair(Alt) ->
+    AltD = lists:map(fun expr_to_algebra/1, Alt),
+    SingleLine = lists:map(fun erlfmt_algebra:document_single_line/1, AltD),
+
+    SingleLineD = document_reduce(fun combine_comma_space/2, SingleLine),
+    MultiLineD = document_reduce(fun combine_comma_newline/2, AltD),
+    {SingleLineD, document_choice(SingleLineD, MultiLineD)}.
 
 atom_needs_quotes([C0 | Cs]) when C0 >= $a, C0 =< $z ->
     lists:any(fun
