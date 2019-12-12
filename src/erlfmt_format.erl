@@ -77,7 +77,12 @@ expr_to_algebra({record, _Meta, Expr, Name, Values}) ->
     Prefix = document_combine(record_expr_to_algebra(Expr), PrefixName),
     container_to_algebra(Values, Prefix, document_text("}"));
 expr_to_algebra({record_field, _Meta, Key, Value}) ->
-    field_to_algebra("=", Key, Value).
+    field_to_algebra("=", Key, Value);
+expr_to_algebra({record_index, _Meta, Name, Key}) ->
+    record_access_to_algebra(Name, Key);
+expr_to_algebra({record_field, _Meta, Expr, Name, Key}) ->
+    Access = record_access_to_algebra(Name, Key),
+    document_combine(record_expr_to_algebra(Expr), Access).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
@@ -248,6 +253,10 @@ expr_max_to_algebra({record, _, _, _} = Expr) ->
     wrap_in_parens(expr_to_algebra(Expr));
 expr_max_to_algebra({record, _, _, _, _} = Expr) ->
     wrap_in_parens(expr_to_algebra(Expr));
+expr_max_to_algebra({record_field, _, _, _, _} = Expr) ->
+    wrap_in_parens(expr_to_algebra(Expr));
+expr_max_to_algebra({record_index, _, _, _} = Expr) ->
+    wrap_in_parens(expr_to_algebra(Expr));
 %% TODO: map, calls & records also get wrapped in parens
 expr_max_to_algebra(Expr) ->
     expr_to_algebra(Expr).
@@ -263,9 +272,17 @@ record_expr_to_algebra({record, _, _, _} = Expr) ->
     expr_to_algebra(Expr);
 record_expr_to_algebra({record, _, _, _, _} = Expr) ->
     expr_to_algebra(Expr);
+record_expr_to_algebra({record_field, _, _, _, _} = Expr) ->
+    expr_to_algebra(Expr);
 record_expr_to_algebra(Expr) ->
     expr_max_to_algebra(Expr).
 
+record_access_to_algebra(Name, Key) ->
+    NameD = expr_to_algebra(Name),
+    KeyD = expr_to_algebra(Key),
+    DotD = document_text("."),
+    NumD = document_text("#"),
+    document_combine(NumD, document_combine(NameD, document_combine(DotD, KeyD))).
 
 field_to_algebra(Op, Key, Value) ->
     KeyD = expr_to_algebra(Key),
