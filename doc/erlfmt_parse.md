@@ -14,19 +14,18 @@ In `erlfmt_parse` the following AST nodes have different definitions:
   * `{attribute, Anno, record, {Name, Fields}}`
 
 * The attribute values are not "normalized" - they are represented in the
-  abstract term format instead of as concrete terms. An additional value of
-  `undefined` is allowed as a value of an attribute, indicating the attribute
-  was defined without arguments, for example `-else.`.
+  abstract term format instead of as concrete terms. Additionally, the value of
+  attributes is always a list of expressions, except for couple "binary" attributes,
+  where the value is a two-tuple and which usually have some special syntax.
+  Those include `type`, `opaque`, `spec`, `callback`, `record`, and `define`.
 
-* A new attribute with a special value is recognised:
-  `{attribute, Anno, define, {Type, Name, Args, Body}}`, where
-  * `Type` is `expr` or `clause`,
-  * `Name` is either an `atom` node or a `var` node,
-  * `Args` is either a list of vars or an atom `none`,
-  * `Body` is:
-    * for `expr`, it is a list of lists of expressions (equivalent to guards in clauses),
-      an atom `empty` or a `{record_name, Anno, Name}` node,
-    * for `clause`, it is a `clause` node as used in functions.
+  * The value of the `type` and `opaque` attributes is a `call` node, and a `type` node.
+  * The value of the `spec` and `callback` attributes is an `atom` or `remote` node,
+    and a list of `type` nodes.
+  * The value of the `record` attribute is a name as described above and a list of
+    `typed_record_field` or `record_field` nodes.
+  * The value of the the `define` attribute is a `macro_call` node, and either a
+    `clause` node or a list of lists of expressions (similar to guards in clauses).
 
 * The `clause` node has a different AST representation:
   `{clause, Anno, Name, Args, Guards, Body}`, where the newly added `Name` field
