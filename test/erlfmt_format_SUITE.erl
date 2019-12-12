@@ -49,7 +49,9 @@
     record_create/1,
     record_update/1,
     record_index/1,
-    record_field/1
+    record_field/1,
+    list_comprehension/1,
+    binary_comprehension/1
 ]).
 
 suite() ->
@@ -83,7 +85,8 @@ groups() ->
             {group, strings},
             variable,
             {group, operators},
-            {group, containers}
+            {group, containers},
+            {group, comprehensions}
         ]},
         {integers, [parallel], [
             int_decimal_base,
@@ -119,6 +122,10 @@ groups() ->
             record_update,
             record_index,
             record_field
+        ]},
+        {comprehensions, [parallel], [
+            list_comprehension,
+            binary_comprehension
         ]}
     ].
 
@@ -583,6 +590,72 @@ record_field(Config) when is_list(Config) ->
         "(Foo +\n"
         "     Bar)#foo.bar",
         5
+    ).
+
+list_comprehension(Config) when is_list(Config) ->
+    ?assertFormatExpr("[X||X<-List]", "[X || X <- List]"),
+    ?assertSameExpr("[X || {X, Y} <- Results, X >= Y]"),
+    ?assertSameExpr("[X || <<X, Y>> <= Results, X >= Y]"),
+    ?assertFormatExpr(
+        "[{Very, Long, Expression} || X <- Y, X < 10]",
+        "[\n"
+        "    {\n"
+        "        Very,\n"
+        "        Long,\n"
+        "        Expression\n"
+        "    } || X <- Y, X < 10\n"
+        "]",
+        25
+    ),
+    ?assertFormatExpr(
+        "[X || X <- LongExpr, X < 10]",
+        "[\n"
+        "    X\n"
+        "    || X <- LongExpr,\n"
+        "       X < 10\n"
+        "]",
+        25
+    ),
+    ?assertFormatExpr(
+        "[X || X <- VeryLongExpression, X < 10]",
+        "[\n"
+        "    X\n"
+        "    || X <-\n"
+        "           VeryLongExpression,\n"
+        "       X < 10\n"
+        "]",
+        25
+    ).
+
+binary_comprehension(Config) when is_list(Config) ->
+    ?assertFormatExpr("<<X||X<-List>>", "<<X || X <- List>>"),
+    ?assertSameExpr("<<X || <<X, Y>> <= Results, X >= Y>>"),
+    ?assertFormatExpr(
+        "<<(Long + Expression) || X <- Y, X < 10>>",
+        "<<\n"
+        "    (Long + Expression)\n"
+        "    || X <- Y, X < 10\n"
+        ">>",
+        25
+    ),
+    ?assertFormatExpr(
+        "<<X || <<X>> <= LongExpr, X < 10>>",
+        "<<\n"
+        "    X\n"
+        "    || <<X>> <= LongExpr,\n"
+        "       X < 10\n"
+        ">>",
+        25
+    ),
+    ?assertFormatExpr(
+        "<<X || <<X>> <= VeryLongExpression, X < 10>>",
+        "<<\n"
+        "    X\n"
+        "    || <<X>> <=\n"
+        "           VeryLongExpression,\n"
+        "       X < 10\n"
+        ">>",
+        25
     ).
 
 format_expr(String, PageWidth) ->
