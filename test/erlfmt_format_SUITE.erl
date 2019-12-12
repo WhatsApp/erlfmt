@@ -53,7 +53,8 @@
     call/1,
     block/1,
     fun_expression/1,
-    case_expression/1
+    case_expression/1,
+    receive_expression/1
 ]).
 
 suite() ->
@@ -92,7 +93,8 @@ groups() ->
             call,
             block,
             fun_expression,
-            case_expression
+            case_expression,
+            receive_expression
         ]},
         {integers, [parallel], [
             int_decimal_base,
@@ -852,6 +854,88 @@ case_expression(Config) when is_list(Config) ->
         "end",
         25
     ).
+
+receive_expression(Config) when is_list(Config) ->
+    ?assertFormatExpr(
+        "receive 1 -> ok end",
+        "receive\n"
+        "    1 -> ok\n"
+        "end",
+        100
+    ),
+    ?assertSameExpr(
+        "receive\n"
+        "after 0 -> ok\n"
+        "end"
+    ),
+    ?assertSameExpr(
+        "receive\n"
+        "after 0 ->\n"
+        "    some:long(Expression)\n"
+        "end",
+        25
+    ),
+    ?assertSameExpr(
+        "receive\n"
+        "    1 -> ok\n"
+        "after 0 -> ok\n"
+        "end"
+    ),
+    ?assertFormatExpr(
+        "receive {Long} -> Expression end",
+        "receive\n"
+        "    {Long} -> Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "receive {Even, Longer} -> Expression end",
+        "receive\n"
+        "    {Even, Longer} ->\n"
+        "        Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "receive Long when Guarded -> Expression end",
+        "receive\n"
+        "    Long when Guarded ->\n"
+        "        Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "receive {Even, Longer} when Guarded -> Expression end",
+        "receive\n"
+        "    {Even, Longer}\n"
+        "    when Guarded ->\n"
+        "        Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "receive {The, Longest, Pattern} when Guarded -> Expression end",
+        "receive\n"
+        "    {\n"
+        "        The,\n"
+        "        Longest,\n"
+        "        Pattern\n"
+        "    } when Guarded ->\n"
+        "        Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "receive Pattern when Guard; Is, Long -> Expression end",
+        "receive\n"
+        "    Pattern\n"
+        "    when Guard;\n"
+        "         Is, Long ->\n"
+        "        Expression\n"
+        "end",
+        25
+    ).
+
 
 format_expr(String, PageWidth) ->
     {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),
