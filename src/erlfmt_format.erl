@@ -50,21 +50,27 @@ expr_to_algebra({op, _Meta, Op, Expr}) ->
 expr_to_algebra({op, _Meta, Op, Left, Right}) ->
     binary_op_to_algebra(Op, Left, Right);
 expr_to_algebra({tuple, _Meta, Values}) ->
-    container_to_algebra(Values, "{", "}");
+    container_to_algebra(Values, document_text("{"), document_text("}"));
 expr_to_algebra({list, _Meta, Values}) ->
-    container_to_algebra(Values, "[", "]");
+    container_to_algebra(Values, document_text("["), document_text("]"));
 expr_to_algebra({cons, _, Head, Tail}) ->
     cons_to_algebra(Head, Tail);
 expr_to_algebra({bin, _Meta, Values}) ->
-    container_to_algebra(Values, "<<", ">>");
+    container_to_algebra(Values, document_text("<<"), document_text(">>"));
 expr_to_algebra({bin_element, _Meta, Expr, Size, Types}) ->
     bin_element_to_algebra(Expr, Size, Types);
 expr_to_algebra({map, _Meta, Values}) ->
-    container_to_algebra(Values, "#{", "}");
+    container_to_algebra(Values, document_text("#{"), document_text("}"));
 expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
     field_to_algebra("=>", Key, Value);
 expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
-    field_to_algebra(":=", Key, Value).
+    field_to_algebra(":=", Key, Value);
+expr_to_algebra({record, _Meta, Name, Values}) ->
+    %% TODO: handle ?FOO{} vs #?FOO{} once we handle macros
+    Prefix = wrap(document_text("#"), expr_to_algebra(Name), document_text("{")),
+    container_to_algebra(Values, Prefix, document_text("}"));
+expr_to_algebra({record_field, _Meta, Key, Value}) ->
+    field_to_algebra("=", Key, Value).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
@@ -82,13 +88,13 @@ combine_comma_newline(D1, D2) ->
     document_combine(document_flush(document_combine(D1, document_text(","))), D2).
 
 wrap(Left, Doc, Right) ->
-    document_combine(document_text(Left), document_combine(Doc, document_text(Right))).
+    document_combine(Left, document_combine(Doc, Right)).
 
-wrap_in_parens(Doc) -> wrap("(", Doc, ")").
+wrap_in_parens(Doc) -> wrap(document_text("("), Doc, document_text(")")).
 
 wrap_nested(Left, Doc, Right) ->
     Nested = document_combine(document_spaces(4), Doc),
-    combine_newline(document_text(Left), combine_newline(Nested, document_text(Right))).
+    combine_newline(Left, combine_newline(Nested, Right)).
 
 %% TODO: handle underscores once on OTP 23
 format_integer([B1, B2, $# | Digits]) -> [B1, B2, $# | string:uppercase(Digits)];
@@ -179,7 +185,7 @@ binary_operand_to_algebra(ParentOp, {op, _, Op, Left, Right}, _Indent, Prec) ->
 binary_operand_to_algebra(_ParentOp, Expr, _Indent, _Prec) ->
     expr_to_algebra(Expr).
 
-container_to_algebra([], Left, Right) -> document_text([Left | Right]);
+container_to_algebra([], Left, Right) -> document_combine(Left, Right);
 container_to_algebra(Values0, Left, Right) ->
     Values = lists:map(fun expr_to_algebra/1, Values0),
     SingleLine = lists:map(fun erlfmt_algebra:document_single_line/1, Values),
@@ -228,6 +234,8 @@ expr_max_to_algebra({op, _, Op, Expr}) ->
 expr_max_to_algebra({op, _, Op, Left, Right}) ->
     wrap_in_parens(binary_op_to_algebra(Op, Left, Right));
 expr_max_to_algebra({map, _, _} = Expr) ->
+    wrap_in_parens(expr_to_algebra(Expr));
+expr_max_to_algebra({record, _, _, _} = Expr) ->
     wrap_in_parens(expr_to_algebra(Expr));
 %% TODO: map, calls & records also get wrapped in parens
 expr_max_to_algebra(Expr) ->
