@@ -31,7 +31,17 @@
 
 -spec form_to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:document().
 form_to_algebra({function, _Meta, Clauses}) ->
-    document_combine(clauses_to_algebra(Clauses), document_text(".")).
+    document_combine(clauses_to_algebra(Clauses), document_text("."));
+form_to_algebra({attribute, Meta, Name, []}) ->
+    NameD = document_text(format_atom(text(Meta), Name)),
+    wrap(document_text("-"), NameD, document_text("."));
+form_to_algebra({attribute, Meta, Name, Values}) ->
+    NameD = document_text(format_atom(text(Meta), Name)),
+    Prefix = wrap(document_text("-"), NameD, document_text("(")),
+    document_combine(
+        container_to_algebra(Values, Prefix, document_text(")")),
+        document_text(".")
+    ).
 
 -spec expr_to_algebra(erlfmt_parse:abstract_expr()) -> erlfmt_algebra:document().
 expr_to_algebra({integer, Meta, _Value}) ->

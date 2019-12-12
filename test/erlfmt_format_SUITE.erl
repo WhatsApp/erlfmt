@@ -58,7 +58,8 @@
     try_expression/1,
     if_expression/1,
     macro/1,
-    function/1
+    function/1,
+    attribute/1
 ]).
 
 suite() ->
@@ -96,7 +97,8 @@ groups() ->
             macro
         ]},
         {forms, [parallel], [
-            function
+            function,
+            attribute
         ]},
         {literals, [parallel], [
             {group, integers},
@@ -1142,6 +1144,31 @@ function(Config) when is_list(Config) ->
     ?assertSameForm(
         "?FOO(1) -> ok;\n"
         "?DEFAULT(?FOO)."
+    ).
+
+attribute(Config) when is_list(Config) ->
+    ?assertFormatForm("-else .", "-else."),
+    ?assertFormatForm("- foo (\n1).", "-foo(1)."),
+    ?assertSameForm("-compile([export_all, nowarn_export_all])."),
+    %% TODO: fix the spaces
+    ?assertSameForm("-import(foo, [bar / 2, baz / 0])."),
+    ?assertSameForm("-export([bar / 2, baz / 3])."),
+    ?assertFormatForm(
+        "-attribute([Long, Value]).",
+        "-attribute(\n"
+        "    [Long, Value]\n"
+        ").",
+        25
+    ),
+    ?assertFormatForm(
+        "-attribute([ExceptionallyLong, Value]).",
+        "-attribute(\n"
+        "    [\n"
+        "        ExceptionallyLong,\n"
+        "        Value\n"
+        "    ]\n"
+        ").",
+        25
     ).
 
 format_form(String, PageWidth) ->
