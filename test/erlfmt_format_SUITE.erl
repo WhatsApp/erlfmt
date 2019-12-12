@@ -45,7 +45,9 @@
     map_create/1,
     map_update/1,
     record_create/1,
-    record_update/1
+    record_update/1,
+    record_index/1,
+    record_field/1
 ]).
 
 suite() ->
@@ -108,8 +110,13 @@ groups() ->
             binary,
             map_create,
             map_update,
+            {group, records}
+        ]},
+        {records, [parallel], [
             record_create,
-            record_update
+            record_update,
+            record_index,
+            record_field
         ]}
     ].
 
@@ -439,7 +446,7 @@ list(Config) when is_list(Config) ->
 
 binary(Config) when is_list(Config) ->
     ?assertFormatExpr("<< >>", "<<>>"),
-    ?assertSameExpr("<<(1 + 1), (#{}), (#foo{}), (#{}#{}), (#foo{}#foo{})>>"),
+    ?assertSameExpr("<<(1 + 1), (#{}), (#foo{}), (#{}#{}), (#foo{}#foo{}), (#foo.bar)>>"),
     ?assertFormatExpr("<<(1)>>", "<<1>>"),
     ?assertSameExpr("<<+1:5/integer-unit:8>>"),
     ?assertSameExpr("<<\"żółć\"/utf8>>"),
@@ -490,6 +497,7 @@ map_update(Config) when is_list(Config) ->
     ?assertFormatExpr("X # {\n}", "X#{}"),
     ?assertSameExpr("#{}#{}"),
     ?assertSameExpr("#{}#{}#{}"),
+    ?assertSameExpr("(X#foo.bar)#{}"),
     ?assertSameExpr("(catch 1)#{}"),
     ?assertSameExpr("X#{A => B, C := D}"),
     ?assertFormatExpr(
@@ -539,6 +547,7 @@ record_update(Config) when is_list(Config) ->
     ?assertFormatExpr("X #foo {\n}", "X#foo{}"),
     ?assertSameExpr("#foo{}#bar{}"),
     ?assertSameExpr("#foo{}#bar{}#baz{}"),
+    ?assertSameExpr("X#foo.bar#baz{}"),
     ?assertSameExpr("(catch 1)#foo{}"),
     ?assertFormatExpr(
         "X#foo{aa = aa, bb = bb}",
@@ -560,6 +569,19 @@ record_update(Config) when is_list(Config) ->
         15
     ).
 
+record_index(Config) when is_list(Config) ->
+    ?assertSameExpr("#foo.bar").
+
+record_field(Config) when is_list(Config) ->
+    ?assertSameExpr("X#foo.bar"),
+    ?assertSameExpr("X#foo.bar#baz.bak"),
+    ?assertSameExpr("(catch X)#foo.bar"),
+    ?assertFormatExpr(
+        "(Foo + Bar)#foo.bar",
+        "(Foo +\n"
+        "     Bar)#foo.bar",
+        5
+    ).
 
 format_expr(String, PageWidth) ->
     {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),
