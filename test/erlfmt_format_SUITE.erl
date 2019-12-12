@@ -42,7 +42,8 @@
     tuple/1,
     list/1,
     binary/1,
-    map/1
+    map/1,
+    record/1
 ]).
 
 suite() ->
@@ -103,7 +104,8 @@ groups() ->
             tuple,
             list,
             binary,
-            map
+            map,
+            record
         ]}
     ].
 
@@ -474,6 +476,28 @@ map(Config) when is_list(Config) ->
         "        22,\n"
         "    33 =>\n"
         "        44\n"
+        "}",
+        10
+    ).
+
+record(Config) when is_list(Config) ->
+    ?assertFormatExpr("#foo{\n}", "#foo{}"),
+    ?assertFormatExpr("#foo{a=1,b=2+3}", "#foo{a = 1, b = 2 + 3}"),
+    ?assertFormatExpr(
+        "#foo{a=1,b=2+3}",
+        "#foo{\n"
+        "    a = 1,\n"
+        "    b = 2 + 3\n"
+        "}",
+        10
+    ),
+    ?assertFormatExpr(
+        "#foo{a=1,b=Foo+Bar}",
+        "#foo{\n"
+        "    a = 1,\n"
+        "    b =\n"
+        "        Foo +\n"
+        "            Bar\n"
         "}",
         10
     ).
