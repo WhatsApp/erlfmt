@@ -92,7 +92,12 @@ expr_to_algebra({bc, _Meta, Expr, LcExprs}) ->
 expr_to_algebra({generate, _Meta, Left, Right}) ->
     field_to_algebra("<-", Left, Right);
 expr_to_algebra({b_generate, _Meta, Left, Right}) ->
-    field_to_algebra("<=", Left, Right).
+    field_to_algebra("<=", Left, Right);
+expr_to_algebra({call, _Meta, Name, Args}) ->
+    Prefix = document_combine(expr_max_to_algebra(Name), document_text("(")),
+    container_to_algebra(Args, Prefix, document_text(")"));
+expr_to_algebra({remote, _Meta, Mod, Name}) ->
+    wrap(expr_max_to_algebra(Mod), document_text(":"), expr_max_to_algebra(Name)).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
@@ -267,7 +272,8 @@ expr_max_to_algebra({record_field, _, _, _, _} = Expr) ->
     wrap_in_parens(expr_to_algebra(Expr));
 expr_max_to_algebra({record_index, _, _, _} = Expr) ->
     wrap_in_parens(expr_to_algebra(Expr));
-%% TODO: map, calls & records also get wrapped in parens
+expr_max_to_algebra({call, _, _, _} = Expr) ->
+    wrap_in_parens(expr_to_algebra(Expr));
 expr_max_to_algebra(Expr) ->
     expr_to_algebra(Expr).
 
