@@ -82,7 +82,17 @@ expr_to_algebra({record_index, _Meta, Name, Key}) ->
     record_access_to_algebra(Name, Key);
 expr_to_algebra({record_field, _Meta, Expr, Name, Key}) ->
     Access = record_access_to_algebra(Name, Key),
-    document_combine(record_expr_to_algebra(Expr), Access).
+    document_combine(record_expr_to_algebra(Expr), Access);
+expr_to_algebra({lc, _Meta, Expr, LcExprs}) ->
+    ExprD = expr_to_algebra(Expr),
+    comprehension_to_algebra(ExprD, LcExprs, document_text("["), document_text("]"));
+expr_to_algebra({bc, _Meta, Expr, LcExprs}) ->
+    ExprD = expr_max_to_algebra(Expr),
+    comprehension_to_algebra(ExprD, LcExprs, document_text("<<"), document_text(">>"));
+expr_to_algebra({generate, _Meta, Left, Right}) ->
+    field_to_algebra("<-", Left, Right);
+expr_to_algebra({b_generate, _Meta, Left, Right}) ->
+    field_to_algebra("<=", Left, Right).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
@@ -293,6 +303,33 @@ field_to_algebra(Op, Key, Value) ->
         combine_space(KeyOpD, document_single_line(ValueD)),
         combine_newline(KeyOpD, document_combine(document_spaces(4), ValueD))
     ).
+
+comprehension_to_algebra(ExprD, LcExprs, Left, Right) ->
+    PipesD = document_text("|| "),
+    {LcExprsSingleD, LcExprsMultiD} = comprehension_exprs_to_algebra(LcExprs),
+    LcExprsD = document_choice(LcExprsSingleD, LcExprsMultiD),
+
+    SingleLine =
+        combine_space(document_single_line(ExprD), document_combine(PipesD, LcExprsSingleD)),
+    Multiline =
+        document_choice(
+            combine_space(ExprD, document_combine(PipesD, LcExprsSingleD)),
+            combine_newline(ExprD, document_combine(PipesD, LcExprsD))
+        ),
+
+    document_choice(
+        wrap(Left, SingleLine, Right),
+        wrap_nested(Left, Multiline, Right)
+    ).
+
+comprehension_exprs_to_algebra(LcExprs0) ->
+    LcExprs = lists:map(fun expr_to_algebra/1, LcExprs0),
+    SingleLine = lists:map(fun erlfmt_algebra:document_single_line/1, LcExprs),
+
+    Horizontal = document_reduce(fun combine_comma_space/2, SingleLine),
+    Vertical = document_reduce(fun combine_comma_newline/2, LcExprs),
+
+    {Horizontal, Vertical}.
 
 atom_needs_quotes([C0 | Cs]) when C0 >= $a, C0 =< $z ->
     lists:any(fun
