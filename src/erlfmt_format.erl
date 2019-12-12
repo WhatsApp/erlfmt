@@ -97,7 +97,14 @@ expr_to_algebra({call, _Meta, Name, Args}) ->
     Prefix = document_combine(expr_max_to_algebra(Name), document_text("(")),
     container_to_algebra(Args, Prefix, document_text(")"));
 expr_to_algebra({remote, _Meta, Mod, Name}) ->
-    wrap(expr_max_to_algebra(Mod), document_text(":"), expr_max_to_algebra(Name)).
+    wrap(expr_max_to_algebra(Mod), document_text(":"), expr_max_to_algebra(Name));
+expr_to_algebra({block, _Meta, Exprs}) ->
+    ExprsD = lists:map(fun expr_to_algebra/1, Exprs),
+    wrap_nested(
+        document_text("begin"),
+        document_reduce(fun combine_comma_newline/2, ExprsD),
+        document_text("end")
+    ).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
