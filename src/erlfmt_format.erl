@@ -112,7 +112,10 @@ expr_to_algebra({remote, _Meta, Mod, Name}) ->
 expr_to_algebra({block, _Meta, Exprs}) ->
     wrap_nested(document_text("begin"), block_to_algebra(Exprs), document_text("end"));
 expr_to_algebra({'fun', _Meta, Expr}) ->
-    fun_to_algebra(Expr).
+    fun_to_algebra(Expr);
+expr_to_algebra({'case', _Meta, Expr, Clauses}) ->
+    Prefix = wrap(document_text("case "), expr_to_algebra(Expr), document_text(" of")),
+    wrap_nested(Prefix, clauses_to_algebra(Clauses), document_text("end")).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
@@ -400,9 +403,18 @@ clauses_to_algebra(Clauses) ->
         document_reduce(fun combine_semi_newline/2, ClausesD)
     ).
 
+clause_to_algebra_pair({clause, _Meta, Name, Args, [], Body}) ->
+    {SingleHeadD, HeadD} = clause_head_to_algebra(Name, Args),
+    BodyD = block_to_algebra(Body),
+    SingleBodyD = document_single_line(BodyD),
+
+    SingleD = wrap(SingleHeadD, document_text(" -> "), SingleBodyD),
+    MultiPrefix = document_combine(document_choice(SingleHeadD, HeadD), document_text(" ->")),
+    MultiD = combine_newline(MultiPrefix, document_combine(document_spaces(?INDENT), BodyD)),
+
+    {SingleD, MultiD};
 clause_to_algebra_pair({clause, _Meta, Name, Args, Guards, Body}) ->
-    Prefix = clause_name_to_algebra(Name),
-    {SingleHeadD, HeadD} = container_to_algebra_pair(Args, Prefix, document_text(")")),
+    {SingleHeadD, HeadD} = clause_head_to_algebra(Name, Args),
     {SingleGuardsD, GuardsD} = guards_to_algebra_pair(Guards),
     BodyD = block_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
@@ -420,21 +432,24 @@ clause_to_algebra_pair({clause, _Meta, Name, Args, Guards, Body}) ->
 
     {SingleD, MultiD}.
 
-clause_name_to_algebra('fun') ->
-    document_text("(");
-clause_name_to_algebra(Name) ->
-    document_combine(expr_to_algebra(Name), document_text("(")).
+clause_head_to_algebra('fun', Args) ->
+    container_to_algebra_pair(Args, document_text("("), document_text(")"));
+clause_head_to_algebra('case', [Arg]) ->
+    Doc = expr_to_algebra(Arg),
+    {document_single_line(Doc), Doc};
+clause_head_to_algebra(Name, Args) ->
+    Prefix = document_combine(expr_to_algebra(Name), document_text("(")),
+    container_to_algebra_pair(Args, Prefix, document_text(")")).
 
-guards_to_algebra_pair([]) ->
-    Doc = document_text("->"),
-    {Doc, Doc};
 guards_to_algebra_pair(Guards) ->
     {SingleLine, MultiLine} = lists:unzip(lists:map(fun guard_alt_to_algebra_pair/1, Guards)),
     SingleLineD = document_reduce(fun combine_semi_space/2, SingleLine),
     MultiLineD = document_reduce(fun combine_semi_newline/2, MultiLine),
+    WhenD = document_text("when "),
+    ArrD = document_text(" ->"),
 
-    FullSingle = wrap(document_text("when "), SingleLineD, document_text(" ->")),
-    FullMulti = wrap(document_text("when "), document_choice(SingleLineD, MultiLineD), document_text(" ->")),
+    FullSingle = wrap(WhenD, SingleLineD, ArrD),
+    FullMulti = wrap(WhenD, document_choice(SingleLineD, MultiLineD), ArrD),
 
     {FullSingle, FullMulti}.
 

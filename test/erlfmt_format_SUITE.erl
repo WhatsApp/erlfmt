@@ -54,7 +54,8 @@
     binary_comprehension/1,
     call/1,
     block/1,
-    fun_expression/1
+    fun_expression/1,
+    case_expression/1
 ]).
 
 suite() ->
@@ -92,7 +93,8 @@ groups() ->
             {group, comprehensions},
             call,
             block,
-            fun_expression
+            fun_expression,
+            case_expression
         ]},
         {integers, [parallel], [
             int_decimal_base,
@@ -775,6 +777,79 @@ fun_expression(Config) when is_list(Config) ->
         "         Is,\n"
         "         Even,\n"
         "         Longer ->\n"
+        "        Expression\n"
+        "end",
+        25
+    ).
+
+case_expression(Config) when is_list(Config) ->
+    ?assertFormatExpr(
+        "case 1 of 1 -> ok end",
+        "case 1 of\n"
+        "    1 -> ok\n"
+        "end",
+        100
+    ),
+    ?assertFormatExpr(
+        "case 1 of {Long} -> Expression end",
+        "case 1 of\n"
+        "    {Long} -> Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "case 1 of {Even, Longer} -> Expression end",
+        "case 1 of\n"
+        "    {Even, Longer} ->\n"
+        "        Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "case 1 of Long when Guarded -> Expression end",
+        "case 1 of\n"
+        "    Long when Guarded ->\n"
+        "        Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "case 1 of {Even, Longer} when Guarded -> Expression end",
+        "case 1 of\n"
+        "    {Even, Longer}\n"
+        "    when Guarded ->\n"
+        "        Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "case 1 of {The, Longest, Pattern} when Guarded -> Expression end",
+        "case 1 of\n"
+        "    {\n"
+        "        The,\n"
+        "        Longest,\n"
+        "        Pattern\n"
+        "    } when Guarded ->\n"
+        "        Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "case 1 of Pattern when Guard; Is, Long -> Expression end",
+        "case 1 of\n"
+        "    Pattern\n"
+        "    when Guard;\n"
+        "         Is, Long ->\n"
+        "        Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "case 1 of Short -> Expr; {Long, Pattern} -> Expression end",
+        "case 1 of\n"
+        "    Short ->\n"
+        "        Expr;\n"
+        "    {Long, Pattern} ->\n"
         "        Expression\n"
         "end",
         25
