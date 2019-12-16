@@ -87,6 +87,9 @@ groups() ->
     [
         {expressions, [parallel], [
             {group, literals},
+            {group, containers},
+            {group, operators},
+            {group, comprehensions},
             call,
             block,
             fun_expression,
@@ -719,6 +722,14 @@ call(Config) when is_list(Config) ->
         "        Long,\n"
         "        Expression\n"
         "    }\n"
+        ")",
+        25
+    ),
+    ?assertFormatExpr(
+        "long_name({Long, Expression}, AnotherArgument)",
+        "long_name(\n"
+        "    {Long, Expression},\n"
+        "    AnotherArgument\n"
         ")",
         25
     ).
