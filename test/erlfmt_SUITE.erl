@@ -32,6 +32,7 @@
 -export([
     records/1,
     attributes/1,
+    specs/1,
     macro_call_exprs/1,
     macro_call_pats/1,
     macro_call_types/1,
@@ -41,6 +42,7 @@
     lists/1,
     binaries/1,
     clauses/1,
+    types/1,
     smoke_test_cli/1
 ]).
 
@@ -70,6 +72,7 @@ groups() ->
         {parser, [parallel], [
             records,
             attributes,
+            specs,
             macro_call_exprs,
             macro_call_pats,
             macro_call_types,
@@ -78,7 +81,8 @@ groups() ->
             operators,
             lists,
             binaries,
-            clauses
+            clauses,
+            types
         ]},
         {smoke_tests, [parallel], [
             smoke_test_cli
@@ -111,15 +115,26 @@ records(Config) when is_list(Config) ->
         parse_expr("X#foo{}")
     ),
     ?assertMatch(
-        {attribute, _, record, {{atom, _, foo}, [{record_field, _, {atom, _, a}, {integer, _, 1}}]}},
-        parse_form("-record(foo, {a = 1}).")
+        {attribute, _,record, [{atom, _, foo}, {tuple, _, [
+            {typed, _, {record_field, _, {atom, _, a}, {integer, _, 1}}, {call, _, {atom, _, integer}, []}},
+            {typed, _, {record_field, _, {atom, _, b}}, {call, _, {atom, _, float}, []}},
+            {record_field, _, {atom, _, c}, {integer, _, 2}},
+            {record_field, _, {atom, _, d}}
+        ]}]},
+        parse_form("-record(foo, {a = 1 :: integer(), b :: float(), c  = 2, d}).")
     ),
     ?assertMatch(
-        {attribute, _, type, {{call, _, {atom, _, foo}, []}, {type, _, record, [{atom, _, foo}]}}},
+        {attribute, _, type, [{typed, _,
+            {call, _, {atom, _, foo}, []},
+            {record, _, {atom, _, foo}, []}
+        }]},
         parse_form("-type foo() :: #foo{}.")
     ),
     ?assertMatch(
-        {attribute, _, opaque, {{call, _, {atom, _, foo}, []}, {type, _, record, [{atom, _, foo}]}}},
+        {attribute, _, opaque, [{typed, _,
+            {call, _, {atom, _, foo}, []},
+            {record, _, {atom, _, foo}, []}
+        }]},
         parse_form("-opaque foo() :: #foo{}.")
     ).
 
@@ -149,18 +164,6 @@ attributes(Config) when is_list(Config) ->
         parse_form("-endif(?BAR).")
     ),
     ?assertMatch(
-        {attribute, _, spec, {{macro_call, _, {atom, _, 'foo'}, none}, [
-            {type, _, 'fun', [{type, _, product, []}, {atom, _, ok}]}
-        ]}},
-        parse_form("-spec ?foo() -> ok.")
-    ),
-    ?assertMatch(
-        {attribute, _, callback, {{macro_call, _, {var, _, 'FOO'}, none}, [
-            {type, _, 'fun', [{type, _, product, []}, {atom, _, ok}]}
-        ]}},
-        parse_form("-callback ?FOO() -> ok.")
-    ),
-    ?assertMatch(
         {attribute, _, export, [{list, _, [
             {op, _, '/', {macro_call, _, {var, _, 'FOO'}, none}, {integer, _, 1}},
             {op, _, '/', {atom, _, foo}, {integer, _, 2}}
@@ -180,6 +183,48 @@ attributes(Config) when is_list(Config) ->
         ]},
         parse_form("-something_else({foo, bar/1}).")
     ).
+
+specs(Config) when is_list(Config) ->
+    ?assertMatch(
+        {attribute, _, spec, [{spec, _,
+            {remote, _, {atom, _, foo}, {atom, _, bar}},
+            [{clause, _, spec, [], [], {atom, _, ok}}]
+        }]},
+        parse_form("-spec foo:bar() -> ok.")
+    ),
+    ?assertMatch(
+        {attribute, _, spec, [{spec, _, {atom, _, foo}, [
+            {clause, _, spec, [{call, _, {atom, _, integer}, []}], [], {atom, _,integer}},
+            {clause, _, spec, [{call, _, {atom, _, atom}, []}], [], {atom, _, atom}}
+        ]}]},
+        parse_form("-spec foo(integer()) -> integer; (atom()) -> atom.")
+    ),
+    ?assertMatch(
+        {attribute, _, callback, [{spec, _, {atom, _, foo}, [
+            {clause, _, spec, [{var, _, 'X'}],
+                [
+                    {typed, _, {var, _, 'X'}, {call, _, {atom, _, integer}, []}},
+                    {typed, _, {var, _, 'Y'}, {call, _, {atom, _, atom}, []}}
+                ],
+                {var, _, 'Y'}}
+        ]}]},
+        parse_form("-callback foo(X) -> Y when X :: integer(), Y :: atom().")
+    ),
+    ?assertMatch(
+        {attribute, _, spec, [{spec, _,
+            {macro_call, _, {atom, _, foo}, none},
+            [{clause, _, spec, [], [], {atom, _, ok}}]
+        }]},
+        parse_form("-spec ?foo() -> ok.")
+    ),
+    ?assertMatch(
+        {attribute, _, callback, [{spec, _,
+            {macro_call, _, {var, _, 'FOO'}, none},
+            [{clause, _, spec, [], [], {atom, _, ok}}]
+        }]},
+        parse_form("-callback ?FOO() -> ok.")
+    ).
+
 
 macro_call_exprs(Config) when is_list(Config) ->
     ?assertMatch(
@@ -315,64 +360,64 @@ macro_call_types(Config) when is_list(Config) ->
         parse_type("?FOO()")
     ),
     ?assertMatch(
-        {macro_call, _, {var, _, 'FOO'}, [{type, _, union, [{integer, _, 1}, {integer, _, 2}]}]},
+        {macro_call, _, {var, _, 'FOO'}, [{op, _, '|', {integer, _, 1}, {integer, _, 2}}]},
         parse_type("?FOO(1 | 2)")
     ),
     ?assertMatch(
-        {type, _, record, [{macro_call, _, {atom, _, foo}, none}]},
+        {record, _, {macro_call, _, {atom, _, foo}, none}, []},
         parse_type("?foo{}")
     ),
     ?assertMatch(
-        {type, _, record, [{macro_call, _, {atom, _, foo}, none}]},
+        {record, _, {macro_call, _, {atom, _, foo}, none}, []},
         parse_type("#?foo{}")
     ).
 
 macro_definitions(Config) when is_list(Config) ->
     ?assertMatch(
-        {attribute, _, define, {{macro_call, _, {var, _, 'FOO'}, none}, [[{atom, _, foo}]]}},
+        {attribute, _, define, [{macro_call, _, {var, _, 'FOO'}, none}, [[{atom, _, foo}]]]},
         parse_form("-define(FOO, foo).")
     ),
     ?assertMatch(
-        {attribute, _, define, {{macro_call, _, {var, _, 'FOO'}, []}, [[{atom, _, foo}]]}},
+        {attribute, _, define, [{macro_call, _, {var, _, 'FOO'}, []}, [[{atom, _, foo}]]]},
         parse_form("-define(FOO(), foo).")
     ),
     ?assertMatch(
-        {attribute, _, define, {{macro_call, _, {var, _, 'FOO'}, [{var, _, 'X'}]}, [[{atom, _, foo}]]}},
+        {attribute, _, define, [{macro_call, _, {var, _, 'FOO'}, [{var, _, 'X'}]}, [[{atom, _, foo}]]]},
         parse_form("-define(FOO(X), foo).")
     ),
     ?assertMatch(
-        {attribute, _, define, {{macro_call, _, {atom, _, is_nice}, [{var, _, 'X'}]}, [[
+        {attribute, _, define, [{macro_call, _, {atom, _, is_nice}, [{var, _, 'X'}]}, [[
             {call, _, {atom, _, is_tuple}, [{var, _, 'X'}]},
             {op, _, '=:=', {call, _, {atom, _,element}, [{integer, _, 1},{var, _, 'X'}]}, {atom, _, nice}}
-        ]]}},
+        ]]]},
         parse_form("-define(is_nice(X), is_tuple(X), element(1, X) =:= nice).")
     ),
     ?assertMatch(
-        {attribute, _, define, {{macro_call, _, {atom, _, foo}, none}, {record_name, _, {atom, _,bar}}}},
+        {attribute, _, define, [{macro_call, _, {atom, _, foo}, none}, {record_name, _, {atom, _,bar}}]},
         parse_form("-define(foo, #bar).")
     ),
     ?assertMatch(
-        {attribute, _, define, {{macro_call, _, {atom, _, foo}, none}, empty}},
+        {attribute, _, define, [{macro_call, _, {atom, _, foo}, none}, empty]},
         parse_form("-define(foo,).")
     ),
     ?assertMatch(
-        {attribute, _, define, {{macro_call, _, {atom, _, pass}, [{var, _, 'Name'}]},
-            [[{'fun', _, {function, {var, _, 'Name'}, {integer, _, 2}}}]]}
-        },
+        {attribute, _, define, [{macro_call, _, {atom, _, pass}, [{var, _, 'Name'}]},
+            [[{'fun', _, {function, {var, _, 'Name'}, {integer, _, 2}}}]]
+        ]},
         parse_form("-define(pass(Name), fun Name/2).")
     ),
     ?assertMatch(
-        {attribute, _, define, {{macro_call, _, {atom, _, foo}, none}, {clause, _, {atom, _, foo}, [], [], [{atom, _, ok}]}}},
+        {attribute, _, define, [{macro_call, _, {atom, _, foo}, none}, {clause, _, {atom, _, foo}, [], [], [{atom, _, ok}]}]},
         parse_form("-define(foo, foo() -> ok).")
     ),
     ?assertMatch(
-        {attribute, _, define, {{macro_call, _, {var, _, 'FOO'}, [{var, _, 'Name'}]},
-            {clause, _, {var, _, 'Name'}, [], [], [{atom, _, ok}]}}
-        },
+        {attribute, _, define, [{macro_call, _, {var, _, 'FOO'}, [{var, _, 'Name'}]},
+            {clause, _, {var, _, 'Name'}, [], [], [{atom, _, ok}]}
+        ]},
         parse_form("-define(FOO(Name), Name() -> ok).")
     ),
     ?assertMatch(
-        {attribute, _, define, {{macro_call, _, {var, _, 'HASH_FUN'}, none}, [[{remote, _, {atom, _, erlang}, {atom, _, phash}}]]}},
+        {attribute, _, define, [{macro_call, _, {var, _, 'HASH_FUN'}, none}, [[{remote, _, {atom, _, erlang}, {atom, _, phash}}]]]},
         parse_form("-define(HASH_FUN, erlang:phash).")
     ).
 
@@ -509,6 +554,72 @@ clauses(Config) when is_list(Config) ->
         parse_expr("try ok of _ -> ok catch _ -> ok; _:_ -> ok; _:_:_ -> ok end")
     ).
 
+types(Config) when is_list(Config) ->
+    ?assertMatch(
+        {typed, _, {var, _, 'Foo'}, {atom, _, foo}},
+        parse_type("Foo :: foo")
+    ),
+    ?assertMatch(
+        {op, _, '|', {var, _, 'Foo'}, {var, _, 'Bar'}},
+        parse_type("Foo | Bar")
+    ),
+    ?assertMatch(
+        {op, _, '..', {integer, _, 1}, {var, _, 'Bar'}},
+        parse_type("1..Bar")
+    ),
+    ?assertMatch(
+        {op, _, '+', {op, _, '-', {integer, _, 1}}, {op, _, '*', {integer, _, 2}, {integer, _, 3}}},
+        parse_type("- 1 + 2 * 3")
+    ),
+    ?assertMatch(
+        {tuple, _, [
+            {call, _, {atom, _, foo}, []},
+            {call, _, {remote, _, {atom, _, foo}, {atom, _, bar}}, []}
+        ]},
+        parse_type("{foo(), foo:bar()}")
+    ),
+    ?assertMatch(
+        {list, _, [{list, _, [{list, _, []}]}, {'...', _}]},
+        parse_type("[[[]], ...]")
+    ),
+    ?assertMatch(
+        {map, _, [
+            {map_field_exact, _, {map, _, []}, {integer, _, 1}},
+            {map_field_assoc, _, {tuple, _, []}, {integer, _, 2}}
+        ]},
+        parse_type("#{#{} := 1, {} => 2}")
+    ),
+    ?assertMatch(
+        {tuple, _, [
+            {bin, _, []},
+            {bin, _, [{bin_element, _, {var, _, '_'}, {integer, _, 8}, default}]},
+            {bin, _, [
+                {bin_element, _, {var, _, '_'}, {op, _, '*', {var, _, '_'}, {integer, _, 8}}, default}
+            ]},
+            {bin, _, [
+                {bin_element, _, {var, _, '_'}, {integer, _, 8}, default},
+                {bin_element, _, {var, _, '_'}, {op, _, '*', {var, _, '_'}, {integer, _, 4}}, default}
+            ]}
+        ]},
+        parse_type("{<<>>, <<_:8>>, <<_:_*8>>, <<_:8, _:_*4>>}")
+    ),
+    ?assertMatch(
+        {'fun', _, type},
+        parse_type("fun()")
+    ),
+    ?assertMatch(
+        {'fun', _, {type, [{'...', _}], {call, _, {atom, _, integer}, []}}},
+        parse_type("fun((...) -> integer())")
+    ),
+    ?assertMatch(
+        {'fun', _, {type, [], {atom, _, ok}}},
+        parse_type("fun(() -> ok)")
+    ),
+    ?assertMatch(
+        {'fun', _, {type, [{call, _, {atom, _, integer}, []}], {call, _, {atom, _,integer}, []}}},
+        parse_type("fun((integer()) -> integer())")
+    ).
+
 parse_expr(String) ->
     {function, _, [{clause, _, _, [], [], [Expr]}]} =
         parse_form("f() -> " ++ String ++ "."),
@@ -520,7 +631,7 @@ parse_pat(String) ->
     Pat.
 
 parse_type(String) ->
-    {attribute, _, type, {_, Type}} =
+    {attribute, _, type, [{typed, _, _, Type}]} =
         parse_form("-type foo() :: " ++ String ++ "."),
     Type.
 

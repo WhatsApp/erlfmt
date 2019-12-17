@@ -28,7 +28,7 @@ list_comprehension lc_expr lc_exprs
 binary_comprehension
 tuple
 record_expr record_name record_field_name record_tuple record_field record_fields
-map_expr map_tuple map_field map_field_assoc map_field_exact map_fields map_key
+map_expr map_tuple map_field map_fields map_key
 if_expr if_clause if_clauses case_expr cr_clause cr_clauses receive_expr
 fun_expr fun_clause fun_clauses
 atom_or_var atom_or_var_or_macro integer_or_var_or_macro
@@ -39,11 +39,9 @@ atomic concatable concatables macro_record_or_concatable
 prefix_op mult_op add_op list_op comp_op
 binary bin_elements bin_element bit_expr
 opt_bit_size_expr bit_size_expr opt_bit_type_list bit_type_list bit_type
-top_type top_types type typed_expr typed_attr_val
-type_sig type_sigs type_guard type_guards fun_type fun_type_anon binary_type
-type_spec spec_fun typed_exprs typed_record_fields field_types field_type
-map_pair_types map_pair_type
-bin_base_type bin_unit_type
+type types type_argument_list
+type_sig type_sigs fun_type binary_type bin_element_type type_map_fields type_map_field
+type_spec spec_fun
 macro_call_expr macro_string macro_call_pat macro_call_type macro_call_none
 macro_expr macro_exprs
 macro_name macro_def_expr macro_def_expr_body macro_def_clause.
@@ -71,7 +69,7 @@ Rootsymbol form.
 
 %% Expressions
 
-Unary 0 'catch'.
+Unary 10 'catch'.
 Right 100 '=' '!'.
 Right 150 'orelse'.
 Right 160 'andalso'.
@@ -85,8 +83,8 @@ Nonassoc 800 ':'.
 
 %% Types
 
-Right 0 '::'.
-Left 100 '|'.
+Right 40 '::'.
+Right 170 '|'.
 Nonassoc 200 '..'.
 Nonassoc 200 '*'. % for binary expressions
 
@@ -96,117 +94,77 @@ form -> function dot : '$1'.
 attribute -> '-' 'if' attr_val               : build_attribute({atom,?anno('$2'),'if'}, '$3').
 attribute -> '-' atom                        : build_attribute('$2', []).
 attribute -> '-' atom attr_val               : build_attribute('$2', '$3').
-attribute -> '-' atom typed_attr_val         : build_typed_attribute('$2','$3').
-attribute -> '-' atom '(' typed_attr_val ')' : build_typed_attribute('$2','$4').
-attribute -> '-' spec type_spec              : build_type_spec('$2', '$3').
-attribute -> '-' callback type_spec          : build_type_spec('$2', '$3').
+attribute -> '-' spec type_spec              : build_attribute('$2', ['$3']).
+attribute -> '-' callback type_spec          : build_attribute('$2', ['$3']).
 attribute -> '-' define_expr macro_def_expr  : build_macro_def('$1', '$3').
 attribute -> '-' define_clause macro_def_clause : build_macro_def('$1', '$3').
 
-type_spec -> spec_fun type_sigs : {'$1', '$2'}.
-type_spec -> '(' spec_fun type_sigs ')' : {'$2', '$3'}.
+type_spec -> spec_fun type_sigs : {spec, ?anno('$1'), '$1', '$2'}.
+type_spec -> '(' spec_fun type_sigs ')' : {spec, ?anno('$2'), '$2', '$3'}.
 
 spec_fun -> atom_or_var_or_macro : '$1'.
 spec_fun -> atom ':' atom : {remote, ?anno('$2'), '$1', '$3'}.
 
-typed_attr_val -> expr ',' typed_record_fields : {typed_record, '$1', '$3'}.
-typed_attr_val -> expr '::' top_type           : {type_def, '$1', '$3'}.
+type_sigs -> type_sig : ['$1'].
+type_sigs -> type_sig ';' type_sigs : ['$1'|'$3'].
 
-typed_record_fields -> '{' typed_exprs '}' : {tuple, ?anno('$1'), '$2'}.
+type_sig -> type_argument_list '->' type :
+    {clause, element(2, '$1'), spec, element(1, '$1'), [], '$3'}.
+type_sig -> type_argument_list '->' type 'when' types :
+    {clause, element(2, '$1'), spec, element(1, '$1'), '$5', '$3'}.
 
-typed_exprs -> typed_expr                 : ['$1'].
-typed_exprs -> typed_expr ',' typed_exprs : ['$1'|'$3'].
-typed_exprs -> expr ',' typed_exprs       : ['$1'|'$3'].
-typed_exprs -> typed_expr ',' exprs       : ['$1'|'$3'].
+type -> type '::' type : {typed, ?anno('$2'), '$1', '$3'}.
+type -> type '|' type : ?mkop2('$1', '$2', '$3').
+type -> type '..' type : ?mkop2('$1', '$2', '$3').
+type -> macro_call_type : '$1'.
+type -> type add_op type : ?mkop2('$1', '$2', '$3').
+type -> type mult_op type : ?mkop2('$1', '$2', '$3').
+type -> prefix_op type : ?mkop1('$1', '$2').
+type -> '(' type ')' : '$2'.
+type -> var : '$1'.
+type -> atom : '$1'.
+type -> atom type_argument_list : {call, ?anno('$1'), '$1', element(1, '$2')}.
+type -> atom ':' atom type_argument_list : {call, ?anno('$1'), {remote, ?anno('$2'), '$1', '$3'}, element(1, '$4')}.
+type -> '[' ']' : {list, ?anno('$1'), []}.
+type -> '[' type ']' : {list, ?anno('$1'), ['$2']}.
+type -> '[' type ',' '...' ']' : {list, ?anno('$1'), ['$2', '$4']}.
+type -> '#' '{' '}' : {map, ?anno('$1'), []}.
+type -> '#' '{' type_map_fields '}' : {map, ?anno('$1'), '$3'}.
+type -> '{' '}' : {tuple, ?anno('$1'), []}.
+type -> '{' types '}' : {tuple, ?anno('$1'), '$2'}.
+type -> '#' record_name '{' '}' : {record, ?anno('$1'), '$2', []}.
+type -> '#' record_name '{' types '}' : {record, ?anno('$1'), '$2', '$4'}.
+type -> macro_call_none '{' '}' : {record, ?anno('$1'), '$1', []}.
+type -> macro_call_none '{' types '}' : {record, ?anno('$1'), '$1', '$3'}.
+type -> binary_type : '$1'.
+type -> integer : '$1'.
+type -> char : '$1'.
+type -> fun_type : '$1'.
 
-typed_expr -> expr '::' top_type          : {typed,'$1','$3'}.
+fun_type -> 'fun' '(' ')' :
+    {'fun', ?anno('$1'), type}.
+fun_type -> 'fun' '(' '(' '...' ')' '->' type ')' :
+    {'fun', ?anno('$1'), {type, ['$4'], '$7'}}.
+fun_type -> 'fun' '(' type_argument_list '->' type ')' :
+    {'fun', ?anno('$1'), {type, element(1, '$3'), '$5'}}.
 
-type_sigs -> type_sig                     : ['$1'].
-type_sigs -> type_sig ';' type_sigs       : ['$1'|'$3'].
+type_map_fields -> type_map_field : ['$1'].
+type_map_fields -> type_map_field ',' type_map_fields : ['$1' | '$3'].
 
-type_sig -> fun_type                      : '$1'.
-type_sig -> fun_type 'when' type_guards   : {type, ?anno('$1'), bounded_fun,
-                                             ['$1','$3']}.
+type_map_field -> type '=>' type :
+    {map_field_assoc, ?anno('$2'), '$1', '$3'}.
+type_map_field -> type ':=' type :
+    {map_field_exact, ?anno('$2'), '$1', '$3'}.
 
-type_guards -> type_guard                 : ['$1'].
-type_guards -> type_guard ',' type_guards : ['$1'|'$3'].
+binary_type -> '<<' '>>' : {bin, ?anno('$1'), []}.
+binary_type -> '<<' bin_element_type '>>' : {bin, ?anno('$1'), ['$2']}.
+binary_type -> '<<' bin_element_type ',' bin_element_type '>>' : {bin, ?anno('$1'), ['$2', '$4']}.
 
-type_guard -> atom '(' top_types ')'   : build_compat_constraint('$1', '$3').
-type_guard -> var '::' top_type        : build_constraint('$1', '$3').
-
-top_types -> top_type                     : ['$1'].
-top_types -> top_type ',' top_types       : ['$1'|'$3'].
-
-top_type -> var '::' top_type             : {ann_type, ?anno('$1'), ['$1','$3']}.
-top_type -> type '|' top_type             : lift_unions('$1','$3').
-top_type -> type                          : '$1'.
-
-type -> type '..' type                    : {type, ?anno('$1'), range,
-                                             ['$1', '$3']}.
-type -> macro_call_type                   : '$1'.
-type -> type add_op type                  : ?mkop2('$1', '$2', '$3').
-type -> type mult_op type                 : ?mkop2('$1', '$2', '$3').
-type -> prefix_op type                    : ?mkop1('$1', '$2').
-type -> '(' top_type ')'                  : '$2'.
-type -> var                               : '$1'.
-type -> atom                              : '$1'.
-type -> atom '(' ')'                      : build_gen_type('$1').
-type -> atom '(' top_types ')'            : build_type('$1', '$3').
-type -> atom ':' atom '(' ')'             : {remote_type, ?anno('$1'),
-                                             ['$1', '$3', []]}.
-type -> atom ':' atom '(' top_types ')'   : {remote_type, ?anno('$1'),
-                                             ['$1', '$3', '$5']}.
-type -> '[' ']'                           : {type, ?anno('$1'), nil, []}.
-type -> '[' top_type ']'                  : {type, ?anno('$1'), list, ['$2']}.
-type -> '[' top_type ',' '...' ']'        : {type, ?anno('$1'),
-                                             nonempty_list, ['$2']}.
-type -> '#' '{' '}'                       : {type, ?anno('$1'), map, []}.
-type -> '#' '{' map_pair_types '}'        : {type, ?anno('$1'), map, '$3'}.
-type -> '{' '}'                           : {type, ?anno('$1'), tuple, []}.
-type -> '{' top_types '}'                 : {type, ?anno('$1'), tuple, '$2'}.
-type -> '#' record_name '{' '}'           : {type, ?anno('$1'), record, ['$2']}.
-type -> '#' record_name '{' field_types '}' : {type, ?anno('$1'), record, ['$2'|'$4']}.
-type -> macro_call_none '{' '}'           : {type, ?anno('$1'), record, ['$1']}.
-type -> macro_call_none '{' field_types '}' : {type, ?anno('$1'), record, ['$1'|'$3']}.
-type -> binary_type                       : '$1'.
-type -> integer                           : '$1'.
-type -> char                              : '$1'.
-type -> 'fun' '(' ')'                     : {type, ?anno('$1'), 'fun', []}.
-type -> 'fun' '(' fun_type_anon ')'       : '$3'.
-type -> 'fun' '(' fun_type ')'            : '$3'.
-
-fun_type_anon -> '(' '...' ')' '->' top_type
-                                          : {type, ?anno('$1'), 'fun',
-                                             [{type, ?anno('$1'), any}, '$5']}.
-
-fun_type -> '(' ')' '->' top_type  : {type, ?anno('$1'), 'fun',
-                                      [{type, ?anno('$1'), product, []}, '$4']}.
-fun_type -> '(' top_types ')' '->' top_type
-                                   : {type, ?anno('$1'), 'fun',
-                                      [{type, ?anno('$1'), product, '$2'},'$5']}.
-
-map_pair_types -> map_pair_type                    : ['$1'].
-map_pair_types -> map_pair_type ',' map_pair_types : ['$1'|'$3'].
-
-map_pair_type  -> top_type '=>' top_type  : {type, ?anno('$2'),
-                                             map_field_assoc,['$1','$3']}.
-map_pair_type  -> top_type ':=' top_type  : {type, ?anno('$2'),
-                                             map_field_exact,['$1','$3']}.
-
-field_types -> field_type                 : ['$1'].
-field_types -> field_type ',' field_types : ['$1'|'$3'].
-
-field_type -> atom '::' top_type          : {type, ?anno('$1'), field_type,
-                                             ['$1', '$3']}.
-
-binary_type -> '<<' '>>' : {type,?anno('$1'),binary,[{integer,?anno('$1'),0},{integer,?anno('$1'),0}]}.
-binary_type -> '<<' bin_base_type '>>' : {type,?anno('$1'),binary,['$2',{integer,?anno('$1'),0}]}.
-binary_type -> '<<' bin_unit_type '>>' : {type,?anno('$1'),binary,[{integer,?anno('$1'),0},'$2']}.
-binary_type -> '<<' bin_base_type ',' bin_unit_type '>>' : {type,?anno('$1'),binary,['$2','$4']}.
-
-bin_base_type -> var ':' type          : build_bin_type(['$1'], '$3').
-
-bin_unit_type -> var ':' var '*' type  : build_bin_type(['$1', '$3'], '$5').
+bin_element_type -> var ':' type :
+    {bin_element, ?anno('$1'), '$1', '$3', default}.
+bin_element_type -> var ':' var '*' type :
+    %% TODO We'll probably need anno we're in a type since precedence is slightly different
+    {bin_element, ?anno('$1'), '$1', ?mkop2('$3', '$4', '$5'), default}.
 
 attr_val -> expr                     : ['$1'].
 attr_val -> expr ',' exprs           : ['$1' | '$3'].
@@ -243,6 +201,7 @@ expr -> expr list_op expr : ?mkop2('$1', '$2', '$3').
 expr -> expr add_op expr : ?mkop2('$1', '$2', '$3').
 expr -> expr mult_op expr : ?mkop2('$1', '$2', '$3').
 expr -> prefix_op expr : ?mkop1('$1', '$2').
+expr -> expr '::' type : {typed, ?anno('$2'), '$1', '$3'}.
 expr -> map_expr : '$1'.
 expr -> function_call : '$1'.
 expr -> record_expr : '$1'.
@@ -359,14 +318,10 @@ map_tuple -> '{' map_fields '}' : '$2'.
 map_fields -> map_field : ['$1'].
 map_fields -> map_field ',' map_fields : ['$1' | '$3'].
 
-map_field -> map_field_assoc : '$1'.
-map_field -> map_field_exact : '$1'.
-
-map_field_assoc -> map_key '=>' expr :
-        {map_field_assoc,?anno('$1'),'$1','$3'}.
-
-map_field_exact -> map_key ':=' expr :
-        {map_field_exact,?anno('$1'),'$1','$3'}.
+map_field -> map_key '=>' expr :
+    {map_field_assoc, ?anno('$2'), '$1', '$3'}.
+map_field -> map_key ':=' expr :
+    {map_field_exact, ?anno('$2'), '$1', '$3'}.
 
 map_key -> expr : '$1'.
 
@@ -530,7 +485,7 @@ macro_call_type -> macro_call_none :
     '$1'.
 macro_call_type -> '?' atom_or_var '(' ')' :
     {macro_call, ?anno('$1'), '$2', []}.
-macro_call_type -> '?' atom_or_var '(' top_types ')' :
+macro_call_type -> '?' atom_or_var '(' types ')' :
     {macro_call, ?anno('$1'), '$2', '$4'}.
 
 macro_call_none -> '?' atom_or_var :
@@ -548,11 +503,17 @@ argument_list -> '(' exprs ')' : {'$2',?anno('$1')}.
 pat_argument_list -> '(' ')' : {[],?anno('$1')}.
 pat_argument_list -> '(' pat_exprs ')' : {'$2',?anno('$1')}.
 
+type_argument_list -> '(' ')' : {[], ?anno('$1')}.
+type_argument_list -> '(' types ')' : {'$2', ?anno('$1')}.
+
 exprs -> expr : ['$1'].
 exprs -> expr ',' exprs : ['$1' | '$3'].
 
 pat_exprs -> pat_expr : ['$1'].
 pat_exprs -> pat_expr ',' pat_exprs : ['$1' | '$3'].
+
+types -> type : ['$1'].
+types -> type ',' types : ['$1' | '$3'].
 
 macro_exprs -> macro_expr : ['$1'].
 macro_exprs -> macro_expr ',' macro_exprs : ['$1' | '$3'].
@@ -1051,76 +1012,17 @@ parse_form(Tokens) ->
     parse(Tokens).
 
 build_macro_def({_, Anno}, {Name, Body}) ->
-    {attribute, Anno, define, {Name, Body}}.
-
-build_type_spec({Kind, Anno}, {Name, Specs})
-  when Kind =:= spec ; Kind =:= callback ->
-    {attribute, Anno, Kind, {Name, Specs}}.
-
-%% The 'is_subtype(V, T)' syntax is not supported as of Erlang/OTP
-%% 19.0, but is kept for backward compatibility.
-build_compat_constraint({atom, _, is_subtype}, [{var, _, _}=LHS, Type]) ->
-    build_constraint(LHS, Type);
-build_compat_constraint({atom, _, is_subtype}, [LHS, _Type]) ->
-    ret_err(?anno(LHS), "bad type variable");
-build_compat_constraint({atom, A, Atom}, _Types) ->
-    ret_err(A, io_lib:format("unsupported constraint ~tw", [Atom])).
-
-build_constraint({atom, _, is_subtype}, [{var, _, _}=LHS, Type]) ->
-    build_constraint(LHS, Type);
-build_constraint({atom, A, Atom}, _Foo) ->
-    ret_err(A, io_lib:format("unsupported constraint ~tw", [Atom]));
-build_constraint({var, A, '_'}, _Types) ->
-    ret_err(A, "bad type variable");
-build_constraint(LHS, Type) ->
-    IsSubType = {atom, ?anno(LHS), is_subtype},
-    {type, ?anno(LHS), constraint, [IsSubType, [LHS, Type]]}.
-
-lift_unions(T1, {type, _Aa, union, List}) ->
-    {type, ?anno(T1), union, [T1|List]};
-lift_unions(T1, T2) ->
-    {type, ?anno(T1), union, [T1, T2]}.
-
-build_gen_type({atom, Aa, tuple}) ->
-    {type, Aa, tuple, any};
-build_gen_type({atom, Aa, map}) ->
-    {type, Aa, map, any};
-build_gen_type({atom, Aa, Name}) ->
-    Tag = type_tag(Name, 0),
-    {Tag, Aa, Name, []}.
-
-build_bin_type([{var, _, '_'}|Left], Int) ->
-    build_bin_type(Left, Int);
-build_bin_type([], Int) ->
-    Int;
-build_bin_type([{var, Aa, _}|_], _) ->
-    ret_err(Aa, "Bad binary type").
-
-build_type({atom, A, Name}, Types) ->
-    Tag = type_tag(Name, length(Types)),
-    {Tag, A, Name, Types}.
-
-type_tag(TypeName, NumberOfTypeVariables) ->
-    case erl_internal:is_type(TypeName, NumberOfTypeVariables) of
-        true -> type;
-        false -> user_type
-    end.
+    {attribute, Anno, define, [Name, Body]}.
 
 build_attribute({atom, Anno, record}, [Name, Tuple]) ->
-    {attribute, Anno, record, {Name, record_tuple(Tuple)}};
+    {attribute, Anno, record, [Name, record_tuple(Tuple)]};
 build_attribute({atom, Anno, Name}, Values) ->
+    {attribute, Anno, Name, Values};
+build_attribute({Name, Anno}, Values) ->
     {attribute, Anno, Name, Values}.
 
-build_typed_attribute({atom, Anno, record}, {typed_record, Name, Tuple}) ->
-    {attribute, Anno, record, {Name, record_tuple(Tuple)}};
-build_typed_attribute({atom, Anno, Attr}, {type_def, {call, _, _, _} = Name, Type})
-  when Attr =:= type; Attr =:= opaque ->
-    {attribute, Anno, Attr, {Name, Type}};
-build_typed_attribute({atom, Anno, _}, _) ->
-    ret_err(Anno, "bad attribute").
-
-record_tuple({tuple,_At,Fields}) ->
-    record_fields(Fields);
+record_tuple({tuple,At,Fields}) ->
+    {tuple,At,record_fields(Fields)};
 record_tuple(Other) ->
     ret_err(?anno(Other), "bad record declaration").
 
@@ -1128,9 +1030,9 @@ record_fields([{atom,Aa,A}|Fields]) ->
     [{record_field,Aa,{atom,Aa,A}}|record_fields(Fields)];
 record_fields([{op,_Am,'=',{atom,Aa,A},Expr}|Fields]) ->
     [{record_field,Aa,{atom,Aa,A},Expr}|record_fields(Fields)];
-record_fields([{typed,Expr,TypeInfo}|Fields]) ->
+record_fields([{typed,Am,Expr,TypeInfo}|Fields]) ->
     [Field] = record_fields([Expr]),
-    [{typed_record_field,Field,TypeInfo}|record_fields(Fields)];
+    [{typed,Am,Field,TypeInfo}|record_fields(Fields)];
 record_fields([Other|_Fields]) ->
     ret_err(?anno(Other), "bad record field");
 record_fields([]) -> [].
