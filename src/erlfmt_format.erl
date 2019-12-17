@@ -29,21 +29,25 @@
 %% These operators always force parens on nested operators
 -define(REQUIRE_PARENS_OPS, ['bor', 'band', 'bxor', 'bsl', 'bsr', '++', '--']).
 
+-define(PARENLESS_ATTRIBUTE, [type, opaque, spec, callback]).
+
 -spec form_to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:document().
 form_to_algebra({function, _Meta, Clauses}) ->
     document_combine(clauses_to_algebra(Clauses), document_text("."));
 form_to_algebra({attribute, Meta, Name, []}) ->
     NameD = document_text(format_atom(text(Meta), Name)),
     wrap(document_text("-"), NameD, document_text("."));
-form_to_algebra({attribute, _Meta, _Name, {_, _}}) ->
-    document_text("%% special skipped");
 form_to_algebra({attribute, Meta, Name, Values}) ->
+    DashD = document_text("-"),
     NameD = document_text(format_atom(text(Meta), Name)),
-    Prefix = wrap(document_text("-"), NameD, document_text("(")),
-    document_combine(
-        container_to_algebra(Values, Prefix, document_text(")")),
-        document_text(".")
-    ).
+    case lists:member(Name, ?PARENLESS_ATTRIBUTE) of
+        true ->
+            [Value] = Values,
+            document_combine(DashD, combine_space(NameD, document_combine(expr_to_algebra(Value), document_text("."))));
+        false ->
+            Prefix = wrap(DashD, NameD, document_text("(")),
+            container_to_algebra(Values, Prefix, document_text(")."))
+    end.
 
 -spec expr_to_algebra(erlfmt_parse:abstract_expr()) -> erlfmt_algebra:document().
 expr_to_algebra({integer, Meta, _Value}) ->
@@ -67,6 +71,8 @@ expr_to_algebra({op, _Meta, Op, Expr}) ->
     unary_op_to_algebra(Op, Expr);
 expr_to_algebra({op, _Meta, Op, Left, Right}) ->
     binary_op_to_algebra(Op, Left, Right);
+expr_to_algebra({typed, _Meta, Left, Right}) ->
+    binary_op_to_algebra('::', Left, Right);
 expr_to_algebra({tuple, _Meta, Values}) ->
     container_to_algebra(Values, document_text("{"), document_text("}"));
 expr_to_algebra({list, _Meta, Values}) ->
@@ -97,6 +103,8 @@ expr_to_algebra({record_field, _Meta, Key, Value}) ->
     field_to_algebra("=", Key, Value);
 expr_to_algebra({record_index, Meta, Name, Key}) ->
     record_access_to_algebra(Meta, Name, Key);
+expr_to_algebra({record_field, _Meta, Name}) ->
+    expr_to_algebra(Name);
 expr_to_algebra({record_field, Meta, Expr, Name, Key}) ->
     Access = record_access_to_algebra(Meta, Name, Key),
     document_combine(record_expr_to_algebra(Expr), Access);
@@ -143,7 +151,11 @@ expr_to_algebra({'try', _Meta, Exprs, OfClauses, CatchClauses, After}) ->
 expr_to_algebra({'if', _Meta, Clauses}) ->
     wrap_nested(document_text("if"), clauses_to_algebra(Clauses), document_text("end"));
 expr_to_algebra({guard, _Meta, Expr, Guard}) ->
-    guard_to_algebra(Expr, Guard).
+    guard_to_algebra(Expr, Guard);
+expr_to_algebra({spec, _Meta, Name, Clauses}) ->
+    document_combine(expr_to_algebra(Name), clauses_to_algebra(Clauses));
+expr_to_algebra({'...', Meta}) ->
+    document_text(text(Meta)).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
@@ -217,7 +229,7 @@ unary_op_to_algebra(Op, Expr) ->
     end.
 
 binary_op_to_algebra(Op, Left, Right) ->
-    binary_op_to_algebra(Op, Left, Right, ?INDENT, erl_parse:inop_prec(Op)).
+    binary_op_to_algebra(Op, Left, Right, ?INDENT, inop_prec(Op)).
 
 binary_op_to_algebra(Op, Left, Right, Indent, {PrecL, _, PrecR}) ->
     OpD = document_text(atom_to_binary(Op, utf8)),
@@ -248,7 +260,7 @@ binary_operand_to_algebra(_ParentOp, {op, _, Op, Expr}, _Indent, _Prec) ->
     unary_op_to_algebra(Op, Expr);
 binary_operand_to_algebra(ParentOp, {op, _, ParentOp, Left, Right}, Indent, Prec) ->
     %% Same operator on correct side - no parens and no repeated nesting
-    case erl_parse:inop_prec(ParentOp) of
+    case inop_prec(ParentOp) of
         {Prec, Prec, _} = Precs ->
             binary_op_to_algebra(ParentOp, Left, Right, Indent, Precs);
         {_, Prec, Prec} = Precs ->
@@ -257,7 +269,7 @@ binary_operand_to_algebra(ParentOp, {op, _, ParentOp, Left, Right}, Indent, Prec
             wrap_in_parens(binary_op_to_algebra(ParentOp, Left, Right, ?INDENT, Precs))
     end;
 binary_operand_to_algebra(ParentOp, {op, _, Op, Left, Right}, _Indent, Prec) ->
-    {_, NestedPrec, _} = Precs = erl_parse:inop_prec(Op),
+    {_, NestedPrec, _} = Precs = inop_prec(Op),
     NeedsParens =
         lists:member(ParentOp, ?REQUIRE_PARENS_OPS) orelse
         (lists:member(ParentOp, ?MIXED_REQUIRE_PARENS_OPS) andalso
@@ -445,12 +457,32 @@ clauses_to_algebra(Clauses) ->
 clause_to_algebra_pair({clause, _Meta, 'if', [], Guards, Body}) ->
     BodyD = block_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
-    {SingleGuardsD, GuardsD} = guards_to_algebra_pair(Guards, document_text("")),
+    {SingleGuardsD, GuardsD} = guards_to_algebra_pair(Guards),
 
-    SingleD = combine_space(SingleGuardsD, SingleBodyD),
-    MultiD = combine_nested(GuardsD, BodyD),
+    SingleD = wrap(SingleGuardsD, document_text(" -> "), SingleBodyD),
+    MultiD = combine_nested(document_combine(GuardsD, document_text(" ->")), BodyD),
 
     {SingleD, MultiD};
+% %% If there are no guards, spec is the same as regular clauses
+clause_to_algebra_pair({clause, _Meta, spec, Args, Guards, [Body]}) when Guards =/= [] ->
+    {SingleHeadD, HeadD} = clause_head_to_algebra(spec, Args),
+    {SingleGuardsD, GuardsD} = guards_to_algebra_pair(Guards),
+    BodyD = expr_to_algebra(Body),
+    SingleBodyD = document_single_line(BodyD),
+
+    SingleD = wrap(SingleHeadD, document_text(" -> "), wrap(SingleBodyD, document_text(" when "), SingleGuardsD)),
+    MultiPrefix =
+        document_choice(
+            wrap(SingleHeadD, document_text(" -> "), SingleBodyD),
+            document_choice(
+                combine_nested(document_combine(SingleHeadD, document_text(" ->")), BodyD),
+                wrap(HeadD, document_text(" -> "), BodyD)
+            )
+        ),
+    MultiD = combine_newline(MultiPrefix, document_combine(document_text("when "), GuardsD)),
+
+    {SingleD, MultiD};
+
 clause_to_algebra_pair({clause, _Meta, Name, Args, [], Body}) ->
     {SingleHeadD, HeadD} = clause_head_to_algebra(Name, Args),
     BodyD = block_to_algebra(Body),
@@ -463,20 +495,20 @@ clause_to_algebra_pair({clause, _Meta, Name, Args, [], Body}) ->
     {SingleD, MultiD};
 clause_to_algebra_pair({clause, _Meta, Name, Args, Guards, Body}) ->
     {SingleHeadD, HeadD} = clause_head_to_algebra(Name, Args),
-    {SingleGuardsD, GuardsD} = guards_to_algebra_pair(Guards, document_text("when ")),
+    {SingleGuardsD, GuardsD} = guards_to_algebra_pair(Guards),
     BodyD = block_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
 
-    SingleD = combine_space(SingleHeadD, combine_space(SingleGuardsD, SingleBodyD)),
+    SingleD = wrap(SingleHeadD, document_text(" when "), wrap(SingleGuardsD, document_text(" -> "), SingleBodyD)),
     MultiPrefix =
         document_choice(
-            combine_space(SingleHeadD, SingleGuardsD),
+            wrap(SingleHeadD, document_text(" when "), SingleGuardsD),
             document_choice(
-                combine_newline(SingleHeadD, GuardsD),
-                combine_space(HeadD, GuardsD)
+                combine_newline(SingleHeadD, document_combine(document_text("when "), GuardsD)),
+                wrap(HeadD, document_text(" when "), GuardsD)
             )
         ),
-    MultiD = combine_nested(MultiPrefix, BodyD),
+    MultiD = combine_nested(document_combine(MultiPrefix, document_text(" ->")), BodyD),
 
     {SingleD, MultiD};
 clause_to_algebra_pair({macro_call, _, _, _} = Expr) ->
@@ -484,7 +516,7 @@ clause_to_algebra_pair({macro_call, _, _, _} = Expr) ->
     Doc = expr_to_algebra(Expr),
     {document_single_line(Doc), Doc}.
 
-clause_head_to_algebra('fun', Args) ->
+clause_head_to_algebra(FunOrSpec, Args) when FunOrSpec =:= 'fun'; FunOrSpec =:= spec ->
     container_to_algebra_pair(Args, document_text("("), document_text(")"));
 clause_head_to_algebra('case', [Arg]) ->
     Doc = expr_to_algebra(Arg),
@@ -497,16 +529,11 @@ clause_head_to_algebra(Name, Args) ->
     Prefix = document_combine(expr_to_algebra(Name), document_text("(")),
     container_to_algebra_pair(Args, Prefix, document_text(")")).
 
-guards_to_algebra_pair(Guards, Prefix) ->
+guards_to_algebra_pair(Guards) ->
     {SingleLine, MultiLine} = lists:unzip(lists:map(fun guard_alt_to_algebra_pair/1, Guards)),
     SingleLineD = document_reduce(fun combine_semi_space/2, SingleLine),
     MultiLineD = document_reduce(fun combine_semi_newline/2, MultiLine),
-    ArrD = document_text(" ->"),
-
-    FullSingle = wrap(Prefix, SingleLineD, ArrD),
-    FullMulti = wrap(Prefix, document_choice(SingleLineD, MultiLineD), ArrD),
-
-    {FullSingle, FullMulti}.
+    {SingleLineD, document_choice(SingleLineD, MultiLineD)}.
 
 guard_alt_to_algebra_pair(Alt) ->
     AltD = lists:map(fun expr_to_algebra/1, Alt),
@@ -615,3 +642,38 @@ escape_hex([${ | Rest0]) ->
     {[${, string:uppercase(Escape), $}], Rest};
 escape_hex([X1, X2 | Rest]) ->
     {string:uppercase([X1, X2]), Rest}.
+
+inop_prec('::') -> {100,40,100};
+inop_prec('=') -> {140,100,100};
+inop_prec('!') -> {140,100,100};
+inop_prec('orelse') -> {160,150,150};
+inop_prec('andalso') -> {170,160,160};
+inop_prec('|') -> {180,170,170};
+inop_prec('..') -> {300,200,300};
+inop_prec('==') -> {300,200,300};
+inop_prec('/=') -> {300,200,300};
+inop_prec('=<') -> {300,200,300};
+inop_prec('<') -> {300,200,300};
+inop_prec('>=') -> {300,200,300};
+inop_prec('>') -> {300,200,300};
+inop_prec('=:=') -> {300,200,300};
+inop_prec('=/=') -> {300,200,300};
+inop_prec('++') -> {400,300,300};
+inop_prec('--') -> {400,300,300};
+inop_prec('+') -> {400,400,500};
+inop_prec('-') -> {400,400,500};
+inop_prec('bor') -> {400,400,500};
+inop_prec('bxor') -> {400,400,500};
+inop_prec('bsl') -> {400,400,500};
+inop_prec('bsr') -> {400,400,500};
+inop_prec('or') -> {400,400,500};
+inop_prec('xor') -> {400,400,500};
+inop_prec('*') -> {500,500,600};
+inop_prec('/') -> {500,500,600};
+inop_prec('div') -> {500,500,600};
+inop_prec('rem') -> {500,500,600};
+inop_prec('band') -> {500,500,600};
+inop_prec('and') -> {500,500,600};
+inop_prec('#') -> {800,700,800};
+inop_prec(':') -> {900,800,900};
+inop_prec('.') -> {900,900,1000}.
