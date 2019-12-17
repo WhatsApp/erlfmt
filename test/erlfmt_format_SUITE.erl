@@ -1182,6 +1182,77 @@ attribute(Config) when is_list(Config) ->
         "    ]\n"
         ").",
         25
+    ),
+    ?assertFormatForm(
+        "-record(foo, {a = 1 :: integer(), b :: float(), c  = 2, d}).",
+        "-record(\n"
+        "    foo,\n"
+        "    {a = 1 :: integer(), b :: float(), c = 2, d}\n"
+        ").",
+        50
+    ),
+    ?assertFormatForm(
+        "-record(foo, {a = 1 :: integer(), b :: float(), c  = 2, d}).",
+        "-record(\n"
+        "    foo,\n"
+        "    {\n"
+        "        a = 1 :: integer(),\n"
+        "        b :: float(),\n"
+        "        c = 2,\n"
+        "        d\n"
+        "    }\n"
+        ").",
+        30
+    ),
+    ?assertSameForm(
+        "-opaque foo() :: #foo{a :: ineteger(), b :: module:type()}."
+    ),
+    %% TODO: this nesting seems ridiculous, fix it!
+    ?assertFormatForm(
+        "-type foobar() :: #foo{a :: ineteger(), b :: mod:type()}.",
+        "-type foobar() ::\n"
+        "          #foo{a :: ineteger(), b :: mod:type()}.",
+        50
+    ),
+    ?assertSameForm(
+        "-spec foo(Int) -> atom() when Int :: integer()."
+    ),
+    ?assertFormatForm(
+        "-spec foo(Int) -> atom() when Int :: integer().",
+        "-spec foo(Int) -> atom()\n"
+        "         when Int :: integer().",
+        40
+    ),
+    ?assertFormatForm(
+        "-spec foo(Int) -> some_very:very(long, type) when Int :: integer().",
+        "-spec foo(Int) ->\n"
+        "             some_very:very(long, type)\n"
+        "         when Int :: integer().",
+        40
+    ),
+    ?assertSameForm(
+        "-callback long_name(Bar) -> #{map := type([Bar, ...])}."
+    ),
+    %% TODO: this nesting is ridiculous as well, should we intent normally when just one clause?
+    ?assertFormatForm(
+        "-callback long_name(Bar) -> #{map := type([Bar, ...])}.",
+        "-callback long_name(Bar) ->\n"
+        "                       #{map := type([Bar, ...])}.",
+        50
+    ),
+    ?assertFormatForm(
+        "-spec foo(integer()) -> some_very:very(long, type); (atom()) -> atom().",
+        "-spec foo(integer()) -> some_very:very(long, type);\n"
+        "         (atom()) -> atom()."
+    ),
+    %% TODO: binary?
+    ?assertFormatForm(
+        "-spec foo(integer()) -> some_very:very(long, type); (atom()) -> atom().",
+        "-spec foo(integer()) ->\n"
+        "             some_very:very(long, type);\n"
+        "         (atom()) ->\n"
+        "             atom().",
+        40
     ).
 
 format_form(String, PageWidth) ->

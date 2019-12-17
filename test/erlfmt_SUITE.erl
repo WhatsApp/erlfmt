@@ -188,39 +188,39 @@ specs(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, spec, [{spec, _,
             {remote, _, {atom, _, foo}, {atom, _, bar}},
-            [{clause, _, spec, [], [], {atom, _, ok}}]
+            [{clause, _, spec, [], [], [{atom, _, ok}]}]
         }]},
         parse_form("-spec foo:bar() -> ok.")
     ),
     ?assertMatch(
         {attribute, _, spec, [{spec, _, {atom, _, foo}, [
-            {clause, _, spec, [{call, _, {atom, _, integer}, []}], [], {atom, _,integer}},
-            {clause, _, spec, [{call, _, {atom, _, atom}, []}], [], {atom, _, atom}}
+            {clause, _, spec, [{call, _, {atom, _, integer}, []}], [], [{atom, _,integer}]},
+            {clause, _, spec, [{call, _, {atom, _, atom}, []}], [], [{atom, _, atom}]}
         ]}]},
         parse_form("-spec foo(integer()) -> integer; (atom()) -> atom.")
     ),
     ?assertMatch(
         {attribute, _, callback, [{spec, _, {atom, _, foo}, [
             {clause, _, spec, [{var, _, 'X'}],
-                [
+                [[
                     {typed, _, {var, _, 'X'}, {call, _, {atom, _, integer}, []}},
                     {typed, _, {var, _, 'Y'}, {call, _, {atom, _, atom}, []}}
-                ],
-                {var, _, 'Y'}}
+                ]],
+                [{var, _, 'Y'}]}
         ]}]},
         parse_form("-callback foo(X) -> Y when X :: integer(), Y :: atom().")
     ),
     ?assertMatch(
         {attribute, _, spec, [{spec, _,
             {macro_call, _, {atom, _, foo}, none},
-            [{clause, _, spec, [], [], {atom, _, ok}}]
+            [{clause, _, spec, [], [], [{atom, _, ok}]}]
         }]},
         parse_form("-spec ?foo() -> ok.")
     ),
     ?assertMatch(
         {attribute, _, callback, [{spec, _,
             {macro_call, _, {var, _, 'FOO'}, none},
-            [{clause, _, spec, [], [], {atom, _, ok}}]
+            [{clause, _, spec, [], [], [{atom, _, ok}]}]
         }]},
         parse_form("-callback ?FOO() -> ok.")
     ).
