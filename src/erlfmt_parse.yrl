@@ -115,9 +115,9 @@ type_sigs -> type_sig : ['$1'].
 type_sigs -> type_sig ';' type_sigs : ['$1'|'$3'].
 
 type_sig -> type_argument_list '->' type :
-    {clause, element(2, '$1'), spec, element(1, '$1'), [], '$3'}.
+    {clause, element(2, '$1'), spec, element(1, '$1'), [], ['$3']}.
 type_sig -> type_argument_list '->' type 'when' types :
-    {clause, element(2, '$1'), spec, element(1, '$1'), '$5', '$3'}.
+    {clause, element(2, '$1'), spec, element(1, '$1'), ['$5'], ['$3']}.
 
 type -> type '::' type : {typed, ?anno('$2'), '$1', '$3'}.
 type -> type '|' type : ?mkop2('$1', '$2', '$3').
