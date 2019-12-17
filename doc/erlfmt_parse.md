@@ -10,28 +10,18 @@ In `erlfmt_parse` the following AST nodes have different definitions:
   * `{record, Anno, Expr, Name, Updates}`
   * `{record_index, Anno, Name, Field}`
   * `{record_field, Anno, Expr, Name, Field}`
-  * `{type, Anno, record, [Name | Fields]}`
-  * `{attribute, Anno, record, {Name, Fields}}`
+  * `{attribute, Anno, record, [Name, FieldsTuple]}`
 
 * The attribute values are not "normalized" - they are represented in the
   abstract term format instead of as concrete terms. Additionally, the value of
-  attributes is always a list of expressions, except for couple "binary" attributes,
-  where the value is a two-tuple and which usually have some special syntax.
-  Those include `type`, `opaque`, `spec`, `callback`, `record`, and `define`.
-
-  * The value of the `type` and `opaque` attributes is a `call` node, and a `type` node.
-  * The value of the `spec` and `callback` attributes is an `atom` or `remote` node,
-    and a list of `type` nodes.
-  * The value of the `record` attribute is a name as described above and a list of
-    `typed_record_field` or `record_field` nodes.
-  * The value of the the `define` attribute is a `macro_call` node, and either a
-    `clause` node or a list of lists of expressions (similar to guards in clauses).
+  attributes is always a list of expressions.
 
 * The `clause` node has a different AST representation:
   `{clause, Anno, Name, Args, Guards, Body}`, where the newly added `Name` field
   is an `atom`, `var`, or `macro_call` node or an atom `'fun'` for anonymous funs,
   `'case'` for case, receive and "of" part of try expressions,
-  `'if'` for if expressions and `catch` for "catch" part of try expressions.
+  `'if'` for if expressions and `catch` for "catch" part of try expressions,
+  `spec` for clauses of a function spec inside `spec` and `callback` attributes.
 
 * The `clause` nodes tagged with `catch` have 1 to 3 arguments representing
   the various syntaxes of catch clauses. This replaces a fixed 3-tuple as a single
@@ -51,6 +41,8 @@ In `erlfmt_parse` the following AST nodes have different definitions:
   * `{clauses, Clauses}`, where `Clauses` is a list of `clause` nodes.
     Additionally it is less strict - the clauses aren't checked for the same
     name or arity.
+  * `type` for the anonymous function type `fun()`.
+  * `{type, Args, Res}` for the anonymous function type `fun((...Args) -> Res)`.
 
 * The `named_fun` node is not used.
 
@@ -84,3 +76,7 @@ In `erlfmt_parse` the following AST nodes have different definitions:
 * Lists are represented as a `list` node instead of a chain of `cons` and `nil` nodes,
   similar to the `tuple` node. The last elemenent of the list can be a `cons` node
   representing explicit consing syntax.
+
+* Representation for types is in general the same as for corresponding values.
+  The `type` node is not used at all. This means new binary operators inside types
+  are defined: `|` and `..`. The `::` operator is represented by a special `typed` node.
