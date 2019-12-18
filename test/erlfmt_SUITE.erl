@@ -591,11 +591,11 @@ types(Config) when is_list(Config) ->
             {bin, _, []},
             {bin, _, [{bin_element, _, {var, _, '_'}, {integer, _, 8}, default}]},
             {bin, _, [
-                {bin_element, _, {var, _, '_'}, {op, _, '*', {var, _, '_'}, {integer, _, 8}}, default}
+                {bin_element, _, {var, _, '_'}, {bin_size, _, {var, _, '_'}, {integer, _, 8}}, default}
             ]},
             {bin, _, [
                 {bin_element, _, {var, _, '_'}, {integer, _, 8}, default},
-                {bin_element, _, {var, _, '_'}, {op, _, '*', {var, _, '_'}, {integer, _, 4}}, default}
+                {bin_element, _, {var, _, '_'}, {bin_size, _, {var, _, '_'}, {integer, _, 4}}, default}
             ]}
         ]},
         parse_type("{<<>>, <<_:8>>, <<_:_*8>>, <<_:8, _:_*4>>}")
