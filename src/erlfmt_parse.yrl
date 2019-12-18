@@ -169,8 +169,9 @@ binary_type -> '<<' bin_element_type ',' bin_element_type '>>' : {bin, ?anno('$1
 bin_element_type -> var ':' type :
     {bin_element, ?anno('$1'), '$1', '$3', default}.
 bin_element_type -> var ':' var '*' type :
-    %% TODO We'll probably need anno we're in a type since precedence is slightly different
-    {bin_element, ?anno('$1'), '$1', ?mkop2('$3', '$4', '$5'), default}.
+    %% We use a different node instead of regular operator
+    %% since the precedence rules are different.
+    {bin_element, ?anno('$1'), '$1', {bin_size, ?anno('$4'), '$3', '$5'}, default}.
 
 attr_val -> expr                     : ['$1'].
 attr_val -> expr ',' exprs           : ['$1' | '$3'].
@@ -1052,7 +1053,4 @@ build_try(A,Es,Scs,{Ccs,As}) ->
 
 -spec ret_err(_, _) -> no_return().
 ret_err(Anno, S) ->
-    return_error(location(Anno), S).
-
-location(Anno) ->
-    erl_anno:location(Anno).
+    return_error(erl_anno:location(Anno), S).
