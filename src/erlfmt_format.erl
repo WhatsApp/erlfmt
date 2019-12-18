@@ -155,7 +155,9 @@ expr_to_algebra({guard, _Meta, Expr, Guard}) ->
 expr_to_algebra({spec, _Meta, Name, Clauses}) ->
     document_combine(expr_to_algebra(Name), clauses_to_algebra(Clauses));
 expr_to_algebra({'...', Meta}) ->
-    document_text(text(Meta)).
+    document_text(text(Meta));
+expr_to_algebra({bin_size, _Meta, Left, Right}) ->
+    wrap(expr_to_algebra(Left), document_text("*"), expr_to_algebra(Right)).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
