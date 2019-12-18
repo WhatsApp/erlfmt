@@ -1245,7 +1245,6 @@ attribute(Config) when is_list(Config) ->
         "-spec foo(integer()) -> some_very:very(long, type);\n"
         "         (atom()) -> atom()."
     ),
-    %% TODO: binary?
     ?assertFormatForm(
         "-spec foo(integer()) -> some_very:very(long, type); (atom()) -> atom().",
         "-spec foo(integer()) ->\n"
@@ -1253,6 +1252,9 @@ attribute(Config) when is_list(Config) ->
         "         (atom()) ->\n"
         "             atom().",
         40
+    ),
+    ?assertSameForm(
+        "-opaque foo() :: {<<>>, <<_:8>>, <<_:_*4>>, <<_:8, _:_*4>>}."
     ).
 
 format_form(String, PageWidth) ->
