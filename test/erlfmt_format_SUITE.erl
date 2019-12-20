@@ -1253,6 +1253,19 @@ attribute(Config) when is_list(Config) ->
     ),
     ?assertSameForm(
         "-opaque foo() :: {<<>>, <<_:8>>, <<_:_*4>>, <<_:8, _:_*4>>}."
+    ),
+    ?assertSameForm(
+        "-define(IN_RANGE(Value, Low, High), Value >= Low andalso Value =< High)."
+    ),
+    %% TODO: don't remove parens
+    ?assertFormatForm(
+        "-define(OUT_OF_RANGE(Value, Low, High), (Value) =< long_expression(Low), (Value) >= long_expression(High)).",
+        "-define(\n"
+        "    OUT_OF_RANGE(Value, Low, High),\n"
+        "    Value =< long_expression(Low),\n"
+        "    Value >= long_expression(High)\n"
+        ").",
+        40
     ).
 
 format_form(String, PageWidth) ->
