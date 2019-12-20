@@ -1271,16 +1271,14 @@ attribute(Config) when is_list(Config) ->
     ).
 
 format_form(String, PageWidth) ->
-    {ok, Tokens, _} = erl_scan:string(String, 1, [text]),
-    {ok, Form} = erlfmt_parse:parse_form(Tokens),
+    {ok, [Form], []} = erlfmt:read_forms_string("nofile", String),
     Doc = erlfmt_format:form_to_algebra(Form),
     Rendered = erlfmt_algebra:document_render(Doc, [{page_width, PageWidth}]),
     unicode:characters_to_list(Rendered).
 
 format_expr(String, PageWidth) ->
-    {ok, Tokens, _} = erl_scan:string("f() -> " ++ String ++ ".", 1, [text]),
-    {ok, {function, _, [{clause, _, _, [], [], [Expr]}]}} =
-        erlfmt_parse:parse_form(Tokens),
+    {ok, [{function, _, [{clause, _, _, [], [], [Expr]}]}], []} =
+        erlfmt:read_forms_string("nofile", "f() -> " ++ String ++ "."),
     Doc = erlfmt_format:expr_to_algebra(Expr),
     Rendered = erlfmt_algebra:document_render(Doc, [{page_width, PageWidth}]),
     unicode:characters_to_list(Rendered).
