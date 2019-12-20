@@ -130,10 +130,10 @@ expr_to_algebra({b_generate, _Meta, Left, Right}) ->
 expr_to_algebra({call, _Meta, Name, Args}) ->
     Prefix = document_combine(expr_max_to_algebra(Name), document_text("(")),
     container_to_algebra(Args, Prefix, document_text(")"));
-expr_to_algebra({macro_call, _Meta, Name, none}) ->
-    document_combine(document_text("?"), expr_to_algebra(Name));
-expr_to_algebra({macro_call, _Meta, Name, Args}) ->
-    Prefix = wrap(document_text("?"), expr_to_algebra(Name), document_text("(")),
+expr_to_algebra({macro_call, Meta, Name, none}) ->
+    macro_name_to_algebra(Meta, Name);
+expr_to_algebra({macro_call, Meta, Name, Args}) ->
+    Prefix = document_combine(macro_name_to_algebra(Meta, Name), document_text("(")),
     container_to_algebra(Args, Prefix, document_text(")"));
 expr_to_algebra({macro_string, _Meta, Name}) ->
     document_combine(document_text("??"), expr_to_algebra(Name));
@@ -166,7 +166,9 @@ expr_to_algebra({spec, _Meta, Name, Clauses}) ->
 expr_to_algebra({'...', Meta}) ->
     document_text(text(Meta));
 expr_to_algebra({bin_size, _Meta, Left, Right}) ->
-    wrap(expr_to_algebra(Left), document_text("*"), expr_to_algebra(Right)).
+    wrap(expr_to_algebra(Left), document_text("*"), expr_to_algebra(Right));
+expr_to_algebra(GuardList) when is_list(GuardList) ->
+    element(2, guards_to_algebra_pair(GuardList)).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
@@ -391,6 +393,13 @@ record_name_to_algebra(Meta, Name) ->
     case text(Meta) of
         "#" -> document_combine(document_text("#"), expr_to_algebra(Name));
         "?" -> expr_to_algebra(Name)
+    end.
+
+macro_name_to_algebra(Meta, Name) ->
+    %% Differentiate between macro calls and definitions
+    case text(Meta) of
+        "?" -> document_combine(document_text("?"), expr_to_algebra(Name));
+        _ -> expr_to_algebra(Name)
     end.
 
 field_to_algebra(Op, Key, Value) ->
