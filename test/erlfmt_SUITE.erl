@@ -924,10 +924,14 @@ smoke_test_parser_dir(Dir, Config) ->
     [smoke_test_parser_file(File, Config) || File <- Files, not excluded(File)],
     ok.
 
-smoke_test_parser_file(FileName, Config) ->
-    {ok, File} = file:open(FileName, [read]),
-    try smoke_test_parser_loop(File, FileName, 1, Config)
-    after file:close(File)
+smoke_test_parser_file(FileName, _Config) ->
+    case erlfmt:read_forms(FileName) of
+        {ok, _, []} ->
+            ok;
+        {ok, _, Warnings} ->
+            ct:fail([unicode:characters_to_binary(erlfmt:format_error_info(Info)) || Info <- Warnings]);
+        {error, Error} ->
+            ct:fail(unicode:characters_to_binary(erlfmt:format_error_info(Error)))
     end.
 
 excluded(File) ->
@@ -935,20 +939,3 @@ excluded(File) ->
         fun(Pattern) -> string:find(File, Pattern, trailing) =:= Pattern end,
         ?EXCLUDE_FILES
     ).
-
-smoke_test_parser_loop(File, FileName, Loc0, Config) ->
-    case io:scan_erl_form(File, "", Loc0, [text]) of
-        {ok, Tokens, Loc} ->
-            case erlfmt_parse:parse_form(Tokens) of
-                {ok, _} -> ok;
-                {error, {Loc1, Mod, Reason}} ->
-                    ct:fail("~s:~B: ~s", [FileName, Loc1, Mod:format_error(Reason)])
-            end,
-            smoke_test_parser_loop(File, FileName, Loc, Config);
-        {eof, _Loc} ->
-            ok;
-        {error, Reason} ->
-            ct:fail("~s:~B: ~s", [FileName, Loc0, file:format_error(Reason)]);
-        {error, {_, Mod, Reason}, Loc} ->
-            ct:fail("~s:~B: ~s", [FileName, Loc, Mod:format_error(Reason)])
-    end.

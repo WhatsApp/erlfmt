@@ -5,7 +5,9 @@
 -typing([dialyzer]).
 
 %% API exports
--export([main/1]).
+-export([main/1, read_forms/1, format_error_info/1]).
+
+-export_type([error_info/0]).
 
 -type error_info() :: {file:filename(), erl_anno:location(), module(), Reason :: any()}.
 
@@ -97,6 +99,19 @@ format_file(FileName, State0) ->
             #state{errors = [Error | State0#state.errors]}
     end.
 
+%% Entry-point to the parser
+-spec read_forms(file:name_all()) ->
+    {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
+read_forms(FileName) ->
+    try read_forms(FileName, #state{}) of
+        {Forms, #state{errors = [], warnings = Warnings}} ->
+            {ok, Forms, Warnings}
+    catch
+        {error, Error} ->
+            {error, Error}
+    end.
+
+
 read_forms(FileName, State) ->
     case file:open(FileName, [read]) of
         {ok, File} ->
@@ -108,23 +123,31 @@ read_forms(FileName, State) ->
     end.
 
 read_forms(File, FileName, Loc0, Acc, State0) ->
-    case io:scan_erl_form(File, "", Loc0, [text]) of
+    case io:scan_erl_form(File, "", Loc0, [text, return_comments]) of
         {ok, Tokens, Loc} ->
-            case erlfmt_parse:parse_form(Tokens) of
-                {ok, Form} ->
-                    read_forms(File, FileName, Loc, [Form | Acc], State0);
-                {error, {ErrLoc, Mod, Reason}} ->
-                    State = #state{
-                        warnings = [{FileName, ErrLoc, Mod, Reason} | State0#state.warnings]
-                    },
-                    read_forms(File, FileName, Loc, [{tokens, Tokens} | Acc], State)
-            end;
+            {Form, State} = parse_form(Tokens, FileName, State0),
+            read_forms(File, FileName, Loc, [Form | Acc], State);
         {eof, _Loc} ->
             {lists:reverse(Acc), State0};
         {error, Reason} ->
             throw({error, {FileName, Loc0, file, Reason}});
         {error, {ErrLoc, Mod, Reason}, _Loc} ->
             throw({error, {FileName, ErrLoc, Mod, Reason}})
+    end.
+
+parse_form(Tokens0, FileName, State0) ->
+    case erlfmt_recomment:preprocess_tokens(Tokens0) of
+        {[], Comments} ->
+            {{tokens, Comments}, State0};
+        {Tokens, Comments} ->
+            case erlfmt_parse:parse_form(Tokens) of
+                {ok, Form0} ->
+                    {erlfmt_recomment:form(Form0, Comments), State0};
+                {error, {ErrLoc, Mod, Reason}} ->
+                    Warning = {FileName, ErrLoc, Mod, Reason},
+                    State = #state{warnings = [Warning | State0#state.warnings]},
+                    {{tokens, Tokens}, State}
+            end
     end.
 
 format_form({tokens, Tokens}) ->
@@ -148,6 +171,7 @@ print_warning(Warning) ->
 print_error(Error) ->
     io:put_chars(standard_error, format_error_info(Error)).
 
+-spec format_error_info(error_info()) -> unicode:chardata().
 format_error_info({FileName, {Line, Col}, Mod, Reason}) ->
     io_lib:format("~ts:~B:~B: ~ts", [FileName, Line, Col, Mod:format_error(Reason)]);
 format_error_info({FileName, Line, Mod, Reason}) ->
