@@ -200,10 +200,10 @@ write_forms(FileName, Formatted, State) ->
 
 %% Keep warnings and errors separate in case we want to colour them
 print_warning(Warning) ->
-    io:put_chars(standard_error, format_error_info(Warning)).
+    io:put_chars(standard_error, [format_error_info(Warning), $\n]).
 
 print_error(Error) ->
-    io:put_chars(standard_error, format_error_info(Error)).
+    io:put_chars(standard_error, [format_error_info(Error), $\n]).
 
 -spec format_error_info(error_info()) -> unicode:chardata().
 format_error_info({FileName, {Line, Col}, Mod, Reason}) ->
@@ -212,4 +212,4 @@ format_error_info({FileName, Line, Mod, Reason}) ->
     io_lib:format("~ts:~B: ~ts", [FileName, Line, Mod:format_error(Reason)]).
 
 %% TODO: make smarter
-stringify_token(Token) -> erl_anno:text(Token).
+stringify_token(Token) -> erl_anno:text(element(2, Token)).
