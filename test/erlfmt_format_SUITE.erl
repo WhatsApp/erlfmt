@@ -1268,6 +1268,9 @@ attribute(Config) when is_list(Config) ->
         "    Value >= long_expression(High)\n"
         ").",
         40
+    ),
+    ?assertSameForm(
+        "-type foo() :: {fun(), fun((...) -> mod:bar()), fun(() -> integer())}."
     ).
 
 format_form(String, PageWidth) ->
