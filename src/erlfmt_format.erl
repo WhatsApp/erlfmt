@@ -27,9 +27,6 @@
 
 -import(erl_anno, [text/1]).
 
--define(IN_RANGE(Value, Low, High), (Value) >= (Low) andalso (Value) =< (High)).
--define(IS_OCT_DIGIT(C), ?IN_RANGE(C, $0, $7)).
-
 -define(INDENT, 4).
 
 -define(PARENLESS_ATTRIBUTE, [type, opaque, spec, callback]).
@@ -38,13 +35,13 @@
 form_to_algebra({function, Meta, Clauses}) ->
     Doc = document_combine(clauses_to_algebra(Clauses), document_text(".")),
     combine_comments(Meta, Doc);
-form_to_algebra({attribute, Meta, Name, []}) ->
-    NameD = document_text(format_atom(text(Meta), Name)),
+form_to_algebra({attribute, Meta, _Name, []}) ->
+    NameD = document_text(text(Meta)),
     Doc = wrap(document_text("-"), NameD, document_text(".")),
     combine_comments(Meta, Doc);
 form_to_algebra({attribute, Meta, Name, Values}) ->
     DashD = document_text("-"),
-    NameD = document_text(format_atom(text(Meta), Name)),
+    NameD = document_text(text(Meta)),
     case lists:member(Name, ?PARENLESS_ATTRIBUTE) of
         true ->
             [Value] = Values,
@@ -65,17 +62,8 @@ expr_to_algebra(Expr) when is_tuple(Expr) ->
 expr_to_algebra(Other) ->
     do_expr_to_algebra(Other).
 
-do_expr_to_algebra({integer, Meta, _Value}) ->
-    document_text(format_integer(text(Meta)));
-do_expr_to_algebra({float, Meta, _Value}) ->
-    document_text(format_float(text(Meta)));
-do_expr_to_algebra({char, Meta, Value}) ->
-    document_text(format_char(text(Meta), Value));
-do_expr_to_algebra({atom, Meta, Value}) ->
-    document_text(format_atom(text(Meta), Value));
-do_expr_to_algebra({string, Meta, Value}) ->
-    document_text(format_string(text(Meta), Value));
-do_expr_to_algebra({var, Meta, _Value}) ->
+do_expr_to_algebra({Atomic, Meta, _Value})
+when Atomic =:= integer; Atomic =:= float; Atomic =:= char; Atomic =:= atom; Atomic =:= string; Atomic =:= var ->
     document_text(text(Meta));
 do_expr_to_algebra({concat, _Meta, Values0}) ->
     Values = lists:map(fun expr_to_algebra/1, Values0),
@@ -214,30 +202,6 @@ wrap_in_parens(Doc) -> wrap(document_text("("), Doc, document_text(")")).
 wrap_nested(Left, Doc, Right) ->
     Nested = document_combine(document_spaces(?INDENT), Doc),
     combine_newline(Left, combine_newline(Nested, Right)).
-
-%% TODO: handle underscores once on OTP 23
-format_integer([B1, B2, $# | Digits]) -> [B1, B2, $# | string:uppercase(Digits)];
-format_integer(Other) -> Other.
-
-%% TODO: handle underscores in int part on OTP 23
-format_float(FloatText) ->
-    [IntPart, DecimalPart] = string:split(FloatText, "."),
-    [IntPart, "." | string:lowercase(DecimalPart)].
-
-format_char("$ ", $\s) -> "$\\s";
-format_char("$\\s", $\s) -> "$\\s";
-format_char([$$ | String], Value) ->
-    [$$ | escape_string_loop(String, [Value], -1)].
-
-format_atom(Text, Atom) ->
-    RawString = atom_to_list(Atom),
-    case erl_scan:reserved_word(Atom) orelse atom_needs_quotes(RawString) of
-        true -> escape_string(Text, RawString, $');
-        false -> RawString
-    end.
-
-format_string(String, Original) ->
-    escape_string(String, Original, $").
 
 unary_op_to_algebra(Op, Expr) ->
     OpD = document_text(atom_to_binary(Op, utf8)),
@@ -614,45 +578,3 @@ comment_to_algebra({comment, _Meta, Lines}) ->
 comments(Meta0) ->
     Meta = erl_anno:to_term(Meta0),
     {proplists:get_value(pre_comments, Meta, []), proplists:get_value(post_comments, Meta, [])}.
-
-atom_needs_quotes([C0 | Cs]) when C0 >= $a, C0 =< $z ->
-    lists:any(fun
-        (C) when ?IN_RANGE(C, $a, $z); ?IN_RANGE(C, $A, $Z); ?IN_RANGE(C, $0, $9); C =:= $_; C=:= $@ -> false;
-        (_) -> true
-    end, Cs);
-atom_needs_quotes(_) -> true.
-
-escape_string([Quote | Rest], Original, Quote) ->
-    [Quote | escape_string_loop(Rest, Original, Quote)].
-
-%% Remove unneeded escapes, upcase hex escapes
-escape_string_loop(Tail, [], _Quote) -> Tail;
-escape_string_loop([$\\, $x | EscapeAndRest], [_Escaped | Original], Quote) ->
-    {Escape, Rest} = escape_hex(EscapeAndRest),
-    [$\\, $x, Escape | escape_string_loop(Rest, Original, Quote)];
-escape_string_loop([$\\, Escape | Rest], [Value | Original], Quote) ->
-    if
-        ?IS_OCT_DIGIT(Escape) ->
-            case Rest of
-                [D2, D3 | Rest1] when ?IS_OCT_DIGIT(D2), ?IS_OCT_DIGIT(D3) ->
-                    [$\\, Escape, D2, D3 | escape_string_loop(Rest1, Original, Quote)];
-                [D2 | Rest1] when ?IS_OCT_DIGIT(D2) ->
-                    [$\\, Escape, D2 | escape_string_loop(Rest1, Original, Quote)];
-                _ ->
-                    [$\\, Escape | escape_string_loop(Rest, Original, Quote)]
-            end;
-        Escape =:= $s ->
-            [Value | escape_string_loop(Rest, Original, Quote)];
-        Escape =:= Quote; Escape =:= $\\; Escape =/= Value ->
-            [$\\, Escape | escape_string_loop(Rest, Original, Quote)];
-        true ->
-            [Escape | escape_string_loop(Rest, Original, Quote)]
-    end;
-escape_string_loop([C | Rest], [C | Original], Quote) ->
-    [C | escape_string_loop(Rest, Original, Quote)].
-
-escape_hex([${ | Rest0]) ->
-    [Escape, Rest] = string:split(Rest0, "}"),
-    {[${, string:uppercase(Escape), $}], Rest};
-escape_hex([X1, X2 | Rest]) ->
-    {string:uppercase([X1, X2]), Rest}.

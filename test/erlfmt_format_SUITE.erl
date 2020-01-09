@@ -28,17 +28,8 @@
 
 %% Test cases
 -export([
-    int_decimal_base/1,
-    int_binary_base/1,
-    int_hex_base/1,
-    float_normal/1,
-    float_scientific/1,
-    char/1,
-    atom_keywords/1,
-    atom_escapes/1,
-    string_escapes/1,
+    literals/1,
     string_concat/1,
-    variable/1,
     unary_operator/1,
     binary_operator/1,
     tuple/1,
@@ -88,7 +79,8 @@ end_per_testcase(_TestCase, _Config) ->
 groups() ->
     [
         {expressions, [parallel], [
-            {group, literals},
+            literals,
+            string_concat,
             {group, containers},
             {group, operators},
             {group, comprehensions},
@@ -104,31 +96,6 @@ groups() ->
         {forms, [parallel], [
             function,
             attribute
-        ]},
-        {literals, [parallel], [
-            {group, integers},
-            {group, floats},
-            char,
-            {group, atoms},
-            {group, strings},
-            variable
-        ]},
-        {integers, [parallel], [
-            int_decimal_base,
-            int_binary_base,
-            int_hex_base
-        ]},
-        {floats, [parallel], [
-            float_normal,
-            float_scientific
-        ]},
-        {atoms, [parallel], [
-            atom_keywords,
-            atom_escapes
-        ]},
-        {strings, [parallel], [
-            string_escapes,
-            string_concat
         ]},
         {operators, [parallel], [
             unary_operator,
@@ -181,115 +148,44 @@ end).
     ?assertEqual(Good, format_form(Bad, PageWidth))
 end).
 
-
-int_decimal_base(Config) when is_list(Config) ->
-    ?assertSameExpr("0"),
+literals(Config) when is_list(Config) ->
     ?assertSameExpr("100"),
     ?assertSameExpr("007"),
-    ?assertSameExpr("100000"),
-    ?assertSameExpr("10#1000").
-
-int_binary_base(Config) when is_list(Config) ->
-    ?assertSameExpr("2#0"),
-    ?assertSameExpr("2#1"),
+    ?assertSameExpr("10#1000"),
     ?assertSameExpr("2#101"),
-    ?assertSameExpr("2#01").
-
-int_hex_base(Config) when is_list(Config) ->
-    ?assertSameExpr("16#1"),
     ?assertSameExpr("16#01"),
-    ?assertFormatExpr("16#deadbeef", "16#DEADBEEF").
-
-float_normal(Config) when is_list(Config) ->
-    ?assertSameExpr("0.0"),
-    ?assertSameExpr("1.0"),
-    ?assertSameExpr("123.456"),
-    ?assertSameExpr("001.100").
-
-float_scientific(Config) when is_list(Config) ->
-    ?assertSameExpr("1.0e1"),
+    ?assertSameExpr("16#deadBEEF"),
+    ?assertSameExpr("001.100"),
     ?assertSameExpr("1.0e-1"),
-    ?assertSameExpr("1.0e+1"),
-    ?assertSameExpr("1.0e01"),
     ?assertSameExpr("001.100e-010"),
-    ?assertFormatExpr("1.0E01", "1.0e01"),
-    ?assertFormatExpr("1.0E-01", "1.0e-01").
-
-char(Config) when is_list(Config) ->
+    ?assertSameExpr("1.0E01"),
     ?assertSameExpr("$a"),
-    ?assertSameExpr("$Z"),
     ?assertSameExpr("$😅"),
     ?assertSameExpr("$\\0"),
     ?assertSameExpr("$\\\\"),
-    ?assertSameExpr("$\\n"),
-    ?assertSameExpr("$\\r"),
     ?assertSameExpr("$\\t"),
-    ?assertSameExpr("$\\v"),
-    ?assertSameExpr("$\\b"),
-    ?assertSameExpr("$\\f"),
-    ?assertSameExpr("$\\e"),
-    ?assertSameExpr("$\\d"),
-    ?assertFormatExpr("$\\z", "$z"),
-    ?assertFormatExpr("$ ", "$\\s"),
-    ?assertFormatExpr("$\\040", "$\\040"),
-    ?assertFormatExpr("$\\xab", "$\\xAB"),
-    ?assertFormatExpr("$\\x{ab}", "$\\x{AB}").
-
-atom_keywords(Config) when is_list(Config) ->
-    ?assertSameExpr("'after'"),
-    ?assertSameExpr("'begin'"),
-    ?assertSameExpr("'case'"),
-    ?assertSameExpr("'try'"),
-    ?assertSameExpr("'cond'"),
-    ?assertSameExpr("'catch'"),
+    ?assertSameExpr("$\\z"),
+    ?assertSameExpr("$ "),
+    ?assertSameExpr("$\\040"),
+    ?assertSameExpr("$\\xAb"),
+    ?assertSameExpr("$\\x{Ab}"),
+    ?assertSameExpr("'foo'"),
+    ?assertSameExpr("foo"),
     ?assertSameExpr("'andalso'"),
-    ?assertSameExpr("'orelse'"),
-    ?assertSameExpr("'end'"),
-    ?assertSameExpr("'fun'"),
-    ?assertSameExpr("'if'"),
-    ?assertSameExpr("'let'"),
-    ?assertSameExpr("'of'"),
-    ?assertSameExpr("'receive'"),
-    ?assertSameExpr("'when'"),
-    ?assertSameExpr("'bnot'"),
-    ?assertSameExpr("'not'"),
-    ?assertSameExpr("'div'"),
-    ?assertSameExpr("'rem'"),
-    ?assertSameExpr("'band'"),
-    ?assertSameExpr("'and'"),
-    ?assertSameExpr("'bor'"),
-    ?assertSameExpr("'bxor'"),
-    ?assertSameExpr("'bsl'"),
-    ?assertSameExpr("'bsr'"),
-    ?assertSameExpr("'or'"),
-    ?assertSameExpr("'xor'"),
-    ?assertFormatExpr("'not_A_keyword'", "not_A_keyword").
-
-atom_escapes(Config) when is_list(Config) ->
-    ?assertSameExpr("foobar"),
-    ?assertSameExpr("foo123456789"),
     ?assertSameExpr("'foo bar'"),
     ?assertSameExpr("'foo\\tbar'"),
-    ?assertSameExpr("''"),
     ?assertSameExpr("'\\''"),
-    ?assertSameExpr("'\\\\'"),
-    ?assertSameExpr("'Var'"),
-    ?assertSameExpr("'\\1a'"),
-    ?assertSameExpr("'\\12a'"),
-    ?assertSameExpr("'\\123a'"),
-    ?assertFormatExpr("'foo\\xab'", "'foo\\xAB'"),
-    ?assertFormatExpr("'foo\\x{ab}'", "'foo\\x{AB}'"),
-    ?assertFormatExpr("'foo\\z'", "fooz"),
-    ?assertFormatExpr("'foo\\s'", "'foo '"),
-    ?assertFormatExpr("'foo\\ '", "'foo '").
-
-string_escapes(Config) when is_list(Config) ->
+    ?assertSameExpr("'foo\\xaB'"),
+    ?assertSameExpr("'foo\\x{aB}'"),
+    ?assertSameExpr("'foo\\z'"),
+    ?assertSameExpr("'foo\\s'"),
     ?assertSameExpr("\"'\""),
-    ?assertSameExpr("\"\\\"\""),
     ?assertSameExpr("\"😱\""),
     ?assertSameExpr("\" \\40\\x32\\x{0032}\""),
     ?assertSameExpr("\"The quick brown fox jumps over the lazy dog\""),
-    ?assertFormatExpr("\"\\s\"", "\" \"").
+    ?assertSameExpr("\"\\s \""),
+    ?assertSameExpr("Foo"),
+    ?assertSameExpr("_Bar").
 
 string_concat(Config) when is_list(Config) ->
     ?assertSameExpr("\"foo\" \"bar\""),
@@ -310,10 +206,6 @@ string_concat(Config) when is_list(Config) ->
     ),
 
     ?assertSameExpr("\"foo\" Foo \"bar\"").
-
-variable(Config) when is_list(Config) ->
-    ?assertSameExpr("Foo"),
-    ?assertSameExpr("_Bar").
 
 unary_operator(Config) when is_list(Config) ->
     %% Formats symbolic operators without space
@@ -342,7 +234,7 @@ unary_operator(Config) when is_list(Config) ->
 
 binary_operator(Config) when is_list(Config) ->
     %% No changes to parens
-    ?assertFormatExpr("CRC bxor Byte band 16#ff", "CRC bxor Byte band 16#FF"),
+    ?assertSameExpr("CRC bxor Byte band 16#ff"),
     ?assertSameExpr("(CRC bsl 8) bxor Byte"),
     ?assertSameExpr("Foo ++ Bar ++ Baz -- Bat"),
     ?assertSameExpr("Foo ++ Bar ++ (Baz -- Bat)"),
