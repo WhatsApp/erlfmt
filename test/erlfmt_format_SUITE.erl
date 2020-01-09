@@ -323,12 +323,15 @@ unary_operator(Config) when is_list(Config) ->
     ?assertSameExpr("not true"),
     ?assertSameExpr("catch 1"),
 
-    %% Wraps nested operators
-    ?assertFormatExpr("bnot+1", "bnot (+1)"),
-    ?assertFormatExpr("+ +1", "+(+1)"),
-    ?assertFormatExpr("not catch 1", "not (catch 1)"),
+    %% Does not change parenthesis, only whitespace
+    ?assertFormatExpr("bnot+1", "bnot +1"),
+    ?assertSameExpr("+ +1"),
+    ?assertSameExpr("+(+1)"),
+    ?assertSameExpr("+ -1"),
+    ?assertSameExpr("-(+1)"),
+    ?assertSameExpr("not catch 1"),
     ?assertFormatExpr("not(1 + 1)", "not (1 + 1)"),
-    ?assertFormatExpr("(bnot 1) * 1", "bnot 1 * 1"),
+    ?assertFormatExpr("(bnot 1)*1", "(bnot 1) * 1"),
     ?assertSameExpr("(catch 1) + 1"),
 
     %% Unless it's nested not or bnot
@@ -336,14 +339,14 @@ unary_operator(Config) when is_list(Config) ->
     ?assertSameExpr("not not true").
 
 binary_operator(Config) when is_list(Config) ->
-    %% Bitwise operators force parens
-    ?assertFormatExpr("CRC bxor Byte band 16#ff", "CRC bxor (Byte band 16#FF)"),
+    %% No changes to parens
+    ?assertFormatExpr("CRC bxor Byte band 16#ff", "CRC bxor Byte band 16#FF"),
     ?assertSameExpr("(CRC bsl 8) bxor Byte"),
-
-    %% Mixed operators force parens only when mixed
-    ?assertFormatExpr("Foo ++ Bar ++ Baz -- Bat", "Foo ++ Bar ++ (Baz -- Bat)"),
+    ?assertSameExpr("Foo ++ Bar ++ Baz -- Bat"),
+    ?assertSameExpr("Foo ++ Bar ++ (Baz -- Bat)"),
+    ?assertSameExpr("Foo ++ (Bar ++ Baz) -- Bat"),
     ?assertSameExpr("Foo > Bar andalso Baz =:= Bat"),
-    ?assertFormatExpr("Foo and Bar or Baz and Bat", "(Foo and Bar) or (Baz and Bat)"),
+    ?assertSameExpr("Foo and Bar or (Baz and Bat)"),
 
     %% Nested same operator right-associative
     ?assertSameExpr("Foo ++ Bar ++ Baz"),
@@ -361,13 +364,13 @@ binary_operator(Config) when is_list(Config) ->
         5
     ),
     ?assertFormatExpr(
-        "((Foo ++ Bar) ++ Baz)",
+        "(Foo ++ Bar) ++ Baz",
         "(Foo ++ Bar) ++\n"
         "    Baz",
         15
     ),
     ?assertFormatExpr(
-        "((Foo ++ Bar) ++ Baz)",
+        "(Foo ++ Bar) ++ Baz",
         "(Foo ++\n"
         "     Bar) ++\n"
         "    Baz",
@@ -390,13 +393,13 @@ binary_operator(Config) when is_list(Config) ->
         5
     ),
     ?assertFormatExpr(
-        "(Foo + (Bar + Baz))",
+        "Foo + (Bar + Baz)",
         "Foo +\n"
         "    (Bar + Baz)",
         15
     ),
     ?assertFormatExpr(
-        "(Foo + (Bar + Baz))",
+        "Foo + (Bar + Baz)",
         "Foo +\n"
         "    (Bar +\n"
         "         Baz)",
@@ -404,12 +407,12 @@ binary_operator(Config) when is_list(Config) ->
     ),
 
     %% With precedence
-    ?assertFormatExpr("(A + B) == (C + D)", "A + B == C + D"),
+    ?assertFormatExpr("(A + B) == C + D", "(A + B) == C + D"),
     ?assertSameExpr("A + (B == C) + D"),
     ?assertFormatExpr(
-        "(A + B) == (C + D)",
+        "A + B == (C + D)",
         "A + B ==\n"
-        "    C + D",
+        "    (C + D)",
         10
     ),
     ?assertFormatExpr(
@@ -491,7 +494,7 @@ list(Config) when is_list(Config) ->
 binary(Config) when is_list(Config) ->
     ?assertFormatExpr("<< >>", "<<>>"),
     ?assertSameExpr("<<(1 + 1), (#{}), (#foo{}), (#{}#{}), (#foo{}#foo{}), (#foo.bar), (call())>>"),
-    ?assertFormatExpr("<<(1)>>", "<<1>>"),
+    ?assertSameExpr("<<(1), 1>>"),
     ?assertSameExpr("<<+1:5/integer-unit:8>>"),
     ?assertSameExpr("<<\"żółć\"/utf8>>"),
     ?assertFormatExpr("<<1/float,<<22,33>>/binary>>", "<<1/float, <<22, 33>>/binary>>"),
@@ -1244,10 +1247,10 @@ attribute(Config) when is_list(Config) ->
         "         (atom()) -> atom()."
     ),
     ?assertFormatForm(
-        "-spec foo(integer()) -> some_very:very(long, type); (atom()) -> atom().",
+        "-spec foo(integer()) -> some_very:very(long, type); (1..2) -> atom().",
         "-spec foo(integer()) ->\n"
         "             some_very:very(long, type);\n"
-        "         (atom()) ->\n"
+        "         (1..2) ->\n"
         "             atom().",
         40
     ),
@@ -1257,12 +1260,11 @@ attribute(Config) when is_list(Config) ->
     ?assertSameForm(
         "-define(IN_RANGE(Value, Low, High), Value >= Low andalso Value =< High)."
     ),
-    %% TODO: don't remove parens
     ?assertFormatForm(
-        "-define(OUT_OF_RANGE(Value, Low, High), (Value) =< long_expression(Low), (Value) >= long_expression(High)).",
+        "-define(OUT_OF_RANGE(Value, Low, High), (Value) =< long_expression(Low), Value >= long_expression(High)).",
         "-define(\n"
         "    OUT_OF_RANGE(Value, Low, High),\n"
-        "    Value =< long_expression(Low),\n"
+        "    (Value) =< long_expression(Low),\n"
         "    Value >= long_expression(High)\n"
         ").",
         40

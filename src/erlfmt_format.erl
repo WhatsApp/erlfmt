@@ -23,12 +23,6 @@
 
 -define(INDENT, 4).
 
-%% Thses operators when mixed, force parens on nested operators
--define(MIXED_REQUIRE_PARENS_OPS, ['or', 'and', 'andalso', 'orelse']).
-
-%% These operators always force parens on nested operators
--define(REQUIRE_PARENS_OPS, ['bor', 'band', 'bxor', 'bsl', 'bsr', '++', '--']).
-
 -define(PARENLESS_ATTRIBUTE, [type, opaque, spec, callback]).
 
 -spec form_to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:document().
@@ -57,13 +51,10 @@ form_to_algebra({attribute, Meta, Name, Values}) ->
 -spec expr_to_algebra(erlfmt_parse:abstract_expr()) -> erlfmt_algebra:document().
 expr_to_algebra(Expr) when is_tuple(Expr) ->
     Meta = element(2, Expr),
-    combine_comments(Meta, do_expr_to_algebra(Expr));
+    Doc = do_expr_to_algebra(Expr),
+    combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc));
 expr_to_algebra(Other) ->
     do_expr_to_algebra(Other).
-
-parens_expr_to_algebra(Expr) ->
-    Meta = element(2, Expr),
-    combine_comments(Meta, wrap_in_parens(do_expr_to_algebra(Expr))).
 
 do_expr_to_algebra({integer, Meta, _Value}) ->
     document_text(format_integer(text(Meta)));
@@ -84,10 +75,12 @@ do_expr_to_algebra({concat, _Meta, Values0}) ->
     document_choice(Horizontal, Vertical);
 do_expr_to_algebra({op, _Meta, Op, Expr}) ->
     unary_op_to_algebra(Op, Expr);
-do_expr_to_algebra({op, _Meta, Op, Left, Right}) ->
-    binary_op_to_algebra(Op, Left, Right);
-do_expr_to_algebra({typed, _Meta, Left, Right}) ->
-    binary_op_to_algebra('::', Left, Right);
+do_expr_to_algebra({op, Meta0, Op, Left, Right}) ->
+    Meta = erlfmt_recomment:delete_anno(parens, Meta0),
+    binary_op_to_algebra(Op, Meta, Left, Right);
+do_expr_to_algebra({typed, Meta0, Left, Right}) ->
+    Meta = erlfmt_recomment:delete_anno(parens, Meta0),
+    binary_op_to_algebra('::', Meta, Left, Right);
 do_expr_to_algebra({tuple, _Meta, Values}) ->
     container_to_algebra(Values, document_text("{"), document_text("}"));
 do_expr_to_algebra({list, _Meta, Values}) ->
@@ -101,7 +94,7 @@ do_expr_to_algebra({bin_element, _Meta, Expr, Size, Types}) ->
 do_expr_to_algebra({map, _Meta, Values}) ->
     container_to_algebra(Values, document_text("#{"), document_text("}"));
 do_expr_to_algebra({map, _Meta, Expr, Values}) ->
-    Prefix = document_combine(map_expr_to_algebra(Expr), document_text("#{")),
+    Prefix = document_combine(expr_to_algebra(Expr), document_text("#{")),
     container_to_algebra(Values, Prefix, document_text("}"));
 do_expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
     field_to_algebra("=>", Key, Value);
@@ -112,7 +105,7 @@ do_expr_to_algebra({record, Meta, Name, Values}) ->
     container_to_algebra(Values, Prefix, document_text("}"));
 do_expr_to_algebra({record, Meta, Expr, Name, Values}) ->
     PrefixName = document_combine(record_name_to_algebra(Meta, Name), document_text("{")),
-    Prefix = document_combine(record_expr_to_algebra(Expr), PrefixName),
+    Prefix = document_combine(expr_to_algebra(Expr), PrefixName),
     container_to_algebra(Values, Prefix, document_text("}"));
 do_expr_to_algebra({record_field, _Meta, Key, Value}) ->
     field_to_algebra("=", Key, Value);
@@ -122,19 +115,19 @@ do_expr_to_algebra({record_field, _Meta, Name}) ->
     expr_to_algebra(Name);
 do_expr_to_algebra({record_field, Meta, Expr, Name, Key}) ->
     Access = record_access_to_algebra(Meta, Name, Key),
-    document_combine(record_expr_to_algebra(Expr), Access);
+    document_combine(expr_to_algebra(Expr), Access);
 do_expr_to_algebra({lc, _Meta, Expr, LcExprs}) ->
     ExprD = expr_to_algebra(Expr),
     comprehension_to_algebra(ExprD, LcExprs, document_text("["), document_text("]"));
 do_expr_to_algebra({bc, _Meta, Expr, LcExprs}) ->
-    ExprD = expr_max_to_algebra(Expr),
+    ExprD = expr_to_algebra(Expr),
     comprehension_to_algebra(ExprD, LcExprs, document_text("<<"), document_text(">>"));
 do_expr_to_algebra({generate, _Meta, Left, Right}) ->
     field_to_algebra("<-", Left, Right);
 do_expr_to_algebra({b_generate, _Meta, Left, Right}) ->
     field_to_algebra("<=", Left, Right);
 do_expr_to_algebra({call, _Meta, Name, Args}) ->
-    Prefix = document_combine(expr_max_to_algebra(Name), document_text("(")),
+    Prefix = document_combine(expr_to_algebra(Name), document_text("(")),
     container_to_algebra(Args, Prefix, document_text(")"));
 do_expr_to_algebra({macro_call, Meta, Name, none}) ->
     macro_name_to_algebra(Meta, Name);
@@ -144,7 +137,7 @@ do_expr_to_algebra({macro_call, Meta, Name, Args}) ->
 do_expr_to_algebra({macro_string, _Meta, Name}) ->
     document_combine(document_text("??"), expr_to_algebra(Name));
 do_expr_to_algebra({remote, _Meta, Mod, Name}) ->
-    wrap(expr_max_to_algebra(Mod), document_text(":"), expr_max_to_algebra(Name));
+    wrap(expr_to_algebra(Mod), document_text(":"), expr_to_algebra(Name));
 do_expr_to_algebra({block, _Meta, Exprs}) ->
     wrap_nested(document_text("begin"), block_to_algebra(Exprs), document_text("end"));
 do_expr_to_algebra({'fun', _Meta, Expr}) ->
@@ -239,79 +232,48 @@ format_string(String, Original) ->
 
 unary_op_to_algebra(Op, Expr) ->
     OpD = document_text(atom_to_binary(Op, utf8)),
-    ExprD = unary_operand_to_algebra(Op, Expr),
+    ExprD = expr_to_algebra(Expr),
+    NeedsSpace = unary_needs_space(Expr, Op),
     if
-        Op =:= 'not'; Op =:= 'bnot'; Op =:= 'catch' ->
+        NeedsSpace ->
             combine_space(OpD, ExprD);
         true ->
             document_combine(OpD, ExprD)
     end.
 
-binary_op_to_algebra(Op, Left, Right) ->
-    binary_op_to_algebra(Op, Left, Right, ?INDENT, inop_prec(Op)).
+unary_needs_space(_, Op) when Op =:= 'not'; Op =:= 'bnot'; Op =:= 'catch' ->
+    true;
+unary_needs_space({op, Meta, _, _}, _) ->
+    not proplists:get_value(parens, erl_anno:to_term(Meta), false);
+unary_needs_space(_, _) ->
+    false.
 
-binary_op_to_algebra(Op, Left, Right, Indent, {PrecL, _, PrecR}) ->
+%% .. is special - non-assoc, no spaces around and never breaks
+binary_op_to_algebra('..', Meta, Left, Right) ->
+    Doc = wrap(expr_to_algebra(Left), document_text(".."), expr_to_algebra(Right)),
+    combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc));
+binary_op_to_algebra(Op, Meta, Left, Right) ->
+    binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT).
+
+binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     OpD = document_text(atom_to_binary(Op, utf8)),
-    %% X...Y is layed out without spaces, other operators always have spaces around
-    Combine =
-        if
-            Op =:= '...' -> fun erlfmt_algebra:document_combine/2;
-            true -> fun combine_space/2
-        end,
-    %% Propagate indent for left-associative operators,
-    %% for right-associative ones document algebra does it for us
-    LeftD = binary_operand_to_algebra(Op, Left, Indent, PrecL),
-    RightD = binary_operand_to_algebra(Op, Right, 0, PrecR),
-    LeftOpD = Combine(LeftD, OpD),
-    document_choice(
-        Combine(LeftOpD, document_single_line(RightD)),
-        combine_newline(LeftOpD, document_combine(document_spaces(Indent), RightD))
-    ).
+    LeftD = binary_operand_to_algebra(Op, Left, Indent),
+    RightD = binary_operand_to_algebra(Op, Right, 0),
+    LeftOpD = combine_space(LeftD, OpD),
+    Doc =
+        document_choice(
+            combine_space(LeftOpD, document_single_line(RightD)),
+            combine_newline(LeftOpD, document_combine(document_spaces(Indent), RightD))
+        ),
+    combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
 
-%% not and bnot are nestable without parens, others are not
-unary_operand_to_algebra(Op, {op, _, Op, _} = Expr) when Op =:= 'not'; Op =:= 'bnot' ->
-    expr_to_algebra(Expr);
-unary_operand_to_algebra(_, {op, _, _, _} = Expr) ->
-    parens_expr_to_algebra(Expr);
-unary_operand_to_algebra(_, {op, _, _, _, _} = Expr) ->
-    parens_expr_to_algebra(Expr);
-unary_operand_to_algebra(_, Expr) ->
-    expr_to_algebra(Expr).
-
-binary_operand_to_algebra(_ParentOp, {op, _, 'catch', _} = Expr, _Indent, _Prec) ->
-    parens_expr_to_algebra(Expr);
-binary_operand_to_algebra(_ParentOp, {op, _, _, _} = Expr, _Indent, _Prec) ->
-    expr_to_algebra(Expr);
-binary_operand_to_algebra(ParentOp, {op, Meta, ParentOp, Left, Right}, Indent, Prec) ->
-    %% Same operator on correct side - no parens and no repeated nesting
-    case inop_prec(ParentOp) of
-        {Prec, Prec, _} = Precs ->
-            Doc = binary_op_to_algebra(ParentOp, Left, Right, Indent, Precs),
-            combine_comments(Meta, Doc);
-        {_, Prec, Prec} = Precs ->
-            Doc = binary_op_to_algebra(ParentOp, Left, Right, Indent, Precs),
-            combine_comments(Meta, Doc);
-        Precs ->
-            Doc = wrap_in_parens(binary_op_to_algebra(ParentOp, Left, Right, ?INDENT, Precs)),
-            combine_comments(Meta, Doc)
+binary_operand_to_algebra(Op, {op, Meta, Op, Left, Right}, Indent) ->
+    %% Same operator, no parens, means correct side and no repeated nesting
+    case proplists:get_value(parens, erl_anno:to_term(Meta), false) of
+        false -> binary_op_to_algebra(Op, Meta, Left, Right, Indent);
+        _ -> binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT)
     end;
-binary_operand_to_algebra(ParentOp, {op, Meta, Op, Left, Right}, _Indent, Prec) ->
-    {_, NestedPrec, _} = Precs = inop_prec(Op),
-    NeedsParens =
-        lists:member(ParentOp, ?REQUIRE_PARENS_OPS) orelse
-        (lists:member(ParentOp, ?MIXED_REQUIRE_PARENS_OPS) andalso
-            lists:member(Op, ?MIXED_REQUIRE_PARENS_OPS)) orelse
-        NestedPrec < Prec,
-
-    case NeedsParens of
-        true ->
-            Doc = wrap_in_parens(binary_op_to_algebra(Op, Left, Right, ?INDENT, Precs)),
-            combine_comments(Meta, Doc);
-        false ->
-            Doc = binary_op_to_algebra(Op, Left, Right, ?INDENT, Precs),
-            combine_comments(Meta, Doc)
-    end;
-binary_operand_to_algebra(_ParentOp, Expr, _Indent, _Prec) ->
+binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
     expr_to_algebra(Expr).
 
 container_to_algebra(Values, Left, Right) ->
@@ -343,16 +305,13 @@ cons_to_algebra(Head, Tail) ->
 
 bin_element_to_algebra(Expr, Size, Types) ->
     Docs =
-        [bin_expr_to_algebra(Expr)] ++
+        [expr_to_algebra(Expr)] ++
         [bin_size_to_algebra(Size) || Size =/= default] ++
         [bin_types_to_algebra(Types) || Types =/= default],
     document_reduce(fun erlfmt_algebra:document_combine/2, Docs).
 
-bin_expr_to_algebra({op, _, Op, _} = Expr) when Op =/= 'catch' -> expr_to_algebra(Expr);
-bin_expr_to_algebra(Expr) -> expr_max_to_algebra(Expr).
-
 bin_size_to_algebra(Expr) ->
-    document_combine(document_text(":"), expr_max_to_algebra(Expr)).
+    document_combine(document_text(":"), expr_to_algebra(Expr)).
 
 bin_types_to_algebra(Types) ->
     TypesD = lists:map(fun bin_type_to_algebra/1, Types),
@@ -362,43 +321,6 @@ bin_type_to_algebra({Type, Size}) ->
     combine_sep(expr_to_algebra(Type), ":", expr_to_algebra(Size));
 bin_type_to_algebra(Type) ->
     expr_to_algebra(Type).
-
-expr_max_to_algebra({op, _, _, _} = Expr) ->
-    parens_expr_to_algebra(Expr);
-expr_max_to_algebra({op, _, _, _, _} = Expr) ->
-    parens_expr_to_algebra(Expr);
-expr_max_to_algebra({map, _, _} = Expr) ->
-    parens_expr_to_algebra(Expr);
-expr_max_to_algebra({map, _, _, _} = Expr) ->
-    parens_expr_to_algebra(Expr);
-expr_max_to_algebra({record, _, _, _} = Expr) ->
-    parens_expr_to_algebra(Expr);
-expr_max_to_algebra({record, _, _, _, _} = Expr) ->
-    parens_expr_to_algebra(Expr);
-expr_max_to_algebra({record_field, _, _, _, _} = Expr) ->
-    parens_expr_to_algebra(Expr);
-expr_max_to_algebra({record_index, _, _, _} = Expr) ->
-    parens_expr_to_algebra(Expr);
-expr_max_to_algebra({call, _, _, _} = Expr) ->
-    parens_expr_to_algebra(Expr);
-expr_max_to_algebra(Expr) ->
-    expr_to_algebra(Expr).
-
-map_expr_to_algebra({map, _, _} = Expr) ->
-    expr_to_algebra(Expr);
-map_expr_to_algebra({map, _, _, _} = Expr) ->
-    expr_to_algebra(Expr);
-map_expr_to_algebra(Expr) ->
-    expr_max_to_algebra(Expr).
-
-record_expr_to_algebra({record, _, _, _} = Expr) ->
-    expr_to_algebra(Expr);
-record_expr_to_algebra({record, _, _, _, _} = Expr) ->
-    expr_to_algebra(Expr);
-record_expr_to_algebra({record_field, _, _, _, _} = Expr) ->
-    expr_to_algebra(Expr);
-record_expr_to_algebra(Expr) ->
-    expr_max_to_algebra(Expr).
 
 record_access_to_algebra(Meta, Name, Key) ->
     NameD = record_name_to_algebra(Meta, Name),
@@ -652,6 +574,13 @@ guard_to_algebra(Expr, Guard) ->
         combine_newline(ExprD, combine_space(WhenD, GuardD))
     ).
 
+maybe_wrap_in_parens(Meta, Doc) ->
+    Parens = proplists:get_value(parens, erl_anno:to_term(Meta), false),
+    if
+        Parens -> wrap_in_parens(Doc);
+        true -> Doc
+    end.
+
 combine_comments(Meta, Doc) ->
     {Pre, Post} = comments(Meta),
     combine_post_comments(Post, combine_pre_comments(Pre, Doc)).
@@ -718,38 +647,3 @@ escape_hex([${ | Rest0]) ->
     {[${, string:uppercase(Escape), $}], Rest};
 escape_hex([X1, X2 | Rest]) ->
     {string:uppercase([X1, X2]), Rest}.
-
-inop_prec('::') -> {100,40,100};
-inop_prec('=') -> {140,100,100};
-inop_prec('!') -> {140,100,100};
-inop_prec('orelse') -> {160,150,150};
-inop_prec('andalso') -> {170,160,160};
-inop_prec('|') -> {180,170,170};
-inop_prec('..') -> {300,200,300};
-inop_prec('==') -> {300,200,300};
-inop_prec('/=') -> {300,200,300};
-inop_prec('=<') -> {300,200,300};
-inop_prec('<') -> {300,200,300};
-inop_prec('>=') -> {300,200,300};
-inop_prec('>') -> {300,200,300};
-inop_prec('=:=') -> {300,200,300};
-inop_prec('=/=') -> {300,200,300};
-inop_prec('++') -> {400,300,300};
-inop_prec('--') -> {400,300,300};
-inop_prec('+') -> {400,400,500};
-inop_prec('-') -> {400,400,500};
-inop_prec('bor') -> {400,400,500};
-inop_prec('bxor') -> {400,400,500};
-inop_prec('bsl') -> {400,400,500};
-inop_prec('bsr') -> {400,400,500};
-inop_prec('or') -> {400,400,500};
-inop_prec('xor') -> {400,400,500};
-inop_prec('*') -> {500,500,600};
-inop_prec('/') -> {500,500,600};
-inop_prec('div') -> {500,500,600};
-inop_prec('rem') -> {500,500,600};
-inop_prec('band') -> {500,500,600};
-inop_prec('and') -> {500,500,600};
-inop_prec('#') -> {800,700,800};
-inop_prec(':') -> {900,800,900};
-inop_prec('.') -> {900,900,1000}.
