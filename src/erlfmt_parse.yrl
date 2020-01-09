@@ -102,8 +102,8 @@ attribute -> '-' atom                        : build_attribute('$2', []).
 attribute -> '-' atom attr_val               : build_attribute('$2', '$3').
 attribute -> '-' spec type_spec              : build_attribute('$2', ['$3']).
 attribute -> '-' callback type_spec          : build_attribute('$2', ['$3']).
-attribute -> '-' define_expr macro_def_expr  : build_macro_def('$1', '$3').
-attribute -> '-' define_clause macro_def_clause : build_macro_def('$1', '$3').
+attribute -> '-' define_expr macro_def_expr  : build_macro_def('$2', '$3').
+attribute -> '-' define_clause macro_def_clause : build_macro_def('$2', '$3').
 
 type_spec -> spec_fun type_sigs : {spec, ?anno('$1'), '$1', '$2'}.
 type_spec -> '(' spec_fun type_sigs ')' : {spec, ?anno('$2'), '$2', '$3'}.
@@ -1012,7 +1012,7 @@ parse_form([{'-',A1},{atom,A2,callback}|Tokens]) ->
     NewTokens = [{'-',A1},{'callback',A2}|Tokens],
     parse(NewTokens);
 parse_form([{'-',A1},{atom,A2,define}|Tokens]) ->
-    NewTokens1 = [{'-',A1},{define_expr,A2}|Tokens],
+    NewTokens1 = [{'-',A2},{define_expr,A2}|Tokens],
     case parse(NewTokens1) of
         {ok, _} = Res ->
             Res;
