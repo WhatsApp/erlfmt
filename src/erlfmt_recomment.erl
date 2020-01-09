@@ -13,7 +13,7 @@
 %% limitations under the License.
 -module(erlfmt_recomment).
 
--export([preprocess_tokens/1, form/2]).
+-export([preprocess_tokens/1, form/2, put_anno/3, delete_anno/2]).
 
 -export_type([comment/0]).
 
@@ -263,4 +263,7 @@ put_anno(Key, Value, Anno) ->
     end.
 
 delete_anno(Key, Anno) ->
-    erl_anno:from_term(lists:keydelete(Key, 1, erl_anno:to_term(Anno))).
+    case erl_anno:to_term(Anno) of
+        List when is_list(List) -> erl_anno:from_term(lists:keydelete(Key, 1, List));
+        Loc -> Loc
+    end.

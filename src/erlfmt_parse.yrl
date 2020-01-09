@@ -120,7 +120,7 @@ type -> macro_call_type : '$1'.
 type -> type add_op type : ?mkop2('$1', '$2', '$3').
 type -> type mult_op type : ?mkop2('$1', '$2', '$3').
 type -> prefix_op type : ?mkop1('$1', '$2').
-type -> '(' type ')' : '$2'.
+type -> '(' type ')' : set_parens('$2').
 type -> var : '$1'.
 type -> atom : '$1'.
 type -> atom type_argument_list : {call, ?anno('$1'), '$1', element(1, '$2')}.
@@ -167,7 +167,7 @@ bin_element_type -> var ':' var '*' type :
     %% since the precedence rules are different.
     {bin_element, ?anno('$1'), '$1', {bin_size, ?anno('$4'), '$3', '$5'}, default}.
 
-attr_val -> expr                     : ['$1'].
+attr_val -> expr                     : [delete_parens('$1')].
 attr_val -> expr ',' exprs           : ['$1' | '$3'].
 attr_val -> '(' expr ',' exprs ')'   : ['$2' | '$4'].
 
@@ -220,7 +220,7 @@ expr_max -> binary : '$1'.
 expr_max -> list_comprehension : '$1'.
 expr_max -> binary_comprehension : '$1'.
 expr_max -> tuple : '$1'.
-expr_max -> '(' expr ')' : '$2'.
+expr_max -> '(' expr ')' : set_parens('$2').
 expr_max -> 'begin' exprs 'end' : {block,?anno('$1'),'$2'}.
 expr_max -> if_expr : '$1'.
 expr_max -> case_expr : '$1'.
@@ -244,7 +244,7 @@ pat_expr_max -> atomic : '$1'.
 pat_expr_max -> list : '$1'.
 pat_expr_max -> binary : '$1'.
 pat_expr_max -> tuple : '$1'.
-pat_expr_max -> '(' pat_expr ')' : '$2'.
+pat_expr_max -> '(' pat_expr ')' : set_parens('$2').
 
 map_pat_expr -> '#' map_tuple :
         {map, ?anno('$1'),'$2'}.
@@ -272,7 +272,8 @@ bin_elements -> bin_element : ['$1'].
 bin_elements -> bin_element ',' bin_elements : ['$1'|'$3'].
 
 bin_element -> bit_expr opt_bit_size_expr opt_bit_type_list :
-        {bin_element,?anno('$1'),'$1','$2','$3'}.
+    Anno = erlfmt_recomment:delete_anno(parens, ?anno('$1')),
+    {bin_element,Anno,'$1','$2','$3'}.
 
 bit_expr -> prefix_op expr_max : ?mkop1('$1', '$2').
 bit_expr -> expr_max : '$1'.
@@ -1044,3 +1045,12 @@ build_try(A,Es,Scs,{Ccs,As}) ->
 -spec ret_err(_, _) -> no_return().
 ret_err(Anno, S) ->
     return_error(erl_anno:location(Anno), S).
+
+%% TODO: figure out a better way to manage annos
+set_parens(Expr) ->
+    Anno = erlfmt_recomment:put_anno(parens, true, ?anno(Expr)),
+    setelement(2, Expr, Anno).
+
+delete_parens(Expr) ->
+    Anno = erlfmt_recomment:delete_anno(parens, ?anno(Expr)),
+    setelement(2, Expr, Anno).
