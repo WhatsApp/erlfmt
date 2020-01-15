@@ -72,7 +72,6 @@
     smoke_test_parser_mmsd/1,
     smoke_test_parser_mnfd/1,
     smoke_test_parser_monitor/1,
-    smoke_test_parser_ndpd/1,
     smoke_test_parser_ntsd/1,
     smoke_test_parser_offd/1,
     smoke_test_parser_payd/1,
@@ -205,7 +204,6 @@ groups() ->
             smoke_test_parser_mmsd,
             smoke_test_parser_mnfd,
             smoke_test_parser_monitor,
-            smoke_test_parser_ndpd,
             smoke_test_parser_ntsd,
             smoke_test_parser_offd,
             smoke_test_parser_payd,
@@ -849,7 +847,6 @@ smoke_test_parser_locd(Config) -> smoke_test_parser(locd, Config).
 smoke_test_parser_mmsd(Config) -> smoke_test_parser(mmsd, Config).
 smoke_test_parser_mnfd(Config) -> smoke_test_parser(mnfd, Config).
 smoke_test_parser_monitor(Config) -> smoke_test_parser(monitor, Config).
-smoke_test_parser_ndpd(Config) -> smoke_test_parser(ndpd, Config).
 smoke_test_parser_ntsd(Config) -> smoke_test_parser(ntsd, Config).
 smoke_test_parser_offd(Config) -> smoke_test_parser(offd, Config).
 smoke_test_parser_payd(Config) -> smoke_test_parser(payd, Config).
