@@ -40,6 +40,7 @@
     binaries/1,
     clauses/1,
     types/1,
+    annos/1,
     smoke_test_cli/1,
     smoke_test_parser_ac2d/1,
     smoke_test_parser_adsd/1,
@@ -165,7 +166,8 @@ groups() ->
             lists,
             binaries,
             clauses,
-            types
+            types,
+            annos
         ]},
         {smoke_tests, [parallel], [
             {group, smoke_test_parser},
@@ -786,6 +788,41 @@ types(Config) when is_list(Config) ->
     ?assertMatch(
         {'fun', _, {type, [{call, _, {atom, _, integer}, []}], {call, _, {atom, _,integer}, []}}},
         parse_type("fun((integer()) -> integer())")
+    ).
+
+annos(Config) when is_list(Config) ->
+    %% We parse with leading \n to avoid accounting for extra stuff parse_expr does
+    ?assertMatch(
+        {integer, #{location := {2, 1}, end_location := {2, 4}, text := "100"}, 100},
+        parse_expr("\n100")
+    ),
+    ?assertMatch(
+        {float, #{location := {2, 1}, end_location := {2, 5}, text := "10.0"}, 10.0},
+        parse_expr("\n10.0")
+    ),
+    ?assertMatch(
+        {char, #{location := {2, 1}, end_location := {2, 4}, text := "$\\s"}, $\s},
+        parse_expr("\n$\\s")
+    ),
+    ?assertMatch(
+        {atom, #{location := {2, 1}, end_location := {2, 4}, text := "foo"}, foo},
+        parse_expr("\nfoo")
+    ),
+    ?assertMatch(
+        {string, #{location := {2, 1}, end_location := {2, 6}, text := "\"foo\""}, "foo"},
+        parse_expr("\n\"foo\"")
+    ),
+    ?assertMatch(
+        {var, #{location := {2, 1}, end_location := {2, 4}, text := "Foo"}, 'Foo'},
+        parse_expr("\nFoo")
+    ),
+    ?assertMatch(
+        {atom, #{pre_comments := [{comment, #{location := {2, 1}, end_location := {3, 6}}, ["%foo", "%bar"]}]}, ok},
+        parse_expr(
+            "\n%foo\n"
+            " %bar\n"
+            "ok"
+        )
     ).
 
 parse_expr(String) ->

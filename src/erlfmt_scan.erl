@@ -11,7 +11,7 @@
 
 -define(ERL_SCAN_OPTS, [text, return_white_spaces, return_comments]).
 
--define(START_LOCARION, {1, 1}).
+-define(START_LOCATION, {1, 1}).
 
 -record(state, {
     cont :: fun((term(), erl_anno:location()) -> form_ret()),
@@ -34,7 +34,7 @@
 -opaque state() :: #state{}.
 
 -spec io_form(file:io_device()) -> form_ret().
-io_form(IO) -> io_continue(IO, ?START_LOCARION).
+io_form(IO) -> io_continue(IO, ?START_LOCATION).
 
 io_continue(IO, Loc0) ->
     case io:scan_erl_form(IO, "", Loc0, ?ERL_SCAN_OPTS) of
@@ -49,7 +49,7 @@ io_continue(IO, Loc0) ->
     end.
 
 -spec string_form(string()) -> form_ret().
-string_form(String) -> string_continue(String, ?START_LOCARION).
+string_form(String) -> string_continue(String, ?START_LOCATION).
 
 string_continue(String, Loc0) ->
     case erl_scan:tokens([], String, Loc0, ?ERL_SCAN_OPTS) of
@@ -90,6 +90,9 @@ preprocess_tokens([{comment, _, _} = Comment0 | Rest0], Acc, CAcc) ->
     preprocess_tokens(Rest, Acc, [Comment | CAcc]);
 preprocess_tokens([{white_space, _, _} | Rest], Acc, CAcc) ->
     preprocess_tokens(Rest, Acc, CAcc);
+preprocess_tokens([{Atomic, Meta, Value} | Rest], Acc, CAcc)
+when Atomic =:= integer; Atomic =:= float; Atomic =:= char; Atomic =:= atom; Atomic =:= string; Atomic =:= var ->
+    preprocess_tokens(Rest, [{Atomic, atomic_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
 preprocess_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
     preprocess_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
 preprocess_tokens([{Type, Meta} | Rest], Acc, CAcc) ->
@@ -99,24 +102,30 @@ preprocess_tokens([], Acc, CAcc) ->
 
 collect_comments(Tokens, {comment, Meta, Text}) ->
     Line = erl_anno:line(Meta),
-    {Texts, Rest} = collect_comments(Tokens, Line, [Text]),
-    {{comment, comment_anno(erl_anno:to_term(Meta)), Texts}, Rest}.
+    {Texts, LastMeta, Rest} = collect_comments(Tokens, Line, Meta, [Text]),
+    Anno = comment_anno(erl_anno:to_term(Meta), erl_anno:to_term(LastMeta)),
+    {{comment, Anno, Texts}, Rest}.
 
-collect_comments([{comment, Meta, Text} = Comment | Rest], Line, Acc) ->
+collect_comments([{white_space, _, _} | Rest], Line, LastMeta, Acc) ->
+    collect_comments(Rest, Line, LastMeta, Acc);
+collect_comments([{comment, Meta, Text} = Comment | Rest], Line, LastMeta, Acc) ->
     case erl_anno:line(Meta) of
         NextLine when NextLine =:= Line + 1 ->
-            collect_comments(Rest, NextLine, [Text | Acc]);
+            collect_comments(Rest, NextLine, Meta, [Text | Acc]);
         _ ->
-            {lists:reverse(Acc), [Comment | Rest]}
+            {lists:reverse(Acc), LastMeta, [Comment | Rest]}
     end;
-collect_comments(Other, _Line, Acc) ->
-    {lists:reverse(Acc), Other}.
+collect_comments(Other, _Line, LastMeta, Acc) ->
+    {lists:reverse(Acc), LastMeta, Other}.
 
-token_anno([{text, Text}, {location, Location}]) ->
-    #{text => Text, location => Location}.
+atomic_anno([{text, Text}, {location, {Line, Col} = Location}]) ->
+    #{text => Text, location => Location, end_location => end_location(Text, Line, Col)}.
 
-comment_anno([{text, _}, {location, Location}]) ->
-    #{location => Location}.
+token_anno([{text, Text}, {location, {Line, Col} = Location}]) ->
+    #{location => Location, end_location => end_location(Text, Line, Col)}.
+
+comment_anno([{text, _}, {location, Location}], [{text, Text}, {location, {Line, Col}}]) ->
+    #{location => Location, end_location => end_location(Text, Line, Col)}.
 
 put_anno(Key, Value, Anno) when is_map(Anno) ->
     Anno#{Key => Value};
@@ -139,3 +148,10 @@ get_anno(Key, Node, Default) when is_tuple(Node) ->
     maps:get(Key, element(2, Node), Default).
 
 text(AnnoOrNode) -> get_anno(text, AnnoOrNode).
+
+end_location("", Line, Column) ->
+    {Line, Column};
+end_location([$\n|String], Line, _Column) ->
+    end_location(String, Line+1, 1);
+end_location([_|String], Line, Column) ->
+    end_location(String, Line, Column+1).
