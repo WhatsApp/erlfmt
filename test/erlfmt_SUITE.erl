@@ -371,50 +371,50 @@ macro_call_types(Config) when is_list(Config) ->
 
 macro_definitions(Config) when is_list(Config) ->
     ?assertMatch(
-        {attribute, _, define, [{macro_call, _, {var, _, 'FOO'}, none}, [[{atom, _, foo}]]]},
+        {attribute, _, define, [{var, _, 'FOO'}, [[{atom, _, foo}]]]},
         parse_form("-define(FOO, foo).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{macro_call, _, {var, _, 'FOO'}, []}, [[{atom, _, foo}]]]},
+        {attribute, _, define, [{call, _, {var, _, 'FOO'}, []}, [[{atom, _, foo}]]]},
         parse_form("-define(FOO(), foo).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{macro_call, _, {var, _, 'FOO'}, [{var, _, 'X'}]}, [[{atom, _, foo}]]]},
+        {attribute, _, define, [{call, _, {var, _, 'FOO'}, [{var, _, 'X'}]}, [[{atom, _, foo}]]]},
         parse_form("-define(FOO(X), foo).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{macro_call, _, {atom, _, is_nice}, [{var, _, 'X'}]}, [[
+        {attribute, _, define, [{call, _, {atom, _, is_nice}, [{var, _, 'X'}]}, [[
             {call, _, {atom, _, is_tuple}, [{var, _, 'X'}]},
             {op, _, '=:=', {call, _, {atom, _,element}, [{integer, _, 1},{var, _, 'X'}]}, {atom, _, nice}}
         ]]]},
         parse_form("-define(is_nice(X), is_tuple(X), element(1, X) =:= nice).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{macro_call, _, {atom, _, foo}, none}, {record_name, _, {atom, _,bar}}]},
+        {attribute, _, define, [{atom, _, foo}, {record_name, _, {atom, _,bar}}]},
         parse_form("-define(foo, #bar).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{macro_call, _, {atom, _, foo}, none}, empty]},
+        {attribute, _, define, [{atom, _, foo}, empty]},
         parse_form("-define(foo,).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{macro_call, _, {atom, _, pass}, [{var, _, 'Name'}]},
+        {attribute, _, define, [{call, _, {atom, _, pass}, [{var, _, 'Name'}]},
             [[{'fun', _, {function, {var, _, 'Name'}, {integer, _, 2}}}]]
         ]},
         parse_form("-define(pass(Name), fun Name/2).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{macro_call, _, {atom, _, foo}, none}, {clause, _, {atom, _, foo}, [], [], [{atom, _, ok}]}]},
+        {attribute, _, define, [{atom, _, foo}, {clause, _, {atom, _, foo}, [], [], [{atom, _, ok}]}]},
         parse_form("-define(foo, foo() -> ok).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{macro_call, _, {var, _, 'FOO'}, [{var, _, 'Name'}]},
+        {attribute, _, define, [{call, _, {var, _, 'FOO'}, [{var, _, 'Name'}]},
             {clause, _, {var, _, 'Name'}, [], [], [{atom, _, ok}]}
         ]},
         parse_form("-define(FOO(Name), Name() -> ok).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{macro_call, _, {var, _, 'HASH_FUN'}, none}, [[{remote, _, {atom, _, erlang}, {atom, _, phash}}]]]},
+        {attribute, _, define, [{var, _, 'HASH_FUN'}, [[{remote, _, {atom, _, erlang}, {atom, _, phash}}]]]},
         parse_form("-define(HASH_FUN, erlang:phash).")
     ).
 
