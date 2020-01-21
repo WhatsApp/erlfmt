@@ -633,9 +633,8 @@ parse_type(String) ->
     Type.
 
 parse_form(String) ->
-    {ok, Tokens, _} = erl_scan:string(String),
-    case erlfmt_parse:parse_form(Tokens) of
-        {ok, Form} ->
+    case erlfmt:read_forms_string("nofile", String) of
+        {ok, [Form], []} ->
             Form;
         {error, {_, Mod, Reason}} ->
             ct:fail("Expected successful parse:\n~ts\ngot: ~ts", [String, Mod:format_error(Reason)])

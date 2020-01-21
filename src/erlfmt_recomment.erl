@@ -4,7 +4,7 @@
 
 -typing([dialyzer]).
 
--export([recomment/2, put_anno/3, delete_anno/2]).
+-export([recomment/2]).
 
 -spec recomment(erlfmt_parse:abstract_form(), [erlfmt_scan:comment()]) -> erlfmt_parse:abstract_form().
 recomment(Form, Comments) ->
@@ -17,7 +17,7 @@ insert_form({function, Meta, Clauses0}, Comments0) ->
         {Clauses, []} ->
             {function, Meta, Clauses};
         {Clauses, PostCommennts} ->
-            {function, put_anno(post_comments, PostCommennts, Meta), Clauses}
+            {function, erlfmt_scan:put_anno(post_comments, PostCommennts, Meta), Clauses}
     end;
 insert_form({attribute, Meta0, Name, Values0}, Comments0) ->
     {Meta, Comments1} = put_pre_comments(Meta0, Comments0),
@@ -25,7 +25,7 @@ insert_form({attribute, Meta0, Name, Values0}, Comments0) ->
         {Values, []} ->
             {attribute, Meta, Name, Values};
         {Values, PostComments} ->
-            {attribute, put_anno(post_comments, PostComments, Meta), Name, Values}
+            {attribute, erlfmt_scan:put_anno(post_comments, PostComments, Meta), Name, Values}
     end.
 
 insert({Atomic, Meta0, Value}, Comments0)
@@ -184,35 +184,23 @@ insert(List, Comments) when is_list(List) ->
     lists:mapfoldl(fun insert/2, Comments, List).
 
 put_pre_comments(Meta, Comments) ->
-    Line = erl_anno:line(Meta),
+    {Line, _} = erlfmt_scan:get_anno(location, Meta),
     case take_comments(Comments, Line, []) of
         {[], Rest} -> {Meta, Rest};
         {PreComments, Rest} ->
-            {put_anno(pre_comments, PreComments, Meta), Rest}
+            {erlfmt_scan:put_anno(pre_comments, PreComments, Meta), Rest}
     end.
 
 put_pre_comments(Meta, Comments, _Other) ->
     %% TODO: compute max line using "Other"
     put_pre_comments(Meta, Comments).
 
-take_comments([{comment, Meta, _} = Comment | Rest], Line, Acc) ->
-    case erl_anno:line(Meta) of
-        CommentLine when CommentLine =< Line ->
+take_comments([Comment | Rest], Line, Acc) ->
+    case erlfmt_scan:get_anno(location, Comment) of
+        {CommentLine, _} when CommentLine =< Line ->
             take_comments(Rest, Line, [Comment | Acc]);
         _ ->
             {lists:reverse(Acc), [Comment | Rest]}
     end;
 take_comments([], _Line, Acc) ->
     {lists:reverse(Acc), []}.
-
-put_anno(Key, Value, Anno) ->
-    case erl_anno:to_term(Anno) of
-        List when is_list(List) -> erl_anno:from_term(lists:keystore(Key, 1, List, {Key, Value}));
-        Loc -> erl_anno:from_term([{location, Loc}, {Key, Value}])
-    end.
-
-delete_anno(Key, Anno) ->
-    case erl_anno:to_term(Anno) of
-        List when is_list(List) -> erl_anno:from_term(lists:keydelete(Key, 1, List));
-        Loc -> Loc
-    end.
