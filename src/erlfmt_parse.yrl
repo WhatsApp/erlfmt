@@ -272,7 +272,7 @@ bin_elements -> bin_element : ['$1'].
 bin_elements -> bin_element ',' bin_elements : ['$1'|'$3'].
 
 bin_element -> bit_expr opt_bit_size_expr opt_bit_type_list :
-    Anno = erlfmt_recomment:delete_anno(parens, ?anno('$1')),
+    Anno = erlfmt_scan:delete_anno(parens, ?anno('$1')),
     {bin_element,Anno,'$1','$2','$3'}.
 
 bit_expr -> prefix_op expr_max : ?mkop1('$1', '$2').
@@ -605,7 +605,7 @@ Erlang code.
 
 %% Start of Abstract Format
 
--type anno() :: erl_anno:anno().
+-type anno() :: erlfmt_scan:anno().
 
 -type abstract_form() ::
     af_function_decl() | af_attribute().
@@ -1046,11 +1046,6 @@ build_try(A,Es,Scs,{Ccs,As}) ->
 ret_err(Anno, S) ->
     return_error(erl_anno:location(Anno), S).
 
-%% TODO: figure out a better way to manage annos
-set_parens(Expr) ->
-    Anno = erlfmt_recomment:put_anno(parens, true, ?anno(Expr)),
-    setelement(2, Expr, Anno).
+set_parens(Expr) -> erlfmt_scan:put_anno(parens, true, Expr).
 
-delete_parens(Expr) ->
-    Anno = erlfmt_recomment:delete_anno(parens, ?anno(Expr)),
-    setelement(2, Expr, Anno).
+delete_parens(Expr) -> erlfmt_scan:delete_anno(parens, Expr).

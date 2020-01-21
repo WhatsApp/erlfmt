@@ -25,7 +25,7 @@
     document_reduce/2
 ]).
 
--import(erl_anno, [text/1]).
+-import(erlfmt_scan, [text/1]).
 
 -define(INDENT, 4).
 
@@ -73,10 +73,10 @@ do_expr_to_algebra({concat, _Meta, Values0}) ->
 do_expr_to_algebra({op, _Meta, Op, Expr}) ->
     unary_op_to_algebra(Op, Expr);
 do_expr_to_algebra({op, Meta0, Op, Left, Right}) ->
-    Meta = erlfmt_recomment:delete_anno(parens, Meta0),
+    Meta = erlfmt_scan:delete_anno(parens, Meta0),
     binary_op_to_algebra(Op, Meta, Left, Right);
 do_expr_to_algebra({typed, Meta0, Left, Right}) ->
-    Meta = erlfmt_recomment:delete_anno(parens, Meta0),
+    Meta = erlfmt_scan:delete_anno(parens, Meta0),
     binary_op_to_algebra('::', Meta, Left, Right);
 do_expr_to_algebra({tuple, _Meta, Values}) ->
     container_to_algebra(Values, document_text("{"), document_text("}"));
@@ -217,7 +217,7 @@ unary_op_to_algebra(Op, Expr) ->
 unary_needs_space(_, Op) when Op =:= 'not'; Op =:= 'bnot'; Op =:= 'catch' ->
     true;
 unary_needs_space({op, Meta, _, _}, _) ->
-    not proplists:get_value(parens, erl_anno:to_term(Meta), false);
+    not erlfmt_scan:get_anno(parens, Meta, false);
 unary_needs_space(_, _) ->
     false.
 
@@ -242,7 +242,7 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
 
 binary_operand_to_algebra(Op, {op, Meta, Op, Left, Right}, Indent) ->
     %% Same operator, no parens, means correct side and no repeated nesting
-    case proplists:get_value(parens, erl_anno:to_term(Meta), false) of
+    case erlfmt_scan:get_anno(parens, Meta, false) of
         false -> binary_op_to_algebra(Op, Meta, Left, Right, Indent);
         _ -> binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT)
     end;
@@ -548,7 +548,7 @@ guard_to_algebra(Expr, Guard) ->
     ).
 
 maybe_wrap_in_parens(Meta, Doc) ->
-    Parens = proplists:get_value(parens, erl_anno:to_term(Meta), false),
+    Parens = erlfmt_scan:get_anno(parens, Meta, false),
     if
         Parens -> wrap_in_parens(Doc);
         true -> Doc
@@ -575,6 +575,5 @@ comment_to_algebra({comment, _Meta, Lines}) ->
     LinesD = lists:map(fun erlfmt_algebra:document_text/1, Lines),
     document_reduce(fun combine_newline/2, LinesD).
 
-comments(Meta0) ->
-    Meta = erl_anno:to_term(Meta0),
-    {proplists:get_value(pre_comments, Meta, []), proplists:get_value(post_comments, Meta, [])}.
+comments(Meta) ->
+    {erlfmt_scan:get_anno(pre_comments, Meta, []), erlfmt_scan:get_anno(post_comments, Meta, [])}.
