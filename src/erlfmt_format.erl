@@ -126,10 +126,10 @@ do_expr_to_algebra({b_generate, _Meta, Left, Right}) ->
 do_expr_to_algebra({call, _Meta, Name, Args}) ->
     Prefix = document_combine(expr_to_algebra(Name), document_text("(")),
     container_to_algebra(Args, Prefix, document_text(")"));
-do_expr_to_algebra({macro_call, Meta, Name, none}) ->
-    macro_name_to_algebra(Meta, Name);
-do_expr_to_algebra({macro_call, Meta, Name, Args}) ->
-    Prefix = document_combine(macro_name_to_algebra(Meta, Name), document_text("(")),
+do_expr_to_algebra({macro_call, _Meta, Name, none}) ->
+    document_combine(document_text("?"), expr_to_algebra(Name));
+do_expr_to_algebra({macro_call, _Meta, Name, Args}) ->
+    Prefix = wrap(document_text("?"), expr_to_algebra(Name), document_text("(")),
     container_to_algebra(Args, Prefix, document_text(")"));
 do_expr_to_algebra({macro_string, _Meta, Name}) ->
     document_combine(document_text("??"), expr_to_algebra(Name));
@@ -159,8 +159,8 @@ do_expr_to_algebra({guard, _Meta, Expr, Guard}) ->
     guard_to_algebra(Expr, Guard);
 do_expr_to_algebra({spec, _Meta, Name, Clauses}) ->
     document_combine(expr_to_algebra(Name), clauses_to_algebra(Clauses));
-do_expr_to_algebra({'...', Meta}) ->
-    document_text(text(Meta));
+do_expr_to_algebra({'...', _Meta}) ->
+    document_text("...");
 do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
     wrap(expr_to_algebra(Left), document_text("*"), expr_to_algebra(Right));
 do_expr_to_algebra(GuardList) when is_list(GuardList) ->
@@ -303,16 +303,9 @@ record_access_to_algebra(Meta, Name, Key) ->
 
 record_name_to_algebra(Meta, Name) ->
     %% Differentiate between #?FOO{} and ?FOO{}
-    case text(Meta) of
-        "#" -> document_combine(document_text("#"), expr_to_algebra(Name));
-        "?" -> expr_to_algebra(Name)
-    end.
-
-macro_name_to_algebra(Meta, Name) ->
-    %% Differentiate between macro calls and definitions
-    case text(Meta) of
-        "?" -> document_combine(document_text("?"), expr_to_algebra(Name));
-        _ -> expr_to_algebra(Name)
+    case erlfmt_scan:get_anno(macro_record, Meta, false) of
+        true -> expr_to_algebra(Name);
+        false -> document_combine(document_text("#"), expr_to_algebra(Name))
     end.
 
 field_to_algebra(Op, Key, Value) ->

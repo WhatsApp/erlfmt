@@ -345,9 +345,11 @@ record_expr -> record_expr '#' record_name record_tuple :
     {record,?anno('$2'),'$1','$3','$4'}.
 
 macro_record_or_concatable -> var macro_call_none '.' record_field_name :
-    {record_field,?anno('$2'),'$1','$2','$4'}.
+    Anno = erlfmt_scan:put_anno(macro_record, true, ?anno('$2')),
+    {record_field,Anno,'$1','$2','$4'}.
 macro_record_or_concatable -> var macro_call_none record_tuple :
-    {record,?anno('$2'),'$1','$2','$3'}.
+    Anno = erlfmt_scan:put_anno(macro_record, true, ?anno('$2')),
+    {record,Anno,'$1','$2','$3'}.
 macro_record_or_concatable -> var concatables :
     {concat, ?anno('$1'), ['$1' | '$2']}.
 
@@ -455,9 +457,9 @@ macro_def_expr_body -> '$empty' : empty.
 macro_def_expr_body -> '#' atom : {record_name, ?anno('$1'), '$2'}.
 macro_def_expr_body -> guard : '$1'.
 
-macro_name -> atom_or_var : {macro_call, ?anno('$1'), '$1', none}.
-macro_name -> atom_or_var '(' ')' : {macro_call, ?anno('$1'), '$1', []}.
-macro_name -> atom_or_var '(' vars ')' : {macro_call, ?anno('$1'), '$1', '$3'}.
+macro_name -> atom_or_var : '$1'.
+macro_name -> atom_or_var '(' ')' : {call, ?anno('$1'), '$1', []}.
+macro_name -> atom_or_var '(' vars ')' : {call, ?anno('$1'), '$1', '$3'}.
 
 macro_call_expr -> macro_string :
     '$1'.
@@ -468,9 +470,11 @@ macro_call_expr -> '?' atom_or_var '(' ')' :
 macro_call_expr -> '?' atom_or_var '(' macro_exprs ')' :
     {macro_call, ?anno('$1'), '$2', '$4'}.
 macro_call_expr -> '?' atom_or_var record_tuple :
-    {record, ?anno('$1'), {macro_call, ?anno('$1'), '$2', none}, '$3'}.
+    Anno = erlfmt_scan:put_anno(macro_record, true, ?anno('$1')),
+    {record, Anno, {macro_call, ?anno('$1'), '$2', none}, '$3'}.
 macro_call_expr -> '?' atom_or_var '.' atom :
-    {record_index, ?anno('$1'), {macro_call, ?anno('$1'), '$2', none} ,'$4'}.
+    Anno = erlfmt_scan:put_anno(macro_record, true, ?anno('$1')),
+    {record_index, Anno, {macro_call, ?anno('$1'), '$2', none} ,'$4'}.
 
 macro_call_pat -> macro_call_none :
     '$1'.
@@ -479,9 +483,11 @@ macro_call_pat -> '?' atom_or_var '(' ')' :
 macro_call_pat -> '?' atom_or_var '(' pat_exprs ')' :
     {macro_call, ?anno('$1'), '$2', '$4'}.
 macro_call_pat -> '?' atom_or_var record_tuple :
-    {record, ?anno('$1'), {macro_call, ?anno('$1'), '$2', none}, '$3'}.
+    Anno = erlfmt_scan:put_anno(macro_record, true, ?anno('$1')),
+    {record, Anno, {macro_call, ?anno('$1'), '$2', none}, '$3'}.
 macro_call_pat -> '?' atom_or_var '.' atom :
-    {record_index, ?anno('$1'), {macro_call, ?anno('$1'), '$2', none} ,'$4'}.
+    Anno = erlfmt_scan:put_anno(macro_record, true, ?anno('$1')),
+    {record_index, Anno, {macro_call, ?anno('$1'), '$2', none} ,'$4'}.
 
 macro_call_type -> macro_call_none :
     '$1'.
