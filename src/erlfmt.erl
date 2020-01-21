@@ -124,77 +124,49 @@ read_forms(FileName) ->
             {error, Error}
     end.
 
--spec read_forms_string(file:name_all(), string()) ->
-    {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
-read_forms_string(FileName, String) ->
-    case read_forms_string(FileName, String, ?SCAN_START, [], #state{}) of
-        {ok, Forms, #state{warnings = Warnings}} ->
-            {ok, Forms, Warnings};
-        {error, _} = Error ->
-            Error
-    end.
-
 read_forms(FileName, State) ->
     case file:open(FileName, [read]) of
         {ok, File} ->
-            try read_forms(File, FileName, ?SCAN_START, [], State)
+            try read_forms(erlfmt_scan:io_form(File), FileName, [], State)
             after file:close(File)
             end;
         {error, Reason} ->
             throw({error, {FileName, 0, file, Reason}})
     end.
 
-read_forms(File, FileName, Loc0, Acc, State0) ->
-    case io:scan_erl_form(File, "", Loc0, ?SCAN_OPTS) of
-        {ok, Tokens, Loc} ->
-            {Form, State} = parse_form(Tokens, FileName, State0),
-            read_forms(File, FileName, Loc, [Form | Acc], State);
-        {eof, _Loc} ->
-            {lists:reverse(Acc), State0};
-        {error, Reason} ->
-            throw({error, {FileName, Loc0, file, Reason}});
-        {error, {ErrLoc, Mod, Reason}, _Loc} ->
-            throw({error, {FileName, ErrLoc, Mod, Reason}})
+-spec read_forms_string(file:name_all(), string()) ->
+    {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
+read_forms_string(FileName, String) ->
+    try read_forms(erlfmt_scan:string_form(String), FileName, [], #state{}) of
+        {Forms, #state{warnings = Warnings}} ->
+            {ok, Forms, Warnings}
+    catch
+        {error, Error} ->
+            {error, Error}
     end.
 
-read_forms_string(FileName, Chars0, Loc0, Acc, State0) ->
-    case erl_scan:tokens([], Chars0, Loc0, ?SCAN_OPTS) of
-        {done, {ok, Tokens, Loc}, Chars} ->
-            {Form, State} = parse_form(Tokens, FileName, State0),
-            read_forms_string(FileName, Chars, Loc, [Form | Acc], State);
-        {done, {eof, _Loc}, _Chars} ->
-            {ok, lists:reverse(Acc), State0};
-        {done, {error, {ErrLoc, Mod, Reason}, _Loc}, _Chars} ->
-            {error, {FileName, ErrLoc, Mod, Reason}};
-        {more, Cont} ->
-            case erl_scan:tokens(Cont, eof, Loc0, ?SCAN_OPTS) of
-                {done, {ok, Tokens, _Loc}, eof} ->
-                    {Form, State} = parse_form(Tokens, FileName, State0),
-                    {ok, lists:reverse(Acc, [Form]), State};
-                {done, {eof, _Loc}, eof} ->
-                    {ok, lists:reverse(Acc), State0};
-                {done, {error, {ErrLoc, Mod, Reason}, _Loc}, eof} ->
-                    {error, {FileName, ErrLoc, Mod, Reason}}
-            end
+read_forms({ok, Tokens, Comments, Cont}, FileName, Acc, State0) ->
+    {Form, State} = parse_form(Tokens, Comments, FileName, Cont, State0),
+    read_forms(erlfmt_scan:continue(Cont), FileName, [Form | Acc], State);
+read_forms({eof, _Loc}, _FileName, Acc, State) ->
+    {lists:reverse(Acc), State};
+read_forms({error, {ErrLoc, Mod, Reason}, _Loc}, FileName, _Acc, _State) ->
+    throw({error, {FileName, ErrLoc, Mod, Reason}}).
+
+parse_form([], _Comments, _FileName, Cont, State) ->
+    {erlfmt_scan:last_form_string(Cont), State};
+parse_form(Tokens, Comments, FileName, Cont, State0) ->
+    case erlfmt_parse:parse_form(Tokens) of
+        {ok, Form0} ->
+            {erlfmt_recomment:recomment(Form0, Comments), State0};
+        {error, {ErrLoc, Mod, Reason}} ->
+            Warning = {FileName, ErrLoc, Mod, Reason},
+            State = #state{warnings = [Warning | State0#state.warnings]},
+            {erlfmt_scan:last_form_string(Cont), State}
     end.
 
-parse_form(Tokens0, FileName, State0) ->
-    case erlfmt_recomment:preprocess_tokens(Tokens0) of
-        {[], Comments} ->
-            {{tokens, Comments}, State0};
-        {Tokens, Comments} ->
-            case erlfmt_parse:parse_form(Tokens) of
-                {ok, Form0} ->
-                    {erlfmt_recomment:form(Form0, Comments), State0};
-                {error, {ErrLoc, Mod, Reason}} ->
-                    Warning = {FileName, ErrLoc, Mod, Reason},
-                    State = #state{warnings = [Warning | State0#state.warnings]},
-                    {{tokens, Tokens}, State}
-            end
-    end.
-
-format_form({tokens, Tokens}) ->
-    [stringify_token(Token) || Token <- Tokens];
+format_form(String) when is_list(String) ->
+    String;
 format_form(Form) ->
     Doc = erlfmt_format:form_to_algebra(Form),
     [erlfmt_algebra:document_render(Doc, [{page_width, ?PAGE_WIDTH}]), $\n].
@@ -219,6 +191,3 @@ format_error_info({FileName, {Line, Col}, Mod, Reason}) ->
     io_lib:format("~ts:~B:~B: ~ts", [FileName, Line, Col, Mod:format_error(Reason)]);
 format_error_info({FileName, Line, Mod, Reason}) ->
     io_lib:format("~ts:~B: ~ts", [FileName, Line, Mod:format_error(Reason)]).
-
-%% TODO: make smarter
-stringify_token(Token) -> erl_anno:text(element(2, Token)).

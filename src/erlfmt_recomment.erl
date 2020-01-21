@@ -13,52 +13,10 @@
 %% limitations under the License.
 -module(erlfmt_recomment).
 
--export([preprocess_tokens/1, form/2, put_anno/3, delete_anno/2]).
+-export([recomment/2, put_anno/3, delete_anno/2]).
 
--export_type([comment/0]).
-
--type comment() :: {comment, erl_anno:anno(), [string()]}.
-
--spec preprocess_tokens([erl_scan:token()]) -> {[erl_scan:token()], [comment()]}.
-preprocess_tokens(Tokens) -> preprocess_tokens(Tokens, [], []).
-
-%% TODO: annotate [, {, <<, ( with following newline info to control user folding/expanding
-preprocess_tokens([{comment, _, _} = Comment0 | Rest0], Acc, CAcc) ->
-    {Comment, Rest} = collect_comments(Rest0, Comment0),
-    preprocess_tokens(Rest, Acc, [Comment | CAcc]);
-preprocess_tokens([{white_space, _, _} | Rest], Acc, CAcc) ->
-    preprocess_tokens(Rest, Acc, CAcc);
-preprocess_tokens([Other | Rest], Acc, CAcc) ->
-    preprocess_tokens(Rest, [Other | Acc], CAcc);
-preprocess_tokens([], Acc, CAcc) ->
-    {lists:reverse(Acc), lists:reverse(CAcc)}.
-
-collect_comments(Tokens, {comment, Meta, Text}) ->
-    Line = erl_anno:line(Meta),
-    {Texts, Rest} = collect_comments(Tokens, Line, [normalize_comment(Text)]),
-    {{comment, delete_anno(text, Meta), Texts}, Rest}.
-
-collect_comments([{comment, Meta, Text} = Comment | Rest], Line, Acc) ->
-    case erl_anno:line(Meta) of
-        NextLine when NextLine =:= Line + 1 ->
-            collect_comments(Rest, NextLine, [normalize_comment(Text) | Acc]);
-        _ ->
-            {lists:reverse(Acc), [Comment | Rest]}
-    end;
-collect_comments(Other, _Line, Acc) ->
-    {lists:reverse(Acc), Other}.
-
-normalize_comment("% " ++ _ = Comment) -> Comment;
-normalize_comment("%% " ++ _ = Comment) -> Comment;
-normalize_comment("%%% " ++ _ = Comment) -> Comment;
-normalize_comment(Comment) ->
-    case string:take(Comment, "%") of
-        {_Prefix, " " ++ _} -> Comment;
-        {Prefix, Rest} -> [Prefix, $\s, Rest]
-    end.
-
--spec form(erlfmt_parse:abstract_form(), [comment()]) -> erlfmt_parse:abstract_form().
-form(Form, Comments) ->
+-spec recomment(erlfmt_parse:abstract_form(), [erlfmt_scan:comment()]) -> erlfmt_parse:abstract_form().
+recomment(Form, Comments) ->
     insert_form(Form, Comments).
 
 insert_form(Form, []) ->
