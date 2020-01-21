@@ -5,16 +5,35 @@
 -typing([dialyzer]).
 
 -export([io_form/1, string_form/1, continue/1, last_form_string/1]).
+-export([put_anno/3, delete_anno/2, get_anno/2, get_anno/3, text/1]).
+
+-export_type([state/0, anno/0, token/0]).
 
 -define(ERL_SCAN_OPTS, [text, return_white_spaces, return_comments]).
 
 -define(START_LOCARION, {1, 1}).
 
--record(state, {cont, state, loc, original}).
+-record(state, {
+    cont :: fun((term(), erl_anno:location()) -> form_ret()),
+    state :: term(),
+    loc :: erl_anno:location(),
+    original :: [erl_scan:token()]
+}).
 
-%% FIXME
--type comment() :: tuple().
+-type comment() :: {comment, anno(), [string()]}.
 
+-type anno() :: #{atom() => term()}.
+
+-type token() :: {atom(), anno(), term()} | {atom(), anno()}.
+
+-type form_ret() ::
+    {ok, [token()], [comment()], state()} |
+    {error, {erl_anno:location(), module(), term()}, erl_anno:location()} |
+    {eof, erl_anno:location()}.
+
+-opaque state() :: #state{}.
+
+-spec io_form(file:io_device()) -> form_ret().
 io_form(IO) -> io_continue(IO, ?START_LOCARION).
 
 io_continue(IO, Loc0) ->
@@ -24,11 +43,12 @@ io_continue(IO, Loc0) ->
             State = #state{cont = fun io_continue/2, state = IO, loc = Loc, original = Tokens0},
             {ok, Tokens, Comments, State};
         {error, Reason} ->
-            {error, {Loc0, file, Reason}};
+            {error, {Loc0, file, Reason}, Loc0};
         Other ->
             Other
     end.
 
+-spec string_form(string()) -> form_ret().
 string_form(String) -> string_continue(String, ?START_LOCARION).
 
 string_continue(String, Loc0) ->
@@ -50,9 +70,11 @@ string_continue(String, Loc0) ->
             end
     end.
 
+-spec continue(state()) -> form_ret().
 continue(#state{cont = Fun, state = State, loc = Loc}) ->
     Fun(State, Loc).
 
+-spec last_form_string(state()) -> unicode:chardata().
 last_form_string(#state{original = Tokens}) ->
     [stringify_token(Token) || Token <- Tokens].
 
@@ -68,15 +90,17 @@ preprocess_tokens([{comment, _, _} = Comment0 | Rest0], Acc, CAcc) ->
     preprocess_tokens(Rest, Acc, [Comment | CAcc]);
 preprocess_tokens([{white_space, _, _} | Rest], Acc, CAcc) ->
     preprocess_tokens(Rest, Acc, CAcc);
-preprocess_tokens([Other | Rest], Acc, CAcc) ->
-    preprocess_tokens(Rest, [Other | Acc], CAcc);
+preprocess_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
+    preprocess_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
+preprocess_tokens([{Type, Meta} | Rest], Acc, CAcc) ->
+    preprocess_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
 preprocess_tokens([], Acc, CAcc) ->
     {lists:reverse(Acc), lists:reverse(CAcc)}.
 
 collect_comments(Tokens, {comment, Meta, Text}) ->
     Line = erl_anno:line(Meta),
     {Texts, Rest} = collect_comments(Tokens, Line, [Text]),
-    {{comment, erlfmt_recomment:delete_anno(text, Meta), Texts}, Rest}.
+    {{comment, comment_anno(erl_anno:to_term(Meta)), Texts}, Rest}.
 
 collect_comments([{comment, Meta, Text} = Comment | Rest], Line, Acc) ->
     case erl_anno:line(Meta) of
@@ -87,3 +111,31 @@ collect_comments([{comment, Meta, Text} = Comment | Rest], Line, Acc) ->
     end;
 collect_comments(Other, _Line, Acc) ->
     {lists:reverse(Acc), Other}.
+
+token_anno([{text, Text}, {location, Location}]) ->
+    #{text => Text, location => Location}.
+
+comment_anno([{text, _}, {location, Location}]) ->
+    #{location => Location}.
+
+put_anno(Key, Value, Anno) when is_map(Anno) ->
+    Anno#{Key => Value};
+put_anno(Key, Value, Node) when is_tuple(Node) ->
+    setelement(2, Node, (element(2, Node))#{Key => Value}).
+
+delete_anno(Key, Anno) when is_map(Anno) ->
+    maps:remove(Key, Anno);
+delete_anno(Key, Node) when is_tuple(Node) ->
+    setelement(2, Node, maps:remove(Key, element(2, Node))).
+
+get_anno(Key, Anno) when is_map(Anno) ->
+    map_get(Key, Anno);
+get_anno(Key, Node) when is_tuple(Node) ->
+    map_get(Key, element(2, Node)).
+
+get_anno(Key, Anno, Default) when is_map(Anno) ->
+    maps:get(Key, Anno, Default);
+get_anno(Key, Node, Default) when is_tuple(Node) ->
+    maps:get(Key, element(2, Node), Default).
+
+text(AnnoOrNode) -> get_anno(text, AnnoOrNode).
