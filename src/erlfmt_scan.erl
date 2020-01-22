@@ -31,7 +31,9 @@
 
 -type comment() :: {comment, anno(), [string()]}.
 
--type anno() :: #{atom() => term()}.
+-type anno() :: #{location := location(), end_location := location(), atom() => term()}.
+
+-type location() :: {pos_integer(), pos_integer()}.
 
 -type token() :: {atom(), anno(), term()} | {atom(), anno()}.
 
