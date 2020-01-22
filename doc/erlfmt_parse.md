@@ -67,7 +67,8 @@ In `erlfmt_parse` the following AST nodes have different definitions:
   chains into lists.
 
 * Bit type definitions inside binaries are represented as full nodes instead
-  of raw atoms and integers.
+  of raw atoms and integers. The unit notation `unit:Int` is represented with
+  a `{remote, Anno, {atom, Anno, unit}, Int}` node.
 
 * The special `match` node is encoded as regular binary operator node.
 

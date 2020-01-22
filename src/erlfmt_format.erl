@@ -72,11 +72,9 @@ do_expr_to_algebra({concat, _Meta, Values0}) ->
     document_choice(Horizontal, Vertical);
 do_expr_to_algebra({op, _Meta, Op, Expr}) ->
     unary_op_to_algebra(Op, Expr);
-do_expr_to_algebra({op, Meta0, Op, Left, Right}) ->
-    Meta = erlfmt_scan:delete_anno(parens, Meta0),
+do_expr_to_algebra({op, Meta, Op, Left, Right}) ->
     binary_op_to_algebra(Op, Meta, Left, Right);
-do_expr_to_algebra({typed, Meta0, Left, Right}) ->
-    Meta = erlfmt_scan:delete_anno(parens, Meta0),
+do_expr_to_algebra({typed, Meta, Left, Right}) ->
     binary_op_to_algebra('::', Meta, Left, Right);
 do_expr_to_algebra({tuple, _Meta, Values}) ->
     container_to_algebra(Values, document_text("{"), document_text("}"));
@@ -133,8 +131,8 @@ do_expr_to_algebra({macro_call, _Meta, Name, Args}) ->
     container_to_algebra(Args, Prefix, document_text(")"));
 do_expr_to_algebra({macro_string, _Meta, Name}) ->
     document_combine(document_text("??"), expr_to_algebra(Name));
-do_expr_to_algebra({remote, _Meta, Mod, Name}) ->
-    wrap(expr_to_algebra(Mod), document_text(":"), expr_to_algebra(Name));
+do_expr_to_algebra({remote, _Meta, Left, Right}) ->
+    combine_sep(expr_to_algebra(Left), ":", expr_to_algebra(Right));
 do_expr_to_algebra({block, _Meta, Exprs}) ->
     wrap_nested(document_text("begin"), block_to_algebra(Exprs), document_text("end"));
 do_expr_to_algebra({'fun', _Meta, Expr}) ->
@@ -221,11 +219,12 @@ unary_needs_space({op, Meta, _, _}, _) ->
 unary_needs_space(_, _) ->
     false.
 
-%% .. is special - non-assoc, no spaces around and never breaks
-binary_op_to_algebra('..', Meta, Left, Right) ->
-    Doc = wrap(expr_to_algebra(Left), document_text(".."), expr_to_algebra(Right)),
-    combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc));
-binary_op_to_algebra(Op, Meta, Left, Right) ->
+binary_op_to_algebra('..', _Meta, Left, Right) ->
+    %% .. is special - non-assoc, no spaces around and never breaks
+    wrap(expr_to_algebra(Left), document_text(".."), expr_to_algebra(Right));
+binary_op_to_algebra(Op, Meta0, Left, Right) ->
+    %% don't print parens twice - expr_to_algebra took care of top-level
+    Meta = erlfmt_scan:delete_anno(parens, Meta0),
     binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT).
 
 binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
@@ -287,13 +286,8 @@ bin_size_to_algebra(Expr) ->
     document_combine(document_text(":"), expr_to_algebra(Expr)).
 
 bin_types_to_algebra(Types) ->
-    TypesD = lists:map(fun bin_type_to_algebra/1, Types),
+    TypesD = lists:map(fun expr_to_algebra/1, Types),
     document_combine(document_text("/"), document_reduce(fun combine_dash/2, TypesD)).
-
-bin_type_to_algebra({Type, Size}) ->
-    combine_sep(expr_to_algebra(Type), ":", expr_to_algebra(Size));
-bin_type_to_algebra(Type) ->
-    expr_to_algebra(Type).
 
 record_access_to_algebra(Meta, Name, Key) ->
     NameD = record_name_to_algebra(Meta, Name),

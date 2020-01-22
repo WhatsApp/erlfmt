@@ -112,7 +112,7 @@ format_file(FileName, State0) ->
             #state{errors = [Error | State0#state.errors]}
     end.
 
-%% Entry-point to the parser
+%% API entry point
 -spec read_forms(file:name_all()) ->
     {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
 read_forms(FileName) ->
@@ -134,6 +134,7 @@ read_forms(FileName, State) ->
             throw({error, {FileName, 0, file, Reason}})
     end.
 
+%% API entry point
 -spec read_forms_string(file:name_all(), string()) ->
     {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
 read_forms_string(FileName, String) ->
