@@ -523,6 +523,10 @@ binaries(Config) when is_list(Config) ->
     ?assertMatch(
         {bin, _, [{bin_element, _, {integer, _, 1}, {integer, _, 4}, default}]},
         parse_expr("<<1:4>>")
+    ),
+    ?assertMatch(
+        {bin, _, [{bin_element, _, {integer, _, 1}, default, [{remote, _, {atom, _, unit}, {integer, _, 8}}]}]},
+        parse_expr("<<1/unit:8>>")
     ).
 
 clauses(Config) when is_list(Config) ->
@@ -652,6 +656,22 @@ annos(Config) when is_list(Config) ->
             " %bar\n"
             "ok"
         )
+    ),
+    ?assertMatch(
+        {op, #{location := {2, 1}, end_location := {2, 6}}, '+', _, _},
+        parse_expr("\n1 + 2")
+    ),
+    ?assertMatch(
+        {list, #{location := {2, 1}, end_location := {3, 4}}, [
+            {call, #{location := {2, 2}, end_location := {2, 16}}, _, [
+                {tuple, #{location := {2, 6}, end_location := {2, 12}}, [_, _]},
+                _
+            ]},
+            {map, #{location := {2, 18}, end_location := {3,3}}, [
+                {map_field_assoc, #{location := {2, 20}, end_location := {3,2}}, _, _}
+            ]}
+        ]},
+        parse_expr("\n[foo({1, 2}, 3), #{4 =>\n5}]")
     ).
 
 parse_expr(String) ->
