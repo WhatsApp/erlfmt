@@ -644,18 +644,15 @@ Erlang code.
     {attribute, anno(), atom(), [abstract_expr()]}.
 
 -type af_function_spec() ::
-    {attribute, anno(), spec | callback, {af_atom(), af_function_type_list()}} |
-    {attribute, anno(), spec, {af_remote_function(af_atom()), af_function_type_list()}}.
+    {attribute, anno(), spec | callback, af_function_type()}.
 
 -type af_record_decl() ::
-    {attribute, anno(), record, {af_record_name(), [af_field_decl()]}}.
+    {attribute, anno(), record, [af_record_name() | af_field_decl()]}.
 
 -type af_type_decl() ::
     {attribute, anno(), type | opaque, {af_local_call(), abstract_type()}}.
 
--type af_field_decl() :: af_typed_field() | af_field().
-
--type af_typed_field() :: {'typed_record_field', af_field(), abstract_type()}.
+-type af_field_decl() :: {typed, anno(), af_field(), abstract_type()} | af_field().
 
 -type af_field() :: {'record_field', anno(), af_field_name()}
                   | {'record_field', anno(), af_field_name(), abstract_expr()}.
@@ -820,86 +817,57 @@ Erlang code.
 -type abstract_type() :: af_annotated_type()
                        | af_atom()
                        | af_bitstring_type()
-                       | af_empty_list_type()
+                       | af_list_type()
                        | af_fun_type()
                        | af_integer_range_type()
                        | af_map_type()
-                       | af_predefined_type()
+                       | af_local_type()
+                       | af_remote_type()
                        | af_record_type()
                        | af_remote_type()
                        | af_singleton_integer_type()
                        | af_tuple_type()
                        | af_type_union()
-                       | af_type_variable()
-                       | af_user_defined_type().
+                       | af_type_variable().
 
--type af_annotated_type() ::
-        {'ann_type', anno(), [af_anno() | abstract_type()]}. % [Var, Type]
+-type af_annotated_type() :: {typed, anno(), af_anno(), abstract_type()}.
 
 -type af_anno() :: af_variable().
 
--type af_bitstring_type() ::
-        {'type', anno(), 'binary', [af_singleton_integer_type()]}.
+-type af_bitstring_type() :: af_bin({var, anno(), '_'}).
 
--type af_empty_list_type() :: {'type', anno(), 'nil', []}.
+-type af_list_type() :: {list, anno(), [abstract_type() | {'...', anno()}]}.
 
--type af_fun_type() :: {'type', anno(), 'fun', []}
-                     | {'type', anno(), 'fun', [{'type', anno(), 'any'} |
-                                                abstract_type()]}
-                     | af_function_type().
+-type af_fun_type() ::
+    {'fun', anno(), type} |
+    {'fun', anno(), {type, [abstract_type() | {'...', anno()}], abstract_type()}}.
 
--type af_integer_range_type() ::
-        {'type', anno(), 'range', [af_singleton_integer_type()]}.
+-type af_integer_range_type() :: {op, anno(), '..', af_integer(), af_integer()}.
 
--type af_map_type() :: {'type', anno(), 'map', 'any'}
-                     | {'type', anno(), 'map', [af_assoc_type()]}.
+-type af_map_type() :: af_map_creation(abstract_type()).
 
--type af_assoc_type() ::
-        {'type', anno(), 'map_field_assoc', [abstract_type()]}
-      | {'type', anno(), 'map_field_exact', [abstract_type()]}.
-
--type af_predefined_type() ::
-        {'type', anno(), type_name(),  [abstract_type()]}.
-
--type af_record_type() ::
-        {'type', anno(), 'record', [(Name :: af_atom()) % [Name, T1, ... Tk]
-                                    | af_record_field_type()]}.
-
--type af_record_field_type() ::
-        {'type', anno(), 'field_type', [(Name :: af_atom()) |
-                                        abstract_type()]}. % [Name, Type]
+-type af_local_type() :: {call, anno(), af_atom(), [abstract_type()]}.
 
 -type af_remote_type() ::
-        {'remote_type', anno(), [(Module :: af_atom()) |
-                                 (TypeName :: af_atom()) |
-                                 [abstract_type()]]}. % [Module, Name, [T]]
+    {call, anno(), {remote, af_atom(), af_atom()}, [abstract_type()]}.
 
--type af_tuple_type() :: {'type', anno(), 'tuple', 'any'}
-                       | {'type', anno(), 'tuple', [abstract_type()]}.
+-type af_record_type() ::
+    {record, anno(), af_record_name(), af_record_field_type()}.
 
--type af_type_union() :: {'type', anno(), 'union', [abstract_type()]}.
+-type af_record_field_type() ::
+    {typed, anno(), af_field_name(), abstract_type()}.
+
+-type af_tuple_type() :: {tuple, anno(), [abstract_type()]}.
+
+-type af_type_union() :: {op, anno(), '|', abstract_type(), abstract_type()}.
 
 -type af_type_variable() :: {'var', anno(), atom()}. % except '_'
 
--type af_user_defined_type() ::
-        {'user_type', anno(), type_name(),  [abstract_type()]}.
-
--type af_function_type_list() :: [af_constrained_function_type() |
-                                  af_function_type()].
-
--type af_constrained_function_type() ::
-        {'type', anno(), 'bounded_fun', [af_function_type() | % [Ft, Fc]
-                                         af_function_constraint()]}.
-
 -type af_function_type() ::
-        {'type', anno(), 'fun',
-         [{'type', anno(), 'product', [abstract_type()]} | abstract_type()]}.
+    {spec, anno(), af_atom() | {remote, anno(), af_atom(), af_atom()}, [af_function_clause_type()]}.
 
--type af_function_constraint() :: [af_constraint()].
-
--type af_constraint() :: {'type', anno(), 'constraint',
-                          [af_lit_atom('is_subtype') |
-                           [af_type_variable() | abstract_type()]]}. % [IsSubtype, [V, T]]
+-type af_function_clause_type() ::
+    {clause, anno(), spec, [abstract_type()], [[{typed, anno(), af_variable(), abstract_type()}]], abstract_type()}.
 
 -type af_singleton_integer_type() :: af_integer()
                                    | af_character()
@@ -973,7 +941,7 @@ Erlang code.
 
 -type endianness() :: 'big' | 'little' | 'native'.
 
--type unit() :: {'unit', 1..256}.
+-type unit() :: {remote, anno(), {atom, anno(), 'unit'}, {integer, anno(), 1..256}}.
 
 -type af_record_name() :: af_local_record_name() | af_remote_record_name().
 
