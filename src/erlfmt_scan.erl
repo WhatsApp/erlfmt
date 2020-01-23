@@ -106,6 +106,9 @@ when Atomic =:= integer; Atomic =:= float; Atomic =:= char; Atomic =:= atom; Ato
     preprocess_tokens(Rest, [{Atomic, atomic_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
 preprocess_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
     preprocess_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
+%% Keep the `text` value for if in case it's used as an attribute
+preprocess_tokens([{Type, Meta} | Rest], Acc, CAcc) when Type =:= 'if' ->
+    preprocess_tokens(Rest, [{Type, atomic_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
 preprocess_tokens([{Type, Meta} | Rest], Acc, CAcc) ->
     preprocess_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
 preprocess_tokens([], Acc, CAcc) ->

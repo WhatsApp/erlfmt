@@ -87,16 +87,17 @@ Right 170 '|'.
 Nonassoc 200 '..'.
 Nonassoc 200 '*'. % for binary expressions
 
-form -> attribute dot : '$1'.
-form -> function dot : '$1'.
+form -> attribute dot : setelement(2, '$1', ?range_anno('$1', '$2')).
+form -> function dot : setelement(2, '$1', ?range_anno('$1', '$2')).
 
-attribute -> '-' 'if' attr_val               : build_attribute({atom,?anno('$2'),'if'}, '$3').
-attribute -> '-' atom                        : build_attribute('$2', []).
-attribute -> '-' atom attr_val               : build_attribute('$2', '$3').
-attribute -> '-' spec type_spec              : build_attribute('$2', ['$3']).
-attribute -> '-' callback type_spec          : build_attribute('$2', ['$3']).
-attribute -> '-' define_expr macro_def_expr  : build_macro_def('$2', '$3').
-attribute -> '-' define_clause macro_def_clause : build_macro_def('$2', '$3').
+%% Anno is wrong here, we'll adjust it at the top level using the dot token.
+attribute -> '-' 'if' attr_val               : build_attribute('$1', '$2', '$3').
+attribute -> '-' atom                        : build_attribute('$1', '$2', []).
+attribute -> '-' atom attr_val               : build_attribute('$1', '$2', '$3').
+attribute -> '-' spec type_spec              : build_attribute('$1', '$2', ['$3']).
+attribute -> '-' callback type_spec          : build_attribute('$1', '$2', ['$3']).
+attribute -> '-' define_expr macro_def_expr  : build_macro_def('$1', '$2', '$3').
+attribute -> '-' define_clause macro_def_clause : build_macro_def('$1', '$2', '$3').
 
 type_spec -> spec_fun type_sigs : {spec, ?range_anno('$1', '$2'), '$1', ?val('$2')}.
 type_spec -> '(' spec_fun type_sigs ')' : {spec, ?range_anno('$2', '$3'), '$2', ?val('$3')}.
@@ -178,13 +179,12 @@ attr_val -> expr                     : [delete_parens('$1')].
 attr_val -> expr ',' exprs           : ['$1' | '$3'].
 attr_val -> '(' expr ',' exprs ')'   : ['$2' | '$4'].
 
+%% Anno is wrong here, we'll adjust it at the top level using the dot token.
 function -> function_clauses :
-    {function, ?anno('$1'), ?val('$1')}.
+    {function, ?anno(hd('$1')), '$1'}.
 
-function_clauses -> function_clause :
-    {['$1'], ?anno('$1')}.
-function_clauses -> function_clause ';' function_clauses :
-    {['$1' | ?val('$3')], ?range_anno('$1', '$3')}.
+function_clauses -> function_clause : ['$1'].
+function_clauses -> function_clause ';' function_clauses : ['$1' | '$3'].
 
 function_clause -> atom_or_var clause_args clause_guard clause_body :
     {clause,?range_anno('$1', '$4'),'$1','$2','$3',?val('$4')}.
@@ -510,6 +510,8 @@ macro_string -> '?' '?' atom_or_var :
 macro_expr -> expr : '$1'.
 macro_expr -> expr 'when' expr : {guard,?range_anno('$1', '$3'),'$1','$3'}.
 
+%% in all use places we only care about the position of final token,
+%% save up some work by not tracking the full, precise location
 argument_list -> '(' ')' : {[],?anno('$2')}.
 argument_list -> '(' exprs ')' : {'$2',?anno('$3')}.
 
@@ -996,15 +998,15 @@ parse_form([{'-',A1},{atom,A2,define}|Tokens]) ->
 parse_form(Tokens) ->
     parse(Tokens).
 
-build_macro_def({_, Anno}, {Name, Body}) ->
-    {attribute, Anno, define, [Name, Body]}.
+build_macro_def({'-', Anno}, {_, AttrAnno}, {Name, Body}) ->
+    {attribute, Anno, {atom, AttrAnno, define}, [Name, Body]}.
 
-build_attribute({atom, Anno, record}, [Name, Tuple]) ->
-    {attribute, Anno, record, [Name, record_tuple(Tuple)]};
-build_attribute({atom, Anno, Name}, Values) ->
-    {attribute, Anno, Name, Values};
-build_attribute({Name, Anno}, Values) ->
-    {attribute, Anno, Name, Values}.
+build_attribute({'-', Anno}, {atom, _, record} = Attr, [Name, Tuple]) ->
+    {attribute, Anno, Attr, [Name, record_tuple(Tuple)]};
+build_attribute({'-', Anno}, {atom, _, _} = Attr, Values) ->
+    {attribute, Anno, Attr, Values};
+build_attribute({'-', Anno}, {Name, NameAnno}, Values) ->
+    {attribute, Anno, {atom, NameAnno, Name}, Values}.
 
 record_tuple({tuple,At,Fields}) ->
     {tuple,At,record_fields(Fields)};

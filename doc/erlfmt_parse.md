@@ -12,9 +12,8 @@ In `erlfmt_parse` the following AST nodes have different definitions:
   * `{record_field, Anno, Expr, Name, Field}`
   * `{attribute, Anno, record, [Name, FieldsTuple]}`
 
-* The attribute values are not "normalized" - they are represented in the
-  abstract term format instead of as concrete terms. Additionally, the value of
-  attributes is always a list of expressions.
+* The value of an attribute node is always a list of abstract term formats
+  instead of concrete terms. The name is always represented as a full `atom` node.
 
 * The `clause` node has a different AST representation:
   `{clause, Anno, Name, Args, Guards, Body}`, where the newly added `Name` field
