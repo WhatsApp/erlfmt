@@ -114,7 +114,7 @@ records(Config) when is_list(Config) ->
         parse_expr("X#foo{}")
     ),
     ?assertMatch(
-        {attribute, _,record, [{atom, _, foo}, {tuple, _, [
+        {attribute, _, {atom, _, record}, [{atom, _, foo}, {tuple, _, [
             {typed, _, {record_field, _, {atom, _, a}, {integer, _, 1}}, {call, _, {atom, _, integer}, []}},
             {typed, _, {record_field, _, {atom, _, b}}, {call, _, {atom, _, float}, []}},
             {record_field, _, {atom, _, c}, {integer, _, 2}},
@@ -123,14 +123,14 @@ records(Config) when is_list(Config) ->
         parse_form("-record(foo, {a = 1 :: integer(), b :: float(), c  = 2, d}).")
     ),
     ?assertMatch(
-        {attribute, _, type, [{typed, _,
+        {attribute, _, {atom, _, type}, [{typed, _,
             {call, _, {atom, _, foo}, []},
             {record, _, {atom, _, foo}, []}
         }]},
         parse_form("-type foo() :: #foo{}.")
     ),
     ?assertMatch(
-        {attribute, _, opaque, [{typed, _,
+        {attribute, _, {atom, _, opaque}, [{typed, _,
             {call, _, {atom, _, foo}, []},
             {record, _, {atom, _, foo}, []}
         }]},
@@ -139,45 +139,45 @@ records(Config) when is_list(Config) ->
 
 attributes(Config) when is_list(Config) ->
     ?assertMatch(
-        {attribute, _, foo, [{atom, _, bar}]},
+        {attribute, _, {atom, _, foo}, [{atom, _, bar}]},
         parse_form("-foo(bar).")
     ),
     ?assertMatch(
-        {attribute, _, ifdef, [{atom, _, foo}]},
+        {attribute, _, {atom, _, ifdef}, [{atom, _, foo}]},
         parse_form("-ifdef(foo).")
     ),
     ?assertMatch(
-        {attribute, _, 'if', [{op, _, '==', {macro_call, _, {atom, _, foo}, none}, {integer, _, 2}}]},
+        {attribute, _, {atom, _, 'if'}, [{op, _, '==', {macro_call, _, {atom, _, foo}, none}, {integer, _, 2}}]},
         parse_form("-if(?foo == 2).")
     ),
     ?assertMatch(
-        {attribute, _, else, []},
+        {attribute, _, {atom, _, else}, []},
         parse_form("-else.")
     ),
     ?assertMatch(
-        {attribute, _, endif, []},
+        {attribute, _, {atom, _, endif}, []},
         parse_form("-endif.")
     ),
     ?assertMatch(
-        {attribute, _, endif, [{macro_call, _, {var, _, 'BAR'}, none}]},
+        {attribute, _, {atom, _, endif}, [{macro_call, _, {var, _, 'BAR'}, none}]},
         parse_form("-endif(?BAR).")
     ),
     ?assertMatch(
-        {attribute, _, export, [{list, _, [
+        {attribute, _, {atom, _, export}, [{list, _, [
             {op, _, '/', {macro_call, _, {var, _, 'FOO'}, none}, {integer, _, 1}},
             {op, _, '/', {atom, _, foo}, {integer, _, 2}}
         ]}]},
         parse_form("-export([?FOO/1, foo/2]).")
     ),
     ?assertMatch(
-        {attribute, _, import, [
+        {attribute, _, {atom, _, import}, [
             {atom, _, foo},
             {list, _, [{op, _, '/', {atom, _, bar}, {integer, _, 1}}]}
         ]},
         parse_form("-import(foo, [bar/1]).")
     ),
     ?assertMatch(
-        {attribute, _, something_else, [
+        {attribute, _, {atom, _, something_else}, [
             {tuple, _, [{atom, _, foo}, {op, _, '/', {atom, _, bar}, {integer, _, 1}}]}
         ]},
         parse_form("-something_else({foo, bar/1}).")
@@ -185,21 +185,21 @@ attributes(Config) when is_list(Config) ->
 
 specs(Config) when is_list(Config) ->
     ?assertMatch(
-        {attribute, _, spec, [{spec, _,
+        {attribute, _, {atom, _, spec}, [{spec, _,
             {remote, _, {atom, _, foo}, {atom, _, bar}},
             [{clause, _, spec, [], [], [{atom, _, ok}]}]
         }]},
         parse_form("-spec foo:bar() -> ok.")
     ),
     ?assertMatch(
-        {attribute, _, spec, [{spec, _, {atom, _, foo}, [
+        {attribute, _, {atom, _, spec}, [{spec, _, {atom, _, foo}, [
             {clause, _, spec, [{call, _, {atom, _, integer}, []}], [], [{atom, _,integer}]},
             {clause, _, spec, [{call, _, {atom, _, atom}, []}], [], [{atom, _, atom}]}
         ]}]},
         parse_form("-spec foo(integer()) -> integer; (atom()) -> atom.")
     ),
     ?assertMatch(
-        {attribute, _, callback, [{spec, _, {atom, _, foo}, [
+        {attribute, _, {atom, _, callback}, [{spec, _, {atom, _, foo}, [
             {clause, _, spec, [{var, _, 'X'}],
                 [[
                     {typed, _, {var, _, 'X'}, {call, _, {atom, _, integer}, []}},
@@ -210,14 +210,14 @@ specs(Config) when is_list(Config) ->
         parse_form("-callback foo(X) -> Y when X :: integer(), Y :: atom().")
     ),
     ?assertMatch(
-        {attribute, _, spec, [{spec, _,
+        {attribute, _, {atom, _, spec}, [{spec, _,
             {macro_call, _, {atom, _, foo}, none},
             [{clause, _, spec, [], [], [{atom, _, ok}]}]
         }]},
         parse_form("-spec ?foo() -> ok.")
     ),
     ?assertMatch(
-        {attribute, _, callback, [{spec, _,
+        {attribute, _, {atom, _, callback}, [{spec, _,
             {macro_call, _, {var, _, 'FOO'}, none},
             [{clause, _, spec, [], [], [{atom, _, ok}]}]
         }]},
@@ -373,50 +373,50 @@ macro_call_types(Config) when is_list(Config) ->
 
 macro_definitions(Config) when is_list(Config) ->
     ?assertMatch(
-        {attribute, _, define, [{var, _, 'FOO'}, [[{atom, _, foo}]]]},
+        {attribute, _, {atom, _, define}, [{var, _, 'FOO'}, [[{atom, _, foo}]]]},
         parse_form("-define(FOO, foo).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{call, _, {var, _, 'FOO'}, []}, [[{atom, _, foo}]]]},
+        {attribute, _, {atom, _, define}, [{call, _, {var, _, 'FOO'}, []}, [[{atom, _, foo}]]]},
         parse_form("-define(FOO(), foo).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{call, _, {var, _, 'FOO'}, [{var, _, 'X'}]}, [[{atom, _, foo}]]]},
+        {attribute, _, {atom, _, define}, [{call, _, {var, _, 'FOO'}, [{var, _, 'X'}]}, [[{atom, _, foo}]]]},
         parse_form("-define(FOO(X), foo).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{call, _, {atom, _, is_nice}, [{var, _, 'X'}]}, [[
+        {attribute, _, {atom, _, define}, [{call, _, {atom, _, is_nice}, [{var, _, 'X'}]}, [[
             {call, _, {atom, _, is_tuple}, [{var, _, 'X'}]},
             {op, _, '=:=', {call, _, {atom, _,element}, [{integer, _, 1},{var, _, 'X'}]}, {atom, _, nice}}
         ]]]},
         parse_form("-define(is_nice(X), is_tuple(X), element(1, X) =:= nice).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{atom, _, foo}, {record_name, _, {atom, _,bar}}]},
+        {attribute, _, {atom, _, define}, [{atom, _, foo}, {record_name, _, {atom, _,bar}}]},
         parse_form("-define(foo, #bar).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{atom, _, foo}, empty]},
+        {attribute, _, {atom, _, define}, [{atom, _, foo}, empty]},
         parse_form("-define(foo,).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{call, _, {atom, _, pass}, [{var, _, 'Name'}]},
+        {attribute, _, {atom, _, define}, [{call, _, {atom, _, pass}, [{var, _, 'Name'}]},
             [[{'fun', _, {function, {var, _, 'Name'}, {integer, _, 2}}}]]
         ]},
         parse_form("-define(pass(Name), fun Name/2).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{atom, _, foo}, {clause, _, {atom, _, foo}, [], [], [{atom, _, ok}]}]},
+        {attribute, _, {atom, _, define}, [{atom, _, foo}, {clause, _, {atom, _, foo}, [], [], [{atom, _, ok}]}]},
         parse_form("-define(foo, foo() -> ok).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{call, _, {var, _, 'FOO'}, [{var, _, 'Name'}]},
+        {attribute, _, {atom, _, define}, [{call, _, {var, _, 'FOO'}, [{var, _, 'Name'}]},
             {clause, _, {var, _, 'Name'}, [], [], [{atom, _, ok}]}
         ]},
         parse_form("-define(FOO(Name), Name() -> ok).")
     ),
     ?assertMatch(
-        {attribute, _, define, [{var, _, 'HASH_FUN'}, [[{remote, _, {atom, _, erlang}, {atom, _, phash}}]]]},
+        {attribute, _, {atom, _, define}, [{var, _, 'HASH_FUN'}, [[{remote, _, {atom, _, erlang}, {atom, _, phash}}]]]},
         parse_form("-define(HASH_FUN, erlang:phash).")
     ).
 
@@ -667,11 +667,28 @@ annos(Config) when is_list(Config) ->
                 {tuple, #{location := {2, 6}, end_location := {2, 12}}, [_, _]},
                 _
             ]},
-            {map, #{location := {2, 18}, end_location := {3,3}}, [
-                {map_field_assoc, #{location := {2, 20}, end_location := {3,2}}, _, _}
+            {map, #{location := {2, 18}, end_location := {3, 3}}, [
+                {map_field_assoc, #{location := {2, 20}, end_location := {3, 2}}, _, _}
             ]}
         ]},
         parse_expr("\n[foo({1, 2}, 3), #{4 =>\n5}]")
+    ),
+    ?assertMatch(
+        {attribute, #{location := {1, 1}, end_location := {1, 11}},
+            {atom, #{location := {1, 2}, end_location := {1, 7}, text := "'foo'"}, foo},
+            [_]
+        },
+        parse_form("-'foo'(1).")
+    ),
+    ?assertMatch(
+        {function, #{location := {1, 1}, end_location := {2, 14}}, [
+            {clause, #{location := {1, 1}, end_location := {1, 12}}, _, [_], [], [_]},
+            {clause, #{location := {2, 1}, end_location := {2, 13}}, _, [_], [], [_]}
+        ]},
+        parse_form(
+            "foo(a) -> 1;\n"
+            "foo(b) -> 12."
+        )
     ).
 
 parse_expr(String) ->
@@ -685,7 +702,7 @@ parse_pat(String) ->
     Pat.
 
 parse_type(String) ->
-    {attribute, _, type, [{typed, _, _, Type}]} =
+    {attribute, _, {atom, _, type}, [{typed, _, _, Type}]} =
         parse_form("-type foo() :: " ++ String ++ "."),
     Type.
 

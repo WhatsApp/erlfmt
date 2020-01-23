@@ -26,14 +26,14 @@
 form_to_algebra({function, Meta, Clauses}) ->
     Doc = document_combine(clauses_to_algebra(Clauses), document_text(".")),
     combine_comments(Meta, Doc);
-form_to_algebra({attribute, Meta, _Name, []}) ->
-    NameD = document_text(text(Meta)),
+form_to_algebra({attribute, Meta, Name, []}) ->
+    NameD = expr_to_algebra(Name),
     Doc = wrap(document_text("-"), NameD, document_text(".")),
     combine_comments(Meta, Doc);
-form_to_algebra({attribute, Meta, Name, Values}) ->
+form_to_algebra({attribute, Meta, {atom, _, RawName} = Name, Values}) ->
     DashD = document_text("-"),
-    NameD = document_text(text(Meta)),
-    case lists:member(Name, ?PARENLESS_ATTRIBUTE) of
+    NameD = expr_to_algebra(Name),
+    case lists:member(RawName, ?PARENLESS_ATTRIBUTE) of
         true ->
             [Value] = Values,
             ValueD = expr_to_algebra(Value),
