@@ -122,7 +122,8 @@
     smoke_test_parser_wa_service/1,
     smoke_test_parser_wa_web/1,
     smoke_test_parser_webd/1,
-    smoke_test_parser_zcrawld/1
+    smoke_test_parser_zcrawld/1,
+    snapshot_simple_module/1
 ]).
 
 suite() ->
@@ -171,6 +172,7 @@ groups() ->
         ]},
         {smoke_tests, [parallel], [
             {group, smoke_test_parser},
+            {group, snapshot_tests},
             smoke_test_cli
         ]},
         {smoke_test_parser, [parallel], [
@@ -255,6 +257,9 @@ groups() ->
             smoke_test_parser_wa_web,
             smoke_test_parser_webd,
             smoke_test_parser_zcrawld
+        ]},
+        {snapshot_tests, [parallel], [
+            snapshot_simple_module
         ]}
     ].
 
@@ -1008,3 +1013,13 @@ excluded(File) ->
         fun(Pattern) -> string:find(File, Pattern, trailing) =:= Pattern end,
         ?EXCLUDE_FILES
     ).
+
+snapshot_simple_module(Config) -> snapshot("simple_module.erl", Config).
+
+snapshot(Module, Config) ->
+    DataDir = ?config(data_dir, Config),
+    PrivDir = ?config(priv_dir, Config),
+    erlfmt:format_file(filename:join(DataDir, Module), [{out, PrivDir}]),
+    {ok, Original} = file:read_file(filename:join(DataDir, Module)),
+    {ok, Formatted} = file:read_file(filename:join(PrivDir, Module)),
+    ?assertEqual(Original, Formatted).
