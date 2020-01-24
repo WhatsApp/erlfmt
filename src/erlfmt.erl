@@ -122,7 +122,7 @@ run_format_file(FileName, State0) ->
     end,
     try
         {Forms, State1} = read_forms(FileName, State0),
-        Formatted = lists:join("\n", lists:map(fun format_form/1, Forms)),
+        [$\n | Formatted] = format_forms(Forms),
         State2 = write_forms(FileName, Formatted, State1),
         State2
     catch
@@ -184,8 +184,15 @@ parse_form(Tokens, Comments, FileName, Cont, State0) ->
             {erlfmt_scan:last_form_string(Cont), State}
     end.
 
+format_forms([{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest]) ->
+    [$\n, format_form(Attr), format_form(Fun) | format_forms(Rest)];
+format_forms([Form | Rest]) ->
+    [$\n, format_form(Form) | format_forms(Rest)];
+format_forms([]) ->
+    [].
+
 format_form(String) when is_list(String) ->
-    String;
+    [string:trim(String, both, "\n"), $\n];
 format_form(Form) ->
     Doc = erlfmt_format:form_to_algebra(Form),
     [erlfmt_algebra:document_render(Doc, [{page_width, ?PAGE_WIDTH}]), $\n].
