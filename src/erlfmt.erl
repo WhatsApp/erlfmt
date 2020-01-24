@@ -5,15 +5,18 @@
 -typing([dialyzer]).
 
 %% API exports
--export([main/1, read_forms/1, read_forms_string/2, format_error_info/1]).
+-export([main/1, format_file/2, read_forms/1, read_forms_string/2, format_error_info/1]).
 
 -export_type([error_info/0]).
 
 -type error_info() :: {file:filename(), erl_anno:location(), module(), Reason :: any()}.
 
+-type option() :: verbose | {out, file:name_all()}.
+
 -record(state, {
     verbose = false :: boolean(),
-    files = [] :: [string()],
+    out = replace :: file:name_all() | replace,
+    files = [] :: [file:name_all()],
     warnings = [] :: [error_info()],
     errors = [] :: [error_info()]
 }).
@@ -24,9 +27,13 @@
 
 -define(SCAN_OPTS, [text, return_comments]).
 
+-define(COMMAND_NAME, "erlfmt").
+
 %% escript entry point
+-spec main([string()]) -> no_return().
 main(Argv) ->
-    try run_command(Argv) of
+    State = parse_args(Argv, #state{}),
+    try run_format(State) of
         #state{errors = [], warnings = []} ->
             erlang:halt(0);
         #state{errors = [], warnings = Warnings} ->
@@ -37,21 +44,27 @@ main(Argv) ->
             [print_error(Error) || Error <- Errors],
             erlang:halt(1)
     catch
-        Class:Error:Stacktrace ->
-            Msg = "internal error while running ~s:\n\t~p\nStacktrace:\n~p\n",
-            Args = [command_name(), {Class, Error}, Stacktrace],
-            io:format(standard_error, Msg, Args),
-            erlang:halt(1)
+        Class:Error:Stack ->
+            io:format(standard_error, "internal error while running ~s:\n", [?COMMAND_NAME]),
+            erlang:raise(Class, Error, Stack)
     end.
 
-command_name() ->
-    "erlfmt".
+%% API entry point
+-spec format_file(file:name_all(), [option()]) -> {ok, [error_info()]} | {error, [error_info(), ...], [error_info()]}.
+format_file(Path, Opts) ->
+    State = parse_opts(Opts, #state{files = [Path]}),
+    case run_format(State) of
+        #state{errors = [], warnings = Warnings} ->
+            {ok, Warnings};
+        #state{errors = Errors, warnings = Warnings} ->
+            {error, Errors, Warnings}
+    end.
 
 print_usage() ->
     io:format("~s", [[
-"Usage: ", command_name(), " [-vh] [files...]
+"Usage: ", ?COMMAND_NAME, " [-vh] [files...]
 
-", command_name(), " is a code formatter for Erlang.
+", ?COMMAND_NAME, " is a code formatter for Erlang.
 
 Arguments:
 
@@ -61,19 +74,17 @@ Options:
 
   -v -- verbose mode
 
+  -o Path -- output path (default \".\" replacing original files)
+
   -h -- print this help message
 
 "
     ]]).
 
-run_command(Argv) ->
-    State = parse_args(Argv),
-    run_format(State).
-
-parse_args(Argv) -> parse_args(Argv, #state{}).
-
 parse_args(["-v" | Rest], State) ->
     parse_args(Rest, State#state{verbose = true});
+parse_args(["-o", Path | Rest], State) ->
+    parse_args(Rest, State#state{out = Path});
 parse_args(["-h" | _Rest], _State) ->
     print_usage(),
     erlang:halt(0);
@@ -83,12 +94,19 @@ parse_args([Name | Rest], State0) ->
 parse_args([], State) ->
     State#state{files = lists:reverse(State#state.files)}.
 
+parse_opts([verbose | Rest], State) ->
+    parse_opts(Rest, State#state{verbose = true});
+parse_opts([{out, Path} | Rest], State) ->
+    parse_opts(Rest, State#state{out = Path});
+parse_opts([], State) ->
+    State.
+
 run_format(State) ->
     #state{errors = Errors, warnings = Warnings} =
-        lists:foldl(fun format_file/2, State, State#state.files),
+        lists:foldl(fun run_format_file/2, State, State#state.files),
     #state{errors = lists:reverse(Errors), warnings = lists:reverse(Warnings)}.
 
-format_file(FileName, State0) ->
+run_format_file(FileName, State0) ->
     case State0#state.verbose of
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
         false -> ok
@@ -164,12 +182,18 @@ format_form(Form) ->
     [erlfmt_algebra:document_render(Doc, [{page_width, ?PAGE_WIDTH}]), $\n].
 
 write_forms(FileName, Formatted, State) ->
-    case file:write_file(FileName, unicode:characters_to_binary(Formatted)) of
+    OutFileName = out_file(FileName, State),
+    case file:write_file(OutFileName, unicode:characters_to_binary(Formatted)) of
         ok ->
             State;
         {error, Reason} ->
             throw({error, {FileName, 0, file, Reason}})
     end.
+
+out_file(FileName, #state{out = replace}) ->
+    FileName;
+out_file(FileName, #state{out = Path}) ->
+    filename:join(Path, filename:basename(FileName)).
 
 %% Keep warnings and errors separate in case we want to colour them
 print_warning(Warning) ->
@@ -181,5 +205,7 @@ print_error(Error) ->
 -spec format_error_info(error_info()) -> unicode:chardata().
 format_error_info({FileName, {Line, Col}, Mod, Reason}) ->
     io_lib:format("~ts:~B:~B: ~ts", [FileName, Line, Col, Mod:format_error(Reason)]);
-format_error_info({FileName, Line, Mod, Reason}) ->
+format_error_info({FileName, #{location := {Line, Col}}, Mod, Reason}) ->
+    io_lib:format("~ts:~B:~B: ~ts", [FileName, Line, Col, Mod:format_error(Reason)]);
+format_error_info({FileName, Line, Mod, Reason}) when is_integer(Line) ->
     io_lib:format("~ts:~B: ~ts", [FileName, Line, Mod:format_error(Reason)]).
