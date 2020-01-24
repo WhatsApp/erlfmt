@@ -41,7 +41,8 @@
     clauses/1,
     types/1,
     annos/1,
-    smoke_test_cli/1
+    smoke_test_cli/1,
+    snapshot_simple_module/1
 ]).
 
 suite() ->
@@ -84,7 +85,11 @@ groups() ->
             annos
         ]},
         {smoke_tests, [parallel], [
+            {group, snapshot_tests},
             smoke_test_cli
+        ]},
+        {snapshot_tests, [parallel], [
+            snapshot_simple_module
         ]}
     ].
 
@@ -718,3 +723,13 @@ smoke_test_cli(Config) when is_list(Config) ->
     %% this relies on the _build structure rebar3 uses
     Escript = filename:join(code:lib_dir(erlfmt), "../../bin/erlfmt"),
     ?assertMatch("Usage: erlfmt " ++ _, os:cmd(Escript ++ " -h")).
+
+snapshot_simple_module(Config) -> snapshot("simple_module.erl", Config).
+
+snapshot(Module, Config) ->
+    DataDir = ?config(data_dir, Config),
+    PrivDir = ?config(priv_dir, Config),
+    erlfmt:format_file(filename:join(DataDir, Module), [{out, PrivDir}]),
+    {ok, Original} = file:read_file(filename:join(DataDir, Module)),
+    {ok, Formatted} = file:read_file(filename:join(PrivDir, Module)),
+    ?assertEqual(Original, Formatted).
