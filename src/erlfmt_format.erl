@@ -222,6 +222,10 @@ unary_needs_space(_, _) ->
 binary_op_to_algebra('..', _Meta, Left, Right) ->
     %% .. is special - non-assoc, no spaces around and never breaks
     wrap(expr_to_algebra(Left), document_text(".."), expr_to_algebra(Right));
+binary_op_to_algebra('/', _Meta, {atom, _, _} = Left, {integer, _, _} = Right) ->
+    %% special-case the foo/N syntax in attributes, division with a literal atom
+    %% doesn't make sense in normal code, so it's safe to apply it everywhere
+    wrap(expr_to_algebra(Left), document_text("/"), expr_to_algebra(Right));
 binary_op_to_algebra(Op, Meta0, Left, Right) ->
     %% don't print parens twice - expr_to_algebra took care of top-level
     Meta = erlfmt_scan:delete_anno(parens, Meta0),
