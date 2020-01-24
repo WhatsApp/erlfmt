@@ -1056,9 +1056,8 @@ attribute(Config) when is_list(Config) ->
     ?assertFormatForm("-else .", "-else."),
     ?assertFormatForm("- foo (\n1).", "-foo(1)."),
     ?assertSameForm("-compile([export_all, nowarn_export_all])."),
-    %% TODO: fix the spaces
-    ?assertSameForm("-import(foo, [bar / 2, baz / 0])."),
-    ?assertSameForm("-export([bar / 2, baz / 3])."),
+    ?assertSameForm("-import(foo, [bar/2, baz/0])."),
+    ?assertSameForm("-export([bar/2, baz/3])."),
     ?assertFormatForm(
         "-attribute([Long, Value]).",
         "-attribute(\n"
