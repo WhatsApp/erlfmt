@@ -24,7 +24,8 @@
     document_choice/2,
     document_single_line/1,
     document_render/2,
-    document_reduce/2
+    document_reduce/2,
+    document_fail/0
 ]).
 
 -export_type([text/0, str/0, lines/0, metric/0, document/0, option/0]).
@@ -183,6 +184,9 @@ document_combine(Document1, Document2) ->
 
 -spec document_flush(document()) -> document().
 document_flush(Document) -> #doc_flush{doc = Document}.
+
+-spec document_fail() -> document().
+document_fail() -> #doc_fail{}.
 
 -spec document_choice(document(), document()) -> document().
 %% TODO: try to reduce the number of choices if both alternatives have the same

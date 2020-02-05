@@ -40,6 +40,7 @@
     document80_choice_case/1,
     document20_choice_case/1,
     document_unit/1,
+    document_fail/1,
     document_paper_example/1
 ]).
 
@@ -77,6 +78,7 @@ groups() ->
             document80_choice_case,
             document20_choice_case,
             document_unit,
+            document_fail,
             document_paper_example
         ]}
     ].
@@ -320,6 +322,10 @@ document_unit(Config) when is_list(Config) ->
         "     yyyy",
         unicode:characters_to_list(Render(Combined))
     ).
+
+document_fail(Config) when is_list(Config) ->
+    Doc = ?alg:document_fail(),
+    ?assertError(_, ?alg:document_render(Doc)).
 
 document_paper_example(Config) when is_list(Config) ->
     Abcd = [a, b, c, d],
