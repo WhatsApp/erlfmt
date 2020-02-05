@@ -74,8 +74,6 @@ do_expr_to_algebra({op, _Meta, Op, Expr}) ->
     unary_op_to_algebra(Op, Expr);
 do_expr_to_algebra({op, Meta, Op, Left, Right}) ->
     binary_op_to_algebra(Op, Meta, Left, Right);
-do_expr_to_algebra({typed, Meta, Left, Right}) ->
-    binary_op_to_algebra('::', Meta, Left, Right);
 do_expr_to_algebra({tuple, _Meta, Values}) ->
     container_to_algebra(Values, document_text("{"), document_text("}"));
 do_expr_to_algebra({list, _Meta, Values}) ->
