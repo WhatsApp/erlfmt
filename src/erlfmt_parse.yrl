@@ -119,7 +119,7 @@ type_sig -> type_argument_list '->' type :
 type_sig -> type_argument_list '->' type 'when' anno_types :
     {clause, ?range_anno('$1', '$5'), spec, ?val('$1'), [?val('$5')], ['$3']}.
 
-type -> type '::' type : {typed, ?range_anno('$1', '$3'), '$1', '$3'}.
+type -> type '::' type : ?mkop2('$1', '$2', '$3').
 type -> type '|' type : ?mkop2('$1', '$2', '$3').
 type -> type '..' type : ?mkop2('$1', '$2', '$3').
 type -> macro_call_type : '$1'.
@@ -217,7 +217,7 @@ expr -> expr list_op expr : ?mkop2('$1', '$2', '$3').
 expr -> expr add_op expr : ?mkop2('$1', '$2', '$3').
 expr -> expr mult_op expr : ?mkop2('$1', '$2', '$3').
 expr -> prefix_op expr : ?mkop1('$1', '$2').
-expr -> expr '::' type : {typed, ?range_anno('$1', '$3'), '$1', '$3'}.
+expr -> expr '::' type : ?mkop2('$1', '$2', '$3').
 expr -> map_expr : '$1'.
 expr -> function_call : '$1'.
 expr -> record_expr : '$1'.
@@ -654,7 +654,7 @@ Erlang code.
 -type af_type_decl() ::
     {attribute, anno(), type | opaque, {af_local_call(), abstract_type()}}.
 
--type af_field_decl() :: {typed, anno(), af_field(), abstract_type()} | af_field().
+-type af_field_decl() :: {op, anno(), '::', af_field(), abstract_type()} | af_field().
 
 -type af_field() :: {'record_field', anno(), af_field_name()}
                   | {'record_field', anno(), af_field_name(), abstract_expr()}.
@@ -832,9 +832,7 @@ Erlang code.
                        | af_type_union()
                        | af_type_variable().
 
--type af_annotated_type() :: {typed, anno(), af_anno(), abstract_type()}.
-
--type af_anno() :: af_variable().
+-type af_annotated_type() :: {op, anno(), '::', af_variable(), abstract_type()}.
 
 -type af_bitstring_type() :: af_bin({var, anno(), '_'}).
 
@@ -857,7 +855,7 @@ Erlang code.
     {record, anno(), af_record_name(), af_record_field_type()}.
 
 -type af_record_field_type() ::
-    {typed, anno(), af_field_name(), abstract_type()}.
+    {op, anno(), '::', af_field_name(), abstract_type()}.
 
 -type af_tuple_type() :: {tuple, anno(), [abstract_type()]}.
 
@@ -869,7 +867,7 @@ Erlang code.
     {spec, anno(), af_atom() | {remote, anno(), af_atom(), af_atom()}, [af_function_clause_type()]}.
 
 -type af_function_clause_type() ::
-    {clause, anno(), spec, [abstract_type()], [[{typed, anno(), af_variable(), abstract_type()}]], abstract_type()}.
+    {clause, anno(), spec, [abstract_type()], [[af_annotated_type()]], abstract_type()}.
 
 -type af_singleton_integer_type() :: af_integer()
                                    | af_character()
@@ -1027,9 +1025,9 @@ record_fields([{atom,Aa,A}|Fields]) ->
     [{record_field,Aa,{atom,Aa,A}}|record_fields(Fields)];
 record_fields([{op,_Am,'=',{atom,Aa,A},Expr}|Fields]) ->
     [{record_field,Aa,{atom,Aa,A},Expr}|record_fields(Fields)];
-record_fields([{typed,Am,Expr,TypeInfo}|Fields]) ->
+record_fields([{op,Am,'::',Expr,TypeInfo}|Fields]) ->
     [Field] = record_fields([Expr]),
-    [{typed,Am,Field,TypeInfo}|record_fields(Fields)];
+    [{op,Am,'::',Field,TypeInfo}|record_fields(Fields)];
 record_fields([Other|_Fields]) ->
     ret_err(?anno(Other), "bad record field");
 record_fields([]) -> [].

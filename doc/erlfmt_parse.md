@@ -79,4 +79,4 @@ In `erlfmt_parse` the following AST nodes have different definitions:
 
 * Representation for types is in general the same as for corresponding values.
   The `type` node is not used at all. This means new binary operators inside types
-  are defined: `|` and `..`. The `::` operator is represented by a special `typed` node.
+  are defined: `|`, `::`, and `..`.

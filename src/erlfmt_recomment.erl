@@ -44,11 +44,6 @@ insert({op, Meta0, Op, Left0, Right0}, Comments0) ->
     {Meta, Comments2} = put_pre_comments(Meta0, Comments1),
     {Right, Comments} = insert(Right0, Comments2),
     {{op, Meta, Op, Left, Right}, Comments};
-insert({typed, Meta0, Left0, Right0}, Comments0) ->
-    {Left, Comments1} = insert(Left0, Comments0),
-    {Meta, Comments2} = put_pre_comments(Meta0, Comments1),
-    {Right, Comments} = insert(Right0, Comments2),
-    {{typed, Meta, Left, Right}, Comments};
 insert({Collection, Meta0, Values0}, Comments0)
 when Collection =:= map; Collection =:= list; Collection =:= tuple; Collection =:= bin; Collection =:= block ->
     {Meta, Comments1} = put_pre_comments(Meta0, Comments0),
