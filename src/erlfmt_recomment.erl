@@ -184,6 +184,13 @@ insert({clause, Meta0, Name, Args0, Guards0, Body0}, Comments0) ->
     {Guards, Comments3} = insert(Guards0, Comments2),
     {Body, Comments} = insert(Body0, Comments3),
     {{clause, Meta, Name, Args, Guards, Body}, Comments};
+insert({Guard, Meta0, Guards0}, Comments0)
+when Guard =:= guard_or; Guard =:= guard_and ->
+    {Meta, Comments1} = put_pre_comments(Meta0, Comments0),
+    {Guards, Comments} = insert(Guards0, Comments1),
+    {{Guard, Meta, Guards}, Comments};
+insert(empty, Comments) ->
+    {empty, Comments};
 insert(List, Comments) when is_list(List) ->
     lists:mapfoldl(fun insert/2, Comments, List).
 

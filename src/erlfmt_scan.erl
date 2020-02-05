@@ -14,7 +14,7 @@
 -module(erlfmt_scan).
 
 -export([io_form/1, string_form/1, continue/1, last_form_string/1]).
--export([put_anno/3, delete_anno/2, get_anno/2, get_anno/3, text/1]).
+-export([put_anno/3, delete_anno/2, delete_annos/2, get_anno/2, get_anno/3]).
 
 -export_type([state/0, anno/0, token/0]).
 
@@ -31,7 +31,7 @@
 
 -type comment() :: {comment, anno(), [string()]}.
 
--type anno() :: #{location := location(), end_location := location(), atom() => term()}.
+-type anno() :: #{location := location(), end_location := location(), text => string(), atom() => term()}.
 
 -type location() :: {pos_integer(), pos_integer()}.
 
@@ -151,6 +151,11 @@ delete_anno(Key, Anno) when is_map(Anno) ->
 delete_anno(Key, Node) when is_tuple(Node) ->
     setelement(2, Node, maps:remove(Key, element(2, Node))).
 
+delete_annos(Keys, Anno) when is_map(Anno) ->
+    maps:without(Keys, Anno);
+delete_annos(Keys, Node) when is_tuple(Node) ->
+    setelement(2, Node, maps:without(Keys, element(2, Node))).
+
 get_anno(Key, Anno) when is_map(Anno) ->
     map_get(Key, Anno);
 get_anno(Key, Node) when is_tuple(Node) ->
@@ -160,8 +165,6 @@ get_anno(Key, Anno, Default) when is_map(Anno) ->
     maps:get(Key, Anno, Default);
 get_anno(Key, Node, Default) when is_tuple(Node) ->
     maps:get(Key, element(2, Node), Default).
-
-text(AnnoOrNode) -> get_anno(text, AnnoOrNode).
 
 end_location("", Line, Column) ->
     {Line, Column};
