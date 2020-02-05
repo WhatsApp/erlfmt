@@ -13,10 +13,9 @@
     document_flush/1,
     document_choice/2,
     document_single_line/1,
-    document_reduce/2
+    document_reduce/2,
+    document_fail/0
 ]).
-
--import(erlfmt_scan, [text/1]).
 
 -define(INDENT, 4).
 
@@ -55,7 +54,7 @@ expr_to_algebra(Other) ->
 
 do_expr_to_algebra({Atomic, Meta, _Value})
 when Atomic =:= integer; Atomic =:= float; Atomic =:= char; Atomic =:= atom; Atomic =:= string; Atomic =:= var ->
-    document_text(text(Meta));
+    document_text(erlfmt_scan:get_anno(text, Meta));
 do_expr_to_algebra({concat, _Meta, Values0}) ->
     Values = lists:map(fun expr_to_algebra/1, Values0),
     Horizontal = document_reduce(fun combine_space/2, Values),
@@ -150,8 +149,8 @@ do_expr_to_algebra({'...', _Meta}) ->
     document_text("...");
 do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
     wrap(expr_to_algebra(Left), document_text("*"), expr_to_algebra(Right));
-do_expr_to_algebra(GuardList) when is_list(GuardList) ->
-    element(2, guards_to_algebra_pair(GuardList)).
+do_expr_to_algebra({guard_or, _Meta, Guards}) ->
+    element(2, do_guard_or_to_algebra_pair(Guards)).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
@@ -216,8 +215,8 @@ binary_op_to_algebra('/', _Meta, {atom, _, _} = Left, {integer, _, _} = Right) -
     %% doesn't make sense in normal code, so it's safe to apply it everywhere
     wrap(expr_to_algebra(Left), document_text("/"), expr_to_algebra(Right));
 binary_op_to_algebra(Op, Meta0, Left, Right) ->
-    %% don't print parens twice - expr_to_algebra took care of top-level
-    Meta = erlfmt_scan:delete_anno(parens, Meta0),
+    %% don't print parens and comments twice - expr_to_algebra took care of it already
+    Meta = erlfmt_scan:delete_annos([parens, pre_comments, post_comments], Meta0),
     binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT).
 
 binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
@@ -353,6 +352,7 @@ fun_to_algebra({function, Mod, Name, Arity}) ->
         document_text("/"),
         expr_to_algebra(Arity)
     ]);
+%% TODO: specialise single clause
 fun_to_algebra({clauses, Clauses}) ->
     ClausesD = clauses_to_algebra(Clauses),
     document_choice(
@@ -384,16 +384,16 @@ clause_to_algebra_pair(Other) ->
 do_clause_to_algebra_pair({clause, _Meta, 'if', [], Guards, Body}) ->
     BodyD = block_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
-    {SingleGuardsD, GuardsD} = guards_to_algebra_pair(Guards),
+    {SingleGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards),
 
     SingleD = wrap(SingleGuardsD, document_text(" -> "), SingleBodyD),
     MultiD = combine_nested(document_combine(GuardsD, document_text(" ->")), BodyD),
 
     {SingleD, MultiD};
 %% If there are no guards, spec is the same as regular clauses
-do_clause_to_algebra_pair({clause, _Meta, spec, Args, Guards, [Body]}) when Guards =/= [] ->
+do_clause_to_algebra_pair({clause, _Meta, spec, Args, Guards, [Body]}) when Guards =/= empty ->
     {SingleHeadD, HeadD} = clause_head_to_algebra(spec, Args),
-    {SingleGuardsD, GuardsD} = guards_to_algebra_pair(Guards),
+    {SingleGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards),
     BodyD = expr_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
 
@@ -409,7 +409,7 @@ do_clause_to_algebra_pair({clause, _Meta, spec, Args, Guards, [Body]}) when Guar
     MultiD = combine_newline(MultiPrefix, document_combine(document_text("when "), GuardsD)),
 
     {SingleD, MultiD};
-do_clause_to_algebra_pair({clause, _Meta, Name, Args, [], Body}) ->
+do_clause_to_algebra_pair({clause, _Meta, Name, Args, empty, Body}) ->
     {SingleHeadD, HeadD} = clause_head_to_algebra(Name, Args),
     BodyD = block_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
@@ -421,7 +421,7 @@ do_clause_to_algebra_pair({clause, _Meta, Name, Args, [], Body}) ->
     {SingleD, MultiD};
 do_clause_to_algebra_pair({clause, _Meta, Name, Args, Guards, Body}) ->
     {SingleHeadD, HeadD} = clause_head_to_algebra(Name, Args),
-    {SingleGuardsD, GuardsD} = guards_to_algebra_pair(Guards),
+    {SingleGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards),
     BodyD = block_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
 
@@ -455,19 +455,34 @@ clause_head_to_algebra(Name, Args) ->
     Prefix = document_combine(expr_to_algebra(Name), document_text("(")),
     container_to_algebra_pair(Args, Prefix, document_text(")")).
 
-guards_to_algebra_pair(Guards) ->
-    {SingleLine, MultiLine} = lists:unzip(lists:map(fun guard_alt_to_algebra_pair/1, Guards)),
+guard_or_to_algebra_pair({guard_or, Meta, Guards}) ->
+    case comments(Meta) of
+        {[], []} ->
+            do_guard_or_to_algebra_pair(Guards);
+        {Pre, Post} ->
+            {_, Doc} = do_guard_or_to_algebra_pair(Guards),
+            {document_fail(), combine_pre_comments(Pre, combine_post_comments(Post, Doc))}
+    end.
+
+do_guard_or_to_algebra_pair(Guards) ->
+    {SingleLine, MultiLine} = lists:unzip(lists:map(fun guard_and_to_algebra_pair/1, Guards)),
     SingleLineD = document_reduce(fun combine_semi_space/2, SingleLine),
     MultiLineD = document_reduce(fun combine_semi_newline/2, MultiLine),
     {SingleLineD, document_choice(SingleLineD, MultiLineD)}.
 
-guard_alt_to_algebra_pair(Alt) ->
-    AltD = lists:map(fun expr_to_algebra/1, Alt),
-    SingleLine = lists:map(fun erlfmt_algebra:document_single_line/1, AltD),
+guard_and_to_algebra_pair({guard_and, Meta, Exprs}) ->
+    ExprsD = lists:map(fun expr_to_algebra/1, Exprs),
+    case comments(Meta) of
+        {[], []} ->
+            SingleLine = lists:map(fun erlfmt_algebra:document_single_line/1, ExprsD),
 
-    SingleLineD = document_reduce(fun combine_comma_space/2, SingleLine),
-    MultiLineD = document_reduce(fun combine_comma_newline/2, AltD),
-    {SingleLineD, document_choice(SingleLineD, MultiLineD)}.
+            SingleLineD = document_reduce(fun combine_comma_space/2, SingleLine),
+            MultiLineD = document_reduce(fun combine_comma_newline/2, ExprsD),
+            {SingleLineD, document_choice(SingleLineD, MultiLineD)};
+        {Pre, Post} ->
+            Doc = document_reduce(fun combine_comma_newline/2, ExprsD),
+            {document_fail(), combine_pre_comments(Pre, combine_post_comments(Post, Doc))}
+    end.
 
 receive_after_to_algebra(Expr, Body) ->
     ExprD = expr_to_algebra(Expr),
