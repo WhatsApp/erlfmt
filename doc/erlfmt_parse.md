@@ -21,10 +21,15 @@ In `erlfmt_parse` the following AST nodes have different definitions:
   `'case'` for case, receive and "of" part of try expressions,
   `'if'` for if expressions and `catch` for "catch" part of try expressions,
   `spec` for clauses of a function spec inside `spec` and `callback` attributes.
+  The element `Guards` can either be an atom `empty` or a `guard_or` node.
 
 * The `clause` nodes tagged with `catch` have 1 to 3 arguments representing
   the various syntaxes of catch clauses. This replaces a fixed 3-tuple as a single
   argument of the clause.
+
+* New `{guard_or, Anno, GuardAndList}` and `{guard_and, Anno, Exprs}` nodes
+  are introduced to support annotating guard sequences, insted of a plain
+  nested list of lists structure.
 
 * The `function` node has a different AST representation:
   `{function, Anno, Clauses}`, where `Clauses` is a list of `clause` nodes

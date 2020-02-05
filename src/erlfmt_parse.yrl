@@ -40,7 +40,7 @@ fun_expr fun_clause fun_clauses
 atom_or_var atom_or_var_or_macro integer_or_var_or_macro
 try_expr try_catch try_clause try_clauses try_opt_stacktrace
 function_call argument_list
-exprs anno_exprs guard vars
+exprs anno_exprs guard guard_or vars
 atomic concatable concatables macro_record_or_concatable
 prefix_op mult_op add_op list_op comp_op
 binary bin_elements bin_element bit_expr bit_size_expr bit_type_list bit_type
@@ -115,9 +115,10 @@ type_sigs -> type_sig : {['$1'], ?anno('$1')}.
 type_sigs -> type_sig ';' type_sigs : {['$1' | ?val('$3')], ?anno('$3')}.
 
 type_sig -> type_argument_list '->' type :
-    {clause, ?range_anno('$1', '$3'), spec, ?val('$1'), [], ['$3']}.
+    {clause, ?range_anno('$1', '$3'), spec, ?val('$1'), empty, ['$3']}.
 type_sig -> type_argument_list '->' type 'when' anno_types :
-    {clause, ?range_anno('$1', '$5'), spec, ?val('$1'), [?val('$5')], ['$3']}.
+    Guard = {guard_or, ?anno('$5'), [{guard_and, ?anno('$5'), ?val('$5')}]},
+    {clause, ?range_anno('$1', '$5'), spec, ?val('$1'), Guard, ['$3']}.
 
 type -> type '::' type : ?mkop2('$1', '$2', '$3').
 type -> type '|' type : ?mkop2('$1', '$2', '$3').
@@ -203,7 +204,7 @@ function_clause -> macro_call_expr :
 clause_args -> pat_argument_list : ?val('$1').
 
 clause_guard -> 'when' guard : '$2'.
-clause_guard -> '$empty' : [].
+clause_guard -> '$empty' : empty.
 
 clause_body -> '->' anno_exprs: '$2'.
 
@@ -390,7 +391,7 @@ if_clauses -> if_clause : ['$1'].
 if_clauses -> if_clause ';' if_clauses : ['$1' | '$3'].
 
 if_clause -> guard clause_body :
-        {clause,?range_anno(hd(hd('$1')), '$2'),'if',[],'$1',?val('$2')}.
+        {clause,?range_anno('$1', '$2'),'if',[],'$1',?val('$2')}.
 
 case_expr -> 'case' expr 'of' cr_clauses 'end' :
         {'case',?range_anno('$1', '$5'),'$2','$4'}.
@@ -548,8 +549,12 @@ macro_exprs -> macro_expr ',' macro_exprs : ['$1' | '$3'].
 vars -> var : ['$1'].
 vars -> var ',' vars : ['$1' | '$3'].
 
-guard -> exprs : ['$1'].
-guard -> exprs ';' guard : ['$1'|'$3'].
+guard -> guard_or : {guard_or, ?range_anno(hd(?val('$1')), '$1'), ?val('$1')}.
+
+guard_or -> anno_exprs :
+    {[{guard_and, ?range_anno(hd(?val('$1')), '$1'), ?val('$1')}], ?anno('$1')}.
+guard_or -> exprs ';' guard_or :
+    {[{guard_and, ?range_anno(hd('$1'), '$2'), '$1'} | ?val('$3')], ?anno('$3')}.
 
 atomic -> char : '$1'.
 atomic -> integer : '$1'.
@@ -995,7 +1000,7 @@ parse_form([{'-',A1},{atom,A2,callback}|Tokens]) ->
     NewTokens = [{'-',A1},{'callback',A2}|Tokens],
     parse(NewTokens);
 parse_form([{'-',A1},{atom,A2,define}|Tokens]) ->
-    NewTokens1 = [{'-',A2},{define_expr,A2}|Tokens],
+    NewTokens1 = [{'-',A1},{define_expr,A2}|Tokens],
     case parse(NewTokens1) of
         {ok, _} = Res ->
             Res;
@@ -1006,6 +1011,9 @@ parse_form([{'-',A1},{atom,A2,define}|Tokens]) ->
 parse_form(Tokens) ->
     parse(Tokens).
 
+%% unwrap single-expr definitions, wrapped in guards by the parser
+build_macro_def({'-', Anno}, {define_expr, AttrAnno}, {Name, {guard_or, _, [{guard_and, _, [Body]}]}}) ->
+    {attribute, Anno, {atom, AttrAnno, define}, [Name, Body]};
 build_macro_def({'-', Anno}, {_, AttrAnno}, {Name, Body}) ->
     {attribute, Anno, {atom, AttrAnno, define}, [Name, Body]}.
 
