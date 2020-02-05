@@ -120,22 +120,22 @@ records(Config) when is_list(Config) ->
     ),
     ?assertMatch(
         {attribute, _, {atom, _, record}, [{atom, _, foo}, {tuple, _, [
-            {typed, _, {record_field, _, {atom, _, a}, {integer, _, 1}}, {call, _, {atom, _, integer}, []}},
-            {typed, _, {record_field, _, {atom, _, b}}, {call, _, {atom, _, float}, []}},
+            {op, _, '::', {record_field, _, {atom, _, a}, {integer, _, 1}}, {call, _, {atom, _, integer}, []}},
+            {op, _, '::', {record_field, _, {atom, _, b}}, {call, _, {atom, _, float}, []}},
             {record_field, _, {atom, _, c}, {integer, _, 2}},
             {record_field, _, {atom, _, d}}
         ]}]},
         parse_form("-record(foo, {a = 1 :: integer(), b :: float(), c  = 2, d}).")
     ),
     ?assertMatch(
-        {attribute, _, {atom, _, type}, [{typed, _,
+        {attribute, _, {atom, _, type}, [{op, _, '::',
             {call, _, {atom, _, foo}, []},
             {record, _, {atom, _, foo}, []}
         }]},
         parse_form("-type foo() :: #foo{}.")
     ),
     ?assertMatch(
-        {attribute, _, {atom, _, opaque}, [{typed, _,
+        {attribute, _, {atom, _, opaque}, [{op, _, '::',
             {call, _, {atom, _, foo}, []},
             {record, _, {atom, _, foo}, []}
         }]},
@@ -207,8 +207,8 @@ specs(Config) when is_list(Config) ->
         {attribute, _, {atom, _, callback}, [{spec, _, {atom, _, foo}, [
             {clause, _, spec, [{var, _, 'X'}],
                 [[
-                    {typed, _, {var, _, 'X'}, {call, _, {atom, _, integer}, []}},
-                    {typed, _, {var, _, 'Y'}, {call, _, {atom, _, atom}, []}}
+                    {op, _, '::', {var, _, 'X'}, {call, _, {atom, _, integer}, []}},
+                    {op, _, '::', {var, _, 'Y'}, {call, _, {atom, _, atom}, []}}
                 ]],
                 [{var, _, 'Y'}]}
         ]}]},
@@ -564,7 +564,7 @@ clauses(Config) when is_list(Config) ->
 
 types(Config) when is_list(Config) ->
     ?assertMatch(
-        {typed, _, {var, _, 'Foo'}, {atom, _, foo}},
+        {op, _, '::', {var, _, 'Foo'}, {atom, _, foo}},
         parse_type("Foo :: foo")
     ),
     ?assertMatch(
@@ -707,7 +707,7 @@ parse_pat(String) ->
     Pat.
 
 parse_type(String) ->
-    {attribute, _, {atom, _, type}, [{typed, _, _, Type}]} =
+    {attribute, _, {atom, _, type}, [{op, _, '::', _, Type}]} =
         parse_form("-type foo() :: " ++ String ++ "."),
     Type.
 
