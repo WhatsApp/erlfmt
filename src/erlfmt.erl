@@ -71,7 +71,7 @@ format_file(Path, Opts) ->
 
 print_usage() ->
     io:format("~s", [[
-"Usage: ", ?COMMAND_NAME, " [-vh] [files...]
+"Usage: ", ?COMMAND_NAME, " [-vh] [-o Path] [files...]
 
 ", ?COMMAND_NAME, " is a code formatter for Erlang.
 
@@ -85,7 +85,7 @@ Options:
 
   -o Path -- output path (default \".\" replacing original files)
 
-  -h -- print this help message
+  --help (-h) -- print this help message
 
 "
     ]]).
@@ -94,12 +94,15 @@ parse_args(["-v" | Rest], State) ->
     parse_args(Rest, State#state{verbose = true});
 parse_args(["-o", Path | Rest], State) ->
     parse_args(Rest, State#state{out = Path});
-parse_args(["-h" | _Rest], _State) ->
+parse_args([Help | _Rest], _State) when Help =:= "-h"; Help =:= "--help" ->
     print_usage(),
     erlang:halt(0);
 parse_args([Name | Rest], State0) ->
     State = State0#state{files = [Name | State0#state.files]},
     parse_args(Rest, State);
+parse_args([], #state{files = []}) ->
+    print_usage(),
+    erlang:halt(0);
 parse_args([], State) ->
     State#state{files = lists:reverse(State#state.files)}.
 
