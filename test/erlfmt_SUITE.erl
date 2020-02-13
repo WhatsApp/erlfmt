@@ -1034,11 +1034,10 @@ snapshot_same(Module, Config) ->
 snapshot_formatted(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     PrivDir = ?config(priv_dir, Config),
-    FormattedPrivDir = filename:join([PrivDir, formatted]),
     {ok, _} = erlfmt:format_file(filename:join([DataDir, Module]), [{out, PrivDir}]),
-    {ok, _} = erlfmt:format_file(filename:join([DataDir, formatted, Module]), [{out, FormattedPrivDir}]),
-    {ok, Expected} = file:read_file(filename:join([DataDir, formatted, Module])),
+    {ok, _} = erlfmt:format_file(filename:join([DataDir, Module ++ ".formatted"]), [{out, PrivDir}]),
+    {ok, Expected} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
     {ok, Formatted} = file:read_file(filename:join([PrivDir, Module])),
-    {ok, FormattedFormatted} = file:read_file(filename:join([FormattedPrivDir, Module])),
+    {ok, FormattedFormatted} = file:read_file(filename:join([PrivDir, Module ++ ".formatted"])),
     ?assertEqual(Expected, Formatted),
     ?assertEqual(Expected, FormattedFormatted).
