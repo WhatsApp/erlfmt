@@ -634,27 +634,14 @@ Erlang code.
 -type abstract_form() ::
     af_function_decl() | af_attribute().
 
--type af_attribute() ::
-    af_function_spec() |
-    af_record_decl() |
-    af_type_decl() |
-    {attribute, anno(), atom(), [abstract_expr()]}.
+-type af_attribute() :: {attribute, anno(), af_atom(), [abstract_expr()]}.
 
--type af_function_spec() ::
-    {attribute, anno(), spec | callback, af_function_type()}.
-
--type af_record_decl() ::
-    {attribute, anno(), record, [af_record_name() | af_field_decl()]}.
-
--type af_type_decl() ::
-    {attribute, anno(), type | opaque, {af_local_call(), abstract_type()}}.
+-type af_function_decl() :: {function, anno(), af_clause_seq()}.
 
 -type af_field_decl() :: {op, anno(), '::', af_field(), abstract_type()} | af_field().
 
 -type af_field() :: {'record_field', anno(), af_field_name()}
                   | {'record_field', anno(), af_field_name(), abstract_expr()}.
-
--type af_function_decl() :: {function, anno(), af_clause_seq()}.
 
 -type abstract_expr() :: af_literal()
                        | af_variable()
@@ -679,7 +666,11 @@ Erlang code.
                        | af_try()
                        | af_receive()
                        | af_fun()
-                       | af_macro_call().
+                       | af_macro_call()
+                       | af_function_type()
+                       | af_record_name()
+                       | af_field_decl()
+                       | abstract_type().
 
 -type af_record_update(T) :: {'record',
                               anno(),
@@ -751,9 +742,9 @@ Erlang code.
 
 -type af_body() :: [abstract_expr(), ...].
 
--type af_guard_seq() :: [af_guard()].
+-type af_guard_seq() :: empty | {guard_or, anno(), [af_guard(), ...]}.
 
--type af_guard() :: [af_guard_test(), ...].
+-type af_guard() :: {guard_and, anno(), [af_guard_test(), ...]}.
 
 -type af_guard_test() :: af_literal()
                        | af_variable()
