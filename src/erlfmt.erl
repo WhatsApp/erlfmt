@@ -193,11 +193,12 @@ format_form(Form) ->
 
 write_forms(FileName, Formatted, State) ->
     OutFileName = out_file(FileName, State),
+    file:make_dir(filename:dirname(OutFileName)),
     case file:write_file(OutFileName, unicode:characters_to_binary(Formatted)) of
         ok ->
             State;
         {error, Reason} ->
-            throw({error, {FileName, 0, file, Reason}})
+            throw({error, {OutFileName, 0, file, Reason}})
     end.
 
 out_file(FileName, #state{out = replace}) ->

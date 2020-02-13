@@ -7,17 +7,18 @@
 -export([io_form/1, string_form/1, continue/1, last_form_string/1]).
 -export([put_anno/3, delete_anno/2, delete_annos/2, get_anno/2, get_anno/3]).
 
--export_type([state/0, anno/0, token/0]).
+-export_type([state/0, anno/0, token/0, comment/0]).
 
 -define(ERL_SCAN_OPTS, [text, return_white_spaces, return_comments]).
 
 -define(START_LOCATION, {1, 1}).
 
 -record(state, {
-    cont :: fun((term(), erl_anno:location()) -> form_ret()),
+    cont :: fun((term(), erl_anno:location(), [erl_scan:token()]) -> form_ret()),
     state :: term(),
     loc :: erl_anno:location(),
-    original :: [erl_scan:token()]
+    original :: [erl_scan:token()],
+    buffer :: [erl_scan:token()]
 }).
 
 -type comment() :: {comment, anno(), [string()]}.
@@ -36,13 +37,25 @@
 -opaque state() :: #state{}.
 
 -spec io_form(file:io_device()) -> form_ret().
-io_form(IO) -> io_continue(IO, ?START_LOCATION).
+io_form(IO) ->
+    case io:scan_erl_form(IO, "", ?START_LOCATION, ?ERL_SCAN_OPTS) of
+        {ok, Tokens, Loc} ->
+            io_continue(IO, Loc, Tokens);
+        {error, Reason} ->
+            {error, {?START_LOCATION, file, Reason}};
+        Other ->
+            Other
+    end.
 
-io_continue(IO, Loc0) ->
+io_continue(IO, Loc0, Buffer0) ->
     case io:scan_erl_form(IO, "", Loc0, ?ERL_SCAN_OPTS) of
         {ok, Tokens0, Loc} ->
-            {Tokens, Comments} = preprocess_tokens(Tokens0),
-            State = #state{cont = fun io_continue/2, state = IO, loc = Loc, original = Tokens0},
+            {Tokens, FormTokens, Comments, Buffer} = split_tokens(Buffer0, Tokens0),
+            State = #state{cont = fun io_continue/3, state = IO, loc = Loc, original = FormTokens, buffer = Buffer},
+            {ok, Tokens, Comments, State};
+        {eof, Loc} ->
+            {Tokens, FormTokens, Comments, []} = split_tokens(Buffer0, []),
+            State = #state{cont = fun eof/3, state = undefined, loc = Loc, original = FormTokens, buffer = []},
             {ok, Tokens, Comments, State};
         {error, Reason} ->
             {error, {Loc0, file, Reason}, Loc0};
@@ -50,22 +63,44 @@ io_continue(IO, Loc0) ->
             Other
     end.
 
--spec string_form(string()) -> form_ret().
-string_form(String) -> string_continue(String, ?START_LOCATION).
+eof(_State, Loc, _Buffer) ->
+    {eof, Loc}.
 
-string_continue(String, Loc0) ->
+-spec string_form(string()) -> form_ret().
+string_form(String) ->
+    case erl_scan:tokens([], String, ?START_LOCATION, ?ERL_SCAN_OPTS) of
+        {done, {ok, Tokens, Loc}, Rest} ->
+            string_continue(Rest, Loc, Tokens);
+        {more, Cont} ->
+            case erl_scan:tokens(Cont, eof, ?START_LOCATION, ?ERL_SCAN_OPTS) of
+                {done, {ok, Tokens0, Loc}, eof} ->
+                    {Tokens, FormTokens, Comments, []} = split_tokens(Tokens0, []),
+                    State = #state{cont = fun eof/3, state = undefined, loc = Loc, original = FormTokens, buffer = []},
+                    {ok, Tokens, Comments, State};
+                {done, Other, _Rest} ->
+                    Other
+            end;
+        {done, Other, _Rest} ->
+            Other
+    end.
+
+string_continue(String, Loc0, Buffer0) ->
     case erl_scan:tokens([], String, Loc0, ?ERL_SCAN_OPTS) of
         {done, {ok, Tokens0, Loc}, Rest} ->
-            {Tokens, Comments} = preprocess_tokens(Tokens0),
-            State = #state{cont = fun string_continue/2, state = Rest, loc = Loc, original = Tokens0},
+            {Tokens, FormTokens, Comments, Buffer} = split_tokens(Buffer0, Tokens0),
+            State = #state{cont = fun string_continue/3, state = Rest, loc = Loc, original = FormTokens, buffer = Buffer},
+            {ok, Tokens, Comments, State};
+        {done, {eof, Loc}, _Rest} ->
+            {Tokens, FormTokens, Comments, []} = split_tokens(Buffer0, []),
+            State = #state{cont = fun eof/3, state = undefined, loc = Loc, original = FormTokens, buffer = []},
             {ok, Tokens, Comments, State};
         {done, Other, _Rest} ->
             Other;
         {more, Cont} ->
             case erl_scan:tokens(Cont, eof, Loc0, ?ERL_SCAN_OPTS) of
-                {done, {ok, Tokens0, Loc}, Rest} ->
-                    {Tokens, Comments} = preprocess_tokens(Tokens0),
-                    State = #state{cont = fun string_continue/2, state = Rest, loc = Loc, original = Tokens0},
+                {done, {ok, Tokens0, Loc}, eof} ->
+                    {Tokens, FormTokens, Comments, []} = split_tokens(Buffer0, Tokens0),
+                    State = #state{cont = fun eof/3, state = undefined, loc = Loc, original = FormTokens, buffer = []},
                     {ok, Tokens, Comments, State};
                 {done, Other, _Rest} ->
                     Other
@@ -73,8 +108,8 @@ string_continue(String, Loc0) ->
     end.
 
 -spec continue(state()) -> form_ret().
-continue(#state{cont = Fun, state = State, loc = Loc}) ->
-    Fun(State, Loc).
+continue(#state{cont = Fun, state = State, loc = Loc, buffer = Buffer}) ->
+    Fun(State, Loc, Buffer).
 
 -spec last_form_string(state()) -> unicode:chardata().
 last_form_string(#state{original = Tokens}) ->
@@ -83,27 +118,54 @@ last_form_string(#state{original = Tokens}) ->
 %% TODO: make smarter
 stringify_token(Token) -> erl_anno:text(element(2, Token)).
 
--spec preprocess_tokens([erl_scan:token()]) -> {[erl_scan:token()], [comment()]}.
-preprocess_tokens(Tokens) -> preprocess_tokens(Tokens, [], []).
+-spec split_tokens([erl_scan:token()], [erl_scan:token()]) -> {[token()], [erl_scan:token()], [comment()], [token()]}.
+split_tokens(Tokens, ExtraTokens0) ->
+    case split_tokens(Tokens, [], []) of
+        {[], Comments} ->
+            {[], Tokens, Comments, ExtraTokens0};
+        {TransformedTokens, Comments} ->
+            #{end_location := {LastLine, _}} = element(2, lists:last(TransformedTokens)),
+            {ExtraComments, ExtraTokens, ExtraRest} = split_extra(ExtraTokens0, LastLine, []),
+            {TransformedTokens, Tokens ++ ExtraTokens, Comments ++ ExtraComments, ExtraRest}
+    end.
 
 %% TODO: annotate [, {, <<, (, -> with following newline info to control user folding/expanding
-preprocess_tokens([{comment, _, _} = Comment0 | Rest0], Acc, CAcc) ->
+split_tokens([{comment, _, _} = Comment0 | Rest0], Acc, CAcc) ->
     {Comment, Rest} = collect_comments(Rest0, Comment0),
-    preprocess_tokens(Rest, Acc, [Comment | CAcc]);
-preprocess_tokens([{white_space, _, _} | Rest], Acc, CAcc) ->
-    preprocess_tokens(Rest, Acc, CAcc);
-preprocess_tokens([{Atomic, Meta, Value} | Rest], Acc, CAcc)
+    split_tokens(Rest, Acc, [Comment | CAcc]);
+split_tokens([{white_space, _, _} | Rest], Acc, CAcc) ->
+    split_tokens(Rest, Acc, CAcc);
+split_tokens([{Atomic, Meta, Value} | Rest], Acc, CAcc)
 when Atomic =:= integer; Atomic =:= float; Atomic =:= char; Atomic =:= atom; Atomic =:= string; Atomic =:= var ->
-    preprocess_tokens(Rest, [{Atomic, atomic_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
-preprocess_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
-    preprocess_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
+    split_tokens(Rest, [{Atomic, atomic_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
+split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
+    split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
 %% Keep the `text` value for if in case it's used as an attribute
-preprocess_tokens([{Type, Meta} | Rest], Acc, CAcc) when Type =:= 'if' ->
-    preprocess_tokens(Rest, [{Type, atomic_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
-preprocess_tokens([{Type, Meta} | Rest], Acc, CAcc) ->
-    preprocess_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
-preprocess_tokens([], Acc, CAcc) ->
+split_tokens([{Type, Meta} | Rest], Acc, CAcc) when Type =:= 'if' ->
+    split_tokens(Rest, [{Type, atomic_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
+split_tokens([{Type, Meta} | Rest], Acc, CAcc) ->
+    split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
+split_tokens([], Acc, CAcc) ->
     {lists:reverse(Acc), lists:reverse(CAcc)}.
+
+split_extra([{comment, Meta, Text} = Token | Rest], Line, Acc) ->
+    case erl_anno:line(Meta) of
+        Line ->
+            Meta1 = erl_anno:to_term(Meta),
+            Extra = lists:reverse(Acc, [Token]),
+            {[{comment, comment_anno(Meta1, Meta1), [Text]}], Extra, Rest};
+        _ ->
+            {[], Acc, [Token | Rest]}
+    end;
+split_extra([{white_space, Meta, _} = Token | Rest], Line, Acc) ->
+    case erl_anno:line(Meta) of
+        Line ->
+            split_extra(Rest, Line, [Token | Acc]);
+        _ ->
+            {[], Acc, [Token | Rest]}
+    end;
+split_extra(Rest, _Line, Acc) ->
+    {[], Acc, Rest}.
 
 collect_comments(Tokens, {comment, Meta, Text}) ->
     Line = erl_anno:line(Meta),

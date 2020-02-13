@@ -123,7 +123,8 @@
     smoke_test_parser_wa_web/1,
     smoke_test_parser_webd/1,
     smoke_test_parser_zcrawld/1,
-    snapshot_simple_module/1
+    snapshot_simple_module/1,
+    snapshot_comments/1
 ]).
 
 suite() ->
@@ -259,7 +260,8 @@ groups() ->
             smoke_test_parser_zcrawld
         ]},
         {snapshot_tests, [parallel], [
-            snapshot_simple_module
+            snapshot_simple_module,
+            snapshot_comments
         ]}
     ].
 
@@ -1018,12 +1020,25 @@ excluded(File) ->
         ?EXCLUDE_FILES
     ).
 
-snapshot_simple_module(Config) -> snapshot("simple_module.erl", Config).
+snapshot_simple_module(Config) -> snapshot_same("simple_module.erl", Config).
+snapshot_comments(Config) -> snapshot_formatted("comments.erl", Config).
 
-snapshot(Module, Config) ->
+snapshot_same(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     PrivDir = ?config(priv_dir, Config),
     erlfmt:format_file(filename:join(DataDir, Module), [{out, PrivDir}]),
     {ok, Original} = file:read_file(filename:join(DataDir, Module)),
     {ok, Formatted} = file:read_file(filename:join(PrivDir, Module)),
     ?assertEqual(Original, Formatted).
+
+snapshot_formatted(Module, Config) ->
+    DataDir = ?config(data_dir, Config),
+    PrivDir = ?config(priv_dir, Config),
+    FormattedPrivDir = filename:join([PrivDir, formatted]),
+    {ok, _} = erlfmt:format_file(filename:join([DataDir, Module]), [{out, PrivDir}]),
+    {ok, _} = erlfmt:format_file(filename:join([DataDir, formatted, Module]), [{out, FormattedPrivDir}]),
+    {ok, Expected} = file:read_file(filename:join([DataDir, formatted, Module])),
+    {ok, Formatted} = file:read_file(filename:join([PrivDir, Module])),
+    {ok, FormattedFormatted} = file:read_file(filename:join([FormattedPrivDir, Module])),
+    ?assertEqual(Expected, Formatted),
+    ?assertEqual(Expected, FormattedFormatted).
