@@ -60,7 +60,6 @@
     smoke_test_parser_fbmd/1,
     smoke_test_parser_fgtd/1,
     smoke_test_parser_forgets/1,
-    smoke_test_parser_ftest/1,
     smoke_test_parser_gcalld/1,
     smoke_test_parser_grpd/1,
     smoke_test_parser_ipsd/1,
@@ -194,7 +193,6 @@ groups() ->
             smoke_test_parser_fbmd,
             smoke_test_parser_fgtd,
             smoke_test_parser_forgets,
-            smoke_test_parser_ftest,
             smoke_test_parser_gcalld,
             smoke_test_parser_grpd,
             smoke_test_parser_ipsd,
@@ -914,7 +912,6 @@ smoke_test_parser_erlfmt(Config) -> smoke_test_parser(erlfmt, Config).
 smoke_test_parser_fbmd(Config) -> smoke_test_parser(fbmd, Config).
 smoke_test_parser_fgtd(Config) -> smoke_test_parser(fgtd, Config).
 smoke_test_parser_forgets(Config) -> smoke_test_parser(forgets, Config).
-smoke_test_parser_ftest(Config) -> smoke_test_parser(ftest, Config).
 smoke_test_parser_gcalld(Config) -> smoke_test_parser(gcalld, Config).
 smoke_test_parser_grpd(Config) -> smoke_test_parser(grpd, Config).
 smoke_test_parser_ipsd(Config) -> smoke_test_parser(ipsd, Config).
