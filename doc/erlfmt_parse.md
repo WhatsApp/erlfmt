@@ -54,9 +54,9 @@ In `erlfmt_parse` the following AST nodes have different definitions:
   either an `atom` or a `var` node and `Args` is a list of expressions, types,
   or special `guard` nodes.
 
-* A new node `{guard, Anno, Expr, Guard}` is introduced, used only as argument
-  for a macro. It represents "free-standing" `Expr when Guard` expressions as used,
-  for example, in the `assertMatch` macro.
+* A new operator node `{op, Anno, 'when', Expr, Guard}` is introduced, used only as
+  argument for a macro. It represents "free-standing" `Expr when Guard` expressions
+  as used, for example, in the `assertMatch` macro.
 
 * A new node `{macro_string, Anno, Name}` is introduced, where `Name` is either
   an `atom` or a `var` node. It represents `??Name` macro syntax.

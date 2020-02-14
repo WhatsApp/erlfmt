@@ -50,7 +50,8 @@
     if_expression/1,
     macro/1,
     function/1,
-    attribute/1
+    attribute/1,
+    comment/1
 ]).
 
 suite() ->
@@ -122,7 +123,8 @@ groups() ->
 all() ->
     [
         {group, expressions},
-        {group, forms}
+        {group, forms},
+        comment
     ].
 
 %%--------------------------------------------------------------------
@@ -1025,8 +1027,8 @@ macro(Config) when is_list(Config) ->
     ?assertFormatExpr(
         "?assertMatch(X when is_integer(X), Y)",
         "?assertMatch(\n"
-        "    X\n"
-        "    when is_integer(X),\n"
+        "    X when\n"
+        "        is_integer(X),\n"
         "    Y\n"
         ")",
         23
@@ -1162,6 +1164,20 @@ attribute(Config) when is_list(Config) ->
     ),
     ?assertSameForm(
         "-type foo() :: {fun(), fun((...) -> mod:bar()), fun(() -> integer())}."
+    ).
+
+comment(Config) when is_list(Config) ->
+    ?assertSameExpr(
+        "%foo\n"
+        "1 + 2"
+    ),
+    ?assertFormatExpr(
+        "1 +\n"
+        "%% foo\n"
+        "2",
+        "1 +\n"
+        "    %% foo\n"
+        "    2"
     ).
 
 format_form(String, PageWidth) ->
