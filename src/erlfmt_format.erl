@@ -4,6 +4,8 @@
 
 -typing([dialyzer]).
 
+-include("erlfmt.hrl").
+
 -export([expr_to_algebra/1, form_to_algebra/1]).
 
 -import(erlfmt_algebra, [
@@ -52,8 +54,7 @@ expr_to_algebra(Expr) when is_tuple(Expr) ->
 expr_to_algebra(Other) ->
     do_expr_to_algebra(Other).
 
-do_expr_to_algebra({Atomic, Meta, _Value})
-when Atomic =:= integer; Atomic =:= float; Atomic =:= char; Atomic =:= atom; Atomic =:= string; Atomic =:= var ->
+do_expr_to_algebra({Atomic, Meta, _Value}) when ?IS_ATOMIC(Atomic) ->
     document_text(erlfmt_scan:get_anno(text, Meta));
 do_expr_to_algebra({concat, _Meta, Values0}) ->
     Values = lists:map(fun expr_to_algebra/1, Values0),
@@ -141,8 +142,6 @@ do_expr_to_algebra({'try', _Meta, Exprs, OfClauses, CatchClauses, After}) ->
     try_to_algebra(Exprs, OfClauses, CatchClauses, After);
 do_expr_to_algebra({'if', _Meta, Clauses}) ->
     wrap_nested(document_text("if"), clauses_to_algebra(Clauses), document_text("end"));
-do_expr_to_algebra({guard, _Meta, Expr, Guard}) ->
-    guard_to_algebra(Expr, Guard);
 do_expr_to_algebra({spec, _Meta, Name, Clauses}) ->
     document_combine(expr_to_algebra(Name), clauses_to_algebra(Clauses));
 do_expr_to_algebra({'...', _Meta}) ->
@@ -247,15 +246,25 @@ container_to_algebra(Values, Left, Right) ->
 container_to_algebra_pair([], Left, Right) ->
     Doc = document_combine(Left, Right),
     {Doc, Doc};
-container_to_algebra_pair(Values0, Left, Right) ->
-    Values = lists:map(fun expr_to_algebra/1, Values0),
-    SingleLine = lists:map(fun erlfmt_algebra:document_single_line/1, Values),
+container_to_algebra_pair(Values, Left, Right) ->
+    {Horizontal, Vertical} = container_values_to_algebra_pair(Values),
+    {wrap(Left, Horizontal, Right), wrap_nested(Left, Vertical, Right)}.
 
-    Horizontal = document_reduce(fun combine_comma_space/2, SingleLine),
-    Vertical = document_reduce(fun combine_comma_newline/2, Values),
-
-    Single = wrap(Left, Horizontal, Right),
-    Multi = wrap_nested(Left, Vertical, Right),
+%% standalone comments are always trailing, but can appear as only expressions
+container_values_to_algebra_pair([{comment, _, _} | _] = Comments) ->
+    {document_fail(), comments_to_algebra(Comments)};
+container_values_to_algebra_pair([Expr | [{comment, _, _} | _] = Comments]) ->
+    CommentsD = comments_to_algebra(Comments),
+    ExprD = expr_to_algebra(Expr),
+    {document_fail(), combine_newline(ExprD, CommentsD)};
+container_values_to_algebra_pair([Expr]) ->
+    ExprD = expr_to_algebra(Expr),
+    {document_single_line(ExprD), ExprD};
+container_values_to_algebra_pair([Expr | Rest]) ->
+    ExprD = expr_to_algebra(Expr),
+    {RestSingle, RestMulti} = container_values_to_algebra_pair(Rest),
+    Single = combine_comma_space(document_single_line(ExprD), RestSingle),
+    Multi = combine_comma_newline(ExprD, RestMulti),
     {Single, Multi}.
 
 cons_to_algebra(Head, Tail) ->
@@ -306,7 +315,7 @@ field_to_algebra(Op, Key, Value) ->
 
 comprehension_to_algebra(ExprD, LcExprs, Left, Right) ->
     PipesD = document_text("|| "),
-    {LcExprsSingleD, LcExprsMultiD} = comprehension_exprs_to_algebra_pair(LcExprs),
+    {LcExprsSingleD, LcExprsMultiD} = container_values_to_algebra_pair(LcExprs),
     LcExprsD = document_choice(LcExprsSingleD, LcExprsMultiD),
 
     SingleLine =
@@ -322,19 +331,14 @@ comprehension_to_algebra(ExprD, LcExprs, Left, Right) ->
         wrap_nested(Left, Multiline, Right)
     ).
 
-comprehension_exprs_to_algebra_pair(LcExprs0) ->
-    LcExprs = lists:map(fun expr_to_algebra/1, LcExprs0),
-    SingleLine = lists:map(fun erlfmt_algebra:document_single_line/1, LcExprs),
-
-    Horizontal = document_reduce(fun combine_comma_space/2, SingleLine),
-    Vertical = document_reduce(fun combine_comma_newline/2, LcExprs),
-
-    {Horizontal, Vertical}.
-
 %% TODO: insert extra newlines between expressions to preserve grouping.
-block_to_algebra(Exprs) ->
-    ExprsD = lists:map(fun expr_to_algebra/1, Exprs),
-    document_reduce(fun combine_comma_newline/2, ExprsD).
+%% standalone comments are always trailing other expressions
+block_to_algebra([Expr | [{comment, _, _} | _] = Comments]) ->
+    combine_newline(expr_to_algebra(Expr), comments_to_algebra(Comments));
+block_to_algebra([Expr]) ->
+    expr_to_algebra(Expr);
+block_to_algebra([Expr | Rest]) ->
+    combine_comma_newline(expr_to_algebra(Expr), block_to_algebra(Rest)).
 
 fun_to_algebra({function, Name, Arity}) ->
     combine_all([
@@ -363,14 +367,25 @@ fun_to_algebra(type) ->
     document_text("fun()");
 fun_to_algebra({type, Args, Result}) ->
     ResultD = document_combine(document_text(") -> "), expr_to_algebra(Result)),
-    document_combine(container_to_algebra(Args, document_text("fun(("), ResultD), document_text(")")).
+    wrap(document_text("fun("), container_to_algebra(Args, document_text("("), ResultD), document_text(")")).
 
 clauses_to_algebra(Clauses) ->
-    {SingleClausesD, ClausesD} = lists:unzip(lists:map(fun clause_to_algebra_pair/1, Clauses)),
-    document_choice(
-        document_reduce(fun combine_semi_newline/2, SingleClausesD),
-        document_reduce(fun combine_semi_newline/2, ClausesD)
-    ).
+    {Single, Multi} = clauses_to_algebra_pair(Clauses),
+    document_choice(Single, Multi).
+
+%% standalone comments are always trailing other expressions
+clauses_to_algebra_pair([Clause | [{comment, _, _} | _] = Comments]) ->
+    CommentsD = comments_to_algebra(Comments),
+    {SingleClauseD, MultiClauseD} = clause_to_algebra_pair(Clause),
+    {combine_newline(SingleClauseD, CommentsD), combine_newline(MultiClauseD, CommentsD)};
+clauses_to_algebra_pair([Clause]) ->
+    clause_to_algebra_pair(Clause);
+clauses_to_algebra_pair([Clause | Rest]) ->
+    {SingleClauseD, MultiClauseD} = clause_to_algebra_pair(Clause),
+    {RestSingle, RestMulti} = clauses_to_algebra_pair(Rest),
+    Single = combine_semi_newline(SingleClauseD, RestSingle),
+    Multi = combine_semi_newline(MultiClauseD, RestMulti),
+    {Single, Multi}.
 
 clause_to_algebra_pair({clause, Meta, _, _, _, _} = Clause) ->
     %% clause nodes only have precomments
@@ -485,13 +500,15 @@ guard_and_to_algebra_pair({guard_and, Meta, Exprs}) ->
     end.
 
 receive_after_to_algebra(Expr, Body) ->
-    ExprD = expr_to_algebra(Expr),
+    {Pre, []} = comments(element(2, Expr)),
+    ExprD = do_expr_to_algebra(Expr),
     BodyD = block_to_algebra(Body),
 
-    Head = wrap(document_text("after "), ExprD, document_text(" ->")),
+    HeadD = wrap(document_text("after "), ExprD, document_text(" ->")),
+    CommentHeadD = combine_pre_comments(Pre, HeadD),
     document_choice(
-        combine_space(Head, document_single_line(BodyD)),
-        combine_nested(Head, BodyD)
+        combine_space(CommentHeadD, document_single_line(BodyD)),
+        combine_nested(CommentHeadD, BodyD)
     ).
 
 try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
@@ -532,16 +549,6 @@ try_of_block(Exprs, OfClauses) ->
             )
     end.
 
-guard_to_algebra(Expr, Guard) ->
-    WhenD = document_text("when"),
-    ExprD = expr_to_algebra(Expr),
-    GuardD = expr_to_algebra(Guard),
-
-    document_choice(
-        combine_space(document_single_line(ExprD), combine_space(WhenD, document_single_line(GuardD))),
-        combine_newline(ExprD, combine_space(WhenD, GuardD))
-    ).
-
 maybe_wrap_in_parens(Meta, Doc) ->
     Parens = erlfmt_scan:get_anno(parens, Meta, false),
     if
@@ -559,7 +566,7 @@ combine_pre_comments(Comments, Doc) ->
 
 combine_post_comments([], Doc) -> Doc;
 combine_post_comments(Comments, Doc) ->
-    document_flush(combine_newline(Doc, comments_to_algebra(Comments))).
+    combine_newline(Doc, comments_to_algebra(Comments)).
 
 comments_to_algebra(Comments) ->
     %% TODO: should we add spaces in between?
