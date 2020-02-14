@@ -43,8 +43,6 @@
     annos/1,
     smoke_test_cli/1,
     smoke_test_parser_ac2d/1,
-    smoke_test_parser_adsd/1,
-    smoke_test_parser_agtd/1,
     smoke_test_parser_asyncwd/1,
     smoke_test_parser_autotest/1,
     smoke_test_parser_bcld/1,
@@ -179,8 +177,6 @@ groups() ->
         {smoke_test_parser, [parallel], [
             smoke_test_parser_wa, %% first since it's the slowest
             smoke_test_parser_ac2d,
-            smoke_test_parser_adsd,
-            smoke_test_parser_agtd,
             smoke_test_parser_asyncwd,
             smoke_test_parser_autotest,
             smoke_test_parser_bcld,
@@ -902,8 +898,6 @@ smoke_test_cli(Config) when is_list(Config) ->
     ?assertMatch("Usage: erlfmt " ++ _, os:cmd(Escript ++ " -h")).
 
 smoke_test_parser_ac2d(Config) -> smoke_test_parser(ac2d, Config).
-smoke_test_parser_adsd(Config) -> smoke_test_parser(adsd, Config).
-smoke_test_parser_agtd(Config) -> smoke_test_parser(agtd, Config).
 smoke_test_parser_asyncwd(Config) -> smoke_test_parser(asyncwd, Config).
 smoke_test_parser_bcld(Config) -> smoke_test_parser(bcld, Config).
 smoke_test_parser_bizd(Config) -> smoke_test_parser(bizd, Config).
