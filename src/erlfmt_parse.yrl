@@ -509,7 +509,7 @@ macro_string -> '?' '?' atom_or_var :
     {macro_string, ?range_anno('$1', '$3'), '$3'}.
 
 macro_expr -> expr : '$1'.
-macro_expr -> expr 'when' expr : {guard,?range_anno('$1', '$3'),'$1','$3'}.
+macro_expr -> expr 'when' expr : ?mkop2('$1', '$2', '$3').
 
 %% in all use places we only care about the position of final token,
 %% save up some work by not tracking the full, precise location
@@ -547,8 +547,8 @@ guard -> guard_or : {guard_or, ?range_anno(hd(?val('$1')), '$1'), ?val('$1')}.
 
 guard_or -> anno_exprs :
     {[{guard_and, ?range_anno(hd(?val('$1')), '$1'), ?val('$1')}], ?anno('$1')}.
-guard_or -> exprs ';' guard_or :
-    {[{guard_and, ?range_anno(hd('$1'), '$2'), '$1'} | ?val('$3')], ?anno('$3')}.
+guard_or -> anno_exprs ';' guard_or :
+    {[{guard_and, ?range_anno(hd(?val('$1')), '$1'), ?val('$1')} | ?val('$3')], ?anno('$3')}.
 
 atomic -> char : '$1'.
 atomic -> integer : '$1'.

@@ -45,7 +45,7 @@
     types/1,
     annos/1,
     smoke_test_cli/1,
-    snapshot_simple_module/1,
+    snapshot_simple_comments/1,
     snapshot_comments/1
 ]).
 
@@ -93,7 +93,7 @@ groups() ->
             smoke_test_cli
         ]},
         {snapshot_tests, [parallel], [
-            snapshot_simple_module,
+            snapshot_simple_comments,
             snapshot_comments
         ]}
     ].
@@ -252,7 +252,7 @@ macro_call_exprs(Config) when is_list(Config) ->
         parse_expr("??FOO")
     ),
     ?assertMatch(
-        {macro_call, _, {atom, _, foo}, [{guard, _, {atom, _, x}, {atom, _, true}}]},
+        {macro_call, _, {atom, _, foo}, [{op, _, 'when', {atom, _, x}, {atom, _, true}}]},
         parse_expr("?foo(x when true)")
     ),
     ?assertMatch(
@@ -733,7 +733,7 @@ smoke_test_cli(Config) when is_list(Config) ->
     Escript = filename:join(code:lib_dir(erlfmt), "../../bin/erlfmt"),
     ?assertMatch("Usage: erlfmt " ++ _, os:cmd(Escript ++ " -h")).
 
-snapshot_simple_module(Config) -> snapshot_same("simple_module.erl", Config).
+snapshot_simple_comments(Config) -> snapshot_same("simple_comments.erl", Config).
 snapshot_comments(Config) -> snapshot_formatted("comments.erl", Config).
 
 snapshot_same(Module, Config) ->
@@ -747,10 +747,10 @@ snapshot_same(Module, Config) ->
 snapshot_formatted(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     PrivDir = ?config(priv_dir, Config),
-    {ok, _} = erlfmt:format_file(filename:join([DataDir, Module]), [{out, PrivDir}]),
-    {ok, _} = erlfmt:format_file(filename:join([DataDir, Module ++ ".formatted"]), [{out, PrivDir}]),
     {ok, Expected} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
+    {ok, _} = erlfmt:format_file(filename:join([DataDir, Module]), [{out, PrivDir}]),
     {ok, Formatted} = file:read_file(filename:join([PrivDir, Module])),
-    {ok, FormattedFormatted} = file:read_file(filename:join([PrivDir, Module ++ ".formatted"])),
     ?assertEqual(Expected, Formatted),
+    {ok, _} = erlfmt:format_file(filename:join([DataDir, Module ++ ".formatted"]), [{out, PrivDir}]),
+    {ok, FormattedFormatted} = file:read_file(filename:join([PrivDir, Module ++ ".formatted"])),
     ?assertEqual(Expected, FormattedFormatted).

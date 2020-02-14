@@ -13,6 +13,8 @@
 %% limitations under the License.
 -module(erlfmt_scan).
 
+-include("erlfmt.hrl").
+
 -export([io_form/1, string_form/1, continue/1, last_form_string/1]).
 -export([put_anno/3, delete_anno/2, delete_annos/2, get_anno/2, get_anno/3]).
 
@@ -144,8 +146,7 @@ split_tokens([{comment, _, _} = Comment0 | Rest0], Acc, CAcc) ->
     split_tokens(Rest, Acc, [Comment | CAcc]);
 split_tokens([{white_space, _, _} | Rest], Acc, CAcc) ->
     split_tokens(Rest, Acc, CAcc);
-split_tokens([{Atomic, Meta, Value} | Rest], Acc, CAcc)
-when Atomic =:= integer; Atomic =:= float; Atomic =:= char; Atomic =:= atom; Atomic =:= string; Atomic =:= var ->
+split_tokens([{Atomic, Meta, Value} | Rest], Acc, CAcc) when ?IS_ATOMIC(Atomic) ->
     split_tokens(Rest, [{Atomic, atomic_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
 split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
     split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
