@@ -43,81 +43,105 @@
     annos/1,
     smoke_test_cli/1,
     smoke_test_parser_ac2d/1,
+    smoke_test_parser_admdb/1,
     smoke_test_parser_asyncwd/1,
     smoke_test_parser_autotest/1,
+    smoke_test_parser_bcastd/1,
     smoke_test_parser_bcld/1,
     smoke_test_parser_bizd/1,
+    smoke_test_parser_bizdb/1,
     smoke_test_parser_bl2d/1,
+    smoke_test_parser_calld/1,
     smoke_test_parser_camd/1,
     smoke_test_parser_cfgd/1,
     smoke_test_parser_chatd/1,
+    smoke_test_parser_clust/1,
     smoke_test_parser_ctsd/1,
     smoke_test_parser_deld/1,
     smoke_test_parser_deviced/1,
+    smoke_test_parser_dispatcher/1,
     smoke_test_parser_elgd/1,
     smoke_test_parser_erl2/1,
+    smoke_test_parser_erlbuild/1,
+    smoke_test_parser_erlclient/1,
     smoke_test_parser_erlfmt/1,
+    smoke_test_parser_fbid/1,
     smoke_test_parser_fbmd/1,
     smoke_test_parser_fgtd/1,
+    smoke_test_parser_filed/1,
     smoke_test_parser_forgets/1,
     smoke_test_parser_gcalld/1,
     smoke_test_parser_grpd/1,
     smoke_test_parser_ipsd/1,
-    smoke_test_parser_keyd/1,
     smoke_test_parser_llcd/1,
     smoke_test_parser_loader/1,
+    smoke_test_parser_loadtestd/1,
     smoke_test_parser_locd/1,
     smoke_test_parser_mmsd/1,
     smoke_test_parser_mnfd/1,
     smoke_test_parser_monitor/1,
+    smoke_test_parser_msgd/1,
     smoke_test_parser_ntsd/1,
     smoke_test_parser_offd/1,
+    smoke_test_parser_orphand/1,
     smoke_test_parser_payd/1,
     smoke_test_parser_pgwd/1,
-    smoke_test_parser_plhd/1,
     smoke_test_parser_pmtd/1,
+    smoke_test_parser_pmtdb/1,
     smoke_test_parser_presd/1,
     smoke_test_parser_ps2d/1,
     smoke_test_parser_pshd/1,
     smoke_test_parser_ptokend/1,
     smoke_test_parser_queryd/1,
+    smoke_test_parser_rebar3_plugins/1,
     smoke_test_parser_reg2d/1,
     smoke_test_parser_regd/1,
     smoke_test_parser_regfe/1,
     smoke_test_parser_reld/1,
+    smoke_test_parser_riddb/1,
     smoke_test_parser_rptd/1,
     smoke_test_parser_schd/1,
     smoke_test_parser_sdld/1,
     smoke_test_parser_sgwd/1,
+    smoke_test_parser_shardtestdb/1,
     smoke_test_parser_sigd/1,
     smoke_test_parser_smc_observer/1,
-    smoke_test_parser_smppd/1,
     smoke_test_parser_ssnd/1,
     smoke_test_parser_stsd/1,
     smoke_test_parser_syncd/1,
+    smoke_test_parser_systemd/1,
     smoke_test_parser_tapd/1,
     smoke_test_parser_tftd/1,
     smoke_test_parser_thrift/1,
-    smoke_test_parser_thrift_gen/1,
-    smoke_test_parser_thrift_sync/1,
+    smoke_test_parser_thriftrpc/1,
     smoke_test_parser_trcd/1,
     smoke_test_parser_ugwd/1,
     smoke_test_parser_usrd/1,
+    smoke_test_parser_util/1,
+    smoke_test_parser_vestad/1,
     smoke_test_parser_void/1,
+    smoke_test_parser_void_client/1,
     smoke_test_parser_wa/1,
+    smoke_test_parser_wa_admintool/1,
     smoke_test_parser_wa_asyncd_lib/1,
+    smoke_test_parser_wa_auth/1,
+    smoke_test_parser_wa_biz/1,
     smoke_test_parser_wa_chat/1,
     smoke_test_parser_wa_crypto/1,
+    smoke_test_parser_wa_data/1,
     smoke_test_parser_wa_db/1,
     smoke_test_parser_wa_experimental/1,
-    smoke_test_parser_wa_http/1,
+    smoke_test_parser_wa_integrity/1,
     smoke_test_parser_wa_listd/1,
-    smoke_test_parser_wamd/1,
-    smoke_test_parser_wamid/1,
-    smoke_test_parser_wa_pool_mon/1,
+    smoke_test_parser_wa_nodeapi/1,
+    smoke_test_parser_wa_proto/1,
+    smoke_test_parser_wa_raft/1,
     smoke_test_parser_wa_reg/1,
     smoke_test_parser_wa_service/1,
     smoke_test_parser_wa_web/1,
+    smoke_test_parser_wamd/1,
+    smoke_test_parser_wamd_api/1,
+    smoke_test_parser_wamid/1,
     smoke_test_parser_webd/1,
     smoke_test_parser_zcrawld/1,
     snapshot_simple_comments/1,
@@ -176,80 +200,104 @@ groups() ->
         {smoke_test_parser, [parallel], [
             smoke_test_parser_wa, %% first since it's the slowest
             smoke_test_parser_ac2d,
+            smoke_test_parser_admdb,
             smoke_test_parser_asyncwd,
             smoke_test_parser_autotest,
+            smoke_test_parser_bcastd,
             smoke_test_parser_bcld,
             smoke_test_parser_bizd,
+            smoke_test_parser_bizdb,
             smoke_test_parser_bl2d,
+            smoke_test_parser_calld,
             smoke_test_parser_camd,
             smoke_test_parser_cfgd,
             smoke_test_parser_chatd,
+            smoke_test_parser_clust,
             smoke_test_parser_ctsd,
             smoke_test_parser_deld,
             smoke_test_parser_deviced,
+            smoke_test_parser_dispatcher,
             smoke_test_parser_elgd,
             smoke_test_parser_erl2,
+            smoke_test_parser_erlbuild,
+            smoke_test_parser_erlclient,
             smoke_test_parser_erlfmt,
+            smoke_test_parser_fbid,
             smoke_test_parser_fbmd,
             smoke_test_parser_fgtd,
+            smoke_test_parser_filed,
             smoke_test_parser_forgets,
             smoke_test_parser_gcalld,
             smoke_test_parser_grpd,
             smoke_test_parser_ipsd,
-            smoke_test_parser_keyd,
             smoke_test_parser_llcd,
             smoke_test_parser_loader,
+            smoke_test_parser_loadtestd,
             smoke_test_parser_locd,
             smoke_test_parser_mmsd,
             smoke_test_parser_mnfd,
             smoke_test_parser_monitor,
+            smoke_test_parser_msgd,
             smoke_test_parser_ntsd,
             smoke_test_parser_offd,
+            smoke_test_parser_orphand,
             smoke_test_parser_payd,
             smoke_test_parser_pgwd,
-            smoke_test_parser_plhd,
             smoke_test_parser_pmtd,
+            smoke_test_parser_pmtdb,
             smoke_test_parser_presd,
             smoke_test_parser_ps2d,
             smoke_test_parser_pshd,
             smoke_test_parser_ptokend,
             smoke_test_parser_queryd,
+            smoke_test_parser_rebar3_plugins,
             smoke_test_parser_reg2d,
             smoke_test_parser_regd,
             smoke_test_parser_regfe,
             smoke_test_parser_reld,
+            smoke_test_parser_riddb,
             smoke_test_parser_rptd,
             smoke_test_parser_schd,
             smoke_test_parser_sdld,
             smoke_test_parser_sgwd,
+            smoke_test_parser_shardtestdb,
             smoke_test_parser_sigd,
             smoke_test_parser_smc_observer,
-            smoke_test_parser_smppd,
             smoke_test_parser_ssnd,
             smoke_test_parser_stsd,
             smoke_test_parser_syncd,
+            smoke_test_parser_systemd,
             smoke_test_parser_tapd,
             smoke_test_parser_tftd,
             smoke_test_parser_thrift,
-            smoke_test_parser_thrift_gen,
-            smoke_test_parser_thrift_sync,
+            smoke_test_parser_thriftrpc,
             smoke_test_parser_trcd,
             smoke_test_parser_ugwd,
             smoke_test_parser_usrd,
+            smoke_test_parser_util,
+            smoke_test_parser_vestad,
             smoke_test_parser_void,
+            smoke_test_parser_void_client,
+            smoke_test_parser_wa_admintool,
             smoke_test_parser_wa_asyncd_lib,
+            smoke_test_parser_wa_auth,
+            smoke_test_parser_wa_biz,
             smoke_test_parser_wa_chat,
             smoke_test_parser_wa_crypto,
+            smoke_test_parser_wa_data,
             smoke_test_parser_wa_db,
             smoke_test_parser_wa_experimental,
-            smoke_test_parser_wa_http,
+            smoke_test_parser_wa_integrity,
             smoke_test_parser_wa_listd,
-            smoke_test_parser_wamd,
-            smoke_test_parser_wamid,
-            smoke_test_parser_wa_pool_mon,
+            smoke_test_parser_wa_nodeapi,
+            smoke_test_parser_wa_proto,
+            smoke_test_parser_wa_raft,
             smoke_test_parser_wa_reg,
             smoke_test_parser_wa_service,
             smoke_test_parser_wa_web,
+            smoke_test_parser_wamd,
+            smoke_test_parser_wamd_api,
+            smoke_test_parser_wamid,
             smoke_test_parser_webd,
             smoke_test_parser_zcrawld
         ]},
@@ -896,38 +944,49 @@ smoke_test_cli(Config) when is_list(Config) ->
     ?assertMatch("Usage: erlfmt " ++ _, os:cmd(Escript ++ " -h")).
 
 smoke_test_parser_ac2d(Config) -> smoke_test_parser(ac2d, Config).
+smoke_test_parser_admdb(Config) -> smoke_test_parser(admdb, Config).
 smoke_test_parser_asyncwd(Config) -> smoke_test_parser(asyncwd, Config).
+smoke_test_parser_bcastd(Config) -> smoke_test_parser(bcastd, Config).
 smoke_test_parser_bcld(Config) -> smoke_test_parser(bcld, Config).
 smoke_test_parser_bizd(Config) -> smoke_test_parser(bizd, Config).
+smoke_test_parser_bizdb(Config) -> smoke_test_parser(bizdb, Config).
 smoke_test_parser_bl2d(Config) -> smoke_test_parser(bl2d, Config).
+smoke_test_parser_calld(Config) -> smoke_test_parser(calld, Config).
 smoke_test_parser_camd(Config) -> smoke_test_parser(camd, Config).
 smoke_test_parser_cfgd(Config) -> smoke_test_parser(cfgd, Config).
 smoke_test_parser_chatd(Config) -> smoke_test_parser(chatd, Config).
 smoke_test_parser_ctsd(Config) -> smoke_test_parser(ctsd, Config).
 smoke_test_parser_deld(Config) -> smoke_test_parser(deld, Config).
 smoke_test_parser_deviced(Config) -> smoke_test_parser(deviced, Config).
+smoke_test_parser_dispatcher(Config) -> smoke_test_parser(dispatcher, Config).
 smoke_test_parser_elgd(Config) -> smoke_test_parser(elgd, Config).
 smoke_test_parser_erl2(Config) -> smoke_test_parser(erl2, Config).
+smoke_test_parser_erlbuild(Config) -> smoke_test_parser(erlbuild, Config).
+smoke_test_parser_erlclient(Config) -> smoke_test_parser(erlclient, Config).
 smoke_test_parser_erlfmt(Config) -> smoke_test_parser(erlfmt, Config).
+smoke_test_parser_fbid(Config) -> smoke_test_parser(fbid, Config).
 smoke_test_parser_fbmd(Config) -> smoke_test_parser(fbmd, Config).
 smoke_test_parser_fgtd(Config) -> smoke_test_parser(fgtd, Config).
+smoke_test_parser_filed(Config) -> smoke_test_parser(filed, Config).
 smoke_test_parser_forgets(Config) -> smoke_test_parser(forgets, Config).
 smoke_test_parser_gcalld(Config) -> smoke_test_parser(gcalld, Config).
 smoke_test_parser_grpd(Config) -> smoke_test_parser(grpd, Config).
 smoke_test_parser_ipsd(Config) -> smoke_test_parser(ipsd, Config).
-smoke_test_parser_keyd(Config) -> smoke_test_parser(keyd, Config).
 smoke_test_parser_llcd(Config) -> smoke_test_parser(llcd, Config).
 smoke_test_parser_loader(Config) -> smoke_test_parser(loader, Config).
+smoke_test_parser_loadtestd(Config) -> smoke_test_parser(loadtestd, Config).
 smoke_test_parser_locd(Config) -> smoke_test_parser(locd, Config).
 smoke_test_parser_mmsd(Config) -> smoke_test_parser(mmsd, Config).
 smoke_test_parser_mnfd(Config) -> smoke_test_parser(mnfd, Config).
 smoke_test_parser_monitor(Config) -> smoke_test_parser(monitor, Config).
+smoke_test_parser_msgd(Config) -> smoke_test_parser(msgd, Config).
 smoke_test_parser_ntsd(Config) -> smoke_test_parser(ntsd, Config).
 smoke_test_parser_offd(Config) -> smoke_test_parser(offd, Config).
+smoke_test_parser_orphand(Config) -> smoke_test_parser(orphand, Config).
 smoke_test_parser_payd(Config) -> smoke_test_parser(payd, Config).
 smoke_test_parser_pgwd(Config) -> smoke_test_parser(pgwd, Config).
-smoke_test_parser_plhd(Config) -> smoke_test_parser(plhd, Config).
 smoke_test_parser_pmtd(Config) -> smoke_test_parser(pmtd, Config).
+smoke_test_parser_pmtdb(Config) -> smoke_test_parser(pmtdb, Config).
 smoke_test_parser_presd(Config) -> smoke_test_parser(presd, Config).
 smoke_test_parser_ps2d(Config) -> smoke_test_parser(ps2d, Config).
 smoke_test_parser_pshd(Config) -> smoke_test_parser(pshd, Config).
@@ -937,39 +996,49 @@ smoke_test_parser_reg2d(Config) -> smoke_test_parser(reg2d, Config).
 smoke_test_parser_regd(Config) -> smoke_test_parser(regd, Config).
 smoke_test_parser_regfe(Config) -> smoke_test_parser(regfe, Config).
 smoke_test_parser_reld(Config) -> smoke_test_parser(reld, Config).
+smoke_test_parser_riddb(Config) -> smoke_test_parser(riddb, Config).
 smoke_test_parser_rptd(Config) -> smoke_test_parser(rptd, Config).
 smoke_test_parser_schd(Config) -> smoke_test_parser(schd, Config).
 smoke_test_parser_sdld(Config) -> smoke_test_parser(sdld, Config).
 smoke_test_parser_sgwd(Config) -> smoke_test_parser(sgwd, Config).
+smoke_test_parser_shardtestdb(Config) -> smoke_test_parser(shardtestdb, Config).
 smoke_test_parser_sigd(Config) -> smoke_test_parser(sigd, Config).
 smoke_test_parser_smc_observer(Config) -> smoke_test_parser(smc_observer, Config).
-smoke_test_parser_smppd(Config) -> smoke_test_parser(smppd, Config).
 smoke_test_parser_ssnd(Config) -> smoke_test_parser(ssnd, Config).
 smoke_test_parser_stsd(Config) -> smoke_test_parser(stsd, Config).
-smoke_test_parser_syncd(Config) -> smoke_test_parser(synd, Config).
+smoke_test_parser_syncd(Config) -> smoke_test_parser(syncd, Config).
+smoke_test_parser_systemd(Config) -> smoke_test_parser(systemd, Config).
 smoke_test_parser_tapd(Config) -> smoke_test_parser(tapd, Config).
 smoke_test_parser_tftd(Config) -> smoke_test_parser(tftd, Config).
 smoke_test_parser_thrift(Config) -> smoke_test_parser(thrift, Config).
-smoke_test_parser_thrift_gen(Config) -> smoke_test_parser(thrift_gen, Config).
-smoke_test_parser_thrift_sync(Config) -> smoke_test_parser(thrift_sync, Config).
+smoke_test_parser_thriftrpc(Config) -> smoke_test_parser(thriftrpc, Config).
 smoke_test_parser_trcd(Config) -> smoke_test_parser(trcd, Config).
 smoke_test_parser_ugwd(Config) -> smoke_test_parser(ugwd, Config).
 smoke_test_parser_usrd(Config) -> smoke_test_parser(usrd, Config).
+smoke_test_parser_vestad(Config) -> smoke_test_parser(vestad, Config).
 smoke_test_parser_void(Config) -> smoke_test_parser(void, Config).
+smoke_test_parser_void_client(Config) -> smoke_test_parser(void_client, Config).
 smoke_test_parser_wa(Config) -> smoke_test_parser(wa, Config).
+smoke_test_parser_wa_admintool(Config) -> smoke_test_parser(wa_admintool, Config).
 smoke_test_parser_wa_asyncd_lib(Config) -> smoke_test_parser(wa_asyncd_lib, Config).
+smoke_test_parser_wa_auth(Config) -> smoke_test_parser(wa_auth, Config).
+smoke_test_parser_wa_biz(Config) -> smoke_test_parser(wa_biz, Config).
 smoke_test_parser_wa_chat(Config) -> smoke_test_parser(wa_chat, Config).
-smoke_test_parser_wa_crypto(Config) -> smoke_test_parser(crypto, Config).
+smoke_test_parser_wa_crypto(Config) -> smoke_test_parser(wa_crypto, Config).
+smoke_test_parser_wa_data(Config) -> smoke_test_parser(wa_data, Config).
 smoke_test_parser_wa_db(Config) -> smoke_test_parser(wa_db, Config).
 smoke_test_parser_wa_experimental(Config) -> smoke_test_parser(wa_experimental, Config).
-smoke_test_parser_wa_http(Config) -> smoke_test_parser(wa_http, Config).
+smoke_test_parser_wa_integrity(Config) -> smoke_test_parser(wa_integrity, Config).
 smoke_test_parser_wa_listd(Config) -> smoke_test_parser(wa_listd, Config).
-smoke_test_parser_wamd(Config) -> smoke_test_parser(wamd, Config).
-smoke_test_parser_wamid(Config) -> smoke_test_parser(wamid, Config).
-smoke_test_parser_wa_pool_mon(Config) -> smoke_test_parser(wa_pool_mon, Config).
+smoke_test_parser_wa_nodeapi(Config) -> smoke_test_parser(wa_nodeapi, Config).
+smoke_test_parser_wa_proto(Config) -> smoke_test_parser(wa_proto, Config).
+smoke_test_parser_wa_raft(Config) -> smoke_test_parser(wa_raft, Config).
 smoke_test_parser_wa_reg(Config) -> smoke_test_parser(wa_reg, Config).
 smoke_test_parser_wa_service(Config) -> smoke_test_parser(wa_service, Config).
 smoke_test_parser_wa_web(Config) -> smoke_test_parser(wa_web, Config).
+smoke_test_parser_wamd(Config) -> smoke_test_parser(wamd, Config).
+smoke_test_parser_wamd_api(Config) -> smoke_test_parser(wamd_api, Config).
+smoke_test_parser_wamid(Config) -> smoke_test_parser(wamid, Config).
 smoke_test_parser_webd(Config) -> smoke_test_parser(webd, Config).
 smoke_test_parser_zcrawld(Config) -> smoke_test_parser(zcrawld, Config).
 
@@ -979,8 +1048,29 @@ smoke_test_parser_autotest(Config) ->
     smoke_test_parser("autotest/prototype/cluster", Config),
     smoke_test_parser("autotest/prototype/pyrlclient", Config).
 
-smoke_test_parser(App, Config) ->
-    Root = filename:join([code:lib_dir(erlfmt), "../../lib", App]),
+smoke_test_parser_clust(Config) ->
+    smoke_test_parser("clust", Config),
+    smoke_test_parser("clust/clust_cli", Config),
+    smoke_test_parser("clust/clust_lib", Config),
+    smoke_test_parser("clust/clust_service", Config).
+
+smoke_test_parser_rebar3_plugins(Config) ->
+    smoke_test_parser("rebar3_plugins/analyze", Config),
+    smoke_test_parser("rebar3_plugins/ct_test_helpers", Config),
+    smoke_test_parser("rebar3_plugins/rebar3_fbpkg", Config),
+    smoke_test_parser("rebar3_plugins/relaxed_dialyzer", Config),
+    smoke_test_parser("rebar3_plugins/thrift_build", Config),
+    smoke_test_parser("rebar3_plugins/wa_release", Config).
+
+smoke_test_parser_util(Config) ->
+    smoke_test_parser("util/erlint", Config).
+
+smoke_test_parser(Path, Config) ->
+    Root = filename:join([code:lib_dir(erlfmt), "../../../..", Path]),
+    case filelib:is_dir(Root) of
+        true -> ok;
+        false -> ct:fail("~ts is not a directory", [Root])
+    end,
     Dirs = [filename:join(Root, SubDir) || SubDir <- ["src", "include", "test"]],
     [smoke_test_parser_dir(Dir, Config) || Dir <- Dirs, filelib:is_dir(Dir)],
     ok.
@@ -1017,7 +1107,7 @@ snapshot_comments(Config) -> snapshot_formatted("comments.erl", Config).
 snapshot_same(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     PrivDir = ?config(priv_dir, Config),
-    erlfmt:format_file(filename:join(DataDir, Module), [{out, PrivDir}]),
+    {ok, _} = erlfmt:format_file(filename:join(DataDir, Module), [{out, PrivDir}]),
     {ok, Original} = file:read_file(filename:join(DataDir, Module)),
     {ok, Formatted} = file:read_file(filename:join(PrivDir, Module)),
     ?assertEqual(Original, Formatted).
