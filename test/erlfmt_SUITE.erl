@@ -739,7 +739,7 @@ snapshot_comments(Config) -> snapshot_formatted("comments.erl", Config).
 snapshot_same(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     PrivDir = ?config(priv_dir, Config),
-    erlfmt:format_file(filename:join(DataDir, Module), [{out, PrivDir}]),
+    {ok, _} = erlfmt:format_file(filename:join(DataDir, Module), [{out, PrivDir}]),
     {ok, Original} = file:read_file(filename:join(DataDir, Module)),
     {ok, Formatted} = file:read_file(filename:join(PrivDir, Module)),
     ?assertEqual(Original, Formatted).

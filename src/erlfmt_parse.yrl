@@ -462,6 +462,7 @@ macro_def_clause -> '(' macro_name ',' function_clause ')' : {'$2', '$4'}.
 macro_def_expr_body -> '$empty' : empty.
 macro_def_expr_body -> '#' atom : {record_name, ?range_anno('$1', '$2'), '$2'}.
 macro_def_expr_body -> guard : '$1'.
+macro_def_expr_body -> expr 'when' expr : ?mkop2('$1', '$2', '$3').
 
 macro_name -> atom_or_var : '$1'.
 macro_name -> atom_or_var '(' ')' : {call, ?range_anno('$1', '$3'), '$1', []}.
