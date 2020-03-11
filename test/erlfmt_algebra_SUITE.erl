@@ -323,7 +323,7 @@ document_unit(Config) when is_list(Config) ->
 
 document_fail(Config) when is_list(Config) ->
     Doc = ?alg:document_fail(),
-    ?assertError(_, ?alg:document_render(Doc)).
+    ?assertError(_, ?alg:document_render(Doc, [])).
 
 document_paper_example(Config) when is_list(Config) ->
     Abcd = [a, b, c, d],
