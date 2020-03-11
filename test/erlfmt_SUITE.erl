@@ -145,7 +145,8 @@
     smoke_test_parser_webd/1,
     smoke_test_parser_zcrawld/1,
     snapshot_simple_comments/1,
-    snapshot_comments/1
+    snapshot_comments/1,
+    snapshot_broken/1
 ]).
 
 suite() ->
@@ -303,7 +304,8 @@ groups() ->
         ]},
         {snapshot_tests, [parallel], [
             snapshot_simple_comments,
-            snapshot_comments
+            snapshot_comments,
+            snapshot_broken
         ]}
     ].
 
@@ -1103,6 +1105,7 @@ excluded(File) ->
 
 snapshot_simple_comments(Config) -> snapshot_same("simple_comments.erl", Config).
 snapshot_comments(Config) -> snapshot_formatted("comments.erl", Config).
+snapshot_broken(Config) -> snapshot_formatted("broken.erl", Config).
 
 snapshot_same(Module, Config) ->
     DataDir = ?config(data_dir, Config),
