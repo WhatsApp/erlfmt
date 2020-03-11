@@ -14,7 +14,7 @@
 -module(erlfmt).
 
 %% API exports
--export([main/1, format_file/2, read_forms/1, read_forms_string/2, format_error_info/1]).
+-export([main/1, format_file/2, read_forms/1, read_forms_string/2, format_error/1, format_error_info/1]).
 
 -export_type([error_info/0]).
 
@@ -126,6 +126,7 @@ run_format_file(FileName, State0) ->
     try
         {Forms, State1} = read_forms(FileName, State0),
         [$\n | Formatted] = format_forms(Forms),
+        verify_forms(FileName, Forms, Formatted),
         State2 = write_forms(FileName, Formatted, State1),
         State2
     catch
@@ -176,16 +177,19 @@ read_forms({error, {ErrLoc, Mod, Reason}, _Loc}, FileName, _Acc, _State) ->
     throw({error, {FileName, ErrLoc, Mod, Reason}}).
 
 parse_form([], _Comments, _FileName, Cont, State) ->
-    {erlfmt_scan:last_form_string(Cont), State};
+    {form_string(Cont), State};
 parse_form(Tokens, Comments, FileName, Cont, State0) ->
     case erlfmt_parse:parse_form(Tokens) of
         {ok, Form0} ->
             {erlfmt_recomment:recomment(Form0, Comments), State0};
         {error, {ErrLoc, Mod, Reason}} ->
             Warning = {FileName, ErrLoc, Mod, Reason},
-            State = #state{warnings = [Warning | State0#state.warnings]},
-            {erlfmt_scan:last_form_string(Cont), State}
+            State = State0#state{warnings = [Warning | State0#state.warnings]},
+            {form_string(Cont), State}
     end.
+
+form_string(Cont) ->
+    {raw_string, string:trim(erlfmt_scan:last_form_string(Cont), both, "\n")}.
 
 format_forms([{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest]) ->
     [$\n, format_form(Attr), format_form(Fun) | format_forms(Rest)];
@@ -194,20 +198,64 @@ format_forms([Form | Rest]) ->
 format_forms([]) ->
     [].
 
-format_form(String) when is_list(String) ->
-    [string:trim(String, both, "\n"), $\n];
+format_form({raw_string, String}) ->
+    [String, $\n];
 format_form(Form) ->
     Doc = erlfmt_format:form_to_algebra(Form),
     [erlfmt_algebra:document_render(Doc, [{page_width, ?PAGE_WIDTH}]), $\n].
 
+verify_forms(FileName, Forms, Formatted) ->
+    case read_forms_string(FileName, unicode:characters_to_list(Formatted)) of
+        {ok, Forms2, _} ->
+            try equivalent_list(Forms, Forms2)
+            catch
+                {not_equivalent, Left, Right} ->
+                    Location = try_location(Left, Right),
+                    throw({error, {FileName, Location, ?MODULE, {not_equivalent, Left, Right}}})
+            end;
+        {error, _} ->
+            throw({error, {FileName, 0, ?MODULE, could_not_reparse}})
+    end.
+
+equivalent(Element, Element) ->
+    true;
+equivalent({raw_string, RawL}, {raw_string, RawR}) ->
+    string:equal(RawL, RawR) orelse throw({not_equivalent, RawL, RawR});
+equivalent({Type, _, L}, {Type, _, R}) ->
+    equivalent(L, R);
+equivalent({Type, _, L1, L2}, {Type, _, R1, R2}) ->
+    equivalent(L1, R1) andalso equivalent(L2, R2);
+equivalent({Type, _, L1, L2, L3}, {Type,_, R1, R2, R3}) ->
+    equivalent(L1, R1) andalso equivalent(L2, R2) andalso equivalent(L3, R3);
+equivalent({Type, _, L1, L2, L3, L4}, {Type, _, R1, R2, R3, R4}) ->
+    equivalent(L1, R1) andalso equivalent(L2, R2) andalso equivalent(L3, R3) andalso equivalent(L4, R4);
+equivalent(Ls, Rs) when is_list(Ls), is_list(Rs) ->
+    equivalent_list(Ls, Rs);
+equivalent(L, R) ->
+    throw({not_equivalent, L, R}).
+
+equivalent_list([L | Ls], [R | Rs]) ->
+    equivalent(L, R) andalso equivalent_list(Ls, Rs);
+equivalent_list([], []) ->
+    true;
+equivalent_list(Ls, Rs) ->
+    throw({not_equivalent, Ls, Rs}).
+
+try_location(Node, _) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node);
+try_location([Node | _], _) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node);
+try_location(_, Node) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node);
+try_location(_, [Node | _]) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node);
+try_location(_, _) -> 0.
+
 write_forms(FileName, Formatted, State) ->
     OutFileName = out_file(FileName, State),
-    file:make_dir(filename:dirname(OutFileName)),
+    case filelib:ensure_dir(OutFileName) of
+        ok -> ok;
+        {error, Reason1} -> throw({error, {OutFileName, 0, file, Reason1}})
+    end,
     case file:write_file(OutFileName, unicode:characters_to_binary(Formatted)) of
-        ok ->
-            State;
-        {error, Reason} ->
-            throw({error, {OutFileName, 0, file, Reason}})
+        ok -> State;
+        {error, Reason2} -> throw({error, {OutFileName, 0, file, Reason2}})
     end.
 
 out_file(FileName, #state{out = replace}) ->
@@ -223,9 +271,15 @@ print_error(Error) ->
     io:put_chars(standard_error, [format_error_info(Error), $\n]).
 
 -spec format_error_info(error_info()) -> unicode:chardata().
-format_error_info({FileName, {Line, Col}, Mod, Reason}) ->
-    io_lib:format("~ts:~B:~B: ~ts", [FileName, Line, Col, Mod:format_error(Reason)]);
-format_error_info({FileName, #{location := {Line, Col}}, Mod, Reason}) ->
-    io_lib:format("~ts:~B:~B: ~ts", [FileName, Line, Col, Mod:format_error(Reason)]);
-format_error_info({FileName, Line, Mod, Reason}) when is_integer(Line) ->
-    io_lib:format("~ts:~B: ~ts", [FileName, Line, Mod:format_error(Reason)]).
+format_error_info({FileName, Anno, Mod, Reason}) ->
+    io_lib:format("~ts~s: ~ts", [FileName, format_loc(Anno), Mod:format_error(Reason)]).
+
+format_loc(0) -> "";
+format_loc({Line, Col}) -> io_lib:format(":~B:~B", [Line, Col]);
+format_loc(#{location := {Line, Col}}) -> io_lib:format(":~B:~B", [Line, Col]);
+format_loc(Line) when is_integer(Line) -> io_lib:format(":~B", [Line]).
+
+format_error({not_equivalent, Node1, Node2}) ->
+    io_lib:format("formatter result not equivalent. Please report this bug.~n~n~p~n~n~p", [Node1, Node2]);
+format_error(could_not_reparse) ->
+    "formatter result invalid, could not reparse".
