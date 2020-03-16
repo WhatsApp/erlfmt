@@ -59,7 +59,6 @@
     smoke_test_parser_ctsd/1,
     smoke_test_parser_deld/1,
     smoke_test_parser_deviced/1,
-    smoke_test_parser_dispatcher/1,
     smoke_test_parser_elgd/1,
     smoke_test_parser_erl2/1,
     smoke_test_parser_erlbuild/1,
@@ -74,7 +73,6 @@
     smoke_test_parser_grpd/1,
     smoke_test_parser_ipsd/1,
     smoke_test_parser_llcd/1,
-    smoke_test_parser_loader/1,
     smoke_test_parser_loadtestd/1,
     smoke_test_parser_locd/1,
     smoke_test_parser_mmsd/1,
@@ -217,7 +215,6 @@ groups() ->
             smoke_test_parser_ctsd,
             smoke_test_parser_deld,
             smoke_test_parser_deviced,
-            smoke_test_parser_dispatcher,
             smoke_test_parser_elgd,
             smoke_test_parser_erl2,
             smoke_test_parser_erlbuild,
@@ -232,7 +229,6 @@ groups() ->
             smoke_test_parser_grpd,
             smoke_test_parser_ipsd,
             smoke_test_parser_llcd,
-            smoke_test_parser_loader,
             smoke_test_parser_loadtestd,
             smoke_test_parser_locd,
             smoke_test_parser_mmsd,
@@ -960,7 +956,6 @@ smoke_test_parser_chatd(Config) -> smoke_test_parser(chatd, Config).
 smoke_test_parser_ctsd(Config) -> smoke_test_parser(ctsd, Config).
 smoke_test_parser_deld(Config) -> smoke_test_parser(deld, Config).
 smoke_test_parser_deviced(Config) -> smoke_test_parser(deviced, Config).
-smoke_test_parser_dispatcher(Config) -> smoke_test_parser(dispatcher, Config).
 smoke_test_parser_elgd(Config) -> smoke_test_parser(elgd, Config).
 smoke_test_parser_erl2(Config) -> smoke_test_parser(erl2, Config).
 smoke_test_parser_erlbuild(Config) -> smoke_test_parser(erlbuild, Config).
@@ -975,7 +970,6 @@ smoke_test_parser_gcalld(Config) -> smoke_test_parser(gcalld, Config).
 smoke_test_parser_grpd(Config) -> smoke_test_parser(grpd, Config).
 smoke_test_parser_ipsd(Config) -> smoke_test_parser(ipsd, Config).
 smoke_test_parser_llcd(Config) -> smoke_test_parser(llcd, Config).
-smoke_test_parser_loader(Config) -> smoke_test_parser(loader, Config).
 smoke_test_parser_loadtestd(Config) -> smoke_test_parser(loadtestd, Config).
 smoke_test_parser_locd(Config) -> smoke_test_parser(locd, Config).
 smoke_test_parser_mmsd(Config) -> smoke_test_parser(mmsd, Config).
