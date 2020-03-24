@@ -128,7 +128,6 @@
     smoke_test_parser_wa_crypto/1,
     smoke_test_parser_wa_data/1,
     smoke_test_parser_wa_db/1,
-    smoke_test_parser_wa_experimental/1,
     smoke_test_parser_wa_integrity/1,
     smoke_test_parser_wa_listd/1,
     smoke_test_parser_wa_nodeapi/1,
@@ -283,7 +282,6 @@ groups() ->
             smoke_test_parser_wa_crypto,
             smoke_test_parser_wa_data,
             smoke_test_parser_wa_db,
-            smoke_test_parser_wa_experimental,
             smoke_test_parser_wa_integrity,
             smoke_test_parser_wa_listd,
             smoke_test_parser_wa_nodeapi,
@@ -1023,7 +1021,6 @@ smoke_test_parser_wa_chat(Config) -> smoke_test_parser(wa_chat, Config).
 smoke_test_parser_wa_crypto(Config) -> smoke_test_parser(wa_crypto, Config).
 smoke_test_parser_wa_data(Config) -> smoke_test_parser(wa_data, Config).
 smoke_test_parser_wa_db(Config) -> smoke_test_parser(wa_db, Config).
-smoke_test_parser_wa_experimental(Config) -> smoke_test_parser(wa_experimental, Config).
 smoke_test_parser_wa_integrity(Config) -> smoke_test_parser(wa_integrity, Config).
 smoke_test_parser_wa_listd(Config) -> smoke_test_parser(wa_listd, Config).
 smoke_test_parser_wa_nodeapi(Config) -> smoke_test_parser(wa_nodeapi, Config).
