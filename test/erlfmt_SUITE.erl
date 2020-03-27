@@ -71,7 +71,6 @@
     smoke_test_parser_forgets/1,
     smoke_test_parser_gcalld/1,
     smoke_test_parser_grpd/1,
-    smoke_test_parser_ipsd/1,
     smoke_test_parser_llcd/1,
     smoke_test_parser_loadtestd/1,
     smoke_test_parser_locd/1,
@@ -226,7 +225,6 @@ groups() ->
             smoke_test_parser_forgets,
             smoke_test_parser_gcalld,
             smoke_test_parser_grpd,
-            smoke_test_parser_ipsd,
             smoke_test_parser_llcd,
             smoke_test_parser_loadtestd,
             smoke_test_parser_locd,
@@ -966,7 +964,6 @@ smoke_test_parser_filed(Config) -> smoke_test_parser(filed, Config).
 smoke_test_parser_forgets(Config) -> smoke_test_parser(forgets, Config).
 smoke_test_parser_gcalld(Config) -> smoke_test_parser(gcalld, Config).
 smoke_test_parser_grpd(Config) -> smoke_test_parser(grpd, Config).
-smoke_test_parser_ipsd(Config) -> smoke_test_parser(ipsd, Config).
 smoke_test_parser_llcd(Config) -> smoke_test_parser(llcd, Config).
 smoke_test_parser_loadtestd(Config) -> smoke_test_parser(loadtestd, Config).
 smoke_test_parser_locd(Config) -> smoke_test_parser(locd, Config).
