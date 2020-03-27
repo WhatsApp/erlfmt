@@ -107,7 +107,6 @@
     smoke_test_parser_stsd/1,
     smoke_test_parser_syncd/1,
     smoke_test_parser_systemd/1,
-    smoke_test_parser_tapd/1,
     smoke_test_parser_tftd/1,
     smoke_test_parser_thrift/1,
     smoke_test_parser_thriftrpc/1,
@@ -261,7 +260,6 @@ groups() ->
             smoke_test_parser_stsd,
             smoke_test_parser_syncd,
             smoke_test_parser_systemd,
-            smoke_test_parser_tapd,
             smoke_test_parser_tftd,
             smoke_test_parser_thrift,
             smoke_test_parser_thriftrpc,
@@ -999,7 +997,6 @@ smoke_test_parser_ssnd(Config) -> smoke_test_parser(ssnd, Config).
 smoke_test_parser_stsd(Config) -> smoke_test_parser(stsd, Config).
 smoke_test_parser_syncd(Config) -> smoke_test_parser(syncd, Config).
 smoke_test_parser_systemd(Config) -> smoke_test_parser(systemd, Config).
-smoke_test_parser_tapd(Config) -> smoke_test_parser(tapd, Config).
 smoke_test_parser_tftd(Config) -> smoke_test_parser(tftd, Config).
 smoke_test_parser_thrift(Config) -> smoke_test_parser(thrift, Config).
 smoke_test_parser_thriftrpc(Config) -> smoke_test_parser(thriftrpc, Config).
