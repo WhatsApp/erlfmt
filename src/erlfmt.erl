@@ -212,6 +212,8 @@ equivalent(Element, Element) ->
     true;
 equivalent({raw_string, RawL}, {raw_string, RawR}) ->
     string:equal(RawL, RawR) orelse throw({not_equivalent, RawL, RawR});
+equivalent({Type, _}, {Type, _}) ->
+    true;
 equivalent({Type, _, L}, {Type, _, R}) ->
     equivalent(L, R);
 equivalent({Type, _, L1, L2}, {Type, _, R1, R2}) ->
