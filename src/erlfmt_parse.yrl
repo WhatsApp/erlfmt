@@ -153,9 +153,9 @@ type -> atom ':' atom type_argument_list :
 fun_type -> 'fun' '(' ')' :
     {'fun', ?range_anno('$1', '$3'), type}.
 fun_type -> 'fun' '(' '(' '...' ')' '->' type ')' :
-    {'fun', ?range_anno('$1', '$8'), {type, ['$4'], '$7'}}.
+    {'fun', ?range_anno('$1', '$8'), {type, ?range_anno('$4', '$7'), ['$4'], '$7'}}.
 fun_type -> 'fun' '(' type_argument_list '->' type ')' :
-    {'fun', ?range_anno('$1', '$6'), {type, ?val('$3'), '$5'}}.
+    {'fun', ?range_anno('$1', '$6'), {type, ?range_anno('$3', '$5'), ?val('$3'), '$5'}}.
 
 type_map_fields -> type_map_field : ['$1'].
 type_map_fields -> type_map_field ',' type_map_fields : ['$1' | '$3'].
@@ -408,11 +408,14 @@ receive_expr -> 'receive' cr_clauses 'after' expr clause_body 'end' :
         {'receive',?range_anno('$1', '$6'),'$2','$4',?val('$5')}.
 
 fun_expr -> 'fun' atom_or_var_or_macro '/' integer_or_var_or_macro :
-    {'fun',?range_anno('$1', '$4'),{function,'$2','$4'}}.
+    Anno = ?range_anno('$1', '$4'),
+    {'fun',Anno,{function,Anno,'$2','$4'}}.
 fun_expr -> 'fun' atom_or_var_or_macro ':' atom_or_var_or_macro '/' integer_or_var_or_macro :
-    {'fun',?range_anno('$1', '$6'),{function,'$2','$4','$6'}}.
+    Anno = ?range_anno('$1', '$6'),
+    {'fun',Anno,{function,Anno,'$2','$4','$6'}}.
 fun_expr -> 'fun' fun_clauses 'end' :
-    {'fun',?range_anno('$1', '$3'),{clauses,'$2'}}.
+    Anno = ?range_anno('$1', '$3'),
+    {'fun',Anno,{clauses,Anno,'$2'}}.
 
 atom_or_var -> atom : '$1'.
 atom_or_var -> var : '$1'.

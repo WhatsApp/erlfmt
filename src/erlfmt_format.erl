@@ -349,14 +349,14 @@ block_to_algebra([Expr]) ->
 block_to_algebra([Expr | Rest]) ->
     combine_comma_newline(expr_to_algebra(Expr), block_to_algebra(Rest)).
 
-fun_to_algebra({function, Name, Arity}) ->
+fun_to_algebra({function, _Anno, Name, Arity}) ->
     combine_all([
         document_text("fun "),
         expr_to_algebra(Name),
         document_text("/"),
         expr_to_algebra(Arity)
     ]);
-fun_to_algebra({function, Mod, Name, Arity}) ->
+fun_to_algebra({function, _Anno, Mod, Name, Arity}) ->
     combine_all([
         document_text("fun "),
         expr_to_algebra(Mod),
@@ -366,7 +366,7 @@ fun_to_algebra({function, Mod, Name, Arity}) ->
         expr_to_algebra(Arity)
     ]);
 %% TODO: specialise single clause
-fun_to_algebra({clauses, Clauses}) ->
+fun_to_algebra({clauses, _Anno, Clauses}) ->
     ClausesD = clauses_to_algebra(Clauses),
     document_choice(
         wrap(document_text("fun "), document_single_line(ClausesD), document_text(" end")),
@@ -374,7 +374,7 @@ fun_to_algebra({clauses, Clauses}) ->
     );
 fun_to_algebra(type) ->
     document_text("fun()");
-fun_to_algebra({type, Args, Result}) ->
+fun_to_algebra({type, _Anno, Args, Result}) ->
     ResultD = document_combine(document_text(") -> "), expr_to_algebra(Result)),
     wrap(document_text("fun("), container_to_algebra(Args, document_text("("), ResultD), document_text(")")).
 

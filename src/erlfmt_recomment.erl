@@ -180,13 +180,13 @@ insert_nested({spec, Meta, Name, Clauses0}, Comments0) ->
     {{spec, Meta, Name, Clauses}, []};
 insert_nested({'fun', _, Fun} = Node, Comments0) when element(1, Fun) =:= 'function'; Fun =:= type ->
     {put_pre_comments(Node, Comments0), []};
-insert_nested({'fun', Meta, {type, Args0, Res0}}, Comments0) ->
+insert_nested({'fun', Meta, {type, InnerMeta, Args0, Res0}}, Comments0) ->
     {Args, Comments1} = insert_expr_list(Args0, Comments0),
     {Res, Comments} = insert_expr(Res0, Comments1),
-    {{'fun', Meta, {type, Args, Res}}, Comments};
-insert_nested({'fun', Meta, {clauses, Clauses0}}, Comments0) ->
+    {{'fun', Meta, {type, InnerMeta, Args, Res}}, Comments};
+insert_nested({'fun', Meta, {clauses, InnerMeta, Clauses0}}, Comments0) ->
     Clauses = insert_expr_container(Clauses0, Comments0),
-    {{'fun', Meta, {clauses, Clauses}}, []};
+    {{'fun', Meta, {clauses, InnerMeta, Clauses}}, []};
 insert_nested({Name, Meta}, Comments) ->
     {{Name, Meta}, Comments}.
 
