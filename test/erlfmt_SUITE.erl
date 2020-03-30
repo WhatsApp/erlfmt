@@ -616,7 +616,7 @@ macro_definitions(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, {atom, _, define}, [
             {call, _, {atom, _, pass}, [{var, _, 'Name'}]},
-            {'fun', _, {function, {var, _, 'Name'}, {integer, _, 2}}}
+            {'fun', _, {function, _, {var, _, 'Name'}, {integer, _, 2}}}
         ]},
         parse_form("-define(pass(Name), fun Name/2).")
     ),
@@ -638,39 +638,39 @@ macro_definitions(Config) when is_list(Config) ->
 
 functions_and_funs(Config) when is_list(Config) ->
     ?assertMatch(
-        {'fun', _, {function, {atom, _, foo}, {integer, _, 1}}},
+        {'fun', _, {function, _, {atom, _, foo}, {integer, _, 1}}},
         parse_expr("fun foo/1")
     ),
     ?assertMatch(
-        {'fun', _, {function, {macro_call, _, {atom, _, foo}, none}, {integer, _, 1}}},
+        {'fun', _, {function, _, {macro_call, _, {atom, _, foo}, none}, {integer, _, 1}}},
         parse_expr("fun ?foo/1")
     ),
     ?assertMatch(
-        {'fun', _, {function, {atom, _, foo}, {macro_call, _, {atom, _, foo}, none}}},
+        {'fun', _, {function, _, {atom, _, foo}, {macro_call, _, {atom, _, foo}, none}}},
         parse_expr("fun foo/?foo")
     ),
     ?assertMatch(
-        {'fun', _, {function, {var, _, 'Mod'}, {atom, _, foo}, {integer, _, 1}}},
+        {'fun', _, {function, _, {var, _, 'Mod'}, {atom, _, foo}, {integer, _, 1}}},
         parse_expr("fun Mod:foo/1")
     ),
     ?assertMatch(
-        {'fun', _, {function, {macro_call, _, {atom, _, 'foo'}, none}, {atom, _, foo}, {integer, _, 1}}},
+        {'fun', _, {function, _, {macro_call, _, {atom, _, 'foo'}, none}, {atom, _, foo}, {integer, _, 1}}},
         parse_expr("fun ?foo:foo/1")
     ),
     ?assertMatch(
-        {'fun', _, {function, {atom, _, foo}, {macro_call, _, {atom, _, foo}, none}, {integer, _, 1}}},
+        {'fun', _, {function, _, {atom, _, foo}, {macro_call, _, {atom, _, foo}, none}, {integer, _, 1}}},
         parse_expr("fun foo:?foo/1")
     ),
     ?assertMatch(
-        {'fun', _, {function, {atom, _, foo}, {atom, _, foo}, {macro_call, _, {atom, _, foo}, none}}},
+        {'fun', _, {function, _, {atom, _, foo}, {atom, _, foo}, {macro_call, _, {atom, _, foo}, none}}},
         parse_expr("fun foo:foo/?foo")
     ),
     ?assertMatch(
-        {'fun', _, {clauses, [{clause, _, 'fun', [], empty, [{atom, _, ok}]}]}},
+        {'fun', _, {clauses, _, [{clause, _, 'fun', [], empty, [{atom, _, ok}]}]}},
         parse_expr("fun () -> ok end")
     ),
     ?assertMatch(
-        {'fun', _, {clauses, [{clause, _, {var, _, 'Foo'}, [], empty, [{atom, _, ok}]}]}},
+        {'fun', _, {clauses, _, [{clause, _, {var, _, 'Foo'}, [], empty, [{atom, _, ok}]}]}},
         parse_expr("fun Foo() -> ok end")
     ),
     ?assertMatch(
@@ -691,7 +691,7 @@ functions_and_funs(Config) when is_list(Config) ->
     ?assertMatch(
         {function, _, [{macro_call, _, {var, _,'TESTS_WITH_SETUP'}, [
             {atom, _, all_tests_},
-            {'fun', _, {clauses, [{clause, _, 'fun', [], empty, [{atom, _, ok}]}]}}
+            {'fun', _, {clauses, _, [{clause, _, 'fun', [], empty, [{atom, _, ok}]}]}}
         ]}]},
         parse_form("?TESTS_WITH_SETUP(all_tests_, fun() -> ok end).")
     ).
@@ -827,15 +827,15 @@ types(Config) when is_list(Config) ->
         parse_type("fun()")
     ),
     ?assertMatch(
-        {'fun', _, {type, [{'...', _}], {call, _, {atom, _, integer}, []}}},
+        {'fun', _, {type, _, [{'...', _}], {call, _, {atom, _, integer}, []}}},
         parse_type("fun((...) -> integer())")
     ),
     ?assertMatch(
-        {'fun', _, {type, [], {atom, _, ok}}},
+        {'fun', _, {type, _, [], {atom, _, ok}}},
         parse_type("fun(() -> ok)")
     ),
     ?assertMatch(
-        {'fun', _, {type, [{call, _, {atom, _, integer}, []}], {call, _, {atom, _,integer}, []}}},
+        {'fun', _, {type, _, [{call, _, {atom, _, integer}, []}], {call, _, {atom, _,integer}, []}}},
         parse_type("fun((integer()) -> integer())")
     ).
 
