@@ -75,3 +75,11 @@ can't be used alone:
   * `document_single_line` takes a document as input and retuns only single-line documents.
     Since this can return documents that would produce no layouts, its use has to always be
     paired with some alternative.
+  * `document_fail` creates a document that always fails to render, it must be used as a part
+    of a later `document_choice` call to guarantee the overall document contains at least one
+    valid layout.
+  * `document_prepend` combines two documents similar to `document_combine`, but does not
+    indent the right document. For example:
+
+        foo(    <>    [    =    foo([
+                      ]         ]

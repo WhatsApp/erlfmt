@@ -39,6 +39,7 @@
     document20_choice_case/1,
     document_unit/1,
     document_fail/1,
+    document_prepend/1,
     document_paper_example/1
 ]).
 
@@ -77,6 +78,7 @@ groups() ->
             document20_choice_case,
             document_unit,
             document_fail,
+            document_prepend,
             document_paper_example
         ]}
     ].
@@ -323,7 +325,24 @@ document_unit(Config) when is_list(Config) ->
 
 document_fail(Config) when is_list(Config) ->
     Doc = ?alg:document_fail(),
-    ?assertError(_, ?alg:document_render(Doc, [])).
+    ?assertError(no_viable_layout, ?alg:document_render(Doc, [])).
+
+document_prepend(Config) when is_list(Config) ->
+    New = fun (Text) -> ?alg:document_text(Text) end,
+    #layout{flush = Flush, combine = Combine, render = Render} = document_layout(20),
+
+    Left = New("foo("),
+    Right = New(")"),
+    Doc = Combine(Flush(New("[")), Combine(Flush(New("    X,")), New("]"))),
+
+    Combined = ?alg:document_prepend(Left, Combine(Doc, Right)),
+
+    ?assertEqual(
+        "foo([\n"
+        "    X,\n"
+        "])",
+        unicode:characters_to_list(Render(Combined))
+    ).
 
 document_paper_example(Config) when is_list(Config) ->
     Abcd = [a, b, c, d],
