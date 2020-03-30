@@ -905,6 +905,17 @@ annos(Config) when is_list(Config) ->
             "foo(a) -> 1;\n"
             "foo(b) -> 12."
         )
+    ),
+    ?assertMatch(
+        [
+            {attribute, _, _, _},
+            {function, #{pre_comments := [{comment, _, ["% comment"]}]}, _}
+        ],
+        parse_forms(
+            "-spec foo() -> ok.\n"
+            "% comment\n"
+            "foo() -> ok."
+        )
     ).
 
 parse_expr(String) ->
@@ -926,6 +937,18 @@ parse_form(String) ->
     case erlfmt:read_forms_string("nofile", String) of
         {ok, [Form], []} ->
             Form;
+        {ok, _, [Warning | _]} ->
+            ct:fail("Expected successful parse: \n~ts\n for warning: ~ts", [String, erlfmt:format_error_info(Warning)]);
+        {error, {_, Mod, Reason}} ->
+            ct:fail("Expected successful parse:\n~ts\ngot: ~ts", [String, Mod:format_error(Reason)])
+    end.
+
+parse_forms(String) ->
+    case erlfmt:read_forms_string("nofile", String) of
+        {ok, Forms, []} ->
+            Forms;
+        {ok, _, [Warning | _]} ->
+            ct:fail("Expected successful parse: \n~ts\n for warning: ~ts", [String, erlfmt:format_error_info(Warning)]);
         {error, {_, Mod, Reason}} ->
             ct:fail("Expected successful parse:\n~ts\ngot: ~ts", [String, Mod:format_error(Reason)])
     end.

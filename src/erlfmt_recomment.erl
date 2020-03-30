@@ -14,9 +14,11 @@ recomment(Form, Comments) ->
 
 insert_form(Form, []) ->
     Form;
-insert_form({function, Meta0, Clauses0}, Comments) ->
+insert_form({function, Meta0, Clauses0}, Comments0) ->
+    {PreComments, Comments} = split_pre_comments(Meta0, Comments0),
     {Clauses, PostComments} = insert_expr_list(Clauses0, Comments),
-    Meta = put_post_comments(Meta0, PostComments),
+    Meta1 = put_pre_comments(Meta0, PreComments),
+    Meta = put_post_comments(Meta1, PostComments),
     {function, Meta, Clauses};
 insert_form({attribute, Meta0, Name, Values0}, Comments) ->
     {PreComments, InnerComments, PostCommennts} = split_comments(Meta0, Comments),
@@ -45,6 +47,9 @@ insert_expr_container([Expr0 | Exprs], Comments0) when is_tuple(Expr0) ->
 %% final comments in containers become standalone comment elements
 insert_expr_container([], Comments) ->
     Comments.
+
+split_pre_comments(#{location := {SLine, _}}, Comments) ->
+    take_comments(SLine, Comments).
 
 split_comments(#{location := {SLine, _}, end_location := {ELine, _}}, Comments0) ->
     {PreComments, Comments1} = take_comments(SLine, Comments0),
