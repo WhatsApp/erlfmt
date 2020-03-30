@@ -23,6 +23,7 @@
     document_flush/1,
     document_choice/2,
     document_single_line/1,
+    document_prepend/2,
     document_render/2,
     document_reduce/2,
     document_fail/0
@@ -224,6 +225,20 @@ seq_single_line([Doc0 | Docs], Acc) ->
         Doc -> seq_single_line(Docs, [Doc | Acc])
     end;
 seq_single_line([], Acc) -> #doc_seq{seq = lists:reverse(Acc)}.
+
+-spec document_prepend(document(), document()) -> document().
+document_prepend(#doc_fail{}, _) -> #doc_fail{};
+document_prepend(_, #doc_fail{}) -> #doc_fail{};
+document_prepend(#string{} = Left, #string{} = Right) ->
+    string_append(Left, Right);
+document_prepend(Document1, #string{} = Document2) ->
+    #doc_seq{seq = [Document1, Document2]};
+document_prepend(Document, #doc_seq{seq = [SeqHead | Seq]}) ->
+    #doc_seq{seq = [document_prepend(Document, SeqHead) | Seq]};
+document_prepend(Document, #doc_flush{doc = Inner}) ->
+    #doc_flush{doc = document_prepend(Document, Inner)};
+document_prepend(Document, #doc_choice{choices = Choices}) ->
+    #doc_choice{choices = [document_prepend(Document, Choice) || Choice <- Choices]}.
 
 -spec document_render(document(), [option()]) -> text().
 document_render(Document, Options) ->
