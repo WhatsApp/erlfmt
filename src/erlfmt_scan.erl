@@ -134,6 +134,8 @@ split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
 %% Keep the `text` value for if in case it's used as an attribute
 split_tokens([{Type, Meta} | Rest], Acc, CAcc) when Type =:= 'if' ->
     split_tokens(Rest, [{Type, atomic_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
+split_tokens([{Type, Meta} | Rest], Acc, CAcc) when Type =:= 'dot' ->
+    split_tokens(Rest, [{Type, dot_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
 split_tokens([{Type, Meta} | Rest], Acc, CAcc) ->
     split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
 split_tokens([], Acc, CAcc) ->
@@ -179,6 +181,10 @@ token_anno([{text, Text}, {location, {Line, Col} = Location}]) ->
 
 comment_anno([{text, _}, {location, Location}], [{text, Text}, {location, {Line, Col}}]) ->
     #{location => Location, end_location => end_location(Text, Line, Col)}.
+
+%% Special handling for dot tokens - we don't want to count final newline as part of the form
+dot_anno([{text, _}, {location, {Line, Col} = Location}]) ->
+    #{location => Location, end_location => {Line, Col + 1}}.
 
 put_anno(Key, Value, Anno) when is_map(Anno) ->
     Anno#{Key => Value};
