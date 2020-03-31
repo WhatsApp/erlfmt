@@ -4,13 +4,10 @@
 
 -export_type([foo/0]).
 
--record(
-    foo,
-    {
-        %% comment
-        a
-    }
-).
+-record(foo, {
+    %% comment
+    a
+}).
 
 -define(CONST, const).
 

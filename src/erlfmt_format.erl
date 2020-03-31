@@ -15,6 +15,7 @@
     document_flush/1,
     document_choice/2,
     document_single_line/1,
+    document_prepend/2,
     document_reduce/2,
     document_fail/0
 ]).
@@ -22,6 +23,8 @@
 -define(INDENT, 4).
 
 -define(PARENLESS_ATTRIBUTE, [type, opaque, spec, callback]).
+
+-define(NEXT_BREAK_FITS, [map, list, tuple, record, block]).
 
 -spec form_to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:document().
 form_to_algebra({function, Meta, Clauses}) ->
@@ -179,8 +182,14 @@ combine_all(Docs) ->
 combine_nested(Head, Doc) ->
     combine_newline(Head, document_combine(document_spaces(?INDENT), Doc)).
 
+prepend_comma_space(D1, D2) ->
+    wrap_prepend(D1, document_text(", "), D2).
+
 wrap(Left, Doc, Right) ->
     document_combine(Left, document_combine(Doc, Right)).
+
+wrap_prepend(Left, Doc, Right) ->
+    document_prepend(Left, document_prepend(Doc, Right)).
 
 wrap_in_parens(Doc) -> wrap(document_text("("), Doc, document_text(")")).
 
@@ -239,6 +248,8 @@ binary_operand_to_algebra(Op, {op, Meta, Op, Left, Right}, Indent) ->
 binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
     expr_to_algebra(Expr).
 
+container_to_algebra([], Left, Right) ->
+    document_combine(Left, Right);
 container_to_algebra(Values, Left, Right) ->
     {Single, Multi} = container_to_algebra_pair(Values, Left, Right),
     document_choice(Single, Multi).
@@ -247,25 +258,35 @@ container_to_algebra_pair([], Left, Right) ->
     Doc = document_combine(Left, Right),
     {Doc, Doc};
 container_to_algebra_pair(Values, Left, Right) ->
-    {Horizontal, Vertical} = container_values_to_algebra_pair(Values),
-    {wrap(Left, Horizontal, Right), wrap_nested(Left, Vertical, Right)}.
+    {Horizontal, LastFits, Vertical} = container_values_to_algebra_pair(Values),
+    HorizontalD = wrap(Left, Horizontal, Right),
+    VerticalD = document_choice(
+        wrap_prepend(Left, LastFits, Right),
+        wrap_nested(Left, Vertical, Right)
+    ),
+    {HorizontalD, VerticalD}.
 
 %% standalone comments are always trailing, but can appear as only expressions
 container_values_to_algebra_pair([{comment, _, _} | _] = Comments) ->
-    {document_fail(), comments_to_algebra(Comments)};
+    {document_fail(), document_fail(), comments_to_algebra(Comments)};
 container_values_to_algebra_pair([Expr | [{comment, _, _} | _] = Comments]) ->
     CommentsD = comments_to_algebra(Comments),
     ExprD = expr_to_algebra(Expr),
-    {document_fail(), combine_newline(ExprD, CommentsD)};
+    {document_fail(), document_fail(), combine_newline(ExprD, CommentsD)};
 container_values_to_algebra_pair([Expr]) ->
     ExprD = expr_to_algebra(Expr),
-    {document_single_line(ExprD), ExprD};
+    case lists:member(element(1, Expr), ?NEXT_BREAK_FITS) andalso no_comments_or_parens(Expr) of
+        true -> {document_single_line(ExprD), ExprD, ExprD};
+        false -> {document_single_line(ExprD), document_fail(), ExprD}
+    end;
 container_values_to_algebra_pair([Expr | Rest]) ->
     ExprD = expr_to_algebra(Expr),
-    {RestSingle, RestMulti} = container_values_to_algebra_pair(Rest),
-    Single = combine_comma_space(document_single_line(ExprD), RestSingle),
+    SingleExprD = document_single_line(ExprD),
+    {RestSingle, RestLastFits, RestMulti} = container_values_to_algebra_pair(Rest),
+    Single = combine_comma_space(SingleExprD, RestSingle),
+    LastFits = prepend_comma_space(SingleExprD, RestLastFits),
     Multi = combine_comma_newline(ExprD, RestMulti),
-    {Single, Multi}.
+    {Single, LastFits, Multi}.
 
 cons_to_algebra(Head, Tail) ->
     HeadD = expr_to_algebra(Head),
@@ -315,7 +336,7 @@ field_to_algebra(Op, Key, Value) ->
 
 comprehension_to_algebra(ExprD, LcExprs, Left, Right) ->
     PipesD = document_text("|| "),
-    {LcExprsSingleD, LcExprsMultiD} = container_values_to_algebra_pair(LcExprs),
+    {LcExprsSingleD, _LcExprsLastFitsD, LcExprsMultiD} = container_values_to_algebra_pair(LcExprs),
     LcExprsD = document_choice(LcExprsSingleD, LcExprsMultiD),
 
     SingleLine =
@@ -548,6 +569,10 @@ try_of_block(Exprs, OfClauses) ->
                 clauses_to_algebra(OfClauses)
             )
     end.
+
+no_comments_or_parens(Meta) ->
+    {Pre, Post} = comments(Meta),
+    Pre =:= [] andalso Post =:= [] andalso not erlfmt_scan:get_anno(parens, Meta, false).
 
 maybe_wrap_in_parens(Meta, Doc) ->
     Parens = erlfmt_scan:get_anno(parens, Meta, false),

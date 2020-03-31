@@ -335,22 +335,33 @@ tuple(Config) when is_list(Config) ->
     ?assertFormatExpr("{1,2}", "{1, 2}"),
     ?assertFormatExpr("{1,{2,3}}", "{1, {2, 3}}"),
     ?assertFormatExpr(
-        "{1,{2,3}}",
+        "{long,{2,3,4}}",
         "{\n"
-        "    1,\n"
-        "    {2, 3}\n"
+        "    long,\n"
+        "    {2, 3, 4}\n"
         "}",
-        10
+        15
     ),
     ?assertFormatExpr(
-        "{1,{long,word}}",
+        "{{long, word},{long,word}}",
         "{\n"
-        "    1,\n"
+        "    {\n"
+        "        long,\n"
+        "        word\n"
+        "    },\n"
         "    {\n"
         "        long,\n"
         "        word\n"
         "    }\n"
         "}",
+        15
+    ),
+    ?assertFormatExpr(
+        "{short, {long, word}}",
+        "{short, {\n"
+        "    long,\n"
+        "    word\n"
+        "}}",
         15
     ).
 
@@ -360,12 +371,12 @@ list(Config) when is_list(Config) ->
     ?assertFormatExpr("[ 1 ,2,3, 4]", "[1, 2, 3, 4]"),
     ?assertFormatExpr("[1,2,3|4]", "[1, 2, 3 | 4]"),
     ?assertFormatExpr(
-        "[1,[2,3]]",
+        "[long,[2,3,4]]",
         "[\n"
-        "    1,\n"
-        "    [2, 3]\n"
+        "    long,\n"
+        "    [2, 3, 4]\n"
         "]",
-        10
+        15
     ),
     ?assertFormatExpr(
         "[11,2|3]",
@@ -383,6 +394,14 @@ list(Config) when is_list(Config) ->
         "    | 33\n"
         "]",
         10
+    ),
+    ?assertFormatExpr(
+        "[short, [long, word]]",
+        "[short, [\n"
+        "    long,\n"
+        "    word\n"
+        "]]",
+        15
     ).
 
 binary(Config) when is_list(Config) ->
@@ -612,15 +631,15 @@ call(Config) when is_list(Config) ->
         25
     ),
     ?assertFormatExpr(
-        "long_name({Very, Long, Expression})",
-        "long_name(\n"
+        "very_very_long_name({Very, Long, Expression})",
+        "very_very_long_name(\n"
         "    {\n"
         "        Very,\n"
         "        Long,\n"
         "        Expression\n"
         "    }\n"
         ")",
-        25
+        20
     ),
     ?assertFormatExpr(
         "long_name({Long, Expression}, AnotherArgument)",
@@ -628,6 +647,15 @@ call(Config) when is_list(Config) ->
         "    {Long, Expression},\n"
         "    AnotherArgument\n"
         ")",
+        25
+    ),
+    ?assertFormatExpr(
+        "long_name(Arg, {Very, Long, Expression})",
+        "long_name(Arg, {\n"
+        "    Very,\n"
+        "    Long,\n"
+        "    Expression\n"
+        "})",
         25
     ).
 
@@ -1069,7 +1097,18 @@ attribute(Config) when is_list(Config) ->
     ),
     ?assertFormatForm(
         "-attribute([ExceptionallyLong, Value]).",
+        "-attribute([\n"
+        "    ExceptionallyLong,\n"
+        "    Value\n"
+        "]).",
+        25
+    ),
+    ?assertFormatForm(
         "-attribute(\n"
+        "           [ ExceptionallyLong % comment\n"
+        "           , Value]).",
+        "-attribute(\n"
+        "    % comment\n"
         "    [\n"
         "        ExceptionallyLong,\n"
         "        Value\n"
@@ -1087,15 +1126,12 @@ attribute(Config) when is_list(Config) ->
     ),
     ?assertFormatForm(
         "-record(foo, {a = 1 :: integer(), b :: float(), c  = 2, d}).",
-        "-record(\n"
-        "    foo,\n"
-        "    {\n"
-        "        a = 1 :: integer(),\n"
-        "        b :: float(),\n"
-        "        c = 2,\n"
-        "        d\n"
-        "    }\n"
-        ").",
+        "-record(foo, {\n"
+        "    a = 1 :: integer(),\n"
+        "    b :: float(),\n"
+        "    c = 2,\n"
+        "    d\n"
+        "}).",
         30
     ),
     ?assertSameForm(
@@ -1161,6 +1197,11 @@ attribute(Config) when is_list(Config) ->
         "    Value >= long_expression(High)\n"
         ").",
         40
+    ),
+    ?assertSameForm(
+        "-define(FOO(X), begin\n"
+        "    is_atom(X) orelse is_tuple(X)\n"
+        "end)."
     ),
     ?assertSameForm(
         "-type foo() :: {fun(), fun((...) -> mod:bar()), fun(() -> integer())}."
