@@ -77,21 +77,27 @@ insert_nested({cons, Meta, Head0, Tail0}, Comments0) ->
     {Head, Comments1} = insert_expr(Head0, Comments0),
     {Tail, Comments} = insert_expr(Tail0, Comments1),
     {{cons, Meta, Head, Tail}, Comments};
-insert_nested({clause, Meta, Name, Args0, empty, Body0}, Comments0) ->
-    {Args, Comments1} = insert_expr_list(Args0, Comments0),
-    {Body, Comments} = insert_expr_list(Body0, Comments1),
-    {{clause, Meta, Name, Args, empty, Body}, Comments};
-%% in spec clauses, guards are located after body part
-insert_nested({clause, Meta, spec, Args0, Guards0, Body0}, Comments0) ->
-    {Args, Comments1} = insert_expr_list(Args0, Comments0),
+%% without guards spec_clause is the same as clause
+insert_nested({spec_clause, Meta, Head0, Body0, empty}, Comments0) ->
+    insert_nested({clause, Meta, Head0, empty, Body0}, Comments0);
+insert_nested({spec_clause, Meta, Head0, Body0, Guards0}, Comments0) ->
+    {Head, Comments1} = insert_expr(Head0, Comments0),
     {Body, Comments2} = insert_expr_list(Body0, Comments1),
     {Guards, Comments} = insert_expr(Guards0, Comments2),
-    {{clause, Meta, spec, Args, Guards, Body}, Comments};
-insert_nested({clause, Meta, Name, Args0, Guards0, Body0}, Comments0) ->
-    {Args, Comments1} = insert_expr_list(Args0, Comments0),
+    {{spec_clause, Meta, Head, Body, Guards}, Comments};
+insert_nested({clause, Meta, Head0, empty, Body0}, Comments0) ->
+    {Head, Comments1} = insert_expr(Head0, Comments0),
+    {Body, Comments} = insert_expr_list(Body0, Comments1),
+    {{clause, Meta, Head, empty, Body}, Comments};
+insert_nested({clause, Meta, empty, Guards0, Body0}, Comments0) ->
+    {Guards, Comments1} = insert_expr(Guards0, Comments0),
+    {Body, Comments} = insert_expr_list(Body0, Comments1),
+    {{clause, Meta, empty, Guards, Body}, Comments};
+insert_nested({clause, Meta, Head0, Guards0, Body0}, Comments0) ->
+    {Head, Comments1} = insert_expr(Head0, Comments0),
     {Guards, Comments2} = insert_expr(Guards0, Comments1),
     {Body, Comments} = insert_expr_list(Body0, Comments2),
-    {{clause, Meta, Name, Args, Guards, Body}, Comments};
+    {{clause, Meta, Head, Guards, Body}, Comments};
 insert_nested({Guard, Meta, Guards0}, Comments0)
 when Guard =:= guard_or; Guard =:= guard_and ->
     {Guards, Comments} = insert_expr_list(Guards0, Comments0),
@@ -183,6 +189,12 @@ insert_nested({'fun', Meta, {type, InnerMeta, Args0, Res0}}, Comments0) ->
 insert_nested({'fun', Meta, {clauses, InnerMeta, Clauses0}}, Comments0) ->
     Clauses = insert_expr_container(Clauses0, Comments0),
     {{'fun', Meta, {clauses, InnerMeta, Clauses}}, []};
+insert_nested({'catch', Meta, Args0}, Comments0) ->
+    {Args, Comments} = insert_expr_list(Args0, Comments0),
+    {{'catch', Meta, Args}, Comments};
+insert_nested({args, Meta, Args0}, Comments0) ->
+    Args = insert_expr_container(Args0, Comments0),
+    {{args, Meta, Args}, []};
 insert_nested({Name, Meta}, Comments) ->
     {{Name, Meta}, Comments}.
 

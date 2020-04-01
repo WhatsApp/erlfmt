@@ -16,16 +16,20 @@ In `erlfmt_parse` the following AST nodes have different definitions:
   instead of concrete terms. The name is always represented as a full `atom` node.
 
 * The `clause` node has a different AST representation:
-  `{clause, Anno, Name, Args, Guards, Body}`, where the newly added `Name` field
-  is an `atom`, `var`, or `macro_call` node or an atom `'fun'` for anonymous funs,
-  `'case'` for case, receive and "of" part of try expressions,
-  `'if'` for if expressions and `catch` for "catch" part of try expressions,
-  `spec` for clauses of a function spec inside `spec` and `callback` attributes.
-  The element `Guards` can either be an atom `empty` or a `guard_or` node.
+  `{clause, Anno, Head, Guards, Body}`, where the `Guards` element is either
+  an atom `empty` or a `guard_or` node, and `Head` element is one of:
+  * regular `call` node for functions and named funs;
+  * atom `empty` for `if` expressions;
+  * `{args, Anno, Args}` node for bare argument clauses inside anonymous funs;
+  * `{catch, Anno, Args}` node for clauses in `catch` clauses, where
+    2 to 3 arguments represent the various `:` separated syntaxes;
+  * other expression for `case`, `receive`, "of" part of `try` expression
+    and simple `catch` clauses without `:`.
 
-* The `clause` nodes tagged with `catch` have 1 to 3 arguments representing
-  the various syntaxes of catch clauses. This replaces a fixed 3-tuple as a single
-  argument of the clause.
+* New `{spec_clause, Anno, Head, Body, Guards}` node for clauses inside
+  `spec` and `callback` attributes, similar to the `clause` node above.
+  It reflects the fact that in specs guards come after body. The `Head`
+  element is always an `args` node.
 
 * New `{guard_or, Anno, GuardAndList}` and `{guard_and, Anno, Exprs}` nodes
   are introduced to support annotating guard sequences, insted of a plain
