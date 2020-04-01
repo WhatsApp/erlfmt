@@ -1230,7 +1230,7 @@ format_form(String, PageWidth) ->
     unicode:characters_to_list(Rendered).
 
 format_expr(String, PageWidth) ->
-    {ok, [{function, _, [{clause, _, _, [], empty, [Expr]}]}], []} =
+    {ok, [{function, _, [{clause, _, _, empty, [Expr]}]}], []} =
         erlfmt:read_forms_string("nofile", "f() ->\n" ++ String ++ "."),
     Doc = erlfmt_format:expr_to_algebra(Expr),
     Rendered = erlfmt_algebra:document_render(Doc, [{page_width, PageWidth}]),

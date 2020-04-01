@@ -199,38 +199,39 @@ specs(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, {atom, _, spec}, [{spec, _,
             {remote, _, {atom, _, foo}, {atom, _, bar}},
-            [{clause, _, spec, [], empty, [{atom, _, ok}]}]
+            [{spec_clause, _, {args, _, []}, [{atom, _, ok}], empty}]
         }]},
         parse_form("-spec foo:bar() -> ok.")
     ),
     ?assertMatch(
         {attribute, _, {atom, _, spec}, [{spec, _, {atom, _, foo}, [
-            {clause, _, spec, [{call, _, {atom, _, integer}, []}], empty, [{atom, _,integer}]},
-            {clause, _, spec, [{call, _, {atom, _, atom}, []}], empty, [{atom, _, atom}]}
+            {spec_clause, _, {args, _, [{call, _, {atom, _, integer}, []}]}, [{atom, _,integer}], empty},
+            {spec_clause, _, {args, _, [{call, _, {atom, _, atom}, []}]}, [{atom, _, atom}], empty}
         ]}]},
         parse_form("-spec foo(integer()) -> integer; (atom()) -> atom.")
     ),
     ?assertMatch(
         {attribute, _, {atom, _, callback}, [{spec, _, {atom, _, foo}, [
-            {clause, _, spec, [{var, _, 'X'}], {guard_or, _, [{guard_and, _, [
+            {spec_clause, _, {args, _, [{var, _, 'X'}]}, [{var, _, 'Y'}], {guard_or, _, [
+                {guard_and, _, [
                     {op, _, '::', {var, _, 'X'}, {call, _, {atom, _, integer}, []}},
                     {op, _, '::', {var, _, 'Y'}, {call, _, {atom, _, atom}, []}}
-                ]}]},
-                [{var, _, 'Y'}]}
+                ]}
+            ]}}
         ]}]},
         parse_form("-callback foo(X) -> Y when X :: integer(), Y :: atom().")
     ),
     ?assertMatch(
         {attribute, _, {atom, _, spec}, [{spec, _,
             {macro_call, _, {atom, _, foo}, none},
-            [{clause, _, spec, [], empty, [{atom, _, ok}]}]
+            [{spec_clause, _, {args, _, []}, [{atom, _, ok}], empty}]
         }]},
         parse_form("-spec ?foo() -> ok.")
     ),
     ?assertMatch(
         {attribute, _, {atom, _, callback}, [{spec, _,
             {macro_call, _, {var, _, 'FOO'}, none},
-            [{clause, _, spec, [], empty, [{atom, _, ok}]}]
+            [{spec_clause, _, {args, _, []}, [{atom, _, ok}], empty}]
         }]},
         parse_form("-callback ?FOO() -> ok.")
     ).
@@ -421,13 +422,13 @@ macro_definitions(Config) when is_list(Config) ->
         parse_form("-define(pass(Name), fun Name/2).")
     ),
     ?assertMatch(
-        {attribute, _, {atom, _, define}, [{atom, _, foo}, {clause, _, {atom, _, foo}, [], empty, [{atom, _, ok}]}]},
+        {attribute, _, {atom, _, define}, [{atom, _, foo}, {clause, _, {call, _, {atom, _, foo}, []}, empty, [{atom, _, ok}]}]},
         parse_form("-define(foo, foo() -> ok).")
     ),
     ?assertMatch(
         {attribute, _, {atom, _, define}, [
             {call, _, {var, _, 'FOO'}, [{var, _, 'Name'}]},
-            {clause, _, {var, _, 'Name'}, [], empty, [{atom, _, ok}]}
+            {clause, _, {call, _, {var, _, 'Name'}, []}, empty, [{atom, _, ok}]}
         ]},
         parse_form("-define(FOO(Name), Name() -> ok).")
     ),
@@ -466,24 +467,24 @@ functions_and_funs(Config) when is_list(Config) ->
         parse_expr("fun foo:foo/?foo")
     ),
     ?assertMatch(
-        {'fun', _, {clauses, _, [{clause, _, 'fun', [], empty, [{atom, _, ok}]}]}},
+        {'fun', _, {clauses, _, [{clause, _, {args, _, []}, empty, [{atom, _, ok}]}]}},
         parse_expr("fun () -> ok end")
     ),
     ?assertMatch(
-        {'fun', _, {clauses, _, [{clause, _, {var, _, 'Foo'}, [], empty, [{atom, _, ok}]}]}},
+        {'fun', _, {clauses, _, [{clause, _, {call, _, {var, _, 'Foo'}, []}, empty, [{atom, _, ok}]}]}},
         parse_expr("fun Foo() -> ok end")
     ),
     ?assertMatch(
-        {function, _, [{clause, _, {atom, _, foo}, [], empty, [{atom, _, ok}]}]},
+        {function, _, [{clause, _, {call, _, {atom, _, foo}, []}, empty, [{atom, _, ok}]}]},
         parse_form("foo() -> ok.")
     ),
     ?assertMatch(
-        {function, _, [{clause, _, {macro_call, _, {var, _, 'FOO'}, none}, [], empty, [{atom, _, ok}]}]},
+        {function, _, [{clause, _, {call, _, {macro_call, _, {var, _, 'FOO'}, none}, []}, empty, [{atom, _, ok}]}]},
         parse_form("?FOO() -> ok.")
     ),
     ?assertMatch(
         {function, _, [
-            {clause, _, {atom, _, foo}, [], empty, [{atom, _, ok}]},
+            {clause, _, {call, _, {atom, _, foo}, []}, empty, [{atom, _, ok}]},
             {macro_call, _, {atom, _, bar}, []}
         ]},
         parse_form("foo() -> ok; ?bar().")
@@ -491,7 +492,7 @@ functions_and_funs(Config) when is_list(Config) ->
     ?assertMatch(
         {function, _, [{macro_call, _, {var, _,'TESTS_WITH_SETUP'}, [
             {atom, _, all_tests_},
-            {'fun', _, {clauses, _, [{clause, _, 'fun', [], empty, [{atom, _, ok}]}]}}
+            {'fun', _, {clauses, _, [{clause, _, {args, _, []}, empty, [{atom, _, ok}]}]}}
         ]}]},
         parse_form("?TESTS_WITH_SETUP(all_tests_, fun() -> ok end).")
     ).
@@ -547,26 +548,26 @@ binaries(Config) when is_list(Config) ->
 
 clauses(Config) when is_list(Config) ->
     ?assertMatch(
-        {'if', _, [{clause, _, 'if', [], {guard_or, _, [{guard_and, _, [{atom, _, true}]}]}, [{atom, _, ok}]}]},
+        {'if', _, [{clause, _, empty, {guard_or, _, [{guard_and, _, [{atom, _, true}]}]}, [{atom, _, ok}]}]},
         parse_expr("if true -> ok end")
     ),
     ?assertMatch(
         {'case', _, {var, _, 'X'}, [
-            {clause, _, 'case', [{atom, _, true}], empty, [{atom, _, ok}]}
+            {clause, _, {atom, _, true}, empty, [{atom, _, ok}]}
         ]},
         parse_expr("case X of true -> ok end")
     ),
     ?assertMatch(
-        {'receive', _, [{clause, _, 'case', [{var, _, '_'}], empty, [{atom, _, true}]}]},
+        {'receive', _, [{clause, _, {var, _, '_'}, empty, [{atom, _, true}]}]},
         parse_expr("receive _ -> true end")
     ),
     ?assertMatch(
         {'try', _, [{atom, _, ok}],
-            [{clause, _, 'case', [{var, _,'_'}], empty, [{atom, _, ok}]}],
+            [{clause, _, {var, _,'_'}, empty, [{atom, _, ok}]}],
             [
-                {clause, _, 'catch', [{var, _, '_'}], empty, [{atom, _, ok}]},
-                {clause, _, 'catch', [{var, _, '_'}, {var, _, '_'}], empty, [{atom, _, ok}]},
-                {clause, _, 'catch', [{var, _, '_'}, {var, _, '_'}, {var, _, '_'}], empty, [{atom, _, ok}]}
+                {clause, _, {var, _, '_'}, empty, [{atom, _, ok}]},
+                {clause, _, {'catch', _, [{var, _, '_'}, {var, _, '_'}]}, empty, [{atom, _, ok}]},
+                {clause, _, {'catch', _, [{var, _, '_'}, {var, _, '_'}, {var, _, '_'}]}, empty, [{atom, _, ok}]}
             ],
             []
         },
@@ -698,8 +699,8 @@ annos(Config) when is_list(Config) ->
     ),
     ?assertMatch(
         {function, #{location := {1, 1}, end_location := {2, 14}}, [
-            {clause, #{location := {1, 1}, end_location := {1, 12}}, _, [_], empty, [_]},
-            {clause, #{location := {2, 1}, end_location := {2, 13}}, _, [_], empty, [_]}
+            {clause, #{location := {1, 1}, end_location := {1, 12}}, _, empty, [_]},
+            {clause, #{location := {2, 1}, end_location := {2, 13}}, _, empty, [_]}
         ]},
         parse_form(
             "foo(a) -> 1;\n"
@@ -719,12 +720,12 @@ annos(Config) when is_list(Config) ->
     ).
 
 parse_expr(String) ->
-    {function, _, [{clause, _, _, [], empty, [Expr]}]} =
+    {function, _, [{clause, _, _, empty, [Expr]}]} =
         parse_form("f() -> " ++ String ++ "."),
     Expr.
 
 parse_pat(String) ->
-    {function, _, [{clause, _, _, [Pat], empty, [_]}]} =
+    {function, _, [{clause, _, {call, _, _, [Pat]}, empty, [_]}]} =
         parse_form("f(" ++ String ++ ") -> ok."),
     Pat.
 

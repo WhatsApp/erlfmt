@@ -417,16 +417,18 @@ clauses_to_algebra_pair([Clause | Rest]) ->
     Multi = combine_semi_newline(MultiClauseD, RestMulti),
     {Single, Multi}.
 
-clause_to_algebra_pair({clause, Meta, _, _, _, _} = Clause) ->
+clause_to_algebra_pair({Clause, Meta, _, _, _} = Node)
+when Clause =:= clause; Clause =:= spec_clause ->
     %% clause nodes only have precomments
     {Pre, []} = comments(Meta),
-    {Single, Multi} = do_clause_to_algebra_pair(Clause),
+    {Single, Multi} = do_clause_to_algebra_pair(Node),
     {combine_pre_comments(Pre, Single), combine_pre_comments(Pre, Multi)};
-clause_to_algebra_pair(Other) ->
-    do_clause_to_algebra_pair(Other).
+clause_to_algebra_pair({macro_call, _, _, _} = Expr) ->
+    %% It's possible the entire clause is defined inside of a macro call
+    ExprD = expr_to_algebra(Expr),
+    {document_single_line(ExprD), ExprD}.
 
-
-do_clause_to_algebra_pair({clause, _Meta, 'if', [], Guards, Body}) ->
+do_clause_to_algebra_pair({clause, _Meta, empty, Guards, Body}) ->
     BodyD = block_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
     {SingleGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards),
@@ -436,8 +438,10 @@ do_clause_to_algebra_pair({clause, _Meta, 'if', [], Guards, Body}) ->
 
     {SingleD, MultiD};
 %% If there are no guards, spec is the same as regular clauses
-do_clause_to_algebra_pair({clause, _Meta, spec, Args, Guards, [Body]}) when Guards =/= empty ->
-    {SingleHeadD, HeadD} = clause_head_to_algebra(spec, Args),
+do_clause_to_algebra_pair({spec_clause, Meta, Head, Body, empty}) ->
+    do_clause_to_algebra_pair({clause, Meta, Head, empty, Body});
+do_clause_to_algebra_pair({spec_clause, _Meta, Head, [Body], Guards}) ->
+    {SingleHeadD, HeadD} = clause_head_to_algebra(Head),
     {SingleGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards),
     BodyD = expr_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
@@ -454,8 +458,8 @@ do_clause_to_algebra_pair({clause, _Meta, spec, Args, Guards, [Body]}) when Guar
     MultiD = combine_newline(MultiPrefix, document_combine(document_text("when "), GuardsD)),
 
     {SingleD, MultiD};
-do_clause_to_algebra_pair({clause, _Meta, Name, Args, empty, Body}) ->
-    {SingleHeadD, HeadD} = clause_head_to_algebra(Name, Args),
+do_clause_to_algebra_pair({clause, _Meta, Head, empty, Body}) ->
+    {SingleHeadD, HeadD} = clause_head_to_algebra(Head),
     BodyD = block_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
 
@@ -464,8 +468,8 @@ do_clause_to_algebra_pair({clause, _Meta, Name, Args, empty, Body}) ->
     MultiD = combine_nested(MultiPrefix, BodyD),
 
     {SingleD, MultiD};
-do_clause_to_algebra_pair({clause, _Meta, Name, Args, Guards, Body}) ->
-    {SingleHeadD, HeadD} = clause_head_to_algebra(Name, Args),
+do_clause_to_algebra_pair({clause, _Meta, Head, Guards, Body}) ->
+    {SingleHeadD, HeadD} = clause_head_to_algebra(Head),
     {SingleGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards),
     BodyD = block_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
@@ -481,24 +485,20 @@ do_clause_to_algebra_pair({clause, _Meta, Name, Args, Guards, Body}) ->
         ),
     MultiD = combine_nested(document_combine(MultiPrefix, document_text(" ->")), BodyD),
 
-    {SingleD, MultiD};
-do_clause_to_algebra_pair({macro_call, _, _, _} = Expr) ->
-    %% It's possible the entire clause is defined inside of a macro call
-    Doc = expr_to_algebra(Expr),
-    {document_single_line(Doc), Doc}.
+    {SingleD, MultiD}.
 
-clause_head_to_algebra(FunOrSpec, Args) when FunOrSpec =:= 'fun'; FunOrSpec =:= spec ->
+clause_head_to_algebra({args, _, Args}) ->
     container_to_algebra_pair(Args, document_text("("), document_text(")"));
-clause_head_to_algebra('case', [Arg]) ->
-    Doc = expr_to_algebra(Arg),
-    {document_single_line(Doc), Doc};
-clause_head_to_algebra('catch', Args) ->
+clause_head_to_algebra({'catch', _, Args}) ->
     ArgsD = lists:map(fun expr_to_algebra/1, Args),
     Doc = document_reduce(fun combine_colon/2, ArgsD),
     {document_single_line(Doc), Doc};
-clause_head_to_algebra(Name, Args) ->
+clause_head_to_algebra({call, _, Name, Args}) ->
     Prefix = document_combine(expr_to_algebra(Name), document_text("(")),
-    container_to_algebra_pair(Args, Prefix, document_text(")")).
+    container_to_algebra_pair(Args, Prefix, document_text(")"));
+clause_head_to_algebra(Expr) ->
+    ExprD = expr_to_algebra(Expr),
+    {document_single_line(ExprD), ExprD}.
 
 guard_or_to_algebra_pair({guard_or, Meta, Guards}) ->
     case comments(Meta) of

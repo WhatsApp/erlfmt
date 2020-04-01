@@ -19,7 +19,7 @@ Nonterminals
 form
 attribute attr_val
 function function_clauses function_clause
-clause_args clause_guard clause_body
+clause_guard clause_body
 expr expr_max expr_max_remote
 pat_expr pat_expr_max map_pat_expr record_pat_expr
 pat_argument_list pat_exprs
@@ -32,7 +32,7 @@ map_expr map_tuple map_field map_fields map_key
 if_expr if_clause if_clauses case_expr cr_clause cr_clauses receive_expr
 fun_expr fun_clause fun_clauses
 atom_or_var atom_or_var_or_macro integer_or_var_or_macro
-try_expr try_catch try_clause try_clauses try_opt_stacktrace
+try_expr try_catch try_clause try_clauses
 function_call argument_list
 exprs anno_exprs guard guard_or vars
 atomic concatable concatables macro_record_or_concatable
@@ -109,10 +109,12 @@ type_sigs -> type_sig : {['$1'], ?anno('$1')}.
 type_sigs -> type_sig ';' type_sigs : {['$1' | ?val('$3')], ?anno('$3')}.
 
 type_sig -> type_argument_list '->' type :
-    {clause, ?range_anno('$1', '$3'), spec, ?val('$1'), empty, ['$3']}.
+    Head = {args, ?anno('$1'), ?val('$1')},
+    {spec_clause, ?range_anno('$1', '$3'), Head, ['$3'], empty}.
 type_sig -> type_argument_list '->' type 'when' anno_types :
+    Head = {args, ?anno('$1'), ?val('$1')},
     Guard = {guard_or, ?anno('$5'), [{guard_and, ?anno('$5'), ?val('$5')}]},
-    {clause, ?range_anno('$1', '$5'), spec, ?val('$1'), Guard, ['$3']}.
+    {spec_clause, ?range_anno('$1', '$5'), Head, ['$3'], Guard}.
 
 type -> type '::' type : ?mkop2('$1', '$2', '$3').
 type -> type '|' type : ?mkop2('$1', '$2', '$3').
@@ -187,15 +189,16 @@ function -> function_clauses :
 function_clauses -> function_clause : ['$1'].
 function_clauses -> function_clause ';' function_clauses : ['$1' | '$3'].
 
-function_clause -> atom_or_var clause_args clause_guard clause_body :
-    {clause,?range_anno('$1', '$4'),'$1','$2','$3',?val('$4')}.
+function_clause -> atom_or_var pat_argument_list clause_guard clause_body :
+    Head = {call, ?range_anno('$1', '$2'), '$1', ?val('$2')},
+    {clause, ?range_anno('$1', '$4'), Head, '$3', ?val('$4')}.
 function_clause -> macro_call_expr clause_guard clause_body :
-    {macro_call,A,Name,Args} = '$1',
-    {clause,?range_anno('$1', '$3'),{macro_call,A,Name,none},Args,'$2',?val('$3')}.
+    {macro_call, A, Name, Args} = '$1',
+    %% we reduce the anno range for the inner macro to end of Name
+    Head = {call, A, {macro_call, ?range_anno('$1', Name), Name, none}, Args},
+    {clause, ?range_anno('$1', '$3'), Head, '$2', ?val('$3')}.
 function_clause -> macro_call_expr :
     '$1'.
-
-clause_args -> pat_argument_list : ?val('$1').
 
 clause_guard -> 'when' guard : '$2'.
 clause_guard -> '$empty' : empty.
@@ -385,10 +388,10 @@ if_clauses -> if_clause : ['$1'].
 if_clauses -> if_clause ';' if_clauses : ['$1' | '$3'].
 
 if_clause -> guard clause_body :
-        {clause,?range_anno('$1', '$2'),'if',[],'$1',?val('$2')}.
+    {clause, ?range_anno('$1', '$2'), empty, '$1', ?val('$2')}.
 
 case_expr -> 'case' expr 'of' cr_clauses 'end' :
-        {'case',?range_anno('$1', '$5'),'$2','$4'}.
+    {'case', ?range_anno('$1', '$5'), '$2', '$4'}.
 
 cr_clauses -> cr_clause : ['$1'].
 cr_clauses -> cr_clause ';' cr_clauses : ['$1' | '$3'].
@@ -398,7 +401,7 @@ cr_clauses -> cr_clause ';' cr_clauses : ['$1' | '$3'].
 %% should be a better way.
 
 cr_clause -> expr clause_guard clause_body :
-        {clause,?range_anno('$1', '$3'),'case',['$1'],'$2',?val('$3')}.
+    {clause, ?range_anno('$1', '$3'), '$1', '$2', ?val('$3')}.
 
 receive_expr -> 'receive' cr_clauses 'end' :
         {'receive',?range_anno('$1', '$3'),'$2'}.
@@ -431,14 +434,18 @@ fun_clauses -> fun_clause : ['$1'].
 fun_clauses -> fun_clause ';' fun_clauses : ['$1' | '$3'].
 
 fun_clause -> pat_argument_list clause_guard clause_body :
-    {clause,?range_anno('$1', '$3'),'fun',?val('$1'),'$2',?val('$3')}.
+    Head = {args, ?anno('$1'), ?val('$1')},
+    {clause, ?range_anno('$1', '$3'), Head, '$2', ?val('$3')}.
 fun_clause -> var pat_argument_list clause_guard clause_body :
-    {clause,?range_anno('$1', '$4'),'$1',?val('$2'),'$3',?val('$4')}.
+    Head = {call, ?range_anno('$1', '$2'), '$1', ?val('$2')},
+    {clause, ?range_anno('$1', '$4'), Head, '$3', ?val('$4')}.
 
 try_expr -> 'try' exprs 'of' cr_clauses try_catch :
-        build_try(?range_anno('$1', '$5'),'$2','$4','$5').
+    {TryClauses, _, After} = '$5',
+    {'try', ?range_anno('$1', '$5'), '$2', '$4', TryClauses, After}.
 try_expr -> 'try' exprs try_catch :
-        build_try(?range_anno('$1', '$3'),'$2',[],'$3').
+    {TryClauses, _, After} = '$3',
+    {'try', ?range_anno('$1', '$3'), '$2', [], TryClauses, After}.
 
 try_catch -> 'catch' try_clauses 'end' :
         {'$2', ?anno('$3'), []}.
@@ -451,12 +458,13 @@ try_clauses -> try_clause : ['$1'].
 try_clauses -> try_clause ';' try_clauses : ['$1' | '$3'].
 
 try_clause -> pat_expr clause_guard clause_body :
-        {clause,?range_anno('$1', '$3'),'catch',['$1'],'$2',?val('$3')}.
-try_clause -> atom_or_var ':' pat_expr try_opt_stacktrace clause_guard clause_body :
-        {clause,?range_anno('$1', '$6'),'catch',['$1','$3'|'$4'],'$5',?val('$6')}.
-
-try_opt_stacktrace -> ':' var : ['$2'].
-try_opt_stacktrace -> '$empty' : [].
+    {clause, ?range_anno('$1', '$3'), '$1', '$2', ?val('$3')}.
+try_clause -> atom_or_var ':' pat_expr clause_guard clause_body :
+    Head = {'catch', ?range_anno('$1', '$3'), ['$1', '$3']},
+    {clause, ?range_anno('$1', '$5'), Head, '$4', ?val('$5')}.
+try_clause -> atom_or_var ':' pat_expr ':' var clause_guard clause_body :
+    Head = {'catch', ?range_anno('$1', '$5'), ['$1', '$3', '$5']},
+    {clause, ?range_anno('$1', '$7'), Head, '$6', ?val('$7')}.
 
 macro_def_expr -> '(' macro_name ',' macro_def_expr_body ')' : {'$2', '$4'}.
 
@@ -515,16 +523,14 @@ macro_string -> '?' '?' atom_or_var :
 macro_expr -> expr : '$1'.
 macro_expr -> expr 'when' expr : ?mkop2('$1', '$2', '$3').
 
-%% in all use places we only care about the position of final token,
-%% save up some work by not tracking the full, precise location
-argument_list -> '(' ')' : {[],?anno('$2')}.
-argument_list -> '(' exprs ')' : {'$2',?anno('$3')}.
+argument_list -> '(' ')' : {[], ?range_anno('$1', '$2')}.
+argument_list -> '(' exprs ')' : {'$2', ?range_anno('$1', '$3')}.
 
-pat_argument_list -> '(' ')' : {[],?anno('$2')}.
-pat_argument_list -> '(' pat_exprs ')' : {'$2',?anno('$3')}.
+pat_argument_list -> '(' ')' : {[], ?range_anno('$1', '$2')}.
+pat_argument_list -> '(' pat_exprs ')' : {'$2', ?range_anno('$1', '$3')}.
 
-type_argument_list -> '(' ')' : {[], ?anno('$2')}.
-type_argument_list -> '(' types ')' : {'$2', ?anno('$3')}.
+type_argument_list -> '(' ')' : {[], ?range_anno('$1', '$2')}.
+type_argument_list -> '(' types ')' : {'$2', ?range_anno('$1', '$3')}.
 
 anno_exprs -> expr : {['$1'], ?anno('$1')}.
 anno_exprs -> expr ',' anno_exprs : {['$1' | ?val('$3')], ?anno('$3')}.
@@ -1024,9 +1030,6 @@ record_fields([{op,Am,'::',Expr,TypeInfo}|Fields]) ->
 record_fields([Other|_Fields]) ->
     ret_err(?anno(Other), "bad record field");
 record_fields([]) -> [].
-
-build_try(A,Es,Scs,{Ccs,_Ae,As}) ->
-    {'try',A,Es,Scs,Ccs,As}.
 
 -spec ret_err(_, _) -> no_return().
 ret_err(Anno, S) ->
