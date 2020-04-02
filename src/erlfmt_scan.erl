@@ -42,6 +42,14 @@
 
 -opaque state() :: #state{}.
 
+-define(TRACK_NEWLINE_TOKEN(Token),
+    Token =:= '(' orelse
+    Token =:= '[' orelse
+    Token =:= '{' orelse
+    Token =:= '<<' orelse
+    Token =:= '->'
+).
+
 -spec io_form(file:io_device()) -> form_ret().
 io_form(IO) -> form(fun io_scan_erl_form/2, IO).
 
@@ -121,14 +129,23 @@ split_tokens([{white_space, _, _} | Rest], Acc, CAcc) ->
 split_tokens([{Atomic, Meta, Value} | Rest], Acc, CAcc) when ?IS_ATOMIC(Atomic) ->
     split_tokens(Rest, [{Atomic, atomic_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
 split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
-    split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
+    split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta), #{}), Value} | Acc], CAcc);
 %% Keep the `text` value for if in case it's used as an attribute
 split_tokens([{Type, Meta} | Rest], Acc, CAcc) when Type =:= 'if' ->
     split_tokens(Rest, [{Type, atomic_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
 split_tokens([{Type, Meta} | Rest], Acc, CAcc) when Type =:= 'dot' ->
     split_tokens(Rest, [{Type, dot_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
+split_tokens([{Type, Meta} | Rest], Acc, CAcc) when ?TRACK_NEWLINE_TOKEN(Type) ->
+    case has_newline(Rest) of
+        true ->
+            Anno = token_anno(erl_anno:to_term(Meta), #{newline => true}),
+            split_tokens(Rest, [{Type, Anno} | Acc], CAcc);
+        false ->
+            Anno = token_anno(erl_anno:to_term(Meta), #{}),
+            split_tokens(Rest, [{Type, Anno} | Acc], CAcc)
+    end;
 split_tokens([{Type, Meta} | Rest], Acc, CAcc) ->
-    split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
+    split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta), #{})} | Acc], CAcc);
 split_tokens([], Acc, CAcc) ->
     {lists:reverse(Acc), lists:reverse(CAcc)}.
 
@@ -145,6 +162,15 @@ split_extra([{white_space, _, _} = Token | Rest], Line, Acc, CAcc) ->
     split_extra(Rest, Line, [Token | Acc], CAcc);
 split_extra(Rest, _Line, Acc, CAcc) ->
     {lists:reverse(CAcc), lists:reverse(Acc), Rest}.
+
+%% newline is always a first character in a white_space token,
+%% but there could be multiple such tokens
+has_newline([{white_space, _, WhiteSpace} | Rest]) ->
+    hd(WhiteSpace) =:= $\n orelse has_newline(Rest);
+has_newline([{comment, _, _} | _]) ->
+    true;
+has_newline(_) ->
+    false.
 
 collect_comments(Tokens, {comment, Meta, Text}) ->
     Line = erl_anno:line(Meta),
@@ -167,8 +193,8 @@ collect_comments(Other, _Line, LastMeta, Acc) ->
 atomic_anno([{text, Text}, {location, {Line, Col} = Location}]) ->
     #{text => Text, location => Location, end_location => end_location(Text, Line, Col)}.
 
-token_anno([{text, Text}, {location, {Line, Col} = Location}]) ->
-    #{location => Location, end_location => end_location(Text, Line, Col)}.
+token_anno([{text, Text}, {location, {Line, Col} = Location}], Default) ->
+    Default#{location => Location, end_location => end_location(Text, Line, Col)}.
 
 comment_anno([{text, _}, {location, Location}], [{text, Text}, {location, {Line, Col}}]) ->
     #{location => Location, end_location => end_location(Text, Line, Col)}.
