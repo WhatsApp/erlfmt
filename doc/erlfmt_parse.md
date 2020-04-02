@@ -56,7 +56,7 @@ In `erlfmt_parse` the following AST nodes have different definitions:
 
 * A new node `{macro_call, Anno, Name, Args}` is introduced, where `Name` is
   either an `atom` or a `var` node and `Args` is a list of expressions, types,
-  or special `guard` nodes.
+  or special `op` nodes with `'when'` operaor.
 
 * A new operator node `{op, Anno, 'when', Expr, Guard}` is introduced, used only as
   argument for a macro. It represents "free-standing" `Expr when Guard` expressions
@@ -66,13 +66,13 @@ In `erlfmt_parse` the following AST nodes have different definitions:
   an `atom` or a `var` node. It represents `??Name` macro syntax.
 
 * A new node `{concat, Anno, Concatables}`, where `Concatables` is a list of
-  `atom`, `var`, and `macro_call` nodes. This is used to represent implicit
+  `string`, `var`, and `macro_call` nodes. This is used to represent implicit
   string concatenation, for example `"foo" "bar"`.
 
 * Attributes are not processed to convert the `fun/arity` syntax into tuples,
   they are left as the `op` nodes with the `/` operator. Additionally, the
   `import` and `export` attributes are not processed to convert the `cons` node
-  chains into lists.
+  chains into lists and contain `list` nodes.
 
 * Bit type definitions inside binaries are represented as full nodes instead
   of raw atoms and integers. The unit notation `unit:Int` is represented with
