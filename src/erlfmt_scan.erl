@@ -38,7 +38,13 @@
 
 -type comment() :: {comment, anno(), [string()]}.
 
--type anno() :: #{location := location(), end_location := location(), text => string(), atom() => term()}.
+-type anno() :: #{
+    location := location(),
+    end_location := location(),
+    text => string(),
+    newline => true,
+    atom() => term()
+}.
 
 -type location() :: {pos_integer(), pos_integer()}.
 

@@ -53,7 +53,8 @@
     macro/1,
     function/1,
     attribute/1,
-    comment/1
+    comment/1,
+    force_break/1
 ]).
 
 suite() ->
@@ -108,7 +109,8 @@ groups() ->
             binary,
             map_create,
             map_update,
-            {group, records}
+            {group, records},
+            force_break
         ]},
         {records, [parallel], [
             record_create,
@@ -552,6 +554,122 @@ record_field(Config) when is_list(Config) ->
     ),
     ?assertSameExpr("X#?FOO.bar"),
     ?assertSameExpr("X?FOO.bar").
+
+force_break(Config) when is_list(Config) ->
+    ?assertSameExpr(
+        "[\n"
+        "    %% foo\n"
+        "]"
+    ),
+    ?assertFormatExpr(
+        "[x\n"
+        "]",
+        "[x]"
+    ),
+    ?assertFormatExpr(
+        "[\n"
+        " x]",
+        "[\n"
+        "    x\n"
+        "]"
+    ),
+    ?assertFormatExpr(
+        "{x\n"
+        "}",
+        "{x}"
+    ),
+    ?assertFormatExpr(
+        "{\n"
+        " x}",
+        "{\n"
+        "    x\n"
+        "}"
+    ),
+    ?assertFormatExpr(
+        "<<x\n"
+        ">>",
+        "<<x>>"
+    ),
+    ?assertFormatExpr(
+        "<<\n"
+        " x>>",
+        "<<\n"
+        "    x\n"
+        ">>"
+    ),
+    ?assertFormatExpr(
+        "#{x => y\n"
+        "}",
+        "#{x => y}"
+    ),
+    ?assertFormatExpr(
+        "X#{\n"
+        " x => y}",
+        "X#{\n"
+        "    x => y\n"
+        "}"
+    ),
+    ?assertFormatExpr(
+        "X#{x => y\n"
+        "}",
+        "X#{x => y}"
+    ),
+    ?assertFormatExpr(
+        "X#{\n"
+        " x => y}",
+        "X#{\n"
+        "    x => y\n"
+        "}"
+    ),
+    ?assertFormatExpr(
+        "#foo{x = 1\n"
+        "}",
+        "#foo{x = 1}"
+    ),
+    ?assertFormatExpr(
+        "#foo{\n"
+        " x = 1}",
+        "#foo{\n"
+        "    x = 1\n"
+        "}"
+    ),
+    ?assertFormatExpr(
+        "X#foo{x = 1\n"
+        "}",
+        "X#foo{x = 1}"
+    ),
+    ?assertFormatExpr(
+        "X#foo{\n"
+        " x = 1}",
+        "X#foo{\n"
+        "    x = 1\n"
+        "}"
+    ),
+    ?assertFormatExpr(
+        "foo(x\n"
+        ")",
+        "foo(x)"
+    ),
+    ?assertFormatExpr(
+        "foo(\n"
+        " x)",
+        "foo(\n"
+        "    x\n"
+        ")"
+    ),
+    ?assertFormatForm(
+        "foo(x\n"
+        ") -> x.",
+        "foo(x) -> x."
+    ),
+    ?assertFormatForm(
+        "foo(\n"
+        " x) -> x.",
+        "foo(\n"
+        "    x\n"
+        ") ->\n"
+        "    x."
+    ).
 
 list_comprehension(Config) when is_list(Config) ->
     ?assertFormatExpr("[X||X<-List]", "[X || X <- List]"),
