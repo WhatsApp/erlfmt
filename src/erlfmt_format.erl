@@ -45,7 +45,7 @@ form_to_algebra({attribute, Meta, {atom, _, RawName} = Name, Values}) ->
             combine_comments(Meta, Doc);
         false ->
             Prefix = wrap(DashD, NameD, document_text("(")),
-            Doc = container_to_algebra(Values, Prefix, document_text(").")),
+            Doc = container_to_algebra(Meta, Values, Prefix, document_text(").")),
             combine_comments(Meta, Doc)
     end.
 
@@ -68,32 +68,32 @@ do_expr_to_algebra({op, _Meta, Op, Expr}) ->
     unary_op_to_algebra(Op, Expr);
 do_expr_to_algebra({op, Meta, Op, Left, Right}) ->
     binary_op_to_algebra(Op, Meta, Left, Right);
-do_expr_to_algebra({tuple, _Meta, Values}) ->
-    container_to_algebra(Values, document_text("{"), document_text("}"));
-do_expr_to_algebra({list, _Meta, Values}) ->
-    container_to_algebra(Values, document_text("["), document_text("]"));
+do_expr_to_algebra({tuple, Meta, Values}) ->
+    container_to_algebra(Meta, Values, document_text("{"), document_text("}"));
+do_expr_to_algebra({list, Meta, Values}) ->
+    container_to_algebra(Meta, Values, document_text("["), document_text("]"));
 do_expr_to_algebra({cons, _, Head, Tail}) ->
     cons_to_algebra(Head, Tail);
-do_expr_to_algebra({bin, _Meta, Values}) ->
-    container_to_algebra(Values, document_text("<<"), document_text(">>"));
+do_expr_to_algebra({bin, Meta, Values}) ->
+    container_to_algebra(Meta, Values, document_text("<<"), document_text(">>"));
 do_expr_to_algebra({bin_element, _Meta, Expr, Size, Types}) ->
     bin_element_to_algebra(Expr, Size, Types);
-do_expr_to_algebra({map, _Meta, Values}) ->
-    container_to_algebra(Values, document_text("#{"), document_text("}"));
-do_expr_to_algebra({map, _Meta, Expr, Values}) ->
+do_expr_to_algebra({map, Meta, Values}) ->
+    container_to_algebra(Meta, Values, document_text("#{"), document_text("}"));
+do_expr_to_algebra({map, Meta, Expr, Values}) ->
     Prefix = document_combine(expr_to_algebra(Expr), document_text("#{")),
-    container_to_algebra(Values, Prefix, document_text("}"));
+    container_to_algebra(Meta, Values, Prefix, document_text("}"));
 do_expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
     field_to_algebra("=>", Key, Value);
 do_expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
     field_to_algebra(":=", Key, Value);
 do_expr_to_algebra({record, Meta, Name, Values}) ->
     Prefix = document_combine(record_name_to_algebra(Meta, Name), document_text("{")),
-    container_to_algebra(Values, Prefix, document_text("}"));
+    container_to_algebra(Meta, Values, Prefix, document_text("}"));
 do_expr_to_algebra({record, Meta, Expr, Name, Values}) ->
     PrefixName = document_combine(record_name_to_algebra(Meta, Name), document_text("{")),
     Prefix = document_combine(expr_to_algebra(Expr), PrefixName),
-    container_to_algebra(Values, Prefix, document_text("}"));
+    container_to_algebra(Meta, Values, Prefix, document_text("}"));
 do_expr_to_algebra({record_field, _Meta, Key, Value}) ->
     field_to_algebra("=", Key, Value);
 do_expr_to_algebra({record_index, Meta, Name, Key}) ->
@@ -113,14 +113,14 @@ do_expr_to_algebra({generate, _Meta, Left, Right}) ->
     field_to_algebra("<-", Left, Right);
 do_expr_to_algebra({b_generate, _Meta, Left, Right}) ->
     field_to_algebra("<=", Left, Right);
-do_expr_to_algebra({call, _Meta, Name, Args}) ->
+do_expr_to_algebra({call, Meta, Name, Args}) ->
     Prefix = document_combine(expr_to_algebra(Name), document_text("(")),
-    container_to_algebra(Args, Prefix, document_text(")"));
+    container_to_algebra(Meta, Args, Prefix, document_text(")"));
 do_expr_to_algebra({macro_call, _Meta, Name, none}) ->
     document_combine(document_text("?"), expr_to_algebra(Name));
-do_expr_to_algebra({macro_call, _Meta, Name, Args}) ->
+do_expr_to_algebra({macro_call, Meta, Name, Args}) ->
     Prefix = wrap(document_text("?"), expr_to_algebra(Name), document_text("(")),
-    container_to_algebra(Args, Prefix, document_text(")"));
+    container_to_algebra(Meta, Args, Prefix, document_text(")"));
 do_expr_to_algebra({macro_string, _Meta, Name}) ->
     document_combine(document_text("??"), expr_to_algebra(Name));
 do_expr_to_algebra({remote, _Meta, Left, Right}) ->
@@ -248,16 +248,19 @@ binary_operand_to_algebra(Op, {op, Meta, Op, Left, Right}, Indent) ->
 binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
     expr_to_algebra(Expr).
 
-container_to_algebra([], Left, Right) ->
+container_to_algebra(_Meta, [], Left, Right) ->
     document_combine(Left, Right);
-container_to_algebra(Values, Left, Right) ->
-    {Single, Multi} = container_to_algebra_pair(Values, Left, Right),
+container_to_algebra(Meta, Values, Left, Right) ->
+    {Single, Multi} = container_to_algebra_pair(Meta, Values, Left, Right),
     document_choice(Single, Multi).
 
-container_to_algebra_pair([], Left, Right) ->
+container_to_algebra_pair(_, [], Left, Right) ->
     Doc = document_combine(Left, Right),
     {Doc, Doc};
-container_to_algebra_pair(Values, Left, Right) ->
+container_to_algebra_pair(#{newline := true}, Values, Left, Right) ->
+    VerticalD = container_vertical_values_to_algebra(Values),
+    {document_fail(), wrap_nested(Left, VerticalD, Right)};
+container_to_algebra_pair(_, Values, Left, Right) ->
     {Horizontal, LastFits, Vertical} = container_values_to_algebra_pair(Values),
     HorizontalD = wrap(Left, Horizontal, Right),
     VerticalD = document_choice(
@@ -287,6 +290,15 @@ container_values_to_algebra_pair([Expr | Rest]) ->
     LastFits = prepend_comma_space(SingleExprD, RestLastFits),
     Multi = combine_comma_newline(ExprD, RestMulti),
     {Single, LastFits, Multi}.
+
+container_vertical_values_to_algebra([{comment, _, _} | _] = Comments) ->
+    comments_to_algebra(Comments);
+container_vertical_values_to_algebra([Expr | [{comment, _, _} | _] = Comments]) ->
+    combine_newline(expr_to_algebra(Expr), comments_to_algebra(Comments));
+container_vertical_values_to_algebra([Expr]) ->
+    expr_to_algebra(Expr);
+container_vertical_values_to_algebra([Expr | Rest]) ->
+    combine_comma_newline(expr_to_algebra(Expr), container_vertical_values_to_algebra(Rest)).
 
 cons_to_algebra(Head, Tail) ->
     HeadD = expr_to_algebra(Head),
@@ -386,9 +398,10 @@ fun_to_algebra({clauses, _Anno, Clauses}) ->
     );
 fun_to_algebra(type) ->
     document_text("fun()");
-fun_to_algebra({type, _Anno, Args, Result}) ->
+fun_to_algebra({type, Anno, Args, Result}) ->
     ResultD = document_combine(document_text(") -> "), expr_to_algebra(Result)),
-    wrap(document_text("fun("), container_to_algebra(Args, document_text("("), ResultD), document_text(")")).
+    ArgsD = container_to_algebra(Anno, Args, document_text("("), ResultD),
+    wrap(document_text("fun("), ArgsD, document_text(")")).
 
 clauses_to_algebra(Clauses) ->
     {Single, Multi} = clauses_to_algebra_pair(Clauses),
@@ -478,15 +491,15 @@ do_clause_to_algebra_pair({clause, _Meta, Head, Guards, Body}) ->
 
     {SingleD, MultiD}.
 
-clause_head_to_algebra({args, _, Args}) ->
-    container_to_algebra_pair(Args, document_text("("), document_text(")"));
+clause_head_to_algebra({args, Meta, Args}) ->
+    container_to_algebra_pair(Meta, Args, document_text("("), document_text(")"));
 clause_head_to_algebra({'catch', _, Args}) ->
     ArgsD = lists:map(fun expr_to_algebra/1, Args),
     Doc = document_reduce(fun combine_colon/2, ArgsD),
     {document_single_line(Doc), Doc};
-clause_head_to_algebra({call, _, Name, Args}) ->
+clause_head_to_algebra({call, Meta, Name, Args}) ->
     Prefix = document_combine(expr_to_algebra(Name), document_text("(")),
-    container_to_algebra_pair(Args, Prefix, document_text(")"));
+    container_to_algebra_pair(Meta, Args, Prefix, document_text(")"));
 clause_head_to_algebra(Expr) ->
     ExprD = expr_to_algebra(Expr),
     {document_single_line(ExprD), ExprD}.
