@@ -717,6 +717,26 @@ annos(Config) when is_list(Config) ->
             "% comment\n"
             "foo() -> ok."
         )
+    ),
+    ?assertMatch(
+        {call, #{newline := true}, _, [
+            {list, #{newline := true}, [
+                {tuple, #{newline := true}, [
+                    {bin, #{newline := true}, [_]}
+                ]}
+            ]}
+        ]},
+        parse_expr(
+            "foo(\n"
+            "    [  \n"
+            "        { % foo\n"
+            "            <<\n"
+            "                x\n"
+            "            >>\n"
+            "        }"
+            "    ]"
+            ")"
+        )
     ).
 
 parse_expr(String) ->
