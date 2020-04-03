@@ -667,6 +667,22 @@ force_break(Config) when is_list(Config) ->
         "    x\n"
         ") ->\n"
         "    x."
+    ),
+    ?assertFormatForm(
+        "foo(1) -> x;\n"
+        "foo(2) ->\n"
+        "    y.",
+        "foo(1) -> x;\n"
+        "foo(2) -> y."
+    ),
+    ?assertFormatForm(
+        "foo(1) ->\n"
+        "    x;\n"
+        "foo(2) -> y.",
+        "foo(1) ->\n"
+        "    x;\n"
+        "foo(2) ->\n"
+        "    y."
     ).
 
 list_comprehension(Config) when is_list(Config) ->

@@ -403,6 +403,9 @@ fun_to_algebra({type, Anno, Args, Result}) ->
     ArgsD = container_to_algebra(Anno, Args, document_text("("), ResultD),
     wrap(document_text("fun("), ArgsD, document_text(")")).
 
+clauses_to_algebra([{_, #{newline := true}, _, _, _} | _] = Clauses) ->
+    {_Single, Multi} = clauses_to_algebra_pair(Clauses),
+    Multi;
 clauses_to_algebra(Clauses) ->
     {Single, Multi} = clauses_to_algebra_pair(Clauses),
     document_choice(Single, Multi).
