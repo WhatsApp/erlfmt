@@ -210,7 +210,7 @@ function_clause -> macro_call_expr :
 clause_guard -> 'when' guard : '$2'.
 clause_guard -> '$empty' : empty.
 
-clause_body -> '->' anno_exprs: '$2'.
+clause_body -> '->' anno_exprs: {?val('$2'), ?anno('$2', '$1')}.
 
 expr -> 'catch' expr : ?mkop1('$1', '$2').
 expr -> expr '=' expr : ?mkop2('$1', '$2', '$3').
