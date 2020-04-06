@@ -284,7 +284,7 @@ binary_operator(Config) when is_list(Config) ->
     ?assertFormatExpr(
         "(Foo ++ Bar) ++ Baz",
         "(Foo ++\n"
-        "     Bar) ++\n"
+        "    Bar) ++\n"
         "    Baz",
         5
     ),
@@ -314,7 +314,7 @@ binary_operator(Config) when is_list(Config) ->
         "Foo + (Bar + Baz)",
         "Foo +\n"
         "    (Bar +\n"
-        "         Baz)",
+        "        Baz)",
         5
     ),
 
@@ -325,26 +325,26 @@ binary_operator(Config) when is_list(Config) ->
         "A + B == (C + D)",
         "A + B ==\n"
         "    (C + D)",
-        10
+        15
     ),
     ?assertFormatExpr(
         "Foo * (B + C) * D",
         "Foo *\n"
         "    (B + C) *\n"
         "    D",
-        10
+        13
     ),
     ?assertFormatExpr(
         "A * (B + C) * D",
         "A * (B + C) *\n"
         "    D",
-        10
+        13
     ),
     ?assertFormatExpr(
         "One * (Two + Three + Four) * Five",
         "One *\n"
         "    (Two + Three +\n"
-        "         Four) * Five",
+        "        Four) * Five",
         25
     ),
 
@@ -575,7 +575,7 @@ record_field(Config) when is_list(Config) ->
     ?assertFormatExpr(
         "(Foo + Bar)#foo.bar",
         "(Foo +\n"
-        "     Bar)#foo.bar",
+        "    Bar)#foo.bar",
         5
     ),
     ?assertSameExpr("X#?FOO.bar"),
