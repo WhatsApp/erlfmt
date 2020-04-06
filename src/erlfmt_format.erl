@@ -68,13 +68,12 @@ expr_to_algebra(Expr) when is_tuple(Expr) ->
 expr_to_algebra(Other) ->
     do_expr_to_algebra(Other).
 
+do_expr_to_algebra({string, Meta, _Value}) ->
+    string_to_algebra(erlfmt_scan:get_anno(text, Meta));
 do_expr_to_algebra({Atomic, Meta, _Value}) when ?IS_ATOMIC(Atomic) ->
     document_text(erlfmt_scan:get_anno(text, Meta));
-do_expr_to_algebra({concat, _Meta, Values0}) ->
-    Values = lists:map(fun expr_to_algebra/1, Values0),
-    Horizontal = document_reduce(fun combine_space/2, Values),
-    Vertical = document_reduce(fun combine_newline/2, Values),
-    document_choice(Horizontal, Vertical);
+do_expr_to_algebra({concat, _Meta, Values}) ->
+    concat_to_algebra(Values);
 do_expr_to_algebra({op, _Meta, Op, Expr}) ->
     unary_op_to_algebra(Op, Expr);
 do_expr_to_algebra({op, Meta, Op, Left, Right}) ->
@@ -212,6 +211,38 @@ wrap_in_parens(Doc) -> wrap(document_text("("), Doc, document_text(")")).
 wrap_nested(Left, Doc, Right) ->
     Nested = document_combine(document_spaces(?INDENT), Doc),
     combine_newline(Left, combine_newline(Nested, Right)).
+
+string_to_algebra(Text) ->
+    case string:split(Text, "\n", all) of
+        [Line] ->
+            document_text(Line);
+        [First, "\""] ->
+            document_text([First, "\\n\""]);
+        [First | Lines] ->
+            FirstD = document_text([First | "\\n\""]),
+            LinesD = string_lines_to_algebra(Lines),
+            combine_newline(FirstD, LinesD)
+    end.
+
+string_lines_to_algebra([LastLine]) ->
+    document_text(["\"" | LastLine]);
+string_lines_to_algebra([Line, "\""]) ->
+    document_text(["\"", Line | "\\n\""]);
+string_lines_to_algebra([Line | Lines]) ->
+    LineD = document_text(["\"", Line | "\\n\""]),
+    combine_newline(LineD, string_lines_to_algebra(Lines)).
+
+%% there's always at least two elements in concat
+concat_to_algebra([Value1, Value2 | _] = Values) ->
+    ValuesD = lists:map(fun expr_to_algebra/1, Values),
+    Vertical = document_reduce(fun combine_newline/2, ValuesD),
+    case erlfmt_scan:get_end_line(Value1) < erlfmt_scan:get_line(Value2) of
+        true ->
+            Vertical;
+        false ->
+            Horizontal = document_reduce(fun combine_space/2, ValuesD),
+            document_choice(Horizontal, Vertical)
+    end.
 
 unary_op_to_algebra(Op, Expr) ->
     OpD = document_text(atom_to_binary(Op, utf8)),

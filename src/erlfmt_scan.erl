@@ -16,7 +16,16 @@
 -include("erlfmt.hrl").
 
 -export([io_form/1, string_form/1, continue/1, last_form_string/1]).
--export([put_anno/3, delete_anno/2, delete_annos/2, get_anno/2, get_anno/3]).
+
+-export([
+    put_anno/3,
+    delete_anno/2,
+    delete_annos/2,
+    get_anno/2,
+    get_anno/3,
+    get_line/1,
+    get_end_line/1
+]).
 
 -export_type([state/0, anno/0, token/0, comment/0]).
 
@@ -232,6 +241,10 @@ delete_annos(Keys, Anno) when is_map(Anno) ->
     maps:without(Keys, Anno);
 delete_annos(Keys, Node) when is_tuple(Node) ->
     setelement(2, Node, maps:without(Keys, element(2, Node))).
+
+get_line(Anno) -> element(1, get_anno(location, Anno)).
+
+get_end_line(Anno) -> element(1, get_anno(end_location, Anno)).
 
 get_anno(Key, Anno) when is_map(Anno) ->
     map_get(Key, Anno);
