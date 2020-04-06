@@ -212,7 +212,7 @@ wrap(Left, Doc, Right) ->
 wrap_prepend(Left, Doc, Right) ->
     document_prepend(Left, document_prepend(Doc, Right)).
 
-wrap_in_parens(Doc) -> wrap(document_text("("), Doc, document_text(")")).
+wrap_in_parens(Doc) -> wrap_prepend(document_text("("), Doc, document_text(")")).
 
 wrap_nested(Left, Doc, Right) ->
     Nested = document_combine(document_spaces(?INDENT), Doc),

@@ -101,8 +101,8 @@ binary() ->
     <<
         %% comment 1
         (1 +
-             %% comment 2
-             2)/binary
+            %% comment 2
+            2)/binary
         %% comment 3
     >>.
 
@@ -130,9 +130,9 @@ call() ->
     )(
         %% comment 4
         (list_to_atom(
-             %% comment 5
-             "foo"
-         )):bar()
+            %% comment 5
+            "foo"
+        )):bar()
         %% comment 6
     ).
 
