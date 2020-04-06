@@ -1298,14 +1298,14 @@ attribute(Config) when is_list(Config) ->
     ?assertFormatForm(
         "-spec foo(Int) -> atom() when Int :: integer().",
         "-spec foo(Int) -> atom()\n"
-        "         when Int :: integer().",
+        "      when Int :: integer().",
         40
     ),
     ?assertFormatForm(
         "-spec foo(Int) -> some_very:very(long, type) when Int :: integer().",
         "-spec foo(Int) ->\n"
-        "             some_very:very(long, type)\n"
-        "         when Int :: integer().",
+        "          some_very:very(long, type)\n"
+        "      when Int :: integer().",
         40
     ),
     ?assertSameForm(
@@ -1315,7 +1315,7 @@ attribute(Config) when is_list(Config) ->
     ?assertFormatForm(
         "-callback long_name(Bar) -> #{map := type([Bar, ...])}.",
         "-callback long_name(Bar) ->\n"
-        "                       #{map := type([Bar, ...])}.",
+        "              #{map := type([Bar, ...])}.",
         50
     ),
     ?assertFormatForm(
@@ -1327,6 +1327,15 @@ attribute(Config) when is_list(Config) ->
         "-spec foo(integer()) -> some_very:very(long, type); (1..2) -> atom().",
         "-spec foo(integer()) ->\n"
         "             some_very:very(long, type);\n"
+        "         (1..2) ->\n"
+        "             atom().",
+        40
+    ),
+    ?assertFormatForm(
+        "-spec foo(Int) -> some_very:very(long, type) when Int :: integer(); (1..2) -> atom().",
+        "-spec foo(Int) ->\n"
+        "             some_very:very(long, type)\n"
+        "         when Int :: integer();\n"
         "         (1..2) ->\n"
         "             atom().",
         40

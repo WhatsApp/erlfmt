@@ -156,6 +156,8 @@ do_expr_to_algebra({'try', _Meta, Exprs, OfClauses, CatchClauses, After}) ->
     try_to_algebra(Exprs, OfClauses, CatchClauses, After);
 do_expr_to_algebra({'if', _Meta, Clauses}) ->
     wrap_nested(document_text("if"), clauses_to_algebra(Clauses), document_text("end"));
+do_expr_to_algebra({spec, _Meta, Name, [SingleClause]}) ->
+    single_clause_spec_to_algebra(Name, SingleClause);
 do_expr_to_algebra({spec, _Meta, Name, Clauses}) ->
     document_combine(expr_to_algebra(Name), clauses_to_algebra(Clauses));
 do_expr_to_algebra({'...', _Meta}) ->
@@ -555,6 +557,13 @@ guard_and_to_algebra_pair({guard_and, Meta, Exprs}) ->
             Doc = document_reduce(fun combine_comma_newline/2, ExprsD),
             {document_fail(), combine_pre_comments(Pre, combine_post_comments(Post, Doc))}
     end.
+
+%% Because the spec syntax is different from regular function syntax,
+%% in the general case we have to indent them differently, but with just
+%% one clause we can indent them like functions, which seems more natural.
+single_clause_spec_to_algebra(Name, {spec_clause, CMeta, Head, Body, Guards}) ->
+    {args, AMeta, Args} = Head,
+    clauses_to_algebra([{spec_clause, CMeta, {call, AMeta, Name, Args}, Body, Guards}]).
 
 receive_after_to_algebra(Expr, Body) ->
     {Pre, []} = comments(element(2, Expr)),

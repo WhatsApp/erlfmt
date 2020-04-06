@@ -86,9 +86,10 @@ insert_nested({cons, Meta, Head0, Tail0}, Comments0) ->
     {Head, Comments1} = insert_expr(Head0, Comments0),
     {Tail, Comments} = insert_expr(Tail0, Comments1),
     {{cons, Meta, Head, Tail}, Comments};
-%% without guards spec_clause is the same as clause
 insert_nested({spec_clause, Meta, Head0, Body0, empty}, Comments0) ->
-    insert_nested({clause, Meta, Head0, empty, Body0}, Comments0);
+    {Head, Comments1} = insert_expr(Head0, Comments0),
+    {Body, Comments} = insert_expr_list(Body0, Comments1),
+    {{spec_clause, Meta, Head, Body, empty}, Comments};
 insert_nested({spec_clause, Meta, Head0, Body0, Guards0}, Comments0) ->
     {Head, Comments1} = insert_expr(Head0, Comments0),
     {Body, Comments2} = insert_expr_list(Body0, Comments1),
