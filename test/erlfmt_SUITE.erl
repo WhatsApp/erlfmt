@@ -60,8 +60,6 @@
     smoke_test_parser_deld/1,
     smoke_test_parser_deviced/1,
     smoke_test_parser_elgd/1,
-    smoke_test_parser_erl2/1,
-    smoke_test_parser_erlbuild/1,
     smoke_test_parser_erlclient/1,
     smoke_test_parser_erlfmt/1,
     smoke_test_parser_fbid/1,
@@ -213,8 +211,6 @@ groups() ->
             smoke_test_parser_deld,
             smoke_test_parser_deviced,
             smoke_test_parser_elgd,
-            smoke_test_parser_erl2,
-            smoke_test_parser_erlbuild,
             smoke_test_parser_erlclient,
             smoke_test_parser_erlfmt,
             smoke_test_parser_fbid,
@@ -995,8 +991,6 @@ smoke_test_parser_ctsd(Config) -> smoke_test_parser(ctsd, Config).
 smoke_test_parser_deld(Config) -> smoke_test_parser(deld, Config).
 smoke_test_parser_deviced(Config) -> smoke_test_parser(deviced, Config).
 smoke_test_parser_elgd(Config) -> smoke_test_parser(elgd, Config).
-smoke_test_parser_erl2(Config) -> smoke_test_parser(erl2, Config).
-smoke_test_parser_erlbuild(Config) -> smoke_test_parser(erlbuild, Config).
 smoke_test_parser_erlclient(Config) -> smoke_test_parser(erlclient, Config).
 smoke_test_parser_erlfmt(Config) -> smoke_test_parser(erlfmt, Config).
 smoke_test_parser_fbid(Config) -> smoke_test_parser(fbid, Config).
@@ -1076,8 +1070,7 @@ smoke_test_parser_zcrawld(Config) -> smoke_test_parser(zcrawld, Config).
 smoke_test_parser_autotest(Config) ->
     smoke_test_parser("autotest/prototype/autotest", Config),
     smoke_test_parser("autotest/prototype/autotest_models", Config),
-    smoke_test_parser("autotest/prototype/cluster", Config),
-    smoke_test_parser("autotest/prototype/pyrlclient", Config).
+    smoke_test_parser("autotest/prototype/cluster", Config).
 
 smoke_test_parser_clust(Config) ->
     smoke_test_parser("clust", Config),
