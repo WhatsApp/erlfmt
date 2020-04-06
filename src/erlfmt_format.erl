@@ -174,7 +174,13 @@ combine_newline(D1, D2) ->
     document_combine(document_flush(D1), D2).
 
 combine_comma_newline(D1, D2) ->
-    document_combine(document_flush(document_combine(D1, document_text(","))), D2).
+    Left = document_flush(document_combine(D1, document_text(","))),
+    document_combine(Left, D2).
+
+combine_comma_double_newline(D1, D2) ->
+    Left = document_flush(document_flush(document_combine(D1, document_text(",")))),
+    document_combine(Left, D2).
+
 
 combine_semi_newline(D1, D2) ->
     document_combine(document_flush(document_combine(D1, document_text(";"))), D2).
@@ -408,14 +414,18 @@ comprehension_to_algebra(ExprD, LcExprs, Left, Right) ->
         wrap_nested(Left, Multiline, Right)
     ).
 
-%% TODO: insert extra newlines between expressions to preserve grouping.
 %% standalone comments are always trailing other expressions
 block_to_algebra([Expr | [{comment, _, _} | _] = Comments]) ->
     combine_newline(expr_to_algebra(Expr), comments_to_algebra(Comments));
 block_to_algebra([Expr]) ->
     expr_to_algebra(Expr);
-block_to_algebra([Expr | Rest]) ->
-    combine_comma_newline(expr_to_algebra(Expr), block_to_algebra(Rest)).
+block_to_algebra([Expr | [Next | _ ] = Rest]) ->
+    ExprD = expr_to_algebra(Expr),
+    RestD = block_to_algebra(Rest),
+    case erlfmt_scan:get_end_line(Expr) + 1 < erlfmt_scan:get_line(Next) of
+        true -> combine_comma_double_newline(ExprD, RestD);
+        false -> combine_comma_newline(ExprD, RestD)
+    end.
 
 fun_to_algebra({function, _Anno, Name, Arity}) ->
     combine_all([

@@ -200,9 +200,13 @@ insert_nested({Name, Meta}, Comments) ->
     {{Name, Meta}, Comments}.
 
 put_post_comments(NodeOrMeta, []) -> NodeOrMeta;
-put_post_comments(NodeOrMeta, Comments) ->
-    erlfmt_scan:put_anno(post_comments, Comments, NodeOrMeta).
+put_post_comments(NodeOrMeta0, Comments) ->
+    CommentLoc = erlfmt_scan:get_anno(end_location, lists:last(Comments)),
+    NodeOrMeta = erlfmt_scan:put_anno(post_comments, Comments, NodeOrMeta0),
+    erlfmt_scan:update_anno(end_location, fun (Loc) -> max(Loc, CommentLoc) end, NodeOrMeta).
 
 put_pre_comments(NodeOrMeta, []) -> NodeOrMeta;
-put_pre_comments(NodeOrMeta, Comments) ->
-    erlfmt_scan:put_anno(pre_comments, Comments, NodeOrMeta).
+put_pre_comments(NodeOrMeta0, Comments) ->
+    CommentLoc = erlfmt_scan:get_anno(location, hd(Comments)),
+    NodeOrMeta = erlfmt_scan:put_anno(pre_comments, Comments, NodeOrMeta0),
+    erlfmt_scan:update_anno(location, fun (Loc) -> min(Loc, CommentLoc) end, NodeOrMeta).
