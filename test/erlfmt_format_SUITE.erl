@@ -207,7 +207,23 @@ string_concat(Config) when is_list(Config) ->
         6
     ),
 
-    ?assertSameExpr("\"foo\" Foo \"bar\"").
+    ?assertSameExpr("\"foo\" Foo \"bar\""),
+
+    %% Multiline strings are converted to sequence of concats
+    ?assertFormatExpr(
+        "\"foo\nbar\"",
+        "\"foo\\n\"\n"
+        "\"bar\""
+    ),
+    ?assertFormatExpr(
+        "\"foo\nbar\n\"",
+        "\"foo\\n\"\n"
+        "\"bar\\n\""
+    ),
+    ?assertFormatExpr(
+        "\"foo\n\"",
+        "\"foo\\n\""
+    ).
 
 unary_operator(Config) when is_list(Config) ->
     %% Formats symbolic operators without space
