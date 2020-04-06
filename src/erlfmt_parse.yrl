@@ -1,8 +1,5 @@
-%% -*- erlang -*-
-%%
-%% %CopyrightBegin%
-%%
-%% Copyright Ericsson AB 1996-2018. All Rights Reserved.
+%% Copyright (c) Ericsson AB 1996-2019. All Rights Reserved.
+%% Copyright (c) WhatsApp Inc. and its affiliates.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -15,9 +12,6 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%%
-%% %CopyrightEnd%
-%%
 
 %% Definition of the Erlang grammar.
 
