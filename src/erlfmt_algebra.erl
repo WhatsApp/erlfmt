@@ -106,8 +106,13 @@ lines_flush(Lines) ->
 lines_render(Lines) ->
     tl(strings_to_text(do_lines_render(Lines))).
 
-strings_to_text([#string{text = Text} | Rest]) -> [$\n, Text | strings_to_text(Rest)];
-strings_to_text([]) -> [].
+strings_to_text([#string{text = Text} | Rest]) ->
+    case string:trim(Text, leading) of
+        [] -> [$\n | strings_to_text(Rest)];
+        _ -> [$\n, Text | strings_to_text(Rest)]
+    end;
+strings_to_text([]) ->
+    [].
 
 %% TODO: there's probably a more efficient way to do this, possibly
 %% by using a better data structure or making it tail-recursive

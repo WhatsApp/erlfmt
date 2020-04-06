@@ -24,7 +24,8 @@
     get_anno/2,
     get_anno/3,
     get_line/1,
-    get_end_line/1
+    get_end_line/1,
+    update_anno/3
 ]).
 
 -export_type([state/0, anno/0, token/0, comment/0]).
@@ -255,6 +256,11 @@ get_anno(Key, Anno, Default) when is_map(Anno) ->
     maps:get(Key, Anno, Default);
 get_anno(Key, Node, Default) when is_tuple(Node) ->
     maps:get(Key, element(2, Node), Default).
+
+update_anno(Key, Fun, Anno) when is_map(Anno) ->
+    Anno#{Key => Fun(map_get(Key, Anno))};
+update_anno(Key, Fun, Node) when is_tuple(Node) ->
+    setelement(2, Node, update_anno(Key, Fun, element(2, Node))).
 
 end_location("", Line, Column) ->
     {Line, Column};

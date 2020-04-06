@@ -839,6 +839,13 @@ block(Config) when is_list(Config) ->
         "    {Short, Expr}\n"
         "end",
         25
+    ),
+    ?assertSameExpr(
+        "begin\n"
+        "    foo(),\n"
+        "\n"
+        "    bar()\n"
+        "end"
     ).
 
 fun_expression(Config) when is_list(Config) ->
