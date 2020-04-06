@@ -26,6 +26,8 @@
 
 -define(NEXT_BREAK_FITS, [map, list, tuple, record, block]).
 
+-define(NEXT_BREAK_FITS_OPS, ['=', '::']).
+
 -spec form_to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:document().
 form_to_algebra({function, Meta, Clauses}) ->
     Doc = document_combine(clauses_to_algebra(Clauses), document_text(".")),
@@ -182,6 +184,9 @@ combine_all(Docs) ->
 combine_nested(Head, Doc) ->
     combine_newline(Head, document_combine(document_spaces(?INDENT), Doc)).
 
+prepend_space(D1, D2) ->
+    wrap_prepend(D1, document_text(" "), D2).
+
 prepend_comma_space(D1, D2) ->
     wrap_prepend(D1, document_text(", "), D2).
 
@@ -232,9 +237,15 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     LeftD = binary_operand_to_algebra(Op, Left, Indent),
     RightD = binary_operand_to_algebra(Op, Right, 0),
     LeftOpD = combine_space(LeftD, OpD),
+
+    SingleD =
+        case lists:member(Op, ?NEXT_BREAK_FITS_OPS) andalso next_break_fits(Right) of
+            true -> prepend_space(LeftOpD, RightD);
+            false -> combine_space(LeftOpD, document_single_line(RightD))
+        end,
     Doc =
         document_choice(
-            combine_space(LeftOpD, document_single_line(RightD)),
+            SingleD,
             combine_newline(LeftOpD, document_combine(document_spaces(Indent), RightD))
         ),
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
@@ -278,7 +289,7 @@ container_values_to_algebra_pair([Expr | [{comment, _, _} | _] = Comments]) ->
     {document_fail(), document_fail(), combine_newline(ExprD, CommentsD)};
 container_values_to_algebra_pair([Expr]) ->
     ExprD = expr_to_algebra(Expr),
-    case lists:member(element(1, Expr), ?NEXT_BREAK_FITS) andalso no_comments_or_parens(Expr) of
+    case next_break_fits(Expr) of
         true -> {document_single_line(ExprD), ExprD, ExprD};
         false -> {document_single_line(ExprD), document_fail(), ExprD}
     end;
@@ -585,6 +596,9 @@ try_of_block(Exprs, OfClauses) ->
                 clauses_to_algebra(OfClauses)
             )
     end.
+
+next_break_fits(Expr) ->
+    lists:member(element(1, Expr), ?NEXT_BREAK_FITS) andalso no_comments_or_parens(Expr).
 
 no_comments_or_parens(Meta) ->
     {Pre, Post} = comments(Meta),
