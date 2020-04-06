@@ -332,6 +332,18 @@ binary_operator(Config) when is_list(Config) ->
         "    (Two + Three +\n"
         "         Four) * Five",
         25
+    ),
+
+    %% Next break fits
+    ?assertSameExpr(
+        "Foo = [\n"
+        "    1\n"
+        "]"
+    ),
+    ?assertSameExpr(
+        "foo() :: #{\n"
+        "    a := integer()\n"
+        "}"
     ).
 
 tuple(Config) when is_list(Config) ->
