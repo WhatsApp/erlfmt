@@ -28,8 +28,9 @@
           fun((
                   %% comment 2
                   ...
-              ) -> %% comment 3
-                   bar()).
+              ) ->
+                  %% comment 3
+                  bar()).
 
 %% TODO: fix indentation after |
 -spec foo() ->

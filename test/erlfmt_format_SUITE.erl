@@ -1334,11 +1334,15 @@ attribute(Config) when is_list(Config) ->
     ?assertSameForm(
         "-opaque foo() :: #foo{a :: integer(), b :: module:type()}."
     ),
-    %% TODO: this nesting seems ridiculous, fix it!
     ?assertFormatForm(
         "-type foobar() :: #foo{a :: integer(), b :: mod:type()}.",
         "-type foobar() ::\n"
         "          #foo{a :: integer(), b :: mod:type()}.",
+        50
+    ),
+    ?assertSameForm(
+        "-type foo() :: fun((A, B, C) ->\n"
+        "                       return_type(A, B, C)).",
         50
     ),
     ?assertSameForm(
