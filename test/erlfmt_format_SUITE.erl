@@ -1371,8 +1371,7 @@ attribute(Config) when is_list(Config) ->
     ),
     ?assertFormatForm(
         "-define(OUT_OF_RANGE(Value, Low, High), (Value) =< long_expression(Low), Value >= long_expression(High)).",
-        "-define(\n"
-        "    OUT_OF_RANGE(Value, Low, High),\n"
+        "-define(OUT_OF_RANGE(Value, Low, High),\n"
         "    (Value) =< long_expression(Low),\n"
         "    Value >= long_expression(High)\n"
         ").",
@@ -1382,6 +1381,16 @@ attribute(Config) when is_list(Config) ->
         "-define(FOO(X), begin\n"
         "    is_atom(X) orelse is_tuple(X)\n"
         "end)."
+    ),
+    ?assertSameForm(
+        "-define(FOO(X), [1, 2, 3])."
+    ),
+    ?assertSameForm(
+        "-define(FOO(X), [\n"
+        "    1,\n"
+        "    2,\n"
+        "    3\n"
+        "])."
     ),
     ?assertSameForm(
         "-type foo() :: {fun(), fun((...) -> mod:bar()), fun(() -> integer())}."
