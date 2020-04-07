@@ -36,6 +36,22 @@ form_to_algebra({attribute, Meta, Name, []}) ->
     NameD = expr_to_algebra(Name),
     Doc = wrap(document_text("-"), NameD, document_text(".")),
     combine_comments(Meta, Doc);
+form_to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
+    HeadD = document_combine(document_text("-define("), expr_to_algebra(Define)),
+    BodyD = block_to_algebra(Body),
+    EndD = document_text(")."),
+    case next_break_fits(hd(Body)) of
+        true ->
+            Doc = prepend_comma_space(HeadD, document_combine(BodyD, EndD)),
+            combine_comments(Meta, Doc);
+        false ->
+            SingleBody = document_combine(document_single_line(BodyD), EndD),
+            Doc = document_choice(
+                combine_comma_space(HeadD, SingleBody),
+                wrap_nested(document_combine(HeadD, document_text(",")), BodyD, EndD)
+            ),
+            combine_comments(Meta, Doc)
+    end;
 form_to_algebra({attribute, Meta, {atom, _, RawName} = Name, Values}) ->
     DashD = document_text("-"),
     NameD = expr_to_algebra(Name),
