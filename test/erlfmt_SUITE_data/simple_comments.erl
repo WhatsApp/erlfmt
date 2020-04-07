@@ -11,8 +11,7 @@
 
 -define(CONST, const).
 
--define(
-    STR(X),
+-define(STR(X),
     %% comment 1
     ??X
     %% comment 2
