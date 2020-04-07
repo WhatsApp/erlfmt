@@ -357,6 +357,22 @@ binary_operator(Config) when is_list(Config) ->
         "]"
     ),
     ?assertSameExpr(
+        "Foo = foo(\n"
+        "    1\n"
+        ")"
+    ),
+    ?assertSameExpr(
+        "Foo = ?foo(\n"
+        "    1\n"
+        ")"
+    ),
+    ?assertSameExpr(
+        "Foo = fun\n"
+        "    () -> ok\n"
+        "end",
+        15
+    ),
+    ?assertSameExpr(
         "foo() :: #{\n"
         "    a := integer()\n"
         "}"
@@ -821,6 +837,16 @@ call(Config) when is_list(Config) ->
         "    Expression\n"
         "})",
         25
+    ),
+    ?assertFormatExpr(
+        "foo(bar(\n"
+        "    1\n"
+        "))",
+        "foo(\n"
+        "    bar(\n"
+        "        1\n"
+        "    )\n"
+        ")"
     ).
 
 block(Config) when is_list(Config) ->

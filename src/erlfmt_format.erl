@@ -33,7 +33,7 @@
 
 -define(PARENLESS_ATTRIBUTE, [type, opaque, spec, callback]).
 
--define(NEXT_BREAK_FITS, [map, list, tuple, record, block]).
+-define(NEXT_BREAK_FITS, [map, list, tuple, record, block, 'fun']).
 
 -define(NEXT_BREAK_FITS_OPS, ['=', '::']).
 
@@ -303,7 +303,8 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     LeftOpD = combine_space(LeftD, OpD),
 
     SingleD =
-        case lists:member(Op, ?NEXT_BREAK_FITS_OPS) andalso next_break_fits(Right) of
+        case lists:member(Op, ?NEXT_BREAK_FITS_OPS) andalso
+                 next_break_fits(Right, [call, macro_call]) of
             true -> prepend_space(LeftOpD, RightD);
             false -> combine_space(LeftOpD, document_single_line(RightD))
         end,
@@ -672,8 +673,10 @@ try_of_block(Exprs, OfClauses) ->
             )
     end.
 
-next_break_fits(Expr) ->
-    lists:member(element(1, Expr), ?NEXT_BREAK_FITS) andalso no_comments_or_parens(Expr).
+next_break_fits(Expr, Extra) ->
+    lists:member(element(1, Expr), Extra ++ ?NEXT_BREAK_FITS) andalso no_comments_or_parens(Expr).
+
+next_break_fits(Expr) -> next_break_fits(Expr, []).
 
 no_comments_or_parens(Meta) ->
     {Pre, Post} = comments(Meta),
