@@ -5,7 +5,7 @@
 -export_type([foo/0]).
 
 -record(foo, {
-    %% comment
+    %% Zażółć gęślą jaźń
     a
 }).
 
