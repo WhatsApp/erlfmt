@@ -11,7 +11,6 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-
 -module(erlfmt).
 
 -oncall("whatsapp_erlang").
@@ -19,7 +18,14 @@
 -typing([dialyzer]).
 
 %% API exports
--export([main/1, format_file/2, read_forms/1, read_forms_string/2, format_error/1, format_error_info/1]).
+-export([
+    main/1,
+    format_file/2,
+    read_forms/1,
+    read_forms_string/2,
+    format_error/1,
+    format_error_info/1
+]).
 
 -export_type([error_info/0]).
 
@@ -59,12 +65,15 @@ main(Argv) ->
             erlang:halt(1)
     catch
         Class:Error:Stack ->
-            io:format(standard_error, "internal error while running ~s:\n", [?COMMAND_NAME]),
+            io:format(standard_error, "internal error while running ~s:\n", [
+                ?COMMAND_NAME
+            ]),
             erlang:raise(Class, Error, Stack)
     end.
 
 %% API entry point
--spec format_file(file:name_all(), [option()]) -> {ok, [error_info()]} | {error, [error_info(), ...], [error_info()]}.
+-spec format_file(file:name_all(), [option()]) ->
+          {ok, [error_info()]} | {error, [error_info(), ...], [error_info()]}.
 format_file(Path, Opts) ->
     State = parse_opts(Opts, #state{files = [Path]}),
     case run_format(State) of
@@ -76,23 +85,25 @@ format_file(Path, Opts) ->
 
 print_usage() ->
     io:format("~s", [[
-"Usage: ", ?COMMAND_NAME, " [-vh] [-o Path] [files...]
-
-", ?COMMAND_NAME, " is a code formatter for Erlang.
-
-Arguments:
-
-  files -- files to format
-
-Options:
-
-  -v -- verbose mode
-
-  -o Path -- output path (default \".\" replacing original files)
-
-  --help (-h) -- print this help message
-
-"
+        "Usage: ",
+        ?COMMAND_NAME,
+        " [-vh] [-o Path] [files...]\n"
+        "\n",
+        ?COMMAND_NAME,
+        " is a code formatter for Erlang.\n"
+        "\n"
+        "Arguments:\n"
+        "\n"
+        "  files -- files to format\n"
+        "\n"
+        "Options:\n"
+        "\n"
+        "  -v -- verbose mode\n"
+        "\n"
+        "  -o Path -- output path (default \".\" replacing original files)\n"
+        "\n"
+        "  --help (-h) -- print this help message\n"
+        "\n"
     ]]).
 
 parse_args(["-v" | Rest], State) ->
@@ -141,7 +152,7 @@ run_format_file(FileName, State0) ->
 
 %% API entry point
 -spec read_forms(file:name_all()) ->
-    {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
+          {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
 read_forms(FileName) ->
     try read_forms(FileName, #state{}) of
         {Forms, #state{errors = [], warnings = Warnings}} ->
@@ -163,7 +174,7 @@ read_forms(FileName, State) ->
 
 %% API entry point
 -spec read_forms_string(file:name_all(), string()) ->
-    {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
+          {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
 read_forms_string(FileName, String) ->
     try read_forms(erlfmt_scan:string_form(String), FileName, [], #state{}) of
         {Forms, #state{warnings = Warnings}} ->
@@ -216,7 +227,10 @@ verify_forms(FileName, Forms, Formatted) ->
             catch
                 {not_equivalent, Left, Right} ->
                     Location = try_location(Left, Right),
-                    throw({error, {FileName, Location, ?MODULE, {not_equivalent, Left, Right}}})
+                    throw({
+                        error,
+                        {FileName, Location, ?MODULE, {not_equivalent, Left, Right}}
+                    })
             end;
         {error, _} ->
             throw({error, {FileName, 0, ?MODULE, could_not_reparse}})
@@ -234,10 +248,11 @@ equivalent({Type, _, L}, {Type, _, R}) ->
     equivalent(L, R);
 equivalent({Type, _, L1, L2}, {Type, _, R1, R2}) ->
     equivalent(L1, R1) andalso equivalent(L2, R2);
-equivalent({Type, _, L1, L2, L3}, {Type,_, R1, R2, R3}) ->
+equivalent({Type, _, L1, L2, L3}, {Type, _, R1, R2, R3}) ->
     equivalent(L1, R1) andalso equivalent(L2, R2) andalso equivalent(L3, R3);
 equivalent({Type, _, L1, L2, L3, L4}, {Type, _, R1, R2, R3, R4}) ->
-    equivalent(L1, R1) andalso equivalent(L2, R2) andalso equivalent(L3, R3) andalso equivalent(L4, R4);
+    equivalent(L1, R1) andalso
+        equivalent(L2, R2) andalso equivalent(L3, R3) andalso equivalent(L4, R4);
 equivalent(Ls, Rs) when is_list(Ls), is_list(Rs) ->
     equivalent_list(Ls, Rs);
 equivalent(L, R) ->
@@ -292,6 +307,9 @@ format_loc(#{location := {Line, Col}}) -> io_lib:format(":~B:~B", [Line, Col]);
 format_loc(Line) when is_integer(Line) -> io_lib:format(":~B", [Line]).
 
 format_error({not_equivalent, Node1, Node2}) ->
-    io_lib:format("formatter result not equivalent. Please report this bug.~n~n~p~n~n~p", [Node1, Node2]);
+    io_lib:format(
+        "formatter result not equivalent. Please report this bug.~n~n~p~n~n~p",
+        [Node1, Node2]
+    );
 format_error(could_not_reparse) ->
     "formatter result invalid, could not reparse".

@@ -6,10 +6,10 @@
 %%% @end
 %%% @see http://erlang.org/doc/man/common_test.html
 %%% -------------------------------------------------------------------
-
 -module(erlfmt_format_SUITE).
 
 -include_lib("common_test/include/ct.hrl").
+
 -include_lib("stdlib/include/assert.hrl").
 
 -oncall("whatsapp_erlang").
@@ -19,9 +19,12 @@
     suite/0,
     all/0,
     groups/0,
-    init_per_suite/1, end_per_suite/1,
-    init_per_group/2, end_per_group/2,
-    init_per_testcase/2, end_per_testcase/2
+    init_per_suite/1,
+    end_per_suite/1,
+    init_per_group/2,
+    end_per_group/2,
+    init_per_testcase/2,
+    end_per_testcase/2
 ]).
 
 %% Test cases
@@ -131,20 +134,27 @@ all() ->
 
 %%--------------------------------------------------------------------
 %% TEST CASES
-
 -define(assertSameExpr(String), ?assertSameExpr(String, 80)).
--define(assertSameExpr(String, PageWidth), ?assertEqual(String, format_expr(String, PageWidth))).
+
+-define(assertSameExpr(String, PageWidth),
+    ?assertEqual(String, format_expr(String, PageWidth))
+).
 
 -define(assertFormatExpr(Bad, Good), ?assertFormatExpr(Bad, Good, 80)).
+
 -define(assertFormatExpr(Bad, Good, PageWidth), begin
     ?assertEqual(Good, format_expr(Good, PageWidth)),
     ?assertEqual(Good, format_expr(Bad, PageWidth))
 end).
 
 -define(assertSameForm(String), ?assertSameForm(String, 80)).
--define(assertSameForm(String, PageWidth), ?assertEqual(String, format_form(String, PageWidth))).
+
+-define(assertSameForm(String, PageWidth),
+    ?assertEqual(String, format_form(String, PageWidth))
+).
 
 -define(assertFormatForm(Bad, Good), ?assertFormatForm(Bad, Good, 80)).
+
 -define(assertFormatForm(Bad, Good, PageWidth), begin
     ?assertEqual(Good, format_form(Good, PageWidth)),
     ?assertEqual(Good, format_form(Bad, PageWidth))
@@ -452,7 +462,9 @@ list(Config) when is_list(Config) ->
 
 binary(Config) when is_list(Config) ->
     ?assertFormatExpr("<< >>", "<<>>"),
-    ?assertSameExpr("<<(1 + 1), (#{}), (#foo{}), (#{}#{}), (#foo{}#foo{}), (#foo.bar), (call())>>"),
+    ?assertSameExpr(
+        "<<(1 + 1), (#{}), (#foo{}), (#{}#{}), (#foo{}#foo{}), (#foo.bar), (call())>>"
+    ),
     ?assertSameExpr("<<(1), 1>>"),
     ?assertSameExpr("<<+1:5/integer-unit:8>>"),
     ?assertSameExpr("<<\"żółć\"/utf8>>"),

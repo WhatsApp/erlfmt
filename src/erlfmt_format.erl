@@ -11,7 +11,6 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-
 -module(erlfmt_format).
 
 -oncall("whatsapp_erlang").
@@ -73,7 +72,10 @@ form_to_algebra({attribute, Meta, {atom, _, RawName} = Name, Values}) ->
         true ->
             [Value] = Values,
             ValueD = expr_to_algebra(Value),
-            Doc = document_combine(DashD, combine_space(NameD, document_combine(ValueD, document_text(".")))),
+            Doc = document_combine(
+                DashD,
+                combine_space(NameD, document_combine(ValueD, document_text(".")))
+            ),
             combine_comments(Meta, Doc);
         false ->
             Prefix = wrap(DashD, NameD, document_text("(")),
@@ -164,10 +166,17 @@ do_expr_to_algebra({'case', _Meta, Expr, Clauses}) ->
     Prefix = wrap(document_text("case "), expr_to_algebra(Expr), document_text(" of")),
     wrap_nested(Prefix, clauses_to_algebra(Clauses), document_text("end"));
 do_expr_to_algebra({'receive', _Meta, Clauses}) ->
-    wrap_nested(document_text("receive"), clauses_to_algebra(Clauses), document_text("end"));
+    wrap_nested(
+        document_text("receive"),
+        clauses_to_algebra(Clauses),
+        document_text("end")
+    );
 do_expr_to_algebra({'receive', _Meta, [], AfterExpr, AfterBody}) ->
     AfterD = receive_after_to_algebra(AfterExpr, AfterBody),
-    combine_newline(document_text("receive"), combine_newline(AfterD, document_text("end")));
+    combine_newline(
+        document_text("receive"),
+        combine_newline(AfterD, document_text("end"))
+    );
 do_expr_to_algebra({'receive', _Meta, Clauses, AfterExpr, AfterBody}) ->
     AfterD = receive_after_to_algebra(AfterExpr, AfterBody),
     Suffix = combine_newline(AfterD, document_text("end")),
@@ -210,7 +219,6 @@ combine_comma_newline(D1, D2) ->
 combine_comma_double_newline(D1, D2) ->
     Left = document_flush(document_flush(document_combine(D1, document_text(",")))),
     document_combine(Left, D2).
-
 
 combine_semi_newline(D1, D2) ->
     document_combine(document_flush(document_combine(D1, document_text(";"))), D2).
@@ -313,11 +321,10 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
             true -> prepend_space(LeftOpD, RightD);
             false -> combine_space(LeftOpD, document_single_line(RightD))
         end,
-    Doc =
-        document_choice(
-            SingleD,
-            combine_newline(LeftOpD, document_combine(document_spaces(Indent), RightD))
-        ),
+    Doc = document_choice(
+        SingleD,
+        combine_newline(LeftOpD, document_combine(document_spaces(Indent), RightD))
+    ),
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
 
 binary_operand_to_algebra(Op, {op, Meta, Op, Left, Right}, Indent) ->
@@ -379,7 +386,10 @@ container_vertical_values_to_algebra([Expr | [{comment, _, _} | _] = Comments]) 
 container_vertical_values_to_algebra([Expr]) ->
     expr_to_algebra(Expr);
 container_vertical_values_to_algebra([Expr | Rest]) ->
-    combine_comma_newline(expr_to_algebra(Expr), container_vertical_values_to_algebra(Rest)).
+    combine_comma_newline(
+        expr_to_algebra(Expr),
+        container_vertical_values_to_algebra(Rest)
+    ).
 
 cons_to_algebra(Head, Tail) ->
     HeadD = expr_to_algebra(Head),
@@ -393,8 +403,8 @@ cons_to_algebra(Head, Tail) ->
 bin_element_to_algebra(Expr, Size, Types) ->
     Docs =
         [expr_to_algebra(Expr)] ++
-        [bin_size_to_algebra(Size) || Size =/= default] ++
-        [bin_types_to_algebra(Types) || Types =/= default],
+            [bin_size_to_algebra(Size) || Size =/= default] ++
+            [bin_types_to_algebra(Types) || Types =/= default],
     document_reduce(fun erlfmt_algebra:document_combine/2, Docs).
 
 bin_size_to_algebra(Expr) ->
@@ -429,16 +439,18 @@ field_to_algebra(Op, Key, Value) ->
 
 comprehension_to_algebra(ExprD, LcExprs, Left, Right) ->
     PipesD = document_text("|| "),
-    {LcExprsSingleD, _LcExprsLastFitsD, LcExprsMultiD} = container_values_to_algebra_pair(LcExprs),
+    {LcExprsSingleD, _LcExprsLastFitsD, LcExprsMultiD} =
+        container_values_to_algebra_pair(LcExprs),
     LcExprsD = document_choice(LcExprsSingleD, LcExprsMultiD),
 
-    SingleLine =
-        combine_space(document_single_line(ExprD), document_combine(PipesD, LcExprsSingleD)),
-    Multiline =
-        document_choice(
-            combine_space(ExprD, document_combine(PipesD, LcExprsSingleD)),
-            combine_newline(ExprD, document_combine(PipesD, LcExprsD))
-        ),
+    SingleLine = combine_space(
+        document_single_line(ExprD),
+        document_combine(PipesD, LcExprsSingleD)
+    ),
+    Multiline = document_choice(
+        combine_space(ExprD, document_combine(PipesD, LcExprsSingleD)),
+        combine_newline(ExprD, document_combine(PipesD, LcExprsD))
+    ),
 
     document_choice(
         wrap(Left, SingleLine, Right),
@@ -450,7 +462,7 @@ block_to_algebra([Expr | [{comment, _, _} | _] = Comments]) ->
     combine_newline(expr_to_algebra(Expr), comments_to_algebra(Comments));
 block_to_algebra([Expr]) ->
     expr_to_algebra(Expr);
-block_to_algebra([Expr | [Next | _ ] = Rest]) ->
+block_to_algebra([Expr | [Next | _] = Rest]) ->
     ExprD = expr_to_algebra(Expr),
     RestD = block_to_algebra(Rest),
     case erlfmt_scan:get_end_line(Expr) + 1 < erlfmt_scan:get_line(Next) of
@@ -544,16 +556,20 @@ do_clause_to_algebra_pair({spec_clause, _Meta, Head, [Body], Guards}) ->
     BodyD = expr_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
 
-    SingleD = wrap(SingleHeadD, document_text(" -> "), wrap(SingleBodyD, document_text(" when "), SingleGuardsD)),
-    MultiPrefix =
+    SingleD = wrap(
+        SingleHeadD,
+        document_text(" -> "),
+        wrap(SingleBodyD, document_text(" when "), SingleGuardsD)
+    ),
+    MultiPrefix = document_choice(
+        wrap(SingleHeadD, document_text(" -> "), SingleBodyD),
         document_choice(
-            wrap(SingleHeadD, document_text(" -> "), SingleBodyD),
-            document_choice(
-                combine_nested(document_combine(SingleHeadD, document_text(" ->")), BodyD),
-                wrap(HeadD, document_text(" -> "), BodyD)
-            )
-        ),
-    MultiD = combine_newline(MultiPrefix, document_combine(document_text("when "), GuardsD)),
+            combine_nested(document_combine(SingleHeadD, document_text(" ->")), BodyD),
+            wrap(HeadD, document_text(" -> "), BodyD)
+        )
+    ),
+    MultiD =
+        combine_newline(MultiPrefix, document_combine(document_text("when "), GuardsD)),
 
     {SingleD, MultiD};
 do_clause_to_algebra_pair({clause, _Meta, Head, empty, Body}) ->
@@ -562,7 +578,8 @@ do_clause_to_algebra_pair({clause, _Meta, Head, empty, Body}) ->
     SingleBodyD = document_single_line(BodyD),
 
     SingleD = wrap(SingleHeadD, document_text(" -> "), SingleBodyD),
-    MultiPrefix = document_combine(document_choice(SingleHeadD, HeadD), document_text(" ->")),
+    MultiPrefix =
+        document_combine(document_choice(SingleHeadD, HeadD), document_text(" ->")),
     MultiD = combine_nested(MultiPrefix, BodyD),
 
     {SingleD, MultiD};
@@ -572,15 +589,21 @@ do_clause_to_algebra_pair({clause, _Meta, Head, Guards, Body}) ->
     BodyD = block_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
 
-    SingleD = wrap(SingleHeadD, document_text(" when "), wrap(SingleGuardsD, document_text(" -> "), SingleBodyD)),
-    MultiPrefix =
+    SingleD = wrap(
+        SingleHeadD,
+        document_text(" when "),
+        wrap(SingleGuardsD, document_text(" -> "), SingleBodyD)
+    ),
+    MultiPrefix = document_choice(
+        wrap(SingleHeadD, document_text(" when "), SingleGuardsD),
         document_choice(
-            wrap(SingleHeadD, document_text(" when "), SingleGuardsD),
-            document_choice(
-                combine_newline(SingleHeadD, document_combine(document_text("when "), GuardsD)),
-                wrap(HeadD, document_text(" when "), GuardsD)
-            )
-        ),
+            combine_newline(
+                SingleHeadD,
+                document_combine(document_text("when "), GuardsD)
+            ),
+            wrap(HeadD, document_text(" when "), GuardsD)
+        )
+    ),
     MultiD = combine_nested(document_combine(MultiPrefix, document_text(" ->")), BodyD),
 
     {SingleD, MultiD}.
@@ -608,7 +631,8 @@ guard_or_to_algebra_pair({guard_or, Meta, Guards}) ->
     end.
 
 do_guard_or_to_algebra_pair(Guards) ->
-    {SingleLine, MultiLine} = lists:unzip(lists:map(fun guard_and_to_algebra_pair/1, Guards)),
+    {SingleLine, MultiLine} =
+        lists:unzip(lists:map(fun guard_and_to_algebra_pair/1, Guards)),
     SingleLineD = document_reduce(fun combine_semi_space/2, SingleLine),
     MultiLineD = document_reduce(fun combine_semi_newline/2, MultiLine),
     {SingleLineD, document_choice(SingleLineD, MultiLineD)}.
@@ -649,9 +673,8 @@ receive_after_to_algebra(Expr, Body) ->
 try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
     Clauses =
         [try_of_block(Exprs, OfClauses)] ++
-        [try_catch_to_algebra(CatchClauses) || CatchClauses =/= []] ++
-        [try_after_to_algebra(After) || After =/= []] ++
-        [document_text("end")],
+            [try_catch_to_algebra(CatchClauses) || CatchClauses =/= []] ++
+            [try_after_to_algebra(After) || After =/= []] ++ [document_text("end")],
 
     document_reduce(fun combine_newline/2, Clauses).
 
@@ -679,13 +702,17 @@ try_of_block(Exprs, OfClauses) ->
             document_choice(TrySingle, TryMulti);
         _ ->
             combine_nested(
-                document_choice(combine_space(TrySingle, OfD), combine_newline(TryMulti, OfD)),
+                document_choice(
+                    combine_space(TrySingle, OfD),
+                    combine_newline(TryMulti, OfD)
+                ),
                 clauses_to_algebra(OfClauses)
             )
     end.
 
 next_break_fits(Expr, Extra) ->
-    lists:member(element(1, Expr), Extra ++ ?NEXT_BREAK_FITS) andalso no_comments_or_parens(Expr).
+    lists:member(element(1, Expr), Extra ++ ?NEXT_BREAK_FITS) andalso
+        no_comments_or_parens(Expr).
 
 next_break_fits(Expr) -> next_break_fits(Expr, []).
 
@@ -705,12 +732,10 @@ combine_comments(Meta, Doc) ->
     combine_post_comments(Post, combine_pre_comments(Pre, Doc)).
 
 combine_pre_comments([], Doc) -> Doc;
-combine_pre_comments(Comments, Doc) ->
-    combine_newline(comments_to_algebra(Comments), Doc).
+combine_pre_comments(Comments, Doc) -> combine_newline(comments_to_algebra(Comments), Doc).
 
 combine_post_comments([], Doc) -> Doc;
-combine_post_comments(Comments, Doc) ->
-    combine_newline(Doc, comments_to_algebra(Comments)).
+combine_post_comments(Comments, Doc) -> combine_newline(Doc, comments_to_algebra(Comments)).
 
 comments_to_algebra(Comments) ->
     %% TODO: should we add spaces in between?
@@ -722,4 +747,7 @@ comment_to_algebra({comment, _Meta, Lines}) ->
     document_reduce(fun combine_newline/2, LinesD).
 
 comments(Meta) ->
-    {erlfmt_scan:get_anno(pre_comments, Meta, []), erlfmt_scan:get_anno(post_comments, Meta, [])}.
+    {
+        erlfmt_scan:get_anno(pre_comments, Meta, []),
+        erlfmt_scan:get_anno(post_comments, Meta, [])
+    }.
