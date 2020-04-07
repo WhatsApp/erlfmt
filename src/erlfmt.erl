@@ -138,7 +138,7 @@ read_forms(FileName) ->
     end.
 
 read_forms(FileName, State) ->
-    case file:open(FileName, [read]) of
+    case file:open(FileName, [read, {encoding, utf8}]) of
         {ok, File} ->
             try read_forms(erlfmt_scan:io_form(File), FileName, [], State)
             after file:close(File)
