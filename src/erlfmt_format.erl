@@ -470,9 +470,15 @@ fun_to_algebra({clauses, _Anno, Clauses}) ->
 fun_to_algebra(type) ->
     document_text("fun()");
 fun_to_algebra({type, Anno, Args, Result}) ->
-    ResultD = document_combine(document_text(") -> "), expr_to_algebra(Result)),
-    ArgsD = container_to_algebra(Anno, Args, document_text("("), ResultD),
-    wrap(document_text("fun("), ArgsD, document_text(")")).
+    ResultD = expr_to_algebra(Result),
+    ArgsD = container_to_algebra(Anno, Args, document_text("("), document_text(") ->")),
+    SingleLine =
+        case next_break_fits(Result) of
+            true -> prepend_space(ArgsD, ResultD);
+            false -> combine_space(ArgsD, document_single_line(ResultD))
+        end,
+    Body = document_choice(SingleLine, combine_nested(ArgsD, ResultD)),
+    wrap(document_text("fun("), Body, document_text(")")).
 
 clauses_to_algebra([{_, #{newline := true}, _, _, _} | _] = Clauses) ->
     {_Single, Multi} = clauses_to_algebra_pair(Clauses),
