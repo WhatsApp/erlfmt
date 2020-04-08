@@ -49,7 +49,7 @@ suite() ->
     [{timetrap, {seconds, 10}}].
 
 init_per_suite(Config) ->
-    Config.
+    [{property_test_tool, proper} | Config].
 
 end_per_suite(_Config) ->
     ok.
@@ -102,8 +102,8 @@ string_append_length_prop() ->
     end).
 
 string_append_case(Config) when is_list(Config) ->
-    ct_proper:quickcheck(string_append_equal_prop()),
-    ct_proper:quickcheck(string_append_length_prop()).
+    ct_property_test:quickcheck(string_append_equal_prop(), Config),
+    ct_property_test:quickcheck(string_append_length_prop(), Config).
 
 string_spaces_prop() ->
     ?FORALL(Count, non_neg_integer(), begin
@@ -111,7 +111,7 @@ string_spaces_prop() ->
     end).
 
 string_spaces_case(Config) when is_list(Config) ->
-    ct_proper:quickcheck(string_spaces_prop()).
+    ct_property_test:quickcheck(string_spaces_prop(), Config).
 
 -record(layout, {new, flush, combine, render}).
 
@@ -133,8 +133,8 @@ combine_flush_prop(#layout{combine = Combine, render = Render, flush = Flush} = 
 
 lines_combine_case(Config) when is_list(Config) ->
     Lines = lines_layout(),
-    ct_proper:quickcheck(combine_assoc_prop(Lines)),
-    ct_proper:quickcheck(combine_flush_prop(Lines)).
+    ct_property_test:quickcheck(combine_assoc_prop(Lines), Config),
+    ct_property_test:quickcheck(combine_flush_prop(Lines), Config).
 
 lines_unit(Config) when is_list(Config) ->
     % xxxxxxxx      yyyyyyyy     xxxxxxxx
@@ -176,8 +176,8 @@ lines_unit(Config) when is_list(Config) ->
 
 metric_combine_case(Config) when is_list(Config) ->
     Metric = metric_layout(),
-    ct_proper:quickcheck(combine_assoc_prop(Metric)),
-    ct_proper:quickcheck(combine_flush_prop(Metric)).
+    ct_property_test:quickcheck(combine_assoc_prop(Metric), Config),
+    ct_property_test:quickcheck(combine_flush_prop(Metric), Config).
 
 metric_unit(Config) when is_list(Config) ->
     % xxxxxxxx      yyyyyyyy     xxxxxxxxxxxxx
@@ -259,31 +259,31 @@ choice_commutative_prop(Choice, #layout{render = Render} = Layout) ->
 
 document80_combine_case(Config) when is_list(Config) ->
     Document80 = document_layout(80),
-    true = ct_proper:quickcheck(combine_assoc_prop(Document80)),
-    true = ct_proper:quickcheck(combine_flush_prop(Document80)).
+    true = ct_property_test:quickcheck(combine_assoc_prop(Document80), Config),
+    true = ct_property_test:quickcheck(combine_flush_prop(Document80), Config).
 
 document20_combine_case(Config) when is_list(Config) ->
     Document20 = document_layout(20),
-    true = ct_proper:quickcheck(combine_assoc_prop(Document20)),
-    true = ct_proper:quickcheck(combine_flush_prop(Document20)).
+    true = ct_property_test:quickcheck(combine_assoc_prop(Document20), Config),
+    true = ct_property_test:quickcheck(combine_flush_prop(Document20), Config).
 
 document80_choice_case(Config) when is_list(Config) ->
     Document80 = document_layout(80),
     Choice = fun ?alg:document_choice/2,
-    true = ct_proper:quickcheck(choice_assoc_prop(Choice, Document80)),
-    true = ct_proper:quickcheck(choice_combine_left_distribute_prop(Choice, Document80)),
-    true = ct_proper:quickcheck(choice_combine_right_distribute_prop(Choice, Document80)),
-    true = ct_proper:quickcheck(choice_flush_distribute_prop(Choice, Document80)),
-    true = ct_proper:quickcheck(choice_commutative_prop(Choice, Document80)).
+    true = ct_property_test:quickcheck(choice_assoc_prop(Choice, Document80), Config),
+    true = ct_property_test:quickcheck(choice_combine_left_distribute_prop(Choice, Document80), Config),
+    true = ct_property_test:quickcheck(choice_combine_right_distribute_prop(Choice, Document80), Config),
+    true = ct_property_test:quickcheck(choice_flush_distribute_prop(Choice, Document80), Config),
+    true = ct_property_test:quickcheck(choice_commutative_prop(Choice, Document80), Config).
 
 document20_choice_case(Config) when is_list(Config) ->
     Document20 = document_layout(20),
     Choice = fun ?alg:document_choice/2,
-    true = ct_proper:quickcheck(choice_assoc_prop(Choice, Document20)),
-    true = ct_proper:quickcheck(choice_combine_left_distribute_prop(Choice, Document20)),
-    true = ct_proper:quickcheck(choice_combine_right_distribute_prop(Choice, Document20)),
-    true = ct_proper:quickcheck(choice_flush_distribute_prop(Choice, Document20)),
-    true = ct_proper:quickcheck(choice_commutative_prop(Choice, Document20)).
+    true = ct_property_test:quickcheck(choice_assoc_prop(Choice, Document20), Config),
+    true = ct_property_test:quickcheck(choice_combine_left_distribute_prop(Choice, Document20), Config),
+    true = ct_property_test:quickcheck(choice_combine_right_distribute_prop(Choice, Document20), Config),
+    true = ct_property_test:quickcheck(choice_flush_distribute_prop(Choice, Document20), Config),
+    true = ct_property_test:quickcheck(choice_commutative_prop(Choice, Document20), Config).
 
 document_unit(Config) when is_list(Config) ->
     % xxxxxxxx      yyyyyyyy     xxxxxxxx
