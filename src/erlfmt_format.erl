@@ -63,17 +63,11 @@ form_to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
             ),
             combine_comments(Meta, Doc)
     end;
-form_to_algebra({attribute, Meta, {atom, _, Type} = Name, [Value]})
-when Type =:= type; Type =:= opaque ->
+form_to_algebra({attribute, Meta, {atom, _, RawName} = Name, [Value]})
+when RawName =:= type; RawName =:= opaque; RawName =:= spec; RawName =:= callback ->
     NameD = wrap(document_text("-"), expr_to_algebra(Name), document_text(" ")),
     ValueD = expr_to_algebra(Value),
     Doc = wrap_prepend(NameD, ValueD, document_text(".")),
-    combine_comments(Meta, Doc);
-form_to_algebra({attribute, Meta, {atom, _, Spec} = Name, [Value]})
-when Spec =:= spec; Spec =:= callback ->
-    NameD = wrap(document_text("-"), expr_to_algebra(Name), document_text(" ")),
-    ValueD = expr_to_algebra(Value),
-    Doc = wrap(NameD, ValueD, document_text(".")),
     combine_comments(Meta, Doc);
 form_to_algebra({attribute, Meta, Name, Values}) ->
     Prefix = wrap(document_text("-"), expr_to_algebra(Name), document_text("(")),
@@ -178,7 +172,7 @@ do_expr_to_algebra({'if', _Meta, Clauses}) ->
 do_expr_to_algebra({spec, _Meta, Name, [SingleClause]}) ->
     single_clause_spec_to_algebra(Name, SingleClause);
 do_expr_to_algebra({spec, _Meta, Name, Clauses}) ->
-    document_combine(expr_to_algebra(Name), clauses_to_algebra(Clauses));
+    combine_nested(expr_to_algebra(Name), clauses_to_algebra(Clauses));
 do_expr_to_algebra({'...', _Meta}) ->
     document_text("...");
 do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
@@ -552,7 +546,7 @@ do_clause_to_algebra_pair({spec_clause, _Meta, Head, [Body], Guards}) ->
                 wrap(HeadD, document_text(" -> "), BodyD)
             )
         ),
-    MultiD = combine_newline(MultiPrefix, document_combine(document_text("when "), GuardsD)),
+    MultiD = combine_nested(MultiPrefix, document_combine(document_text("when "), GuardsD)),
 
     {SingleD, MultiD};
 do_clause_to_algebra_pair({clause, _Meta, Head, empty, Body}) ->

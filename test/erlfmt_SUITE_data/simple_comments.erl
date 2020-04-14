@@ -34,10 +34,10 @@
 
 %% TODO: fix indentation after |
 -spec foo() ->
-          %% comment
-          term() |
-              %% other comment
-              [term()].
+    %% comment
+    term() |
+        %% other comment
+        [term()].
 foo() ->
     [
         [bar(1), baz(2), foobar(), map(#{}), record(#foo{}), binary(), comprehension()],

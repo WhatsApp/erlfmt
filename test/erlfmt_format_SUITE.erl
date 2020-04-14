@@ -1355,46 +1355,48 @@ attribute(Config) when is_list(Config) ->
     ?assertFormatForm(
         "-spec foo(Int) -> atom() when Int :: integer().",
         "-spec foo(Int) -> atom()\n"
-        "      when Int :: integer().",
+        "    when Int :: integer().",
         40
     ),
     ?assertFormatForm(
         "-spec foo(Int) -> some_very:very(long, type) when Int :: integer().",
         "-spec foo(Int) ->\n"
-        "          some_very:very(long, type)\n"
-        "      when Int :: integer().",
+        "    some_very:very(long, type)\n"
+        "    when Int :: integer().",
         40
     ),
     ?assertSameForm(
         "-callback long_name(Bar) -> #{map := type([Bar, ...])}."
     ),
-    %% TODO: this nesting is ridiculous as well, should we intent normally when just one clause?
     ?assertFormatForm(
         "-callback long_name(Bar) -> #{map := type([Bar, ...])}.",
         "-callback long_name(Bar) ->\n"
-        "              #{map := type([Bar, ...])}.",
+        "    #{map := type([Bar, ...])}.",
         50
     ),
     ?assertFormatForm(
         "-spec foo(integer()) -> some_very:very(long, type); (atom()) -> atom().",
-        "-spec foo(integer()) -> some_very:very(long, type);\n"
-        "         (atom()) -> atom()."
+        "-spec foo\n"
+        "    (integer()) -> some_very:very(long, type);\n"
+        "    (atom()) -> atom()."
     ),
     ?assertFormatForm(
         "-spec foo(integer()) -> some_very:very(long, type); (1..2) -> atom().",
-        "-spec foo(integer()) ->\n"
-        "             some_very:very(long, type);\n"
-        "         (1..2) ->\n"
-        "             atom().",
+        "-spec foo\n"
+        "    (integer()) ->\n"
+        "        some_very:very(long, type);\n"
+        "    (1..2) ->\n"
+        "        atom().",
         40
     ),
     ?assertFormatForm(
-        "-spec foo(Int) -> some_very:very(long, type) when Int :: integer(); (1..2) -> atom().",
-        "-spec foo(Int) ->\n"
-        "             some_very:very(long, type)\n"
-        "         when Int :: integer();\n"
-        "         (1..2) ->\n"
-        "             atom().",
+        "-spec foo(Int) -> some_very_very:very(long, type) when Int :: integer(); (1..2) -> atom().",
+        "-spec foo\n"
+        "    (Int) ->\n"
+        "        some_very_very:very(long, type)\n"
+        "        when Int :: integer();\n"
+        "    (1..2) ->\n"
+        "        atom().",
         40
     ),
     ?assertSameForm(
