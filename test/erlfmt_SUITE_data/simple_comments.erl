@@ -40,20 +40,14 @@
         [term()].
 foo() ->
     [
-        [bar(1), baz(2), foobar(), map(#{}), record(#foo{}), binary(), comprehension()],
+        [baz(2), foobar(), map(#{}), record(#foo{}), binary(), comprehension()],
         [call(), 'case'(), 'receive'(), 'if'(), 'try'(), 'fun'()]
     ].
 
-bar(X)
-when %% comment
-     is_list(X) ->
-    ok.
-
-baz(Y)
-when %% comment
-     is_list(Y);
-     %% other comment
-     is_binary(Y) ->
+%% comment
+baz(Y) when is_list(Y);
+            %% other comment
+            is_binary(Y) ->
     ok.
 
 foobar() ->

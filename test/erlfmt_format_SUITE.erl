@@ -905,10 +905,10 @@ fun_expression(Config) when is_list(Config) ->
         "fun (Even, Longer) when Guarded -> Expression end",
         "fun\n"
         "    (Even, Longer)\n"
-        "    when Guarded ->\n"
+        "            when Guarded ->\n"
         "        Expression\n"
         "end",
-        25
+        30
     ),
     ?assertFormatExpr(
         "fun (The, Longest, Pattern) when Guarded -> Expression end",
@@ -923,26 +923,26 @@ fun_expression(Config) when is_list(Config) ->
         25
     ),
     ?assertFormatExpr(
-        "fun (Pattern) when Guard; Is, Long -> Expression end",
+        "fun (Long, Pattern) when Guard; Is, Long -> Expression end",
         "fun\n"
-        "    (Pattern)\n"
-        "    when Guard;\n"
-        "         Is, Long ->\n"
+        "    (Long, Pattern)\n"
+        "            when Guard;\n"
+        "                 Is, Long ->\n"
         "        Expression\n"
         "end",
-        25
+        30
     ),
     ?assertFormatExpr(
-        "fun (Pattern) when Guard; Is, Even, Longer -> Expression end",
+        "fun (Long, Pattern) when Guard; Is, Even, Longer -> Expression end",
         "fun\n"
-        "    (Pattern)\n"
-        "    when Guard;\n"
-        "         Is,\n"
-        "         Even,\n"
-        "         Longer ->\n"
+        "    (Long, Pattern)\n"
+        "            when Guard;\n"
+        "                 Is,\n"
+        "                 Even,\n"
+        "                 Longer ->\n"
         "        Expression\n"
         "end",
-        25
+        30
     ).
 
 case_expression(Config) when is_list(Config) ->
@@ -980,10 +980,10 @@ case_expression(Config) when is_list(Config) ->
         "case 1 of {Even, Longer} when Guarded -> Expression end",
         "case 1 of\n"
         "    {Even, Longer}\n"
-        "    when Guarded ->\n"
+        "            when Guarded ->\n"
         "        Expression\n"
         "end",
-        25
+        30
     ),
     ?assertFormatExpr(
         "case 1 of {The, Longest, Pattern} when Guarded -> Expression end",
@@ -998,14 +998,14 @@ case_expression(Config) when is_list(Config) ->
         25
     ),
     ?assertFormatExpr(
-        "case 1 of Pattern when Guard; Is, Long -> Expression end",
+        "case 1 of {Long, Pattern} when Guard; Is, Long -> Expression end",
         "case 1 of\n"
-        "    Pattern\n"
-        "    when Guard;\n"
-        "         Is, Long ->\n"
+        "    {Long, Pattern}\n"
+        "            when Guard;\n"
+        "                 Is, Long ->\n"
         "        Expression\n"
         "end",
-        25
+        30
     ),
     ?assertFormatExpr(
         "case 1 of Short -> Expr; {Long, Pattern} -> Expression end",
@@ -1071,10 +1071,10 @@ receive_expression(Config) when is_list(Config) ->
         "receive {Even, Longer} when Guarded -> Expression end",
         "receive\n"
         "    {Even, Longer}\n"
-        "    when Guarded ->\n"
+        "            when Guarded ->\n"
         "        Expression\n"
         "end",
-        25
+        30
     ),
     ?assertFormatExpr(
         "receive {The, Longest, Pattern} when Guarded -> Expression end",
@@ -1089,14 +1089,14 @@ receive_expression(Config) when is_list(Config) ->
         25
     ),
     ?assertFormatExpr(
-        "receive Pattern when Guard; Is, Long -> Expression end",
+        "receive {Long, Pattern} when Guard; Is, Long -> Expression end",
         "receive\n"
-        "    Pattern\n"
-        "    when Guard;\n"
-        "         Is, Long ->\n"
+        "    {Long, Pattern}\n"
+        "            when Guard;\n"
+        "                 Is, Long ->\n"
         "        Expression\n"
         "end",
-        25
+        30
     ).
 
 try_expression(Config) when is_list(Config) ->
