@@ -36,8 +36,6 @@
 
 -define(INDENT, 4).
 
--define(PARENLESS_ATTRIBUTE, [type, opaque, spec, callback]).
-
 -define(NEXT_BREAK_FITS, [map, list, tuple, record, block, 'fun']).
 
 -define(NEXT_BREAK_FITS_OPS, ['=', '::']).
@@ -47,8 +45,7 @@ form_to_algebra({function, Meta, Clauses}) ->
     Doc = document_combine(clauses_to_algebra(Clauses), document_text(".")),
     combine_comments(Meta, Doc);
 form_to_algebra({attribute, Meta, Name, []}) ->
-    NameD = expr_to_algebra(Name),
-    Doc = wrap(document_text("-"), NameD, document_text(".")),
+    Doc = wrap(document_text("-"), expr_to_algebra(Name), document_text(".")),
     combine_comments(Meta, Doc);
 form_to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
     HeadD = document_combine(document_text("-define("), expr_to_algebra(Define)),
@@ -66,20 +63,22 @@ form_to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
             ),
             combine_comments(Meta, Doc)
     end;
-form_to_algebra({attribute, Meta, {atom, _, RawName} = Name, Values}) ->
-    DashD = document_text("-"),
-    NameD = expr_to_algebra(Name),
-    case lists:member(RawName, ?PARENLESS_ATTRIBUTE) of
-        true ->
-            [Value] = Values,
-            ValueD = expr_to_algebra(Value),
-            Doc = document_combine(DashD, combine_space(NameD, document_combine(ValueD, document_text(".")))),
-            combine_comments(Meta, Doc);
-        false ->
-            Prefix = wrap(DashD, NameD, document_text("(")),
-            Doc = container_to_algebra(Meta, Values, Prefix, document_text(").")),
-            combine_comments(Meta, Doc)
-    end.
+form_to_algebra({attribute, Meta, {atom, _, Type} = Name, [Value]})
+when Type =:= type; Type =:= opaque ->
+    NameD = wrap(document_text("-"), expr_to_algebra(Name), document_text(" ")),
+    ValueD = expr_to_algebra(Value),
+    Doc = wrap_prepend(NameD, ValueD, document_text(".")),
+    combine_comments(Meta, Doc);
+form_to_algebra({attribute, Meta, {atom, _, Spec} = Name, [Value]})
+when Spec =:= spec; Spec =:= callback ->
+    NameD = wrap(document_text("-"), expr_to_algebra(Name), document_text(" ")),
+    ValueD = expr_to_algebra(Value),
+    Doc = wrap(NameD, ValueD, document_text(".")),
+    combine_comments(Meta, Doc);
+form_to_algebra({attribute, Meta, Name, Values}) ->
+    Prefix = wrap(document_text("-"), expr_to_algebra(Name), document_text("(")),
+    Doc = container_to_algebra(Meta, Values, Prefix, document_text(").")),
+    combine_comments(Meta, Doc).
 
 -spec expr_to_algebra(erlfmt_parse:abstract_expr()) -> erlfmt_algebra:document().
 expr_to_algebra(Expr) when is_tuple(Expr) ->

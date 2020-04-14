@@ -1335,13 +1335,19 @@ attribute(Config) when is_list(Config) ->
     ?assertFormatForm(
         "-type foobar() :: #foo{a :: integer(), b :: mod:type()}.",
         "-type foobar() ::\n"
-        "          #foo{a :: integer(), b :: mod:type()}.",
+        "    #foo{a :: integer(), b :: mod:type()}.",
         50
     ),
     ?assertSameForm(
-        "-type foo() :: fun((A, B, C) ->\n"
-        "                       return_type(A, B, C)).",
+        "-type foo() ::\n"
+        "    fun((A, B, C) -> return_type(A, B, C)).",
         50
+    ),
+    ?assertSameForm(
+        "-type foo() :: #{\n"
+        "    a := integer(),\n"
+        "    b => float()\n"
+        "}."
     ),
     ?assertSameForm(
         "-spec foo(Int) -> atom() when Int :: integer()."
