@@ -1,1 +1,11 @@
-[].
+{"1.2.0",
+[{<<"getopt">>,{pkg,<<"getopt">>,<<"1.0.1">>},0},
+ {<<"providers">>,{pkg,<<"providers">>,<<"1.8.1">>},0}]}.
+[
+{pkg_hash,[
+ {<<"getopt">>, <<"C73A9FA687B217F2FF79F68A3B637711BB1936E712B521D8CE466B29CBF7808A">>},
+ {<<"providers">>, <<"70B4197869514344A8A60E2B2A4EF41CA03DEF43CFB1712ECF076A0F3C62F083">>}]},
+{pkg_hash_ext,[
+ {<<"getopt">>, <<"53E1AB83B9CEB65C9672D3E7A35B8092E9BDC9B3EE80721471A161C10C59959C">>},
+ {<<"providers">>, <<"E45745ADE9C476A9A469EA0840E418AB19360DC44F01A233304E118A44486BA0">>}]}
+].
