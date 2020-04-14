@@ -286,6 +286,11 @@ binary_op_to_algebra('/', _Meta, {atom, _, _} = Left, {integer, _, _} = Right) -
     %% special-case the foo/N syntax in attributes, division with a literal atom
     %% doesn't make sense in normal code, so it's safe to apply it everywhere
     wrap(expr_to_algebra(Left), document_text("/"), expr_to_algebra(Right));
+binary_op_to_algebra('|' = Op, Meta0, Left, Right) ->
+    %% | does not increase indentation
+    %% don't print parens and comments twice - expr_to_algebra took care of it already
+    Meta = erlfmt_scan:delete_annos([parens, pre_comments, post_comments], Meta0),
+    binary_op_to_algebra(Op, Meta, Left, Right, 0);
 binary_op_to_algebra(Op, Meta0, Left, Right) ->
     %% don't print parens and comments twice - expr_to_algebra took care of it already
     Meta = erlfmt_scan:delete_annos([parens, pre_comments, post_comments], Meta0),
