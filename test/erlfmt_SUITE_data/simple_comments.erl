@@ -20,17 +20,17 @@
 -define(FUN(M, F), M:F).
 
 -type bar() ::
-          %% comment
-          fun().
+    %% comment
+    fun().
 
 -type foo() ::
-          %% comment 1
-          fun((
-                  %% comment 2
-                  ...
-              ) ->
-                  %% comment 3
-                  bar()).
+    %% comment 1
+    fun((
+            %% comment 2
+            ...
+        ) ->
+            %% comment 3
+            bar()).
 
 %% TODO: fix indentation after |
 -spec foo() ->
