@@ -178,7 +178,7 @@ do_expr_to_algebra({'...', _Meta}) ->
 do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
     wrap(expr_to_algebra(Left), document_text("*"), expr_to_algebra(Right));
 do_expr_to_algebra({guard_or, _Meta, Guards}) ->
-    element(2, do_guard_or_to_algebra_pair(Guards)).
+    element(2, do_guard_or_to_algebra_pair(Guards, "")).
 
 combine_space(D1, D2) -> combine_sep(D1, " ", D2).
 
@@ -211,8 +211,10 @@ combine_semi_newline(D1, D2) ->
 combine_all(Docs) ->
     document_reduce(fun erlfmt_algebra:document_combine/2, Docs).
 
-combine_nested(Head, Doc) ->
-    combine_newline(Head, document_combine(document_spaces(?INDENT), Doc)).
+combine_nested(Head, Doc) -> combine_nested(Head, Doc, ?INDENT).
+
+combine_nested(Head, Doc, Indent) ->
+    combine_newline(Head, document_combine(document_spaces(Indent), Doc)).
 
 prepend_space(D1, D2) ->
     wrap_prepend(D1, document_text(" "), D2).
@@ -522,7 +524,7 @@ clause_to_algebra_pair({macro_call, _, _, _} = Expr) ->
 do_clause_to_algebra_pair({clause, _Meta, empty, Guards, Body}) ->
     BodyD = block_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
-    {SingleGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards),
+    {SingleGuardsD, _InlineGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards, ""),
 
     SingleD = wrap(SingleGuardsD, document_text(" -> "), SingleBodyD),
     MultiD = combine_nested(document_combine(GuardsD, document_text(" ->")), BodyD),
@@ -533,11 +535,11 @@ do_clause_to_algebra_pair({spec_clause, Meta, Head, Body, empty}) ->
     do_clause_to_algebra_pair({clause, Meta, Head, empty, Body});
 do_clause_to_algebra_pair({spec_clause, _Meta, Head, [Body], Guards}) ->
     {SingleHeadD, HeadD} = clause_head_to_algebra(Head),
-    {SingleGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards),
+    {SingleGuardsD, _InlineGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards, "when "),
     BodyD = expr_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
 
-    SingleD = wrap(SingleHeadD, document_text(" -> "), wrap(SingleBodyD, document_text(" when "), SingleGuardsD)),
+    SingleD = wrap(SingleHeadD, document_text(" -> "), combine_space(SingleBodyD, SingleGuardsD)),
     MultiPrefix =
         document_choice(
             wrap(SingleHeadD, document_text(" -> "), SingleBodyD),
@@ -546,7 +548,7 @@ do_clause_to_algebra_pair({spec_clause, _Meta, Head, [Body], Guards}) ->
                 wrap(HeadD, document_text(" -> "), BodyD)
             )
         ),
-    MultiD = combine_nested(MultiPrefix, document_combine(document_text("when "), GuardsD)),
+    MultiD = combine_nested(MultiPrefix, GuardsD),
 
     {SingleD, MultiD};
 do_clause_to_algebra_pair({clause, _Meta, Head, empty, Body}) ->
@@ -561,18 +563,15 @@ do_clause_to_algebra_pair({clause, _Meta, Head, empty, Body}) ->
     {SingleD, MultiD};
 do_clause_to_algebra_pair({clause, _Meta, Head, Guards, Body}) ->
     {SingleHeadD, HeadD} = clause_head_to_algebra(Head),
-    {SingleGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards),
+    {SingleGuardsD, InlineGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards, "when "),
     BodyD = block_to_algebra(Body),
     SingleBodyD = document_single_line(BodyD),
 
-    SingleD = wrap(SingleHeadD, document_text(" when "), wrap(SingleGuardsD, document_text(" -> "), SingleBodyD)),
+    SingleD = combine_space(SingleHeadD, wrap(SingleGuardsD, document_text(" -> "), SingleBodyD)),
     MultiPrefix =
         document_choice(
-            wrap(SingleHeadD, document_text(" when "), SingleGuardsD),
-            document_choice(
-                combine_newline(SingleHeadD, document_combine(document_text("when "), GuardsD)),
-                wrap(HeadD, document_text(" when "), GuardsD)
-            )
+            combine_space(document_choice(SingleHeadD, HeadD), InlineGuardsD),
+            combine_nested(SingleHeadD, GuardsD, ?INDENT * 2)
         ),
     MultiD = combine_nested(document_combine(MultiPrefix, document_text(" ->")), BodyD),
 
@@ -591,20 +590,26 @@ clause_head_to_algebra(Expr) ->
     ExprD = expr_to_algebra(Expr),
     {document_single_line(ExprD), ExprD}.
 
-guard_or_to_algebra_pair({guard_or, Meta, Guards}) ->
+guard_or_to_algebra_pair({guard_or, Meta, Guards}, When) ->
     case comments(Meta) of
         {[], []} ->
-            do_guard_or_to_algebra_pair(Guards);
+            {Single, Multi} = do_guard_or_to_algebra_pair(Guards, When),
+            {Single, Multi, Multi};
         {Pre, Post} ->
-            {_, Doc} = do_guard_or_to_algebra_pair(Guards),
-            {document_fail(), combine_pre_comments(Pre, combine_post_comments(Post, Doc))}
+            {_Single, Multi} = do_guard_or_to_algebra_pair(Guards, When),
+            Doc = combine_pre_comments(Pre, combine_post_comments(Post, Multi)),
+            {document_fail(), document_fail(), Doc}
     end.
 
-do_guard_or_to_algebra_pair(Guards) ->
+do_guard_or_to_algebra_pair(Guards, When) ->
+    WhenD = document_text(When),
     {SingleLine, MultiLine} = lists:unzip(lists:map(fun guard_and_to_algebra_pair/1, Guards)),
     SingleLineD = document_reduce(fun combine_semi_space/2, SingleLine),
     MultiLineD = document_reduce(fun combine_semi_newline/2, MultiLine),
-    {SingleLineD, document_choice(SingleLineD, MultiLineD)}.
+    {
+        document_combine(WhenD, SingleLineD),
+        document_combine(WhenD, document_choice(SingleLineD, MultiLineD))
+    }.
 
 guard_and_to_algebra_pair({guard_and, Meta, Exprs}) ->
     ExprsD = lists:map(fun expr_to_algebra/1, Exprs),
