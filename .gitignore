@@ -1,5 +1,8 @@
 .rebar3
 _*
+!/_checkouts
+_checkouts/*
+!_checkouts/erlfmt
 .eunit
 *.o
 *.beam
