@@ -258,7 +258,7 @@ string_lines_to_algebra([Line | Lines]) ->
 concat_to_algebra([Value1, Value2 | _] = Values) ->
     ValuesD = lists:map(fun expr_to_algebra/1, Values),
     Vertical = document_reduce(fun combine_newline/2, ValuesD),
-    case erlfmt_scan:get_end_line(Value1) < erlfmt_scan:get_line(Value2) of
+    case break_between(Value1, Value2) of
         true ->
             Vertical;
         false ->
@@ -308,10 +308,10 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     LeftOpD = combine_space(LeftD, OpD),
 
     SingleD =
-        case lists:member(Op, ?NEXT_BREAK_FITS_OPS) andalso
-                 next_break_fits(Right, [call, macro_call]) of
-            true -> prepend_space(LeftOpD, RightD);
-            false -> combine_space(LeftOpD, document_single_line(RightD))
+        case {next_break_fits_op(Op, Right), break_between(Left, Right)} of
+            {true, _} -> prepend_space(LeftOpD, RightD);
+            {false, true} -> document_fail();
+            {false, false} -> combine_space(LeftOpD, document_single_line(RightD))
         end,
     Doc =
         document_choice(
@@ -686,6 +686,12 @@ try_of_block(Exprs, OfClauses) ->
                 clauses_to_algebra(OfClauses)
             )
     end.
+
+break_between(Left, Right) ->
+    erlfmt_scan:get_end_line(Left) < erlfmt_scan:get_line(Right).
+
+next_break_fits_op(Op, Expr) ->
+    lists:member(Op, ?NEXT_BREAK_FITS_OPS) andalso next_break_fits(Expr, [call, macro_call]).
 
 next_break_fits(Expr, Extra) ->
     lists:member(element(1, Expr), Extra ++ ?NEXT_BREAK_FITS) andalso no_comments_or_parens(Expr).
