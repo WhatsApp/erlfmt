@@ -25,6 +25,11 @@ See documentation in the `doc/` directory.
     $ rebar3 ct
     $ rebar3 dialyzer
 
+## Local use
+
+You can use erlfmt as a rebar plugin on itself thanks to the symlink in `_checkouts` and
+recursive plugin override in `rebar.config`.
+
 ## Join the erlfmt community
 * Website:
 * Facebook page:
