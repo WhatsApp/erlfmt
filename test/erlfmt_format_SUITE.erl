@@ -374,6 +374,13 @@ binary_operator(Config) when is_list(Config) ->
         "foo() :: #{\n"
         "    a := integer()\n"
         "}"
+    ),
+
+    %% Keeps existing breaks
+    ?assertSameExpr(
+        "Foo andalso\n"
+        "    Bar andalso\n"
+        "    Baz"
     ).
 
 tuple(Config) when is_list(Config) ->
