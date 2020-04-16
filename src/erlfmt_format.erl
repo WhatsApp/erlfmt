@@ -93,6 +93,8 @@ expr_to_algebra(Other) ->
 
 do_expr_to_algebra({string, Meta, _Value}) ->
     string_to_algebra(erlfmt_scan:get_anno(text, Meta));
+do_expr_to_algebra({char, #{text := "$ "}, $\s}) ->
+    document_text("$\\s");
 do_expr_to_algebra({Atomic, Meta, _Value}) when ?IS_ATOMIC(Atomic) ->
     document_text(erlfmt_scan:get_anno(text, Meta));
 do_expr_to_algebra({concat, _Meta, Values}) ->

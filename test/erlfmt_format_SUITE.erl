@@ -177,7 +177,6 @@ literals(Config) when is_list(Config) ->
     ?assertSameExpr("$\\\\"),
     ?assertSameExpr("$\\t"),
     ?assertSameExpr("$\\z"),
-    ?assertSameExpr("$ "),
     ?assertSameExpr("$\\040"),
     ?assertSameExpr("$\\xAb"),
     ?assertSameExpr("$\\x{Ab}"),
@@ -197,7 +196,8 @@ literals(Config) when is_list(Config) ->
     ?assertSameExpr("\"The quick brown fox jumps over the lazy dog\""),
     ?assertSameExpr("\"\\s \""),
     ?assertSameExpr("Foo"),
-    ?assertSameExpr("_Bar").
+    ?assertSameExpr("_Bar"),
+    ?assertFormatExpr("$ ", "$\\s").
 
 string_concat(Config) when is_list(Config) ->
     ?assertSameExpr("\"foo\" \"bar\""),
