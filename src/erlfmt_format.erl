@@ -469,10 +469,18 @@ field_to_algebra(Op, Key, Value) ->
     ValueD = expr_to_algebra(Value),
     KeyOpD = combine_space(KeyD, document_text(Op)),
 
-    document_choice(
-        combine_space(KeyOpD, document_single_line(ValueD)),
-        combine_nested(KeyOpD, ValueD)
-    ).
+    case next_break_fits(Value, [call, macro_call]) of
+        true ->
+            document_choice(
+                prepend_space(KeyOpD, ValueD),
+                combine_nested(KeyOpD, ValueD)
+            );
+        false ->
+            document_choice(
+                combine_space(KeyOpD, document_single_line(ValueD)),
+                combine_nested(KeyOpD, ValueD)
+            )
+    end.
 
 comprehension_to_algebra(ExprD, LcExprs, Left, Right) ->
     PipesD = document_text("|| "),

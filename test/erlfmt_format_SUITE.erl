@@ -583,6 +583,16 @@ map_update(Config) when is_list(Config) ->
         "    33 => 44\n"
         "}",
         15
+    ),
+    ?assertSameExpr(
+        "#{\n"
+        "    a => [\n"
+        "        b\n"
+        "    ],\n"
+        "    c := d(\n"
+        "        e\n"
+        "    )\n"
+        "}"
     ).
 
 record_create(Config) when is_list(Config) ->
@@ -608,7 +618,21 @@ record_create(Config) when is_list(Config) ->
         10
     ),
     ?assertSameExpr("#?FOO{}"),
-    ?assertSameExpr("?FOO{}").
+    ?assertSameExpr("?FOO{}"),
+    ?assertSameExpr(
+        "#foo{\n"
+        "    a = [\n"
+        "        b\n"
+        "    ]\n"
+        "}"
+    ),
+    ?assertSameExpr(
+        "#foo{\n"
+        "    long_key =\n"
+        "        [long_value]\n"
+        "}",
+        20
+    ).
 
 record_update(Config) when is_list(Config) ->
     ?assertFormatExpr("X #foo {\n}", "X#foo{}"),
