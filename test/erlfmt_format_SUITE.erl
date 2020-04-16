@@ -51,6 +51,10 @@
     macro/1,
     function/1,
     attribute/1,
+    record_definition/1,
+    spec/1,
+    define/1,
+    type/1,
     comment/1,
     force_break/1
 ]).
@@ -95,7 +99,11 @@ groups() ->
         ]},
         {forms, [parallel], [
             function,
-            attribute
+            attribute,
+            spec,
+            record_definition,
+            define,
+            type
         ]},
         {operators, [parallel], [
             unary_operator,
@@ -1376,7 +1384,9 @@ attribute(Config) when is_list(Config) ->
         "    ]\n"
         ").",
         25
-    ),
+    ).
+
+record_definition(Config) when is_list(Config) ->
     ?assertSameForm(
         "-record(foo, {a = 1 :: integer(), b :: float(), c = 2, d}).",
         60
@@ -1409,27 +1419,9 @@ attribute(Config) when is_list(Config) ->
         "    }\n"
         ").",
         60
-    ),
-    ?assertSameForm(
-        "-opaque foo() :: #foo{a :: integer(), b :: module:type()}."
-    ),
-    ?assertFormatForm(
-        "-type foobar() :: #foo{a :: integer(), b :: mod:type()}.",
-        "-type foobar() ::\n"
-        "    #foo{a :: integer(), b :: mod:type()}.",
-        50
-    ),
-    ?assertSameForm(
-        "-type foo() ::\n"
-        "    fun((A, B, C) -> return_type(A, B, C)).",
-        50
-    ),
-    ?assertSameForm(
-        "-type foo() :: #{\n"
-        "    a := integer(),\n"
-        "    b => float()\n"
-        "}."
-    ),
+    ).
+
+spec(Config) when is_list(Config) ->
     ?assertSameForm(
         "-spec foo(Int) -> atom() when Int :: integer()."
     ),
@@ -1479,10 +1471,9 @@ attribute(Config) when is_list(Config) ->
         "    (1..2) ->\n"
         "        atom().",
         40
-    ),
-    ?assertSameForm(
-        "-opaque foo() :: {<<>>, <<_:8>>, <<_:_*4>>, <<_:8, _:_*4>>}."
-    ),
+    ).
+
+define(Config) when is_list(Config) ->
     ?assertSameForm(
         "-define(IN_RANGE(Value, Low, High), Value >= Low andalso Value =< High)."
     ),
@@ -1508,6 +1499,31 @@ attribute(Config) when is_list(Config) ->
         "    2,\n"
         "    3\n"
         "])."
+    ).
+
+type(Config) when is_list(Config) ->
+    ?assertSameForm(
+        "-opaque foo() :: #foo{a :: integer(), b :: module:type()}."
+    ),
+    ?assertFormatForm(
+        "-type foobar() :: #foo{a :: integer(), b :: mod:type()}.",
+        "-type foobar() ::\n"
+        "    #foo{a :: integer(), b :: mod:type()}.",
+        50
+    ),
+    ?assertSameForm(
+        "-type foo() ::\n"
+        "    fun((A, B, C) -> return_type(A, B, C)).",
+        50
+    ),
+    ?assertSameForm(
+        "-type foo() :: #{\n"
+        "    a := integer(),\n"
+        "    b => float()\n"
+        "}."
+    ),
+    ?assertSameForm(
+        "-opaque foo() :: {<<>>, <<_:8>>, <<_:_*4>>, <<_:8, _:_*4>>}."
     ),
     ?assertSameForm(
         "-type foo() :: {fun(), fun((...) -> mod:bar()), fun(() -> integer())}."
