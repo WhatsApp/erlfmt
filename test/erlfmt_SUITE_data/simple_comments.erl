@@ -108,10 +108,11 @@ comprehension() ->
         ]
         || %% comment 2
            X <-
+               %% comment 4
                [
-                   %% comment 3
+                   %% comment 4
                ]
-           %% comment 4
+           %% comment 5
     ].
 
 call() ->
