@@ -31,7 +31,7 @@
 
 -define(INDENT, 4).
 
--define(NEXT_BREAK_FITS, [map, list, tuple, record, block, 'fun']).
+-define(NEXT_BREAK_FITS, [map, list, record, block, 'fun']).
 
 -define(NEXT_BREAK_FITS_OPS, ['=', '::']).
 
@@ -64,6 +64,20 @@ when RawName =:= type; RawName =:= opaque; RawName =:= spec; RawName =:= callbac
     ValueD = expr_to_algebra(Value),
     Doc = wrap_prepend(NameD, ValueD, document_text(".")),
     combine_comments(Meta, Doc);
+form_to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Values}]}) ->
+    HeadD = wrap(document_text("-record("), expr_to_algebra(Name), document_text(",")),
+    case no_comments_or_parens(TMeta) of
+        true ->
+            Prefix = document_combine(HeadD, document_text(" {")),
+            Doc = container_to_algebra(TMeta, Values, Prefix, document_text("}).")),
+            combine_comments(Meta, Doc);
+        false ->
+            Doc = combine_newline(
+                combine_nested(HeadD, expr_to_algebra({tuple, TMeta, Values})),
+                document_text(").")
+            ),
+            combine_comments(Meta, Doc)
+    end;
 form_to_algebra({attribute, Meta, Name, Values}) ->
     Prefix = wrap(document_text("-"), expr_to_algebra(Name), document_text("(")),
     Doc = container_to_algebra(Meta, Values, Prefix, document_text(").")),
@@ -88,13 +102,13 @@ do_expr_to_algebra({op, _Meta, Op, Expr}) ->
 do_expr_to_algebra({op, Meta, Op, Left, Right}) ->
     binary_op_to_algebra(Op, Meta, Left, Right);
 do_expr_to_algebra({tuple, Meta, Values}) ->
-    container_to_algebra(Meta, Values, document_text("{"), document_text("}"));
+    fill_container_to_algebra(Meta, Values, document_text("{"), document_text("}"));
 do_expr_to_algebra({list, Meta, Values}) ->
     container_to_algebra(Meta, Values, document_text("["), document_text("]"));
 do_expr_to_algebra({cons, _, Head, Tail}) ->
     cons_to_algebra(Head, Tail);
 do_expr_to_algebra({bin, Meta, Values}) ->
-    container_to_algebra(Meta, Values, document_text("<<"), document_text(">>"));
+    fill_container_to_algebra(Meta, Values, document_text("<<"), document_text(">>"));
 do_expr_to_algebra({bin_element, _Meta, Expr, Size, Types}) ->
     bin_element_to_algebra(Expr, Size, Types);
 do_expr_to_algebra({map, Meta, Values}) ->
@@ -323,6 +337,42 @@ binary_operand_to_algebra(Op, {op, Meta, Op, Left, Right}, Indent) ->
     end;
 binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
     expr_to_algebra(Expr).
+
+fill_container_to_algebra(_Meta, [], Left, Right) ->
+    document_combine(Left, Right);
+fill_container_to_algebra(#{newline := true}, Values, Left, Right) ->
+    VerticalD = container_vertical_values_to_algebra(Values),
+    wrap_nested(Left, VerticalD, Right);
+fill_container_to_algebra(_Meta, [Value], Left, Right) ->
+    wrap_prepend(Left, expr_to_algebra(Value), Right);
+fill_container_to_algebra(_Meta, [Value | Values], Left, Right) ->
+    ValueD = document_combine(expr_to_algebra(Value), document_text(", ")),
+    Doc = fill_container_values_to_algebra(ValueD, Values),
+    wrap_prepend(Left, Doc, Right).
+
+fill_container_values_to_algebra(Acc0, [Expr]) ->
+    ExprD = expr_to_algebra(Expr),
+    Doc = document_choice(
+        document_combine(Acc0, document_single_line(ExprD)),
+        combine_nested(Acc0, ExprD)
+    ),
+    case next_break_fits(Expr) of
+        true ->
+            document_choice(document_prepend(document_single_line(Acc0), ExprD), Doc);
+        false ->
+            Doc
+    end;
+fill_container_values_to_algebra(Acc0, [Expr | Rest]) ->
+    ExprD = document_combine(expr_to_algebra(Expr), document_text(", ")),
+    SingleExprD = document_single_line(ExprD),
+    Acc = document_choice(
+        document_combine(Acc0, SingleExprD),
+        document_choice(
+            combine_nested(Acc0, SingleExprD),
+            combine_nested(Acc0, document_flush(ExprD))
+        )
+    ),
+    fill_container_values_to_algebra(Acc, Rest).
 
 container_to_algebra(_Meta, [], Left, Right) ->
     document_combine(Left, Right);

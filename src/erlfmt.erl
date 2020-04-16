@@ -175,7 +175,7 @@ try_location(_, [Node | _]) when is_tuple(Node) -> erlfmt_scan:get_anno(location
 try_location(_, _) -> 0.
 
 write_forms(_FileName, Formatted, standard_out) ->
-    io:write(Formatted);
+    io:put_chars(Formatted);
 write_forms(FileName, Formatted, Out) ->
     OutFileName = out_file(FileName, Out),
     case filelib:ensure_dir(OutFileName) of

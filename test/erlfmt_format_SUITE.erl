@@ -390,33 +390,72 @@ tuple(Config) when is_list(Config) ->
     ?assertFormatExpr("{1,2}", "{1, 2}"),
     ?assertFormatExpr("{1,{2,3}}", "{1, {2, 3}}"),
     ?assertFormatExpr(
-        "{long,{2,3,4}}",
-        "{\n"
-        "    long,\n"
-        "    {2, 3, 4}\n"
-        "}",
-        15
+        "{verylong,{2,3,4}}",
+        "{verylong,\n"
+        "    {2, 3, 4}}",
+        20
     ),
     ?assertFormatExpr(
-        "{{long, word},{long,word}}",
-        "{\n"
-        "    {\n"
-        "        long,\n"
-        "        word\n"
-        "    },\n"
-        "    {\n"
-        "        long,\n"
-        "        word\n"
-        "    }\n"
-        "}",
-        15
+        "{long,x,{2,3,4},y}",
+        "{long, x,\n"
+        "    {2, 3, 4}, y}",
+        20
     ),
     ?assertFormatExpr(
-        "{short, {long, word}}",
-        "{short, {\n"
+        "{verylong,x,{2,3,4},y,{5,6,7},z}",
+        "{verylong, x,\n"
+        "    {2, 3, 4}, y,\n"
+        "    {5, 6, 7}, z}",
+        20
+    ),
+    ?assertFormatExpr(
+        "{{a,long,tuple},{nested,1,long,tuple}}",
+        "{{a, long, tuple},\n"
+        "    {nested, 1,\n"
+        "        long,\n"
+        "        tuple}}",
+        20
+    ),
+    ?assertFormatExpr(
+        "{{a,long,tuple},[nested,1,long,list]}",
+        "{{a, long, tuple}, [\n"
+        "    nested,\n"
+        "    1,\n"
         "    long,\n"
-        "    word\n"
-        "}}",
+        "    list\n"
+        "]}",
+        20
+    ),
+    ?assertFormatExpr(
+        "{{a,long,tuple},{another,tuple},[nested,1,long,list]}",
+        "{{a, long, tuple},\n"
+        "    {another, tuple},\n"
+        "    [\n"
+        "        nested,\n"
+        "        1,\n"
+        "        long,\n"
+        "        list\n"
+        "    ]}",
+        25
+    ),
+    ?assertFormatExpr(
+        "{{a,long,tuple},the,atoms,[nested,long,list],other,bare,atoms,this_does_not_fit}",
+        "{{a, long, tuple},\n"
+        "    the, atoms,\n"
+        "    [\n"
+        "        nested,\n"
+        "        long,\n"
+        "        list\n"
+        "    ],\n"
+        "    other, bare, atoms,\n"
+        "    this_does_not_fit}",
+        25
+    ),
+    ?assertFormatExpr(
+        "{short, {a,long,tuple}}",
+        "{short,\n"
+        "    {a, long,\n"
+        "        tuple}}",
         15
     ).
 
@@ -468,22 +507,25 @@ binary(Config) when is_list(Config) ->
     ?assertFormatExpr("<<1/float,<<22,33>>/binary>>", "<<1/float, <<22, 33>>/binary>>"),
     ?assertFormatExpr(
         "<<1/float,<<22,33>>>>",
+        "<<1/float,\n"
+        "    <<22,\n"
+        "        33>>>>",
+        15
+    ),
+    ?assertSameExpr(
         "<<\n"
         "    1/float,\n"
         "    <<22, 33>>\n"
-        ">>",
-        15
+        ">>"
     ),
-    ?assertFormatExpr(
-        "<<1/float,<<22,33>>>>",
+    ?assertSameExpr(
         "<<\n"
         "    1/float,\n"
         "    <<\n"
         "        22,\n"
         "        33\n"
         "    >>\n"
-        ">>",
-        10
+        ">>"
     ).
 
 map_create(Config) when is_list(Config) ->
@@ -743,13 +785,22 @@ list_comprehension(Config) when is_list(Config) ->
     ?assertSameExpr("[X || {X, Y} <- Results, X >= Y]"),
     ?assertSameExpr("[X || <<X, Y>> <= Results, X >= Y]"),
     ?assertFormatExpr(
-        "[{Very, Long, Expression} || X <- Y, X < 10]",
+        "[[Very, Long, Expression] || X <- Y, X < 10]",
         "[\n"
-        "    {\n"
+        "    [\n"
         "        Very,\n"
         "        Long,\n"
         "        Expression\n"
-        "    } || X <- Y, X < 10\n"
+        "    ] || X <- Y, X < 10\n"
+        "]",
+        25
+    ),
+    ?assertFormatExpr(
+        "[{Very, Long, Expression} || X <- Y, X < 10]",
+        "[\n"
+        "    {Very, Long,\n"
+        "        Expression}\n"
+        "    || X <- Y, X < 10\n"
         "]",
         25
     ),
@@ -818,13 +869,21 @@ call(Config) when is_list(Config) ->
         25
     ),
     ?assertFormatExpr(
-        "very_very_long_name({Very, Long, Expression})",
+        "very_very_long_name([Very, Long, Expression])",
         "very_very_long_name(\n"
-        "    {\n"
+        "    [\n"
         "        Very,\n"
         "        Long,\n"
         "        Expression\n"
-        "    }\n"
+        "    ]\n"
+        ")",
+        20
+    ),
+    ?assertFormatExpr(
+        "very_very_long_name({Very, Long, Expression})",
+        "very_very_long_name(\n"
+        "    {Very, Long,\n"
+        "        Expression}\n"
         ")",
         20
     ),
@@ -837,12 +896,12 @@ call(Config) when is_list(Config) ->
         25
     ),
     ?assertFormatExpr(
-        "long_name(Arg, {Very, Long, Expression})",
-        "long_name(Arg, {\n"
+        "long_name(Arg, [Very, Long, Expression])",
+        "long_name(Arg, [\n"
         "    Very,\n"
         "    Long,\n"
         "    Expression\n"
-        "})",
+        "])",
         25
     ),
     ?assertFormatExpr(
@@ -995,13 +1054,13 @@ case_expression(Config) when is_list(Config) ->
         30
     ),
     ?assertFormatExpr(
-        "case 1 of {The, Longest, Pattern} when Guarded -> Expression end",
+        "case 1 of [The, Longest, Pattern] when Guarded -> Expression end",
         "case 1 of\n"
-        "    {\n"
+        "    [\n"
         "        The,\n"
         "        Longest,\n"
         "        Pattern\n"
-        "    } when Guarded ->\n"
+        "    ] when Guarded ->\n"
         "        Expression\n"
         "end",
         25
@@ -1086,13 +1145,13 @@ receive_expression(Config) when is_list(Config) ->
         30
     ),
     ?assertFormatExpr(
-        "receive {The, Longest, Pattern} when Guarded -> Expression end",
+        "receive [The, Longest, Pattern] when Guarded -> Expression end",
         "receive\n"
-        "    {\n"
+        "    [\n"
         "        The,\n"
         "        Longest,\n"
         "        Pattern\n"
-        "    } when Guarded ->\n"
+        "    ] when Guarded ->\n"
         "        Expression\n"
         "end",
         25
@@ -1320,13 +1379,9 @@ attribute(Config) when is_list(Config) ->
         ").",
         25
     ),
-    ?assertFormatForm(
-        "-record(foo, {a = 1 :: integer(), b :: float(), c  = 2, d}).",
-        "-record(\n"
-        "    foo,\n"
-        "    {a = 1 :: integer(), b :: float(), c = 2, d}\n"
-        ").",
-        50
+    ?assertSameForm(
+        "-record(foo, {a = 1 :: integer(), b :: float(), c = 2, d}).",
+        60
     ),
     ?assertFormatForm(
         "-record(foo, {a = 1 :: integer(), b :: float(), c  = 2, d}).",
@@ -1336,7 +1391,26 @@ attribute(Config) when is_list(Config) ->
         "    c = 2,\n"
         "    d\n"
         "}).",
-        30
+        50
+    ),
+    ?assertSameForm(
+        "-record(foo,\n"
+        "    %% comment\n"
+        "    {a = 1 :: integer(), b :: float(), c = 2, d}\n"
+        ").",
+        60
+    ),
+    ?assertSameForm(
+        "-record(foo,\n"
+        "    %% comment\n"
+        "    {\n"
+        "        a = 1 :: integer(),\n"
+        "        b :: float(),\n"
+        "        c = 2,\n"
+        "        d\n"
+        "    }\n"
+        ").",
+        60
     ),
     ?assertSameForm(
         "-opaque foo() :: #foo{a :: integer(), b :: module:type()}."
