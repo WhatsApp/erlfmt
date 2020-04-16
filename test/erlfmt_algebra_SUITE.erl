@@ -439,7 +439,7 @@ str() ->
         Length = string:length(Str),
         string:length([" " | Str]) =/= Length andalso string:length([Str | " "]) =/= Length
     end),
-    ?LET(Str, ClosedUTF8, ?alg:string_new(binary:replace(Str, [<<"\n">>, <<"\r">>], <<>>))).
+    ?LET(Str, ClosedUTF8, ?alg:string_new(binary:replace(Str, [<<" ">>, <<"\n">>, <<"\r">>], <<>>))).
 
 layout(Layout) ->
     ?SIZED(Size, limited_layout(Size, Layout)).

@@ -112,9 +112,9 @@ lines_render(Lines) ->
     tl(strings_to_text(do_lines_render(Lines))).
 
 strings_to_text([#string{text = Text} | Rest]) ->
-    case string:trim(Text, leading) of
+    case string:trim(Text, leading, " ") of
         [] -> [$\n | strings_to_text(Rest)];
-        _ -> [$\n, Text | strings_to_text(Rest)]
+        _ -> [$\n, string:trim(Text, trailing, " ") | strings_to_text(Rest)]
     end;
 strings_to_text([]) ->
     [].
