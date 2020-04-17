@@ -32,7 +32,6 @@
             %% comment 3
             bar()).
 
-%% TODO: fix indentation after |
 -spec foo() ->
     %% comment
     term() |
