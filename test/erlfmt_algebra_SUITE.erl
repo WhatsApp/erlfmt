@@ -6,11 +6,12 @@
 %%% @end
 %%% @see http://erlang.org/doc/man/common_test.html
 %%% -------------------------------------------------------------------
-
 -module(erlfmt_algebra_SUITE).
 
 -include_lib("common_test/include/ct.hrl").
+
 -include_lib("stdlib/include/assert.hrl").
+
 -include_lib("proper/include/proper.hrl").
 
 -oncall("whatsapp_erlang_team").
@@ -20,9 +21,12 @@
     suite/0,
     all/0,
     groups/0,
-    init_per_suite/1, end_per_suite/1,
-    init_per_group/2, end_per_group/2,
-    init_per_testcase/2, end_per_testcase/2
+    init_per_suite/1,
+    end_per_suite/1,
+    init_per_group/2,
+    end_per_group/2,
+    init_per_testcase/2,
+    end_per_testcase/2
 ]).
 
 %% Test cases
@@ -88,11 +92,12 @@ all() ->
 
 %%--------------------------------------------------------------------
 %% TEST CASESS
-
 string_append_equal_prop() ->
     ?FORALL({Left, Right}, {str(), str()}, begin
         Appended = ?alg:string_append(Left, Right),
-        string:equal(?alg:string_text(Appended), [?alg:string_text(Left) | ?alg:string_text(Right)])
+        string:equal(?alg:string_text(Appended), [
+            ?alg:string_text(Left) | ?alg:string_text(Right)
+        ])
     end).
 
 string_append_length_prop() ->
@@ -225,7 +230,10 @@ choice_assoc_prop(Choice, #layout{render = Render} = Layout) ->
         equal_height(Render(Alternative1), Render(Alternative2))
     end).
 
-choice_combine_left_distribute_prop(Choice, #layout{combine = Combine, render = Render} = Layout) ->
+choice_combine_left_distribute_prop(
+    Choice,
+    #layout{combine = Combine, render = Render} = Layout
+) ->
     Gen = layout(Layout),
     ?FORALL({L1, L2, L3}, {Gen, Gen, Gen}, begin
         Combined1 = Combine(Choice(L1, L2), L3),
@@ -233,7 +241,10 @@ choice_combine_left_distribute_prop(Choice, #layout{combine = Combine, render = 
         equal_height(Render(Combined1), Render(Combined2))
     end).
 
-choice_combine_right_distribute_prop(Choice, #layout{combine = Combine, render = Render} = Layout) ->
+choice_combine_right_distribute_prop(
+    Choice,
+    #layout{combine = Combine, render = Render} = Layout
+) ->
     Gen = layout(Layout),
     ?FORALL({L1, L2, L3}, {Gen, Gen, Gen}, begin
         Combined1 = Combine(L3, Choice(L1, L2)),
@@ -271,18 +282,36 @@ document80_choice_case(Config) when is_list(Config) ->
     Document80 = document_layout(80),
     Choice = fun ?alg:document_choice/2,
     true = ct_property_test:quickcheck(choice_assoc_prop(Choice, Document80), Config),
-    true = ct_property_test:quickcheck(choice_combine_left_distribute_prop(Choice, Document80), Config),
-    true = ct_property_test:quickcheck(choice_combine_right_distribute_prop(Choice, Document80), Config),
-    true = ct_property_test:quickcheck(choice_flush_distribute_prop(Choice, Document80), Config),
+    true = ct_property_test:quickcheck(
+        choice_combine_left_distribute_prop(Choice, Document80),
+        Config
+    ),
+    true = ct_property_test:quickcheck(
+        choice_combine_right_distribute_prop(Choice, Document80),
+        Config
+    ),
+    true = ct_property_test:quickcheck(
+        choice_flush_distribute_prop(Choice, Document80),
+        Config
+    ),
     true = ct_property_test:quickcheck(choice_commutative_prop(Choice, Document80), Config).
 
 document20_choice_case(Config) when is_list(Config) ->
     Document20 = document_layout(20),
     Choice = fun ?alg:document_choice/2,
     true = ct_property_test:quickcheck(choice_assoc_prop(Choice, Document20), Config),
-    true = ct_property_test:quickcheck(choice_combine_left_distribute_prop(Choice, Document20), Config),
-    true = ct_property_test:quickcheck(choice_combine_right_distribute_prop(Choice, Document20), Config),
-    true = ct_property_test:quickcheck(choice_flush_distribute_prop(Choice, Document20), Config),
+    true = ct_property_test:quickcheck(
+        choice_combine_left_distribute_prop(Choice, Document20),
+        Config
+    ),
+    true = ct_property_test:quickcheck(
+        choice_combine_right_distribute_prop(Choice, Document20),
+        Config
+    ),
+    true = ct_property_test:quickcheck(
+        choice_flush_distribute_prop(Choice, Document20),
+        Config
+    ),
     true = ct_property_test:quickcheck(choice_commutative_prop(Choice, Document20), Config).
 
 document_unit(Config) when is_list(Config) ->
@@ -382,8 +411,12 @@ pretty_sexpr(List) when is_list(List) ->
     Rparen = ?alg:document_text(")"),
     Space = ?alg:document_text(" "),
 
-    HorizontalFold = fun (Elem, Acc) -> ?alg:document_combine(Elem, ?alg:document_combine(Space, Acc)) end,
-    VerticalFold = fun (Elem, Acc) -> ?alg:document_combine(?alg:document_flush(Elem), Acc) end,
+    HorizontalFold = fun (Elem, Acc) ->
+        ?alg:document_combine(Elem, ?alg:document_combine(Space, Acc))
+    end,
+    VerticalFold = fun (Elem, Acc) ->
+        ?alg:document_combine(?alg:document_flush(Elem), Acc)
+    end,
 
     Rendered = lists:map(fun pretty_sexpr/1, List),
     Horizontal = ?alg:document_reduce(HorizontalFold, Rendered),
@@ -412,7 +445,7 @@ metric_layout() ->
 
 document_layout(PageWidth) ->
     #layout{
-        new = fun(String) -> ?alg:document_text(?alg:string_text(String)) end,
+        new = fun (String) -> ?alg:document_text(?alg:string_text(String)) end,
         flush = fun ?alg:document_flush/1,
         combine = fun ?alg:document_combine/2,
         render = fun (Document) -> document_render(Document, PageWidth) end
@@ -420,8 +453,7 @@ document_layout(PageWidth) ->
 
 %% The properties don't hold if we start accepting too wide documents
 document_render(Document, PageWidth) ->
-    try
-        ?alg:document_render(Document, [{page_width, PageWidth}, {allow_unfit, false}])
+    try ?alg:document_render(Document, [{page_width, PageWidth}, {allow_unfit, false}])
     catch
         error:no_viable_layout -> ""
     end.
@@ -439,7 +471,11 @@ str() ->
         Length = string:length(Str),
         string:length([" " | Str]) =/= Length andalso string:length([Str | " "]) =/= Length
     end),
-    ?LET(Str, ClosedUTF8, ?alg:string_new(binary:replace(Str, [<<" ">>, <<"\n">>, <<"\r">>], <<>>))).
+    ?LET(
+        Str,
+        ClosedUTF8,
+        ?alg:string_new(binary:replace(Str, [<<" ">>, <<"\n">>, <<"\r">>], <<>>))
+    ).
 
 layout(Layout) ->
     ?SIZED(Size, limited_layout(Size, Layout)).
