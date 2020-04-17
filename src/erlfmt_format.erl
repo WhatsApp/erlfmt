@@ -529,7 +529,14 @@ fun_to_algebra({function, _Anno, Mod, Name, Arity}) ->
         document_text("/"),
         expr_to_algebra(Arity)
     ]);
-%% TODO: specialise single clause
+fun_to_algebra({clauses, _Anno, [Clause]}) ->
+    FunD = document_text("fun "),
+    {Single, Multi} = clause_to_algebra_pair(Clause),
+    MultiD = combine_newline(document_prepend(FunD, Multi), document_text("end")),
+    case erlfmt_scan:get_anno(newline, Clause, false) of
+        true -> MultiD;
+        false -> document_choice(wrap(FunD, Single, document_text(" end")), MultiD)
+    end;
 fun_to_algebra({clauses, _Anno, Clauses}) ->
     ClausesD = clauses_to_algebra(Clauses),
     document_choice(

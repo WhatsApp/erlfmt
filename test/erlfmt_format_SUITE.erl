@@ -375,8 +375,8 @@ binary_operator(Config) when is_list(Config) ->
         ")"
     ),
     ?assertSameExpr(
-        "Foo = fun\n"
-        "    () -> ok\n"
+        "Foo = fun () ->\n"
+        "    ok\n"
         "end",
         15
     ),
@@ -979,6 +979,13 @@ fun_expression(Config) when is_list(Config) ->
     ?assertSameExpr("fun (X) when is_integer(X) -> X end"),
     ?assertSameExpr("fun Foo() -> Foo() end"),
     ?assertFormatExpr(
+        "fun()->\n"
+        "ok end",
+        "fun () ->\n"
+        "    ok\n"
+        "end"
+    ),
+    ?assertFormatExpr(
         "fun (x) -> x; (y) -> y end",
         "fun\n"
         "    (x) -> x;\n"
@@ -987,60 +994,124 @@ fun_expression(Config) when is_list(Config) ->
         100
     ),
     ?assertFormatExpr(
-        "fun (Long) -> Expression end",
+        "fun (Long) -> Expression; (ok) -> ok end",
         "fun\n"
-        "    (Long) -> Expression\n"
+        "    (Long) -> Expression;\n"
+        "    (ok) -> ok\n"
         "end",
         25
     ),
     ?assertFormatExpr(
-        "fun (Even, Longer) -> Expression end",
+        "fun (Even, Longer) -> Expression; (ok) -> ok end",
         "fun\n"
         "    (Even, Longer) ->\n"
-        "        Expression\n"
+        "        Expression;\n"
+        "    (ok) ->\n"
+        "        ok\n"
         "end",
         25
     ),
     ?assertFormatExpr(
-        "fun (Even, Longer) when Guarded -> Expression end",
+        "fun (Even, Longer) when Guarded -> Expression; (ok) -> ok end",
         "fun\n"
         "    (Even, Longer)\n"
         "            when Guarded ->\n"
-        "        Expression\n"
+        "        Expression;\n"
+        "    (ok) ->\n"
+        "        ok\n"
         "end",
         30
     ),
     ?assertFormatExpr(
-        "fun (The, Longest, Pattern) when Guarded -> Expression end",
+        "fun (The, Longest, Pattern) when Guarded -> Expression; (ok) -> ok end",
         "fun\n"
         "    (\n"
         "        The,\n"
         "        Longest,\n"
         "        Pattern\n"
         "    ) when Guarded ->\n"
-        "        Expression\n"
+        "        Expression;\n"
+        "    (ok) ->\n"
+        "        ok\n"
         "end",
         25
     ),
     ?assertFormatExpr(
-        "fun (Long, Pattern) when Guard; Is, Long -> Expression end",
+        "fun (Long, Pattern) when Guard; Is, Long -> Expression; (ok) -> ok end",
         "fun\n"
         "    (Long, Pattern)\n"
         "            when Guard;\n"
         "                 Is, Long ->\n"
-        "        Expression\n"
+        "        Expression;\n"
+        "    (ok) ->\n"
+        "        ok\n"
         "end",
         30
     ),
     ?assertFormatExpr(
-        "fun (Long, Pattern) when Guard; Is, Even, Longer -> Expression end",
+        "fun (Long, Pattern) when Guard; Is, Even, Longer -> Expression; (ok) -> ok end",
         "fun\n"
         "    (Long, Pattern)\n"
         "            when Guard;\n"
         "                 Is,\n"
         "                 Even,\n"
         "                 Longer ->\n"
-        "        Expression\n"
+        "        Expression;\n"
+        "    (ok) ->\n"
+        "        ok\n"
+        "end",
+        30
+    ),
+    ?assertFormatExpr(
+        "fun (Long) -> Expression end",
+        "fun (Long) ->\n"
+        "    Expression\n"
+        "end",
+        20
+    ),
+    ?assertFormatExpr(
+        "fun (Even, Longer) -> Expression end",
+        "fun (Even, Longer) ->\n"
+        "    Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "fun (Even, Longer) when Guarded -> Expression end",
+        "fun (Even, Longer)\n"
+        "        when Guarded ->\n"
+        "    Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "fun (The, Longest, Pattern) when Guarded -> Expression end",
+        "fun (\n"
+        "    The,\n"
+        "    Longest,\n"
+        "    Pattern\n"
+        ") when Guarded ->\n"
+        "    Expression\n"
+        "end",
+        20
+    ),
+    ?assertFormatExpr(
+        "fun (Long, Pattern) when Guard; Is, Long -> Expression end",
+        "fun (Long, Pattern)\n"
+        "        when Guard;\n"
+        "             Is, Long ->\n"
+        "    Expression\n"
+        "end",
+        25
+    ),
+    ?assertFormatExpr(
+        "fun (Long, Pattern) when Guard; Is, Even, Longer -> Expression end",
+        "fun (Long, Pattern)\n"
+        "        when Guard;\n"
+        "             Is,\n"
+        "             Even,\n"
+        "             Longer ->\n"
+        "    Expression\n"
         "end",
         30
     ).
