@@ -14,8 +14,17 @@
 -module(erlfmt_algebra).
 
 -export([string_new/1, string_append/2, string_spaces/1, string_text/1, string_length/1]).
+
 -export([lines_new/1, lines_combine/2, lines_flush/1, lines_render/1]).
--export([metric_new/1, metric_combine/2, metric_flush/1, metric_render/1, metric_dominates/2]).
+
+-export([
+    metric_new/1,
+    metric_combine/2,
+    metric_flush/1,
+    metric_render/1,
+    metric_dominates/2
+]).
+
 -export([
     document_text/1,
     document_spaces/1,
@@ -135,7 +144,8 @@ split_last([Line | Lines]) -> split_last(Lines, Line, []).
 split_last([Line | Rest], Last, LinesRev) -> split_last(Rest, Line, [Last | LinesRev]);
 split_last([], Last, LinesRev) -> {Last, LinesRev}.
 
-indent_lines(0, Lines) -> Lines;
+indent_lines(0, Lines) ->
+    Lines;
 indent_lines(N, Lines) ->
     Offset = string_spaces(N),
     [string_append(Offset, Line) || Line <- Lines].
@@ -148,7 +158,8 @@ metric_new(#string{length = Length}) ->
 metric_combine(Left, Right) ->
     #metric{
         height = Left#metric.height + Right#metric.height,
-        max_width = max(Left#metric.max_width, Right#metric.max_width + Left#metric.last_width),
+        max_width =
+            max(Left#metric.max_width, Right#metric.max_width + Left#metric.last_width),
         last_width = Left#metric.last_width + Right#metric.last_width
     }.
 
@@ -175,8 +186,10 @@ document_text(Text) -> string_new(Text).
 document_spaces(Count) -> string_spaces(Count).
 
 -spec document_combine(document(), document()) -> document().
-document_combine(#doc_fail{}, _) -> #doc_fail{};
-document_combine(_, #doc_fail{}) -> #doc_fail{};
+document_combine(#doc_fail{}, _) ->
+    #doc_fail{};
+document_combine(_, #doc_fail{}) ->
+    #doc_fail{};
 document_combine(#string{} = Left, #string{} = Right) ->
     string_append(Left, Right);
 document_combine(#doc_seq{seq = Seq1}, #doc_seq{seq = Seq2}) ->
@@ -197,8 +210,10 @@ document_fail() -> #doc_fail{}.
 -spec document_choice(document(), document()) -> document().
 %% TODO: try to reduce the number of choices if both alternatives have the same
 %% elements by folidng them together - e.g. same prefix/suffix for seq or both flush.
-document_choice(#doc_fail{}, Document) -> Document;
-document_choice(Document, #doc_fail{}) -> Document;
+document_choice(#doc_fail{}, Document) ->
+    Document;
+document_choice(Document, #doc_fail{}) ->
+    Document;
 document_choice(#doc_choice{choices = Choices1}, #doc_choice{choices = Choices2}) ->
     #doc_choice{choices = Choices1 ++ Choices2};
 document_choice(#doc_choice{choices = Choices}, Document) ->
@@ -220,20 +235,26 @@ choice_single_line([Choice | Choices], Acc) ->
         #doc_fail{} -> choice_single_line(Choices, Acc);
         Document -> choice_single_line(Choices, [Document | Acc])
     end;
-choice_single_line([], []) -> #doc_fail{};
-choice_single_line([], [SingleChoice]) -> SingleChoice;
-choice_single_line([], Choices) -> #doc_choice{choices = Choices}.
+choice_single_line([], []) ->
+    #doc_fail{};
+choice_single_line([], [SingleChoice]) ->
+    SingleChoice;
+choice_single_line([], Choices) ->
+    #doc_choice{choices = Choices}.
 
 seq_single_line([Doc0 | Docs], Acc) ->
     case document_single_line(Doc0) of
         #doc_fail{} -> #doc_fail{};
         Doc -> seq_single_line(Docs, [Doc | Acc])
     end;
-seq_single_line([], Acc) -> #doc_seq{seq = lists:reverse(Acc)}.
+seq_single_line([], Acc) ->
+    #doc_seq{seq = lists:reverse(Acc)}.
 
 -spec document_prepend(document(), document()) -> document().
-document_prepend(#doc_fail{}, _) -> #doc_fail{};
-document_prepend(_, #doc_fail{}) -> #doc_fail{};
+document_prepend(#doc_fail{}, _) ->
+    #doc_fail{};
+document_prepend(_, #doc_fail{}) ->
+    #doc_fail{};
 document_prepend(#string{} = Left, #string{} = Right) ->
     string_append(Left, Right);
 document_prepend(Document1, #string{} = Document2) ->
@@ -250,7 +271,8 @@ document_render(Document, Options) ->
     PageWidth = proplists:get_value(page_width, Options, ?DEFAULT_PAGE_WIDTH),
     Layouts0 = document_interpret(Document, PageWidth),
     case reject_invalid(Layouts0, PageWidth, Options) of
-        [] -> error(no_viable_layout);
+        [] ->
+            error(no_viable_layout);
         Layouts ->
             [{_Metric, Lines} | _] = lists:keysort(1, Layouts),
             lines_render(Lines)
@@ -258,8 +280,8 @@ document_render(Document, Options) ->
 
 %% Same as lists:foldr/3 except it doesn't need initial accumulator
 %%   and just uses the last element of the list for that purpose.
--spec document_reduce(Reducer, [document(), ...]) -> document() when
-    Reducer :: fun ((document(), document()) -> document()).
+-spec document_reduce(Reducer, [document(), ...]) -> document()
+    when Reducer :: fun((document(), document()) -> document()).
 document_reduce(_Fun, [Doc]) -> Doc;
 document_reduce(Fun, [Doc | Rest]) -> Fun(Doc, document_reduce(Fun, Rest)).
 
@@ -281,7 +303,8 @@ interpret_choice([Choice | Choices], Frontier0, PageWidth) ->
     Layouts = document_interpret(Choice, PageWidth),
     Frontier = lists:foldl(fun pareto_frontier_add/2, Frontier0, Layouts),
     interpret_choice(Choices, Frontier, PageWidth);
-interpret_choice([], Frontier, _PageWidth) -> Frontier.
+interpret_choice([], Frontier, _PageWidth) ->
+    Frontier.
 
 interpret_seq([Doc | Seq], Lefts, PageWidth) ->
     case document_interpret(Doc, PageWidth) of
@@ -291,8 +314,10 @@ interpret_seq([Doc | Seq], Lefts, PageWidth) ->
             CombinedFrontier = layout_combine_many(Lefts, Rights, PageWidth, [], []),
             interpret_seq(Seq, CombinedFrontier, PageWidth)
     end;
-interpret_seq(_Seq, [], _PageWidth) -> [];
-interpret_seq([], Acc, _PageWidth) -> Acc.
+interpret_seq(_Seq, [], _PageWidth) ->
+    [];
+interpret_seq([], Acc, _PageWidth) ->
+    Acc.
 
 layout_combine_many([Left | Lefts], Rights, PageWidth, Frontier0, Unfit0) ->
     {Frontier, Unfit} = layout_combine_many1(Left, Rights, PageWidth, Frontier0, Unfit0),
@@ -302,7 +327,13 @@ layout_combine_many([], _Rights, _PageWidth, [], Unfit) ->
 layout_combine_many([], _Rights, _PageWidth, Frontier, _Unfit) ->
     Frontier.
 
-layout_combine_many1({LMetric, LLines} = Left, [{RMetric, RLines} | Rights], PageWidth, Frontier0, Unfit0) ->
+layout_combine_many1(
+    {LMetric, LLines} = Left,
+    [{RMetric, RLines} | Rights],
+    PageWidth,
+    Frontier0,
+    Unfit0
+) ->
     Metric = metric_combine(LMetric, RMetric),
     Layout = {Metric, lines_combine(LLines, RLines)},
     case Metric#metric.max_width =< PageWidth of
@@ -326,14 +357,15 @@ pareto_frontier_add({Metric, _} = Layout, Layouts) ->
 
 any_dominates(Metric, [Layout | Layouts]) ->
     metric_dominates(element(1, Layout), Metric) orelse any_dominates(Metric, Layouts);
-any_dominates(_Metric, []) -> false.
+any_dominates(_Metric, []) ->
+    false.
 
 filter_dominated(Metric, Layouts) ->
     [Layout || Layout <- Layouts, not metric_dominates(Metric, element(1, Layout))].
 
-reject_invalid(Layouts, PageWidth, Options) ->
+reject_invalid(Layouts, MaxWidth, Options) ->
     AllowUnfit = proplists:get_value(allow_unfit, Options, true),
-    case [Layout || {Metric, _} = Layout <- Layouts, Metric#metric.max_width =< PageWidth] of
+    case [Layout || {Metric, _} = Layout <- Layouts, Metric#metric.max_width =< MaxWidth] of
         [] when AllowUnfit -> best_unfit(Layouts);
         [] -> [];
         Filtered -> Filtered
@@ -343,8 +375,9 @@ best_unfit([]) -> [];
 best_unfit([First | Rest]) -> [best_unfit(Rest, First)].
 
 best_unfit([{CandidateMetric, _} = Candidate | Rest], {BestMetric, _})
-  when CandidateMetric#metric.max_width < BestMetric#metric.max_width ->
+        when CandidateMetric#metric.max_width < BestMetric#metric.max_width ->
     best_unfit(Rest, Candidate);
 best_unfit([_Candidate | Rest], Best) ->
     best_unfit(Rest, Best);
-best_unfit([], Best) -> Best.
+best_unfit([], Best) ->
+    Best.
