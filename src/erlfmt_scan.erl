@@ -150,7 +150,6 @@ split_tokens(Tokens, ExtraTokens0) ->
             {TransformedTokens, Tokens ++ ExtraTokens, Comments ++ ExtraComments, ExtraRest}
     end.
 
-%% TODO: annotate [, {, <<, (, -> with following newline info to control user folding/expanding
 split_tokens([{comment, _, _} = Comment0 | Rest0], Acc, CAcc) ->
     {Comment, Rest} = collect_comments(Rest0, Comment0),
     split_tokens(Rest, Acc, [Comment | CAcc]);
