@@ -1,4 +1,4 @@
-%% Copyright (c) WhatsApp Inc. and its affiliates.
+%% Copyright (c) Facebook, Inc. and its affiliates.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -12,10 +12,6 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 -module(erlfmt).
-
--oncall("whatsapp_erlang").
-
--typing([dialyzer]).
 
 %% API exports
 -export([
@@ -194,10 +190,10 @@ verify_forms(FileName, Forms, Formatted) ->
             catch
                 {not_equivalent, Left, Right} ->
                     Location = try_location(Left, Right),
-                    throw({
-                        error,
-                        {FileName, Location, ?MODULE, {not_equivalent, Left, Right}}
-                    })
+                    throw(
+                        {error,
+                            {FileName, Location, ?MODULE, {not_equivalent, Left, Right}}}
+                    )
             end;
         {error, _} ->
             throw({error, {FileName, 0, ?MODULE, could_not_reparse}})
@@ -242,7 +238,7 @@ try_location(_, [Node | _]) when is_tuple(Node) -> erlfmt_scan:get_anno(location
 try_location(_, _) -> 0.
 
 write_forms(_FileName, Formatted, standard_out) ->
-    io:fwrite("~s", [Formatted]);
+    io:put_chars(Formatted);
 write_forms(FileName, Formatted, Out) ->
     OutFileName = out_file(FileName, Out),
     case filelib:ensure_dir(OutFileName) of

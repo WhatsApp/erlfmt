@@ -1,4 +1,4 @@
-%% Copyright (c) WhatsApp Inc. and its affiliates.
+%% Copyright (c) Facebook, Inc. and its affiliates.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -11,12 +11,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-
 -module(erlfmt_scan).
-
--oncall("whatsapp_erlang").
-
--typing([dialyzer]).
 
 -include("erlfmt.hrl").
 
@@ -41,7 +36,8 @@
 
 -type inner() :: term().
 
--type scan() :: fun((inner(), erl_anno:location()) -> {erl_scan:tokens_result() | {error, term()}, inner()}).
+-type scan() :: fun((inner(), erl_anno:location()) ->
+                        {erl_scan:tokens_result() | {error, term()}, inner()}).
 
 -record(state, {
     scan :: scan(),
@@ -74,10 +70,10 @@
 
 -define(TRACK_NEWLINE_TOKEN(Token),
     Token =:= '(' orelse
-    Token =:= '[' orelse
-    Token =:= '{' orelse
-    Token =:= '<<' orelse
-    Token =:= '->'
+        Token =:= '[' orelse
+        Token =:= '{' orelse
+        Token =:= '<<' orelse
+        Token =:= '->'
 ).
 
 -spec io_form(file:io_device()) -> form_ret().
@@ -105,11 +101,23 @@ continue(Scan, Inner0, Loc0, Buffer0) ->
     case Scan(Inner0, Loc0) of
         {{ok, Tokens0, Loc}, Inner} ->
             {Tokens, FormTokens, Comments, Buffer} = split_tokens(Buffer0, Tokens0),
-            State = #state{scan = Scan, inner = Inner, loc = Loc, original = FormTokens, buffer = Buffer},
+            State = #state{
+                scan = Scan,
+                inner = Inner,
+                loc = Loc,
+                original = FormTokens,
+                buffer = Buffer
+            },
             {ok, Tokens, Comments, State};
         {{eof, Loc}, _Inner} ->
             {Tokens, FormTokens, Comments, []} = split_tokens(Buffer0, []),
-            State = #state{scan = fun eof/2, inner = undefined, loc = Loc, original = FormTokens, buffer = []},
+            State = #state{
+                scan = fun eof/2,
+                inner = undefined,
+                loc = Loc,
+                original = FormTokens,
+                buffer = []
+            },
             {ok, Tokens, Comments, State};
         {{error, Reason}, _Inner} ->
             {error, {Loc0, file, Reason}};
@@ -139,18 +147,19 @@ last_form_string(#state{original = Tokens}) ->
 %% TODO: make smarter
 stringify_token(Token) -> erl_anno:text(element(2, Token)).
 
--spec split_tokens([erl_scan:token()], [erl_scan:token()]) -> {[token()], [erl_scan:token()], [comment()], [token()]}.
+-spec split_tokens([erl_scan:token()], [erl_scan:token()]) ->
+    {[token()], [erl_scan:token()], [comment()], [token()]}.
 split_tokens(Tokens, ExtraTokens0) ->
     case split_tokens(Tokens, [], []) of
         {[], Comments} ->
             {[], Tokens, Comments, ExtraTokens0};
         {TransformedTokens, Comments} ->
             #{end_location := {LastLine, _}} = element(2, lists:last(TransformedTokens)),
-            {ExtraComments, ExtraTokens, ExtraRest} = split_extra(ExtraTokens0, LastLine, [], []),
+            {ExtraComments, ExtraTokens, ExtraRest} =
+                split_extra(ExtraTokens0, LastLine, [], []),
             {TransformedTokens, Tokens ++ ExtraTokens, Comments ++ ExtraComments, ExtraRest}
     end.
 
-%% TODO: annotate [, {, <<, (, -> with following newline info to control user folding/expanding
 split_tokens([{comment, _, _} = Comment0 | Rest0], Acc, CAcc) ->
     {Comment, Rest} = collect_comments(Rest0, Comment0),
     split_tokens(Rest, Acc, [Comment | CAcc]);
@@ -159,7 +168,8 @@ split_tokens([{white_space, _, _} | Rest], Acc, CAcc) ->
 split_tokens([{Atomic, Meta, Value} | Rest], Acc, CAcc) when ?IS_ATOMIC(Atomic) ->
     split_tokens(Rest, [{Atomic, atomic_anno(erl_anno:to_term(Meta)), Value} | Acc], CAcc);
 split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
-    split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta), #{}), Value} | Acc], CAcc);
+    Token = {Type, token_anno(erl_anno:to_term(Meta), #{}), Value},
+    split_tokens(Rest, [Token | Acc], CAcc);
 %% Keep the `text` value for if in case it's used as an attribute
 split_tokens([{Type, Meta} | Rest], Acc, CAcc) when Type =:= 'if' ->
     split_tokens(Rest, [{Type, atomic_anno(erl_anno:to_term(Meta))} | Acc], CAcc);
@@ -269,7 +279,7 @@ update_anno(Key, Fun, Node) when is_tuple(Node) ->
 
 end_location("", Line, Column) ->
     {Line, Column};
-end_location([$\n|String], Line, _Column) ->
-    end_location(String, Line+1, 1);
-end_location([_|String], Line, Column) ->
-    end_location(String, Line, Column+1).
+end_location([$\n | String], Line, _Column) ->
+    end_location(String, Line + 1, 1);
+end_location([_ | String], Line, Column) ->
+    end_location(String, Line, Column + 1).

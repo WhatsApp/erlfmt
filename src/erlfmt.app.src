@@ -2,7 +2,7 @@
  [{description, "Erlang code formatter"},
   {vsn, "0.1.0"},
   {registered, []},
-  {applications, [kernel, stdlib, getopt]},
+  {applications, [kernel, stdlib]},
   {env,[]},
   {modules, []}
 ]}.

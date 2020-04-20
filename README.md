@@ -8,8 +8,8 @@ An Erlang code formatter
 
 ## Run
 
-    $ rebar3 escriptize
-    $ _build/default/bin/erlfmt -h
+    $ rebar3 as release escriptize
+    $ _build/release/bin/erlfmt -h
 
 ## Run as a rebar3 plugin
 
