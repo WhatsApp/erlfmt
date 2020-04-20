@@ -11,7 +11,6 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-
 -module(erlfmt).
 
 -oncall("whatsapp_erlang").
@@ -19,7 +18,16 @@
 -typing([dialyzer]).
 
 %% API exports
--export([main/1, init/1, format_file/2, format_range/4, read_forms/1, read_forms_string/2, format_error/1, format_error_info/1]).
+-export([
+    main/1,
+    init/1,
+    format_file/2,
+    format_range/4,
+    read_forms/1,
+    read_forms_string/2,
+    format_error/1,
+    format_error_info/1
+]).
 
 -export_type([error_info/0, out/0]).
 
@@ -70,11 +78,15 @@ format_file(FileName, Out) ->
         {error, Error} -> {error, Error}
     end.
 
--spec format_range(file:name_all(), out(), erlfmt_scan:location(), erlfmt_scan:location()) ->
-    {ok, [error_info()]} |
-    {error, error_info()} |
-    {options, [{erlfmt_scan:location(), erlfmt_scan:location()}]}.
-
+-spec format_range(
+          file:name_all(),
+          out(),
+          erlfmt_scan:location(),
+          erlfmt_scan:location()
+      ) ->
+          {ok, [error_info()]} |
+              {error, error_info()} |
+              {options, [{erlfmt_scan:location(), erlfmt_scan:location()}]}.
 format_range(FileName, Out, StartLocation, EndLocation) ->
     try
         {ok, Forms, Warnings} = file_read_forms(FileName),
@@ -85,7 +97,7 @@ format_range(FileName, Out, StartLocation, EndLocation) ->
                 verify_forms(FileName, InRange, Result),
                 Prefix = get_prefix(FileName, StartLocation),
                 Suffix = get_suffix(FileName, EndLocation),
-                write_forms(FileName, [Prefix,Result,Suffix], Out),
+                write_forms(FileName, [Prefix, Result, Suffix], Out),
                 {ok, Warnings};
             {error, Options} ->
                 {options, Options}
@@ -96,7 +108,7 @@ format_range(FileName, Out, StartLocation, EndLocation) ->
 
 %% API entry point
 -spec read_forms(file:name_all()) ->
-    {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
+          {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
 read_forms(FileName) ->
     try file_read_forms(FileName)
     catch
@@ -104,22 +116,22 @@ read_forms(FileName) ->
     end.
 
 get_prefix(FileName, {Lines, Chars}) ->
-    read_file(FileName,
-              fun(File) ->
-                  read_lines_and_chars(File, Lines, Chars)
-              end).
+    read_file(FileName, fun
+        (File) ->
+            read_lines_and_chars(File, Lines, Chars)
+    end).
 
 get_suffix(FileName, {Lines, Chars}) ->
-    read_file(FileName,
-              fun(File) ->
-                  skip_lines_and_chars(File, Lines, Chars)
-              end).
+    read_file(FileName, fun
+        (File) ->
+            skip_lines_and_chars(File, Lines, Chars)
+    end).
 
 file_read_forms(FileName) ->
-    read_file(FileName,
-              fun(File) ->
-                  read_forms(erlfmt_scan:io_form(File), FileName, [], [])
-              end).
+    read_file(FileName, fun
+        (File) ->
+            read_forms(erlfmt_scan:io_form(File), FileName, [], [])
+    end).
 
 read_file(FileName, Action) ->
     case file:open(FileName, [read, {encoding, utf8}]) of
@@ -133,7 +145,7 @@ read_file(FileName, Action) ->
 
 %% API entry point
 -spec read_forms_string(file:name_all(), string()) ->
-    {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
+          {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
 read_forms_string(FileName, String) ->
     try read_forms(erlfmt_scan:string_form(String), FileName, [], [])
     catch
@@ -182,7 +194,10 @@ verify_forms(FileName, Forms, Formatted) ->
             catch
                 {not_equivalent, Left, Right} ->
                     Location = try_location(Left, Right),
-                    throw({error, {FileName, Location, ?MODULE, {not_equivalent, Left, Right}}})
+                    throw({
+                        error,
+                        {FileName, Location, ?MODULE, {not_equivalent, Left, Right}}
+                    })
             end;
         {error, _} ->
             throw({error, {FileName, 0, ?MODULE, could_not_reparse}})
@@ -200,10 +215,11 @@ equivalent({Type, _, L}, {Type, _, R}) ->
     equivalent(L, R);
 equivalent({Type, _, L1, L2}, {Type, _, R1, R2}) ->
     equivalent(L1, R1) andalso equivalent(L2, R2);
-equivalent({Type, _, L1, L2, L3}, {Type,_, R1, R2, R3}) ->
+equivalent({Type, _, L1, L2, L3}, {Type, _, R1, R2, R3}) ->
     equivalent(L1, R1) andalso equivalent(L2, R2) andalso equivalent(L3, R3);
 equivalent({Type, _, L1, L2, L3, L4}, {Type, _, R1, R2, R3, R4}) ->
-    equivalent(L1, R1) andalso equivalent(L2, R2) andalso equivalent(L3, R3) andalso equivalent(L4, R4);
+    equivalent(L1, R1) andalso
+        equivalent(L2, R2) andalso equivalent(L3, R3) andalso equivalent(L4, R4);
 equivalent(Ls, Rs) when is_list(Ls), is_list(Rs) ->
     equivalent_list(Ls, Rs);
 equivalent(L, R) ->
@@ -248,10 +264,10 @@ verify_ranges(Forms, StartLocation, EndLocation) ->
         [{StartLocation, EndLocation}] ->
             ok;
         Options ->
-             {error, {possible_ranges, Options}}
+            {error, {possible_ranges, Options}}
     end.
 
-possible_ranges([Form|Forms], StartLocation, EndLocation) ->
+possible_ranges([Form | Forms], StartLocation, EndLocation) ->
     case get_location_range(Form) of
         % Form is entirely before range
         {_Start, End} when End < StartLocation ->
@@ -263,7 +279,7 @@ possible_ranges([Form|Forms], StartLocation, EndLocation) ->
         {Start, End} when Start >= StartLocation andalso End < EndLocation ->
             combine([StartLocation], possible_end_locations(Forms, EndLocation));
         % Form is the only form in range but extends outside it
-        {Start, End} when  End >= EndLocation ->
+        {Start, End} when End >= EndLocation ->
             [{Start, End}];
         % Form starts outside range and end in range
         {Start, End} ->
@@ -273,12 +289,12 @@ possible_ranges([], StartLocation, EndLocation) ->
     [{StartLocation, EndLocation}].
 
 combine(L1, L2) ->
-    [{X1,X2} || X1 <-L1, X2 <- L2].
+    [{X1, X2} || X1 <- L1, X2 <- L2].
 
-next_position({X,Y}) ->
-    {X,Y+1}.
+next_position({X, Y}) ->
+    {X, Y + 1}.
 
-possible_end_locations([Form|Forms], EndLocation) ->
+possible_end_locations([Form | Forms], EndLocation) ->
     case get_location_range(Form) of
         {Start, _End} when Start >= EndLocation ->
             [EndLocation];
@@ -290,10 +306,10 @@ possible_end_locations([Form|Forms], EndLocation) ->
 possible_end_locations([], EndLocation) ->
     [EndLocation].
 
-get_forms_in_range([Form|Forms], StartLocation, EndLocation) ->
+get_forms_in_range([Form | Forms], StartLocation, EndLocation) ->
     case get_location_range(Form) of
         {Start, End} when Start >= StartLocation andalso End < EndLocation ->
-            [Form|get_forms_in_range(Forms, StartLocation, EndLocation)];
+            [Form | get_forms_in_range(Forms, StartLocation, EndLocation)];
         {_Start, End} when End < StartLocation ->
             get_forms_in_range(Forms, StartLocation, EndLocation);
         {Start, _End} when Start >= EndLocation ->
@@ -312,10 +328,10 @@ read_lines_and_chars(File, Lines, Chars) when Lines > ?FIRST_LINE ->
         {error, Description} ->
             throw({error, Description});
         Data ->
-            [Data|read_lines_and_chars(File, Lines-1, Chars)]
+            [Data | read_lines_and_chars(File, Lines - 1, Chars)]
     end;
 read_lines_and_chars(File, ?FIRST_LINE, Chars) ->
-    case io:get_chars(File, "", Chars-?FIRST_COLUMN) of
+    case io:get_chars(File, "", Chars - ?FIRST_COLUMN) of
         eof ->
             [];
         {error, Description} ->
@@ -331,10 +347,10 @@ skip_lines_and_chars(File, Lines, Chars) when Lines > ?FIRST_LINE ->
         {error, Description} ->
             throw({error, Description});
         _Data ->
-            skip_lines_and_chars(File, Lines-1, Chars)
+            skip_lines_and_chars(File, Lines - 1, Chars)
     end;
 skip_lines_and_chars(File, ?FIRST_LINE, Chars) ->
-    case io:get_chars(File, "", Chars-?FIRST_COLUMN) of
+    case io:get_chars(File, "", Chars - ?FIRST_COLUMN) of
         eof ->
             [];
         {error, Description} ->
@@ -363,6 +379,9 @@ format_loc(#{location := {Line, Col}}) -> io_lib:format(":~B:~B", [Line, Col]);
 format_loc(Line) when is_integer(Line) -> io_lib:format(":~B", [Line]).
 
 format_error({not_equivalent, Node1, Node2}) ->
-    io_lib:format("formatter result not equivalent. Please report this bug.~n~n~p~n~n~p", [Node1, Node2]);
+    io_lib:format(
+        "formatter result not equivalent. Please report this bug.~n~n~p~n~n~p",
+        [Node1, Node2]
+    );
 format_error(could_not_reparse) ->
     "formatter result invalid, could not reparse".
