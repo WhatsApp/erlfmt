@@ -1,4 +1,4 @@
-%% Copyright (c) WhatsApp Inc. and its affiliates.
+%% Copyright (c) Facebook, Inc. and its affiliates.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -11,18 +11,14 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-
 -module(erlfmt_recomment).
-
--oncall("whatsapp_erlang").
-
--typing([dialyzer]).
 
 -include("erlfmt.hrl").
 
 -export([recomment/2]).
 
--spec recomment(erlfmt_parse:abstract_form(), [erlfmt_scan:comment()]) -> erlfmt_parse:abstract_form().
+-spec recomment(erlfmt_parse:abstract_form(), [erlfmt_scan:comment()]) ->
+    erlfmt_parse:abstract_form().
 recomment(Form, Comments) ->
     insert_form(Form, Comments).
 
@@ -42,7 +38,8 @@ insert_form({attribute, Meta0, Name, Values0}, Comments) ->
     {attribute, Meta, Name, Values}.
 
 insert_expr(Node0, Comments) ->
-    {PreComments, InnerComments, RestComments} = split_comments(element(2, Node0), Comments),
+    {PreComments, InnerComments, RestComments} =
+        split_comments(element(2, Node0), Comments),
     {Node1, []} = insert_nested(Node0, InnerComments),
     Node = put_pre_comments(Node1, PreComments),
     {Node, RestComments}.
@@ -74,7 +71,8 @@ take_comments(Line, Comments) ->
     F = fun ({_, #{end_location := {CLine, _}}, _}) -> CLine =< Line end,
     lists:splitwith(F, Comments).
 
-insert_nested(Node, []) -> {Node, []};
+insert_nested(Node, []) ->
+    {Node, []};
 insert_nested({Atomic, _, _} = Node, Comments) when ?IS_ATOMIC(Atomic) ->
     {Node, Comments};
 insert_nested({concat, _, _} = Node, Comments) ->
@@ -114,7 +112,7 @@ insert_nested({clause, Meta, Head0, Guards0, Body0}, Comments0) ->
     {Body, Comments} = insert_expr_list(Body0, Comments2),
     {{clause, Meta, Head, Guards, Body}, Comments};
 insert_nested({Guard, Meta, Guards0}, Comments0)
-when Guard =:= guard_or; Guard =:= guard_and ->
+        when Guard =:= guard_or; Guard =:= guard_and ->
     {Guards, Comments} = insert_expr_list(Guards0, Comments0),
     {{Guard, Meta, Guards}, Comments};
 insert_nested({Collection, Meta, Values0}, Comments0) when ?IS_COLLECTION(Collection) ->
@@ -132,12 +130,15 @@ insert_nested({record, Meta, Expr0, Name, Values0}, Comments0) ->
     Values = insert_expr_container(Values0, Comments1),
     {{record, Meta, Expr, Name, Values}, []};
 insert_nested({Comprehension, Meta, Expr0, LcExprs0}, Comments0)
-when Comprehension =:= lc; Comprehension =:= bc ->
+        when Comprehension =:= lc; Comprehension =:= bc ->
     {Expr, Comments1} = insert_expr(Expr0, Comments0),
     LcExprs = insert_expr_container(LcExprs0, Comments1),
     {{Comprehension, Meta, Expr, LcExprs}, []};
-insert_nested({Field, Meta, Key0, Value0}, Comments0)
-when Field =:= map_field_assoc; Field =:= map_field_exact; Field =:= record_field; Field =:= generate; Field =:= b_generate ->
+insert_nested({Field, Meta, Key0, Value0}, Comments0) when Field =:= map_field_assoc;
+                                                           Field =:= map_field_exact;
+                                                           Field =:= record_field;
+                                                           Field =:= generate;
+                                                           Field =:= b_generate ->
     {Key, Comments1} = insert_expr(Key0, Comments0),
     {Value, Comments} = insert_expr(Value0, Comments1),
     {{Field, Meta, Key, Value}, Comments};
@@ -195,7 +196,8 @@ insert_nested({'try', Meta, Exprs0, OfClauses0, CatchClauses0, After0}, Comments
 insert_nested({spec, Meta, Name, Clauses0}, Comments0) ->
     Clauses = insert_expr_container(Clauses0, Comments0),
     {{spec, Meta, Name, Clauses}, []};
-insert_nested({'fun', _, Fun} = Node, Comments0) when element(1, Fun) =:= 'function'; Fun =:= type ->
+insert_nested({'fun', _, Fun} = Node, Comments0)
+        when element(1, Fun) =:= 'function'; Fun =:= type ->
     {put_pre_comments(Node, Comments0), []};
 insert_nested({'fun', Meta, {type, InnerMeta, Args0, Res0}}, Comments0) ->
     {Args, Comments1} = insert_expr_list(Args0, Comments0),
@@ -213,13 +215,19 @@ insert_nested({args, Meta, Args0}, Comments0) ->
 insert_nested({Name, Meta}, Comments) ->
     {{Name, Meta}, Comments}.
 
-put_post_comments(NodeOrMeta, []) -> NodeOrMeta;
+put_post_comments(NodeOrMeta, []) ->
+    NodeOrMeta;
 put_post_comments(NodeOrMeta0, Comments) ->
     CommentLoc = erlfmt_scan:get_anno(end_location, lists:last(Comments)),
     NodeOrMeta = erlfmt_scan:put_anno(post_comments, Comments, NodeOrMeta0),
-    erlfmt_scan:update_anno(end_location, fun (Loc) -> max(Loc, CommentLoc) end, NodeOrMeta).
+    erlfmt_scan:update_anno(
+        end_location,
+        fun (Loc) -> max(Loc, CommentLoc) end,
+        NodeOrMeta
+    ).
 
-put_pre_comments(NodeOrMeta, []) -> NodeOrMeta;
+put_pre_comments(NodeOrMeta, []) ->
+    NodeOrMeta;
 put_pre_comments(NodeOrMeta0, Comments) ->
     CommentLoc = erlfmt_scan:get_anno(location, hd(Comments)),
     NodeOrMeta = erlfmt_scan:put_anno(pre_comments, Comments, NodeOrMeta0),

@@ -1,5 +1,5 @@
 %% Copyright (c) Ericsson AB 1996-2019. All Rights Reserved.
-%% Copyright (c) WhatsApp Inc. and its affiliates.
+%% Copyright (c) Facebook, Inc. and its affiliates.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -628,10 +628,6 @@ Header
 "".
 
 Erlang code.
-
--oncall("whatsapp_erlang").
-
--typing([dialyzer]).
 
 -export([parse_form/1]).
 

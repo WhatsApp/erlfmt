@@ -20,40 +20,33 @@
 -define(FUN(M, F), M:F).
 
 -type bar() ::
-          %% comment
-          fun().
+    %% comment
+    fun().
 
 -type foo() ::
-          %% comment 1
-          fun((
-                  %% comment 2
-                  ...
-              ) ->
-                  %% comment 3
-                  bar()).
+    %% comment 1
+    fun((
+            %% comment 2
+            ...
+        ) ->
+            %% comment 3
+            bar()).
 
-%% TODO: fix indentation after |
 -spec foo() ->
-          %% comment
-          term() |
-              %% other comment
-              [term()].
+    %% comment
+    term() |
+    %% other comment
+    [term()].
 foo() ->
     [
-        [bar(1), baz(2), foobar(), map(#{}), record(#foo{}), binary(), comprehension()],
+        [baz(2), foobar(), map(#{}), record(#foo{}), binary(), comprehension()],
         [call(), 'case'(), 'receive'(), 'if'(), 'try'(), 'fun'()]
     ].
 
-bar(X)
-when %% comment
-     is_list(X) ->
-    ok.
-
-baz(Y)
-when %% comment
-     is_list(Y);
-     %% other comment
-     is_binary(Y) ->
+%% comment
+baz(Y) when is_list(Y);
+            %% other comment
+            is_binary(Y) ->
     ok.
 
 foobar() ->
@@ -114,10 +107,11 @@ comprehension() ->
         ]
         || %% comment 2
            X <-
+               %% comment 4
                [
-                   %% comment 3
+                   %% comment 4
                ]
-           %% comment 4
+           %% comment 5
     ].
 
 call() ->
