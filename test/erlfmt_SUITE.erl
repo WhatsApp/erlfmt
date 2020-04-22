@@ -50,7 +50,10 @@
     smoke_test_cli/1,
     snapshot_simple_comments/1,
     snapshot_comments/1,
-    snapshot_broken/1
+    snapshot_broken/1,
+    simple_comments_range/1,
+    comments_range/1,
+    broken_range/1
 ]).
 
 suite() ->
@@ -100,13 +103,18 @@ groups() ->
             snapshot_simple_comments,
             snapshot_comments,
             snapshot_broken
+        ]},
+        {range_tests, [parallel], [
+            simple_comments_range,
+            comments_range,
+            broken_range
         ]}
     ].
 
 group(_) -> [].
 
 all() ->
-    [{group, smoke_tests}, {group, parser}].
+    [{group, smoke_tests}, {group, parser}, {group, range_tests}].
 
 %%--------------------------------------------------------------------
 %% TEST CASES
@@ -875,3 +883,25 @@ snapshot_formatted(Module, Config) ->
     {ok, FormattedFormatted} =
         file:read_file(filename:join([PrivDir, Module ++ ".formatted"])),
     ?assertEqual(Expected, FormattedFormatted).
+
+simple_comments_range(Config) ->
+    format_range(Config, "simple_comments.erl").
+
+comments_range(Config) ->
+    format_range(Config, "simple_comments.erl").
+
+broken_range(Config) ->
+    format_range(Config, "broken.erl").
+
+format_range(Config, File) ->
+    DataDir = ?config(data_dir, Config),
+    Path = DataDir++File,
+    case erlfmt:format_range(Path, {3,45}, {47,1}) of
+        {ok, _Output, _} -> ok;
+        {options, Options} -> range_format_exact(Options, Path)
+    end.
+
+range_format_exact([], _Path) -> ok;
+range_format_exact([{Start,End}|Options], Path) ->
+    {ok, _Output, _} = erlfmt:format_range(Path, Start, End),
+    range_format_exact(Options, Path).

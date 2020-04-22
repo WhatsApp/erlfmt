@@ -140,12 +140,22 @@ erl_scan_tokens(String, Loc) ->
 eof(undefined, Loc) ->
     {{eof, Loc}, undefined}.
 
--spec last_form_string(state()) -> unicode:chardata().
+-spec last_form_string(state()) -> {unicode:chardata(), erl_anno:anno()}.
 last_form_string(#state{original = Tokens}) ->
-    [stringify_token(Token) || Token <- Tokens].
+    stringify_tokens(Tokens).
 
 %% TODO: make smarter
-stringify_token(Token) -> erl_anno:text(element(2, Token)).
+stringify_tokens([Token| _] = Tokens) ->
+    Anno = element(2, Token),
+    stringify_tokens(Tokens, erl_anno:location(Anno), []).
+
+stringify_tokens([LastToken], Location, Acc) ->
+     Anno = element(2, LastToken),
+     String = lists:reverse([erl_anno:text(Anno) | Acc]),
+     {String, token_anno([{text, String}, {location, Location}], #{})};
+stringify_tokens([Token|Tokens], Location, Acc) ->
+    Anno = element(2, Token),
+    stringify_tokens(Tokens, Location, [erl_anno:text(Anno)|Acc]).
 
 -spec split_tokens([erl_scan:token()], [erl_scan:token()]) ->
     {[token()], [erl_scan:token()], [comment()], [token()]}.
