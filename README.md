@@ -46,8 +46,8 @@ The easiest way to use erlfmt is as a rebar plugin, by adding to your `rebar.con
 {plugins, [erlfmt]}.
 ```
 
-This will make available a new `rebar3 fmt` task that you can use. All erlfmt
-command-line options can be given defaults in your `rebar.config`, for example:
+This will provide a new `rebar3 fmt` task. All erlfmt command-line options
+can be configured with defaults in your `rebar.config`, for example:
 
 ```erl
 {erlfmt, [
@@ -56,12 +56,14 @@ command-line options can be given defaults in your `rebar.config`, for example:
 ]}.
 ```
 
+Now, when you run `rebar3 fmt` all the files in your project will be formatted in place.
+
 ### Escript
 
 Alternatively, you can build a standalone and portable escript and use erlfmt without rebar
 (it still requires Erlang to be installed on the target system).
 
-```
+```sh
 $ rebar3 as release escriptize
 $ _build/release/bin/erlfmt -h
 ```
@@ -95,7 +97,7 @@ the same output as formatting it multiple times.
 
 Both the rebar3 plugin and the escript expose the same CLI:
 
-```erl
+```
 Usage: rebar3 fmt [-h] [-v] [-w] [-o <out>] [--verbose] [<files>]
 
   -h, --help     print this message
@@ -266,8 +268,10 @@ To learn more about erlfmt internals, please explore the `doc/` directory
 
 ## Test
 
-    $ rebar3 ct
-    $ rebar3 dialyzer
+```sh
+$ rebar3 ct
+$ rebar3 dialyzer
+```
 
 ## Local use
 
