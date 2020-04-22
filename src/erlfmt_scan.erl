@@ -140,7 +140,7 @@ erl_scan_tokens(String, Loc) ->
 eof(undefined, Loc) ->
     {{eof, Loc}, undefined}.
 
--spec last_form_string(state()) -> {unicode:chardata(), erl_anno:anno()}.
+-spec last_form_string(state()) -> {unicode:chardata(), anno()}.
 last_form_string(#state{original = Tokens}) ->
     stringify_tokens(Tokens).
 
