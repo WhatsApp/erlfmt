@@ -78,8 +78,8 @@ The formatter was designed with these main principles in mind:
 
 First, the formatter never changes the semantics or structure of the code. This
 means the input AST and the output AST are equivalent. The formatter does not
-try to arbitrarily “improve” the code. For the most part it limits its
-behaviour to shifting whitespace around - it won’t rewrite literals, add
+try to arbitrarily "improve" the code. For the most part it limits its
+behaviour to shifting whitespace around - it won't rewrite literals, add
 parentheses, reorder exports, etc.
 
 The second principle is to provide as little configuration as possible. This
@@ -93,7 +93,7 @@ example, there is no hard-coded behaviour specific to some function - all
 functions are laid out the same. There are some clear layout rules and general
 structures that are re-used as much as possible between different constructs.
 For example, the general layout of lists, functions, maps, records, and
-similar, all follow the same “container” rules.
+similar, all follow the same "container" rules.
 
 Finally, the formatter should be idempotent. Formatting the code once should
 produce the same output as formatting it multiple times.
@@ -145,7 +145,7 @@ split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
 ```
 
 A similar situation could happen with long patterns in function heads,
-for example let’s look at this function:
+for example let's look at this function:
 
 ```erl
 my_function(
@@ -168,22 +168,22 @@ my_function(User, Arg2, Arg3) ->
 
 Such transformations cannot be automated since the formatter is not allowed to
 change the AST of your program. After running the formatter, especially if
-running it for the first time on a sizeable codebase, it’s recommended to
+running it for the first time on a sizeable codebase, it's recommended to
 inspect the code manually to correct similar sub-par layouts.
 
 ### Respecting original format
 
 The formatter keeps the original decisions in two key places
 
-  * when choosing between a “collapsed” and an “expanded” layout for containers
+  * when choosing between a "collapsed" and an "expanded" layout for containers
   * when choosing between single-line and multi-line clauses.
 
 For containers like lists, tuples, maps, records, function calls, macro calls,
-etc, there are two possible layouts - “collapsed” where the entire collection
-is printed in a single line; and “expanded” where each element is printed on a
+etc, there are two possible layouts - "collapsed" where the entire collection
+is printed in a single line; and "expanded" where each element is printed on a
 separate line. The formatter respects this choice, if possible. If there is a
 newline between the opening bracket/brace/parenthesis and the first element,
-the collection will be always printed “expanded”, for example:
+the collection will be always printed "expanded", for example:
 
 ```erl
 [
@@ -236,8 +236,8 @@ end
 ```
 
 Even though, the expressions could all fit on a single line, because there is a
-newline in the first clause after `->`, this layout is preserved. If we’d like
-to “collapse” it, we can do that by removing the first newline:
+newline in the first clause after `->`, this layout is preserved. If we'd like
+to "collapse" it, we can do that by removing the first newline:
 
 ```erl
 case is_beautiful(Code) of
