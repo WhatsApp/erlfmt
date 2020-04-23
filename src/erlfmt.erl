@@ -86,10 +86,9 @@ format_range(FileName, StartLocation, EndLocation) ->
    try
         {ok, Forms, Warnings} = file_read_forms(FileName),
         case verify_ranges(Forms, StartLocation, EndLocation) of
-            ok ->
-                InRange = forms_in_range(Forms, StartLocation, EndLocation),
-                [$\n | Result] = format_forms(InRange),
-                verify_forms(FileName, InRange, Result),
+            {ok, FormsInRange} ->
+                [$\n | Result] = format_forms(FormsInRange),
+                verify_forms(FileName, FormsInRange, Result),
                 {ok, unicode:characters_to_binary(Result), Warnings};
             {options, Options} ->
                 {options, Options}
@@ -257,15 +256,17 @@ format_error(could_not_reparse) ->
     "formatter result invalid, could not reparse".
 
 verify_ranges(Forms, StartLocation, EndLocation) ->
-    case possible_ranges(Forms, StartLocation, EndLocation) of
+    ApplicableForms = forms_in_range(Forms, StartLocation, EndLocation),
+    case possible_ranges(ApplicableForms, StartLocation, EndLocation) of
         [{StartLocation, EndLocation}] ->
-            ok;
+            {ok, ApplicableForms};
         Options ->
             {options, Options}
     end.
 
+% Returns ranges which starts with the start of a form and ends with the end of form
 possible_ranges(Forms, StartLocation, EndLocation) ->
-    case forms_in_range(Forms, StartLocation, EndLocation) of
+    case Forms of
         [] ->
             [];
         [OnlyForm] ->
