@@ -1,3 +1,6 @@
+%% comment1
+
+%% comment2
 -module(simple_comments).
 
 -export([foo/0]).

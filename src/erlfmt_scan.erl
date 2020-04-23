@@ -151,13 +151,14 @@ stringify_token(Token) -> erl_anno:text(element(2, Token)).
     {[token()], [erl_scan:token()], [comment()], [token()]}.
 split_tokens(Tokens, ExtraTokens0) ->
     case split_tokens(Tokens, [], []) of
-        {[], Comments} ->
-            {[], Tokens, Comments, ExtraTokens0};
-        {TransformedTokens, Comments} ->
+        {[], CommentsRev} ->
+            {[], Tokens, lists:reverse(CommentsRev), ExtraTokens0};
+        {TransformedTokens, CommentsRev} ->
             #{end_location := {LastLine, _}} = element(2, lists:last(TransformedTokens)),
             {ExtraComments, ExtraTokens, ExtraRest} =
                 split_extra(ExtraTokens0, LastLine, [], []),
-            {TransformedTokens, Tokens ++ ExtraTokens, Comments ++ ExtraComments, ExtraRest}
+            Comments = combine_comments(CommentsRev, ExtraComments),
+            {TransformedTokens, Tokens ++ ExtraTokens, Comments, ExtraRest}
     end.
 
 split_tokens([{comment, _, _} = Comment0 | Rest0], Acc, CAcc) ->
@@ -187,7 +188,7 @@ split_tokens([{Type, Meta} | Rest], Acc, CAcc) when ?TRACK_NEWLINE_TOKEN(Type) -
 split_tokens([{Type, Meta} | Rest], Acc, CAcc) ->
     split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta), #{})} | Acc], CAcc);
 split_tokens([], Acc, CAcc) ->
-    {lists:reverse(Acc), lists:reverse(CAcc)}.
+    {lists:reverse(Acc), CAcc}.
 
 split_extra([{comment, Meta, Text} = Token | Rest], Line, Acc, CAcc) ->
     case erl_anno:line(Meta) of
@@ -211,6 +212,20 @@ has_newline([{comment, _, _} | _]) ->
     true;
 has_newline(_) ->
     false.
+
+combine_comments([LastComment | RestRev], [FirstExtra | RestExtra]) ->
+    {comment, #{end_location := {ELine, _}, location := SLoc}, LastText} = LastComment,
+    case FirstExtra of
+        {comment, #{location := {SLine, _}, end_location := ELoc}, FirstText}
+                when ELine + 1 =:= SLine ->
+            CombinedText = LastText ++ FirstText,
+            Combined = {comment, #{location => SLoc, end_location => ELoc}, CombinedText},
+            lists:reverse(RestRev, [Combined | RestExtra]);
+        _ ->
+            lists:reverse(RestRev, [LastComment, FirstExtra | RestExtra])
+    end;
+combine_comments(Comments, ExtraComments) ->
+    lists:reverse(Comments, ExtraComments).
 
 collect_comments(Tokens, {comment, Meta, Text}) ->
     Line = erl_anno:line(Meta),

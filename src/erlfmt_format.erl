@@ -214,6 +214,9 @@ combine_sep(D1, Sep, D2) ->
 combine_newline(D1, D2) ->
     document_combine(document_flush(D1), D2).
 
+combine_double_newline(D1, D2) ->
+    document_combine(document_flush(document_flush(D1)), D2).
+
 combine_comma_newline(D1, D2) ->
     Left = document_flush(document_combine(D1, document_text(","))),
     document_combine(Left, D2).
@@ -799,9 +802,8 @@ combine_post_comments([], Doc) -> Doc;
 combine_post_comments(Comments, Doc) -> combine_newline(Doc, comments_to_algebra(Comments)).
 
 comments_to_algebra(Comments) ->
-    %% TODO: should we add spaces in between?
     CommentsD = lists:map(fun comment_to_algebra/1, Comments),
-    document_reduce(fun combine_newline/2, CommentsD).
+    document_reduce(fun combine_double_newline/2, CommentsD).
 
 comment_to_algebra({comment, _Meta, Lines}) ->
     LinesD = lists:map(fun erlfmt_algebra:document_text/1, Lines),
