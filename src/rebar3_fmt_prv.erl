@@ -37,9 +37,13 @@ init(State) ->
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()}.
 do(State) ->
-    {ArgOpts, _Extra} = rebar_state:command_parsed_args(State),
     ConfigOpts = rebar_state:get(State, erlfmt, []),
-    erlfmt_cli:do(ConfigOpts ++ ArgOpts, "rebar3 fmt"),
+    case rebar_state:command_parsed_args(State) of
+        {ArgOpts, []} ->
+            erlfmt_cli:do(ConfigOpts ++ ArgOpts, "rebar3 fmt");
+        {ArgOpts, ExtraFiles} ->
+            erlfmt_cli:do(ConfigOpts ++ [{files, ExtraFiles}] ++ ArgOpts, "rebar3 fmt")
+    end,
     {ok, State}.
 
 format_error(Reason) ->

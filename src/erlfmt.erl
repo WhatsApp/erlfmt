@@ -49,8 +49,10 @@ main(Argv) ->
     application:ensure_all_started(erlfmt),
     Opts = erlfmt_cli:opts(),
     case getopt:parse(Opts, Argv) of
-        {ok, {ArgOpts, _Extra}} ->
+        {ok, {ArgOpts, []}} ->
             erlfmt_cli:do(ArgOpts, "erlfmt");
+        {ok, {ArgOpts, ExtraFiles}} ->
+            erlfmt_cli:do([{files, ExtraFiles} | ArgOpts], "erlfmt");
         {error, Error} ->
             io:put_chars(standard_error, [getopt:format_error(Opts, Error), "\n\n"]),
             getopt:usage(Opts, "erlfmt")
