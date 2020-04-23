@@ -18,6 +18,7 @@
     main/1,
     init/1,
     format_file/2,
+    format_range/3,
     read_forms/1,
     read_forms_string/2,
     format_error/1,
@@ -32,7 +33,11 @@
 
 -define(PAGE_WIDTH, 92).
 
--define(SCAN_START, {1, 1}).
+-define(FIRST_LINE, 1).
+
+-define(FIRST_COLUMN, 1).
+
+-define(SCAN_START, {?FIRST_LINE, ?FIRST_COLUMN}).
 
 -define(SCAN_OPTS, [text, return_comments]).
 
@@ -69,6 +74,29 @@ format_file(FileName, Out) ->
         {error, Error} -> {error, Error}
     end.
 
+-spec format_range(
+    file:name_all(),
+    erlfmt_scan:location(),
+    erlfmt_scan:location()
+) ->
+    {ok, string(), [error_info()]} |
+    {error, error_info()} |
+    {options, [{erlfmt_scan:location(), erlfmt_scan:location()}]}.
+format_range(FileName, StartLocation, EndLocation) ->
+   try
+        {ok, Forms, Warnings} = file_read_forms(FileName),
+        case verify_ranges(Forms, StartLocation, EndLocation) of
+            {ok, FormsInRange} ->
+                [$\n | Result] = format_forms(FormsInRange),
+                verify_forms(FileName, FormsInRange, Result),
+                {ok, unicode:characters_to_binary(Result), Warnings};
+            {options, Options} ->
+                {options, Options}
+        end
+    catch
+        {error, Error} -> {error, Error}
+    end.
+
 %% API entry point
 -spec read_forms(file:name_all()) ->
     {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
@@ -79,9 +107,14 @@ read_forms(FileName) ->
     end.
 
 file_read_forms(FileName) ->
+    read_file(FileName, fun (File) ->
+        read_forms(erlfmt_scan:io_form(File), FileName, [], [])
+    end).
+
+read_file(FileName, Action) ->
     case file:open(FileName, [read, {encoding, utf8}]) of
         {ok, File} ->
-            try read_forms(erlfmt_scan:io_form(File), FileName, [], [])
+            try Action(File)
             after file:close(File)
             end;
         {error, Reason} ->
@@ -117,7 +150,8 @@ parse_form(Tokens, Comments, FileName, Cont, Warnings) ->
     end.
 
 form_string(Cont) ->
-    {raw_string, string:trim(erlfmt_scan:last_form_string(Cont), both, "\n")}.
+    {String, Anno} = erlfmt_scan:last_form_string(Cont),
+    {raw_string, Anno, string:trim(String, both, "\n")}.
 
 format_forms([{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest]) ->
     [$\n, format_form(Attr), format_form(Fun) | format_forms(Rest)];
@@ -126,7 +160,7 @@ format_forms([Form | Rest]) ->
 format_forms([]) ->
     [].
 
-format_form({raw_string, String}) ->
+format_form({raw_string, _Anno, String}) ->
     [String, $\n];
 format_form(Form) ->
     Doc = erlfmt_format:form_to_algebra(Form),
@@ -150,7 +184,7 @@ verify_forms(FileName, Forms, Formatted) ->
 
 equivalent(Element, Element) ->
     true;
-equivalent({raw_string, RawL}, {raw_string, RawR}) ->
+equivalent({raw_string, _AnnoL, RawL}, {raw_string, _AnnoR, RawR}) ->
     string:equal(RawL, RawR) orelse throw({not_equivalent, RawL, RawR});
 equivalent({Type, _}, {Type, _}) ->
     true;
@@ -220,3 +254,53 @@ format_error({not_equivalent, Node1, Node2}) ->
     );
 format_error(could_not_reparse) ->
     "formatter result invalid, could not reparse".
+
+verify_ranges(Forms, StartLocation, EndLocation) ->
+    ApplicableForms = forms_in_range(Forms, StartLocation, EndLocation),
+    case possible_ranges(ApplicableForms, StartLocation, EndLocation) of
+        [{StartLocation, EndLocation}] ->
+            {ok, ApplicableForms};
+        Options ->
+            {options, Options}
+    end.
+
+% Returns ranges which starts with the start of a form and ends with the end of form
+possible_ranges(Forms, StartLocation, EndLocation) ->
+    case Forms of
+        [] ->
+            [];
+        [OnlyForm] ->
+            [get_location_range(OnlyForm)];
+        MultipleForms ->
+            combine(
+                get_possible_locations(MultipleForms, StartLocation, fun get_location/1),
+                get_possible_locations(lists:reverse(MultipleForms), EndLocation, fun get_end_location/1))
+    end.
+
+forms_in_range(Forms, StartLocation, EndLocation) ->
+    [Form || Form <- Forms, form_intersects_range(Form, StartLocation, EndLocation)].
+
+form_intersects_range(Form, StartLocation, EndLocation) ->
+    {Start, End} = get_location_range(Form),
+    ((Start < StartLocation) and (End >= StartLocation)) or
+    ((Start >= StartLocation) and (Start =< EndLocation)).
+
+get_possible_locations([Option1, Option2 | _], Location, GetLoc) ->
+    case GetLoc(Option1) of
+        Location ->
+            [Location];
+        OptionalLocation ->
+            [OptionalLocation, GetLoc(Option2)]
+    end.
+
+combine(L1, L2) ->
+    [{X1, X2} || X1 <- L1, X2 <- L2].
+
+get_location_range(Form) ->
+    {get_location(Form), get_end_location(Form)}.
+
+get_location(Form) ->
+    erlfmt_scan:get_anno(location, Form).
+
+get_end_location(Form) ->
+    erlfmt_scan:get_anno(end_location, Form).
