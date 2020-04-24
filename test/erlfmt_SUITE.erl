@@ -51,6 +51,7 @@
     snapshot_simple_comments/1,
     snapshot_comments/1,
     snapshot_broken/1,
+    snapshot_overlong/1,
     simple_comments_range/1,
     comments_range/1,
     broken_range/1
@@ -102,7 +103,8 @@ groups() ->
         {snapshot_tests, [parallel], [
             snapshot_simple_comments,
             snapshot_comments,
-            snapshot_broken
+            snapshot_broken,
+            snapshot_overlong
         ]},
         {range_tests, [parallel], [
             simple_comments_range,
@@ -860,6 +862,8 @@ snapshot_simple_comments(Config) -> snapshot_same("simple_comments.erl", Config)
 snapshot_comments(Config) -> snapshot_formatted("comments.erl", Config).
 
 snapshot_broken(Config) -> snapshot_formatted("broken.erl", Config).
+
+snapshot_overlong(Config) -> snapshot_formatted("overlong.erl", Config).
 
 snapshot_same(Module, Config) ->
     DataDir = ?config(data_dir, Config),

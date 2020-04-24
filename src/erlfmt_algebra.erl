@@ -374,10 +374,12 @@ reject_invalid(Layouts, MaxWidth, Options) ->
 best_unfit([]) -> [];
 best_unfit([First | Rest]) -> [best_unfit(Rest, First)].
 
-best_unfit([{CandidateMetric, _} = Candidate | Rest], {BestMetric, _})
-        when CandidateMetric#metric.max_width < BestMetric#metric.max_width ->
-    best_unfit(Rest, Candidate);
-best_unfit([_Candidate | Rest], Best) ->
-    best_unfit(Rest, Best);
+best_unfit([{CandidateMetric, _} = Candidate | Rest], {BestMetric, _} = Best) ->
+    case (CandidateMetric#metric.max_width < BestMetric#metric.max_width) orelse
+             (CandidateMetric#metric.max_width =:= BestMetric#metric.max_width andalso
+                 CandidateMetric < BestMetric) of
+        true -> best_unfit(Rest, Candidate);
+        false -> best_unfit(Rest, Best)
+    end;
 best_unfit([], Best) ->
     Best.
