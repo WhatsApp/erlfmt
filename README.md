@@ -12,20 +12,20 @@ fits within the selected maximum line-length.
 
 For example, the following snippet:
 
-```erl
+```erl formatted hello
 hello(mike, joe, robert)
 ```
 
 will be kept as-is, since it fits in a single line. However, this one:
 
-```erl
+```erl unformatted scenario
 scenario(dial_phone_number(), ring(), hello(mike), hello(joe), system_working(), seems_to_be())
 ```
 
 Since it contains a line that exceeds the length limit will be re-printed
 automatically in a vertical style:
 
-```erl
+```erl formatted scenario
 scenario(
     dial_phone_number(),
     ring(),
@@ -119,14 +119,14 @@ In some cases, the formatter rules might lead to code that looks decent, but
 not perfect. Therefore some manual intervention to help the formatter out might
 be needed. For example, given the following code:
 
-```erl
+```erl unformatted split_tokens
 split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
-    split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta), #{}), Value}, | Acc], CAcc).
+    split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta), #{}), Value} | Acc], CAcc).
 ```
 
 Because the line-length is exceeded, the formatter will produce the following:
 
-```erl
+```erl formatted split_tokens
 split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
     split_tokens(
         Rest,
@@ -138,7 +138,7 @@ split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
 It might be more desirable, though, to extract a variable and allow the call to
 still be rendered in a single line, for example:
 
-```erl
+```erl formatted split_tokens2
 split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
     Token = {Type, token_anno(erl_anno:to_term(Meta), #{}), Value},
     split_tokens(Rest, [Token | Acc], CAcc).
@@ -185,7 +185,7 @@ separate line. The formatter respects this choice, if possible. If there is a
 newline between the opening bracket/brace/parenthesis and the first element,
 the collection will be always printed "expanded", for example:
 
-```erl
+```erl formatted foobar
 [
     Foo,
     Bar
@@ -197,7 +197,7 @@ this is controlled by a single newline, allows you to easily convert between
 those layouts, for example, merely deleting the first newline from the above
 sequence to have:
 
-```erl
+```erl unformatted foobar1
 [    Foo,
     Bar
 ]
@@ -205,13 +205,13 @@ sequence to have:
 
 and re-running the formatter, will produce:
 
-```erl
+```erl formatted foobar1
 [Foo, Bar]
 ```
 
 Similarly, adding the single newline back:
 
-```erl
+```erl unformatted foobar
 [
 Foo, Bar]
 ```
@@ -226,7 +226,7 @@ a single line, or in all clauses the body is printed on a new line.
 This is controlled by the layout of the first clause, again allowing to change
 the layout of the entire sequence with just one character, for example:
 
-```erl
+```erl formatted is_beautiful
 case is_beautiful(Code) of
     true ->
         ring_the_bell();
@@ -239,7 +239,7 @@ Even though, the expressions could all fit on a single line, because there is a
 newline in the first clause after `->`, this layout is preserved. If we'd like
 to "collapse" it, we can do that by removing the first newline:
 
-```erl
+```erl unformatted is_beautiful2
 case is_beautiful(Code) of
     true ->        ring_the_bell();
     false ->
@@ -249,7 +249,7 @@ end
 
 and re-running the formatter will produce:
 
-```erl
+```erl formatted is_beautiful2
 case is_beautiful(Code) of
     true -> ring_the_bell();
     false -> dig_a_hole()
@@ -258,7 +258,7 @@ end
 
 To go back to the original layout, we can insert the newline back again:
 
-```erl
+```erl unformatted is_beautiful
 case is_beautiful(Code) of
     true ->
 ring_the_bell();
