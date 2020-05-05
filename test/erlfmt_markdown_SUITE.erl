@@ -76,7 +76,7 @@ markdown_files(Config) when is_list(Config) ->
         find_markdown_filenames_in(RepoRootPath),
         find_markdown_filenames_in(DocPath)
     ),
-    ?assertMatch([_One | [_Two | [_Three | _AtLeast]]], Filenames),
+    ?assertMatch([_One, _Two, _Three | _AtLeast], Filenames),
     lists:map(
         fun (Filename) ->
             {ok, Content} = file:read_file(Filename),
@@ -86,10 +86,7 @@ markdown_files(Config) when is_list(Config) ->
     ).
 
 find_markdown_filenames_in(Path) ->
-    {ok, BaseFilenames} = file:list_dir_all(Path),
-    Filenames =
-        lists:map(fun (Filename) -> filename:join([Path, Filename]) end, BaseFilenames),
-    lists:filter(fun (Filename) -> filename:extension(Filename) == ".md" end, Filenames).
+    filelib:wildcard(filename:join(Path, "*.md")).
 
 markdown_string(Config) when is_list(Config) ->
     S =
@@ -122,30 +119,24 @@ check_section(Text, {code, State}) ->
     [FirstLine, CurrentCode] = string:split(Text, "\n"),
     Spec = string:split(FirstLine, " ", all),
     case Spec of
-        [Erlang | [ToFormat | Keys]] ->
-            case string:prefix(Erlang, "erl") of
-                nomatch ->
-                    {text, State};
-                _ ->
-                    Key = string:join(Keys, " "),
-                    case maps:find(Key, State) of
-                        error ->
-                            case ToFormat of
-                                "formatted" ->
-                                    check_fmt(CurrentCode, CurrentCode),
-                                    {text, maps:put(Key, CurrentCode, State)};
-                                "unformatted" ->
-                                    {text, maps:put(Key, CurrentCode, State)}
-                            end;
-                        {ok, PreviousCode} ->
-                            case ToFormat of
-                                "formatted" ->
-                                    check_fmt(PreviousCode, CurrentCode);
-                                "unformatted" ->
-                                    check_fmt(CurrentCode, PreviousCode)
-                            end,
-                            {text, maps:remove(Key, State)}
-                    end
+        ["erl" ++ _, ToFormat | Key] ->
+            case maps:find(Key, State) of
+                error ->
+                    case ToFormat of
+                        "formatted" ->
+                            check_fmt(CurrentCode, CurrentCode),
+                            {text, maps:put(Key, CurrentCode, State)};
+                        "unformatted" ->
+                            {text, maps:put(Key, CurrentCode, State)}
+                    end;
+                {ok, PreviousCode} ->
+                    case ToFormat of
+                        "formatted" ->
+                            check_fmt(PreviousCode, CurrentCode);
+                        "unformatted" ->
+                            check_fmt(CurrentCode, PreviousCode)
+                    end,
+                    {text, maps:remove(Key, State)}
             end;
         _ ->
             {text, State}
