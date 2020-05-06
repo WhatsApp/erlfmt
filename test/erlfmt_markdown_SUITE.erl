@@ -73,8 +73,8 @@ markdown_files(Config) when is_list(Config) ->
     RepoRootPath = filename:join([Data, "..", "..", "..", ".."]),
     DocPath = filename:join(RepoRootPath, "doc"),
     Filenames = lists:append(
-        find_markdown_filenames_in(RepoRootPath),
-        find_markdown_filenames_in(DocPath)
+        filelib:wildcard(filename:join(RepoRootPath, "*.md")),
+        filelib:wildcard(filename:join(DocPath, "*.md"))
     ),
     ?assertMatch([_One, _Two, _Three | _AtLeast], Filenames),
     lists:map(
@@ -84,9 +84,6 @@ markdown_files(Config) when is_list(Config) ->
         end,
         Filenames
     ).
-
-find_markdown_filenames_in(Path) ->
-    filelib:wildcard(filename:join(Path, "*.md")).
 
 markdown_string(Config) when is_list(Config) ->
     S =
@@ -111,35 +108,52 @@ markdown_string(Config) when is_list(Config) ->
 
 check_markdown(Content) ->
     Sections = string:split(Content, "```", all),
-    lists:foldl(fun check_section/2, {text, maps:new()}, Sections).
+    {_, Formatted, Unformatted} = lists:foldl(
+        fun split_code_into_maps/2,
+        {text, maps:new(), maps:new()},
+        Sections
+    ),
+    maps:map(
+        fun (Key, FormattedCode) ->
+            check_fmt(FormattedCode, FormattedCode),
+            case maps:find(Key, Unformatted) of
+                error ->
+                    ignore;
+                {ok, UnformattedCode} ->
+                    check_fmt(UnformattedCode, FormattedCode)
+            end
+        end,
+        Formatted
+    ),
+    % check that there are no unformatted pairs without formatted friends
+    ?assertEqual(
+        0,
+        maps:size(
+            maps:fold(
+                fun (Key, _Value, FriendsLeft) ->
+                    maps:remove(Key, FriendsLeft)
+                end,
+                Unformatted,
+                Formatted
+            )
+        )
+    ).
 
-check_section(_Text, {text, State}) ->
-    {code, State};
-check_section(Text, {code, State}) ->
-    [FirstLine, CurrentCode] = string:split(Text, "\n"),
+split_code_into_maps(_Text, {text, Formatted, Unformatted}) ->
+    {code, Formatted, Unformatted};
+split_code_into_maps(Text, {code, Formatted, Unformatted}) ->
+    [FirstLine, Code] = string:split(Text, "\n"),
     Spec = string:split(FirstLine, " ", all),
     case Spec of
         ["erl" ++ _, ToFormat | Key] ->
-            case maps:find(Key, State) of
-                error ->
-                    case ToFormat of
-                        "formatted" ->
-                            check_fmt(CurrentCode, CurrentCode),
-                            {text, maps:put(Key, CurrentCode, State)};
-                        "unformatted" ->
-                            {text, maps:put(Key, CurrentCode, State)}
-                    end;
-                {ok, PreviousCode} ->
-                    case ToFormat of
-                        "formatted" ->
-                            check_fmt(PreviousCode, CurrentCode);
-                        "unformatted" ->
-                            check_fmt(CurrentCode, PreviousCode)
-                    end,
-                    {text, maps:remove(Key, State)}
+            case ToFormat of
+                "formatted" ->
+                    {text, maps:put(Key, Code, Formatted), Unformatted};
+                "unformatted" ->
+                    {text, Formatted, maps:put(Key, Code, Unformatted)}
             end;
         _ ->
-            {text, State}
+            {text, Formatted, Unformatted}
     end.
 
 check_fmt(Unformatted, Expected) ->
