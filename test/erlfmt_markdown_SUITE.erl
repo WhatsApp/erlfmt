@@ -126,18 +126,7 @@ check_markdown(Content) ->
         Formatted
     ),
     % check that there are no unformatted pairs without formatted friends
-    ?assertEqual(
-        0,
-        maps:size(
-            maps:fold(
-                fun (Key, _Value, FriendsLeft) ->
-                    maps:remove(Key, FriendsLeft)
-                end,
-                Unformatted,
-                Formatted
-            )
-        )
-    ).
+    ?assertEqual(#{}, maps:without(maps:keys(Formatted), Unformatted)).
 
 split_code_into_maps(_Text, {text, Formatted, Unformatted}) ->
     {code, Formatted, Unformatted};
