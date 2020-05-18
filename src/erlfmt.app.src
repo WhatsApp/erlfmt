@@ -6,5 +6,5 @@
   {env,[]},
   {modules, []},
   {licenses, ["Apache-2.0"]},
-  {links, [{"GitHub", "https://github.com/whatsapp/erl2"}]}
+  {links, [{"GitHub", "https://github.com/WhatsApp/erlfmt"}]}
 ]}.
