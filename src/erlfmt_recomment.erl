@@ -35,7 +35,12 @@ insert_form({attribute, Meta0, Name, Values0}, Comments) ->
     Values = insert_expr_container(Values0, InnerComments),
     Meta1 = put_pre_comments(Meta0, PreComments),
     Meta = put_post_comments(Meta1, PostCommennts),
-    {attribute, Meta, Name, Values}.
+    {attribute, Meta, Name, Values};
+insert_form(Expr0, Comments) ->
+    {PreComments, InnerComments, PostComments} = split_comments(element(2, Expr0), Comments),
+    {Expr1, RestComments} = insert_expr(Expr0, InnerComments),
+    Expr = put_pre_comments(Expr1, PreComments),
+    put_post_comments(Expr, RestComments ++ PostComments).
 
 insert_expr(Node0, Comments) ->
     {PreComments, InnerComments, RestComments} =
