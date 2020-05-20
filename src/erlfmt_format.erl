@@ -15,7 +15,7 @@
 
 -include("erlfmt.hrl").
 
--export([expr_to_algebra/1, form_to_algebra/1]).
+-export([form_to_algebra/1]).
 
 -import(erlfmt_algebra, [
     document_text/1,
@@ -81,7 +81,16 @@ form_to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Value
 form_to_algebra({attribute, Meta, Name, Values}) ->
     Prefix = wrap(document_text("-"), expr_to_algebra(Name), document_text("(")),
     Doc = container_to_algebra(Meta, Values, Prefix, document_text(").")),
-    combine_comments(Meta, Doc).
+    combine_comments(Meta, Doc);
+form_to_algebra(Expr) ->
+    Meta = element(2, Expr),
+    Doc = do_expr_to_algebra(Expr),
+    case maps:get(dot, Meta, false) of
+        true ->
+            combine_comments(Meta, document_combine(Doc, document_text(".")));
+        false ->
+            combine_comments(Meta, Doc)
+    end.
 
 -spec expr_to_algebra(erlfmt_parse:abstract_expr()) -> erlfmt_algebra:document().
 expr_to_algebra(Expr) when is_tuple(Expr) ->

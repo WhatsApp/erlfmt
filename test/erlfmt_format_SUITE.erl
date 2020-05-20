@@ -148,27 +148,27 @@ all() ->
 -define(assertSameExpr(String), ?assertSameExpr(String, 80)).
 
 -define(assertSameExpr(String, PageWidth),
-    ?assertEqual(String, format_expr(String, PageWidth))
+    ?assertEqual(String, format(String, PageWidth))
 ).
 
 -define(assertFormatExpr(Bad, Good), ?assertFormatExpr(Bad, Good, 80)).
 
 -define(assertFormatExpr(Bad, Good, PageWidth), begin
-    ?assertEqual(Good, format_expr(Good, PageWidth)),
-    ?assertEqual(Good, format_expr(Bad, PageWidth))
+    ?assertEqual(Good, format(Good, PageWidth)),
+    ?assertEqual(Good, format(Bad, PageWidth))
 end).
 
 -define(assertSameForm(String), ?assertSameForm(String, 80)).
 
 -define(assertSameForm(String, PageWidth),
-    ?assertEqual(String, format_form(String, PageWidth))
+    ?assertEqual(String, format(String, PageWidth))
 ).
 
 -define(assertFormatForm(Bad, Good), ?assertFormatForm(Bad, Good, 80)).
 
 -define(assertFormatForm(Bad, Good, PageWidth), begin
-    ?assertEqual(Good, format_form(Good, PageWidth)),
-    ?assertEqual(Good, format_form(Bad, PageWidth))
+    ?assertEqual(Good, format(Good, PageWidth)),
+    ?assertEqual(Good, format(Bad, PageWidth))
 end).
 
 literals(Config) when is_list(Config) ->
@@ -1653,15 +1653,8 @@ comment(Config) when is_list(Config) ->
         "    2"
     ).
 
-format_form(String, PageWidth) ->
+format(String, PageWidth) ->
     {ok, [Form], []} = erlfmt:read_forms_string("nofile", String),
     Doc = erlfmt_format:form_to_algebra(Form),
-    Rendered = erlfmt_algebra:document_render(Doc, [{page_width, PageWidth}]),
-    unicode:characters_to_list(Rendered).
-
-format_expr(String, PageWidth) ->
-    {ok, [{function, _, [{clause, _, _, empty, [Expr]}]}], []} =
-        erlfmt:read_forms_string("nofile", "f() ->\n" ++ String ++ "."),
-    Doc = erlfmt_format:expr_to_algebra(Expr),
     Rendered = erlfmt_algebra:document_render(Doc, [{page_width, PageWidth}]),
     unicode:characters_to_list(Rendered).

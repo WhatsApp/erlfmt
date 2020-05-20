@@ -156,20 +156,10 @@ check_fmt(Unformatted, Expected) ->
     ?assertEqual(string:trim(NewlyFormatted), string:trim(Expected)).
 
 format(String, PageWidth) ->
-    try format_doc(String) of
-        Doc ->
-            Rendered = erlfmt_algebra:document_render(Doc, [{page_width, PageWidth}]),
-            unicode:characters_to_list(Rendered)
-    catch
-        _:_ ->
-            throw("Big Problem Parsing: " ++ String)
-    end.
+    Doc = format_doc(String),
+    Rendered = erlfmt_algebra:document_render(Doc, [{page_width, PageWidth}]),
+    unicode:characters_to_list(Rendered).
 
 format_doc(String) ->
-    case erlfmt:read_forms_string("nofile", "f() ->\n" ++ String ++ ".") of
-        {ok, [{function, _, [{clause, _, _, empty, [Expr]}]}], []} ->
-            erlfmt_format:expr_to_algebra(Expr);
-        _ ->
-            {ok, [Form], []} = erlfmt:read_forms_string("nofile", String),
-            erlfmt_format:form_to_algebra(Form)
-    end.
+    {ok, [Form], []} = erlfmt:read_forms_string("nofile", String),
+    erlfmt_format:form_to_algebra(Form).
