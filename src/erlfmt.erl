@@ -89,12 +89,8 @@ contains_pragma_forms(Forms) -> lists:any(fun contains_pragma_form/1, Forms).
 contains_pragma_form(Form) ->
     case Form of
         {attribute, Meta, _AfAtom, _AbstractExprs} ->
-            case erlfmt_format:comments(Meta) of
-                {PreComments, PostComments} ->
-                    AllComments = PreComments ++ PostComments,
-                    lists:any(fun contains_pragma_comment/1, AllComments);
-                _ -> false
-            end;
+            {PreComments, PostComments} = erlfmt_format:comments(Meta),
+            lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments);
         _ -> false
         end.
 
