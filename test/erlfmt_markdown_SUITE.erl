@@ -161,5 +161,5 @@ format(String, PageWidth) ->
     unicode:characters_to_list(Rendered).
 
 format_doc(String) ->
-    {ok, [Form], []} = erlfmt:read_forms_string("nofile", String),
-    erlfmt_format:form_to_algebra(Form).
+    {ok, [Node], []} = erlfmt:read_nodes_string("nofile", String),
+    erlfmt_format:to_algebra(Node).
