@@ -15,7 +15,7 @@
 
 -include("erlfmt.hrl").
 
--export([io_form/1, string_form/1, continue/1, last_form_string/1]).
+-export([io_node/1, string_node/1, continue/1, last_node_string/1]).
 
 -export([
     put_anno/3,
@@ -61,7 +61,7 @@
 
 -type token() :: {atom(), anno(), term()} | {atom(), anno()}.
 
--type form_ret() ::
+-type node_ret() ::
     {ok, [token()], [comment()], state()} |
     {error, {erl_anno:location(), module(), term()}, erl_anno:location()} |
     {eof, erl_anno:location()}.
@@ -76,15 +76,15 @@
         Token =:= '->'
 ).
 
--spec io_form(file:io_device()) -> form_ret().
-io_form(IO) -> form(fun io_scan_erl_form/2, IO).
+-spec io_node(file:io_device()) -> node_ret().
+io_node(IO) -> node(fun io_scan_erl_node/2, IO).
 
--spec string_form(string()) -> form_ret().
-string_form(String) -> form(fun erl_scan_tokens/2, String).
+-spec string_node(string()) -> node_ret().
+string_node(String) -> node(fun erl_scan_tokens/2, String).
 
-form(Scan, Inner) -> continue(Scan, Inner, ?START_LOCATION, []).
+node(Scan, Inner) -> continue(Scan, Inner, ?START_LOCATION, []).
 
--spec continue(state()) -> form_ret().
+-spec continue(state()) -> node_ret().
 continue(#state{scan = Scan, inner = Inner, loc = Loc, buffer = Buffer}) ->
     continue(Scan, Inner, Loc, Buffer).
 
@@ -100,22 +100,22 @@ continue(Scan, Inner0, Loc0, []) ->
 continue(Scan, Inner0, Loc0, Buffer0) ->
     case Scan(Inner0, Loc0) of
         {{ok, Tokens0, Loc}, Inner} ->
-            {Tokens, FormTokens, Comments, Buffer} = split_tokens(Buffer0, Tokens0),
+            {Tokens, NodeTokens, Comments, Buffer} = split_tokens(Buffer0, Tokens0),
             State = #state{
                 scan = Scan,
                 inner = Inner,
                 loc = Loc,
-                original = FormTokens,
+                original = NodeTokens,
                 buffer = Buffer
             },
             {ok, Tokens, Comments, State};
         {{eof, Loc}, _Inner} ->
-            {Tokens, FormTokens, Comments, []} = split_tokens(Buffer0, []),
+            {Tokens, NodeTokens, Comments, []} = split_tokens(Buffer0, []),
             State = #state{
                 scan = fun eof/2,
                 inner = undefined,
                 loc = Loc,
-                original = FormTokens,
+                original = NodeTokens,
                 buffer = []
             },
             {ok, Tokens, Comments, State};
@@ -125,7 +125,7 @@ continue(Scan, Inner0, Loc0, Buffer0) ->
             Other
     end.
 
-io_scan_erl_form(IO, Loc) ->
+io_scan_erl_node(IO, Loc) ->
     {io:scan_erl_form(IO, "", Loc, ?ERL_SCAN_OPTS), IO}.
 
 erl_scan_tokens(String, Loc) ->
@@ -140,8 +140,8 @@ erl_scan_tokens(String, Loc) ->
 eof(undefined, Loc) ->
     {{eof, Loc}, undefined}.
 
--spec last_form_string(state()) -> {unicode:chardata(), anno()}.
-last_form_string(#state{original = Tokens}) ->
+-spec last_node_string(state()) -> {unicode:chardata(), anno()}.
+last_node_string(#state{original = Tokens}) ->
     stringify_tokens(Tokens).
 
 %% TODO: make smarter

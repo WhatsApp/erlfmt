@@ -19,11 +19,11 @@
     init/1,
     format_file/2,
     format_range/3,
-    read_forms/1,
-    read_forms_string/2,
+    read_nodes/1,
+    read_nodes_string/2,
     format_error/1,
     format_error_info/1,
-    contains_pragma_forms/1
+    contains_pragma_nodes/1
 ]).
 
 -export_type([error_info/0, out/0, config/0]).
@@ -72,12 +72,12 @@ init(State) ->
 -spec format_file(file:name_all(), config()) -> {ok, [error_info()]} | {error, error_info()}.
 format_file(FileName, {Pragma, Out}) ->
     try
-        {ok, Forms, Warnings} = file_read_forms(FileName),
-        ShouldFormat = (Pragma == ignore) or contains_pragma_forms(Forms),
+        {ok, Nodes, Warnings} = file_read_nodes(FileName),
+        ShouldFormat = (Pragma == ignore) or contains_pragma_nodes(Nodes),
         case ShouldFormat of
-            true -> [$\n | Formatted] = format_forms(Forms),
-                    verify_forms(FileName, Forms, Formatted),
-                    write_forms(FileName, Formatted, Out),
+            true -> [$\n | Formatted] = format_nodes(Nodes),
+                    verify_nodes(FileName, Nodes, Formatted),
+                    write_formatted(FileName, Formatted, Out),
                     {ok, Warnings};
             false -> {ok, Warnings}
         end
@@ -85,14 +85,14 @@ format_file(FileName, {Pragma, Out}) ->
         {error, Error} -> {error, Error}
     end.
 
--spec contains_pragma_forms([erlfmt_parse:abstract_form()]) -> boolean().
-contains_pragma_forms([Form | _Forms]) -> contains_pragma_form(Form);
-contains_pragma_forms(_) -> false.
+-spec contains_pragma_nodes([erlfmt_parse:abstract_form()]) -> boolean().
+contains_pragma_nodes([Node | _Nodes]) -> contains_pragma_node(Node);
+contains_pragma_nodes(_) -> false.
 
-contains_pragma_form({attribute, Meta, _AfAtom, _AbstractExprs}) ->
+contains_pragma_node({attribute, Meta, _AfAtom, _AbstractExprs}) ->
     {PreComments, PostComments} = erlfmt_format:comments(Meta),
     lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments);
-contains_pragma_form(_) -> false.
+contains_pragma_node(_) -> false.
 
 contains_pragma_comment({comment, _Loc, Comments}) ->
     string:find(Comments, "@format") =/= nomatch;
@@ -108,11 +108,11 @@ contains_pragma_comment(_) -> false.
     {options, [{erlfmt_scan:location(), erlfmt_scan:location()}]}.
 format_range(FileName, StartLocation, EndLocation) ->
    try
-        {ok, Forms, Warnings} = file_read_forms(FileName),
-        case verify_ranges(Forms, StartLocation, EndLocation) of
-            {ok, FormsInRange} ->
-                [$\n | Result] = format_forms(FormsInRange),
-                verify_forms(FileName, FormsInRange, Result),
+        {ok, Nodes, Warnings} = file_read_nodes(FileName),
+        case verify_ranges(Nodes, StartLocation, EndLocation) of
+            {ok, NodesInRange} ->
+                [$\n | Result] = format_nodes(NodesInRange),
+                verify_nodes(FileName, NodesInRange, Result),
                 {ok, unicode:characters_to_binary(Result), Warnings};
             {options, Options} ->
                 {options, Options}
@@ -122,17 +122,17 @@ format_range(FileName, StartLocation, EndLocation) ->
     end.
 
 %% API entry point
--spec read_forms(file:name_all()) ->
+-spec read_nodes(file:name_all()) ->
     {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
-read_forms(FileName) ->
-    try file_read_forms(FileName)
+read_nodes(FileName) ->
+    try file_read_nodes(FileName)
     catch
         {error, Error} -> {error, Error}
     end.
 
-file_read_forms(FileName) ->
+file_read_nodes(FileName) ->
     read_file(FileName, fun (File) ->
-        read_forms(erlfmt_scan:io_form(File), FileName, [], [])
+        read_nodes(erlfmt_scan:io_node(File), FileName, [], [])
     end).
 
 read_file(FileName, Action) ->
@@ -146,61 +146,59 @@ read_file(FileName, Action) ->
     end.
 
 %% API entry point
--spec read_forms_string(file:name_all(), string()) ->
+-spec read_nodes_string(file:name_all(), string()) ->
     {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
-read_forms_string(FileName, String) ->
-    try read_forms(erlfmt_scan:string_form(String), FileName, [], [])
+read_nodes_string(FileName, String) ->
+    try read_nodes(erlfmt_scan:string_node(String), FileName, [], [])
     catch
         {error, Error} -> {error, Error}
     end.
 
-read_forms({ok, Tokens, Comments, Cont}, FileName, Acc, Warnings0) ->
-    {Form, Warnings} = parse_form(Tokens, Comments, FileName, Cont, Warnings0),
-    read_forms(erlfmt_scan:continue(Cont), FileName, [Form | Acc], Warnings);
-read_forms({eof, _Loc}, _FileName, Acc, Warnings) ->
+read_nodes({ok, Tokens, Comments, Cont}, FileName, Acc, Warnings0) ->
+    {Node, Warnings} = parse_nodes(Tokens, Comments, FileName, Cont, Warnings0),
+    read_nodes(erlfmt_scan:continue(Cont), FileName, [Node | Acc], Warnings);
+read_nodes({eof, _Loc}, _FileName, Acc, Warnings) ->
     {ok, lists:reverse(Acc), lists:reverse(Warnings)};
-read_forms({error, {ErrLoc, Mod, Reason}, _Loc}, FileName, _Acc, _Warnings) ->
+read_nodes({error, {ErrLoc, Mod, Reason}, _Loc}, FileName, _Acc, _Warnings) ->
     throw({error, {FileName, ErrLoc, Mod, Reason}}).
 
-parse_form([], _Comments, _FileName, Cont, Warnings) ->
-    {form_string(Cont), Warnings};
-parse_form(Tokens, Comments, FileName, Cont, Warnings) ->
-    case erlfmt_parse:parse_form(Tokens) of
-        {ok, Form0} ->
-            {erlfmt_recomment:recomment(Form0, Comments), Warnings};
+parse_nodes([], _Comments, _FileName, Cont, Warnings) ->
+    {node_string(Cont), Warnings};
+parse_nodes(Tokens, Comments, FileName, Cont, Warnings) ->
+    case erlfmt_parse:parse_node(Tokens) of
+        {ok, Node} ->
+            {erlfmt_recomment:recomment(Node, Comments), Warnings};
         {error, {ErrLoc, Mod, Reason}} ->
             Warning = {FileName, ErrLoc, Mod, Reason},
-            {form_string(Cont), [Warning | Warnings]}
+            {node_string(Cont), [Warning | Warnings]}
     end.
 
-form_string(Cont) ->
-    {String, Anno} = erlfmt_scan:last_form_string(Cont),
+node_string(Cont) ->
+    {String, Anno} = erlfmt_scan:last_node_string(Cont),
     {raw_string, Anno, string:trim(String, both, "\n")}.
 
-format_forms([{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest]) ->
-    [$\n, format_form(Attr), format_form(Fun) | format_forms(Rest)];
-format_forms([Form | Rest]) ->
-    [$\n, format_form(Form) | format_forms(Rest)];
-format_forms([]) ->
+format_nodes([{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest]) ->
+    [$\n, format_node(Attr), format_node(Fun) | format_nodes(Rest)];
+format_nodes([Node | Rest]) ->
+    [$\n, format_node(Node) | format_nodes(Rest)];
+format_nodes([]) ->
     [].
 
-format_form({raw_string, _Anno, String}) ->
+format_node({raw_string, _Anno, String}) ->
     [String, $\n];
-format_form(Form) ->
-    Doc = erlfmt_format:form_to_algebra(Form),
+format_node(Node) ->
+    Doc = erlfmt_format:to_algebra(Node),
     [erlfmt_algebra:document_render(Doc, [{page_width, ?PAGE_WIDTH}]), $\n].
 
-verify_forms(FileName, Forms, Formatted) ->
-    case read_forms_string(FileName, unicode:characters_to_list(Formatted)) of
-        {ok, Forms2, _} ->
-            try equivalent_list(Forms, Forms2)
+verify_nodes(FileName, Nodes, Formatted) ->
+    case read_nodes_string(FileName, unicode:characters_to_list(Formatted)) of
+        {ok, Nodes2, _} ->
+            try equivalent_list(Nodes, Nodes2)
             catch
                 {not_equivalent, Left, Right} ->
                     Location = try_location(Left, Right),
-                    throw(
-                        {error,
-                            {FileName, Location, ?MODULE, {not_equivalent, Left, Right}}}
-                    )
+                    Msg = {not_equivalent, Left, Right},
+                    throw({error, {FileName, Location, ?MODULE, Msg}})
             end;
         {error, _} ->
             throw({error, {FileName, 0, ?MODULE, could_not_reparse}})
@@ -244,9 +242,9 @@ try_location(_, Node) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node
 try_location(_, [Node | _]) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node);
 try_location(_, _) -> 0.
 
-write_forms(_FileName, Formatted, standard_out) ->
+write_formatted(_FileName, Formatted, standard_out) ->
     io:put_chars(Formatted);
-write_forms(FileName, Formatted, Out) ->
+write_formatted(FileName, Formatted, Out) ->
     OutFileName = out_file(FileName, Out),
     case filelib:ensure_dir(OutFileName) of
         ok -> ok;
@@ -279,33 +277,33 @@ format_error({not_equivalent, Node1, Node2}) ->
 format_error(could_not_reparse) ->
     "formatter result invalid, could not reparse".
 
-verify_ranges(Forms, StartLocation, EndLocation) ->
-    ApplicableForms = forms_in_range(Forms, StartLocation, EndLocation),
-    case possible_ranges(ApplicableForms, StartLocation, EndLocation) of
+verify_ranges(Nodes, StartLocation, EndLocation) ->
+    ApplicableNodes = nodes_in_range(Nodes, StartLocation, EndLocation),
+    case possible_ranges(ApplicableNodes, StartLocation, EndLocation) of
         [{StartLocation, EndLocation}] ->
-            {ok, ApplicableForms};
+            {ok, ApplicableNodes};
         Options ->
             {options, Options}
     end.
 
-% Returns ranges which starts with the start of a form and ends with the end of form
-possible_ranges(Forms, StartLocation, EndLocation) ->
-    case Forms of
+% Returns ranges which starts with the start of a node and ends with the end of node
+possible_ranges(Nodes, StartLocation, EndLocation) ->
+    case Nodes of
         [] ->
             [];
-        [OnlyForm] ->
-            [get_location_range(OnlyForm)];
-        MultipleForms ->
+        [OnlyNode] ->
+            [get_location_range(OnlyNode)];
+        MultipleNodes ->
             combine(
-                get_possible_locations(MultipleForms, StartLocation, fun get_location/1),
-                get_possible_locations(lists:reverse(MultipleForms), EndLocation, fun get_end_location/1))
+                get_possible_locations(MultipleNodes, StartLocation, fun get_location/1),
+                get_possible_locations(lists:reverse(MultipleNodes), EndLocation, fun get_end_location/1))
     end.
 
-forms_in_range(Forms, StartLocation, EndLocation) ->
-    [Form || Form <- Forms, form_intersects_range(Form, StartLocation, EndLocation)].
+nodes_in_range(Nodes, StartLocation, EndLocation) ->
+    [Node || Node <- Nodes, node_intersects_range(Node, StartLocation, EndLocation)].
 
-form_intersects_range(Form, StartLocation, EndLocation) ->
-    {Start, End} = get_location_range(Form),
+node_intersects_range(Node, StartLocation, EndLocation) ->
+    {Start, End} = get_location_range(Node),
     ((Start < StartLocation) and (End >= StartLocation)) or
     ((Start >= StartLocation) and (Start =< EndLocation)).
 
@@ -320,11 +318,11 @@ get_possible_locations([Option1, Option2 | _], Location, GetLoc) ->
 combine(L1, L2) ->
     [{X1, X2} || X1 <- L1, X2 <- L2].
 
-get_location_range(Form) ->
-    {get_location(Form), get_end_location(Form)}.
+get_location_range(Node) ->
+    {get_location(Node), get_end_location(Node)}.
 
-get_location(Form) ->
-    erlfmt_scan:get_anno(location, Form).
+get_location(Node) ->
+    erlfmt_scan:get_anno(location, Node).
 
-get_end_location(Form) ->
-    erlfmt_scan:get_anno(end_location, Form).
+get_end_location(Node) ->
+    erlfmt_scan:get_anno(end_location, Node).

@@ -15,7 +15,7 @@
 
 -include("erlfmt.hrl").
 
--export([expr_to_algebra/1, form_to_algebra/1, comments/1]).
+-export([to_algebra/1, comments/1]).
 
 -import(erlfmt_algebra, [
     document_text/1,
@@ -35,14 +35,14 @@
 
 -define(NEXT_BREAK_FITS_OPS, ['=', '::']).
 
--spec form_to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:document().
-form_to_algebra({function, Meta, Clauses}) ->
+-spec to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:document().
+to_algebra({function, Meta, Clauses}) ->
     Doc = document_combine(clauses_to_algebra(Clauses), document_text(".")),
     combine_comments(Meta, Doc);
-form_to_algebra({attribute, Meta, Name, []}) ->
+to_algebra({attribute, Meta, Name, []}) ->
     Doc = wrap(document_text("-"), expr_to_algebra(Name), document_text(".")),
     combine_comments(Meta, Doc);
-form_to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
+to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
     HeadD = document_combine(document_text("-define("), expr_to_algebra(Define)),
     BodyD = block_to_algebra(Body),
     EndD = document_text(")."),
@@ -58,13 +58,13 @@ form_to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
             ),
             combine_comments(Meta, Doc)
     end;
-form_to_algebra({attribute, Meta, {atom, _, RawName} = Name, [Value]})
+to_algebra({attribute, Meta, {atom, _, RawName} = Name, [Value]})
         when RawName =:= type; RawName =:= opaque; RawName =:= spec; RawName =:= callback ->
     NameD = wrap(document_text("-"), expr_to_algebra(Name), document_text(" ")),
     ValueD = expr_to_algebra(Value),
     Doc = wrap_prepend(NameD, ValueD, document_text(".")),
     combine_comments(Meta, Doc);
-form_to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Values}]}) ->
+to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Values}]}) ->
     HeadD = wrap(document_text("-record("), expr_to_algebra(Name), document_text(",")),
     case no_comments_or_parens(TMeta) of
         true ->
@@ -78,10 +78,19 @@ form_to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Value
             ),
             combine_comments(Meta, Doc)
     end;
-form_to_algebra({attribute, Meta, Name, Values}) ->
+to_algebra({attribute, Meta, Name, Values}) ->
     Prefix = wrap(document_text("-"), expr_to_algebra(Name), document_text("(")),
     Doc = container_to_algebra(Meta, Values, Prefix, document_text(").")),
-    combine_comments(Meta, Doc).
+    combine_comments(Meta, Doc);
+to_algebra(Expr) ->
+    Meta = element(2, Expr),
+    Doc = do_expr_to_algebra(Expr),
+    case maps:get(dot, Meta, false) of
+        true ->
+            combine_comments(Meta, document_combine(Doc, document_text(".")));
+        false ->
+            combine_comments(Meta, Doc)
+    end.
 
 -spec expr_to_algebra(erlfmt_parse:abstract_expr()) -> erlfmt_algebra:document().
 expr_to_algebra(Expr) when is_tuple(Expr) ->

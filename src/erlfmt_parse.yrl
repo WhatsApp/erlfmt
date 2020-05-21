@@ -16,7 +16,7 @@
 %% Definition of the Erlang grammar.
 
 Nonterminals
-form
+node
 attribute attr_val
 function function_clauses function_clause
 clause_guard clause_body
@@ -58,13 +58,13 @@ char integer float atom string var
 '==' '/=' '=<' '<' '>=' '>' '=:=' '=/=' '<=' '=>' ':='
 '<<' '>>'
 '?' '!' '=' '::' '..' '...'
-spec callback define_expr define_clause % helper
+spec callback define_expr define_clause standalone_expr % helper
 dot.
 
 %% Conflict comes from optional parens on macro calls.
 Expect 1.
 
-Rootsymbol form.
+Rootsymbol node.
 
 %% Expressions
 
@@ -87,8 +87,10 @@ Right 170 '|'.
 Nonassoc 200 '..'.
 Nonassoc 200 '*'. % for binary expressions
 
-form -> attribute dot : setelement(2, '$1', ?range_anno('$1', '$2')).
-form -> function dot : setelement(2, '$1', ?range_anno('$1', '$2')).
+node -> attribute dot : setelement(2, '$1', ?range_anno('$1', '$2')).
+node -> function dot : setelement(2, '$1', ?range_anno('$1', '$2')).
+node -> standalone_expr expr dot : set_dot('$2').
+node -> standalone_expr expr : '$2'.
 
 %% Anno is wrong here, we'll adjust it at the top level using the dot token.
 attribute -> '-' 'if' attr_val               : build_attribute('$1', '$2', '$3').
@@ -629,21 +631,21 @@ Header
 
 Erlang code.
 
--export([parse_form/1]).
+-export([parse_node/1]).
 
 %% The following directive is needed for (significantly) faster compilation
 %% of the generated .erl file by the HiPE compiler.  Please do not remove.
 -compile([{hipe,[{regalloc,linear_scan}]}]).
 
--export_type([abstract_clause/0, abstract_expr/0, abstract_form/0,
+-export_type([abstract_clause/0, abstract_expr/0, abstract_node/0,
               abstract_type/0, form_info/0, error_info/0]).
 
 %% Start of Abstract Format
 
 -type anno() :: erlfmt_scan:anno().
 
--type abstract_form() ::
-    af_function_decl() | af_attribute().
+-type abstract_node() ::
+    af_function_decl() | af_attribute() | abstract_expr().
 
 -type af_attribute() :: {attribute, anno(), af_atom(), [abstract_expr()]}.
 
@@ -994,17 +996,17 @@ Erlang code.
 
 %% Entry points compatible to old erl_parse.
 
--spec parse_form(Tokens) -> {ok, AbsForm} | {error, ErrorInfo} when
+-spec parse_node(Tokens) -> {ok, AbsNode} | {error, ErrorInfo} when
       Tokens :: [token()],
-      AbsForm :: abstract_form(),
+      AbsNode :: abstract_node(),
       ErrorInfo :: error_info().
-parse_form([{'-',A1},{atom,A2,spec}|Tokens]) ->
+parse_node([{'-',A1},{atom,A2,spec}|Tokens]) ->
     NewTokens = [{'-',A1},{'spec',A2}|Tokens],
     parse(NewTokens);
-parse_form([{'-',A1},{atom,A2,callback}|Tokens]) ->
+parse_node([{'-',A1},{atom,A2,callback}|Tokens]) ->
     NewTokens = [{'-',A1},{'callback',A2}|Tokens],
     parse(NewTokens);
-parse_form([{'-',A1},{atom,A2,define}|Tokens]) ->
+parse_node([{'-',A1},{atom,A2,define}|Tokens]) ->
     NewTokens1 = [{'-',A1},{define_expr,A2}|Tokens],
     case parse(NewTokens1) of
         {ok, _} = Res ->
@@ -1013,8 +1015,16 @@ parse_form([{'-',A1},{atom,A2,define}|Tokens]) ->
             NewTokens3 = [{'-',A1},{define_clause,A2}|Tokens],
             parse(NewTokens3)
     end;
-parse_form(Tokens) ->
-    parse(Tokens).
+parse_node(Tokens) ->
+    case parse(Tokens) of
+        {ok, _} = Res ->
+            Res;
+        Error ->
+            case parse([{standalone_expr, #{}} | Tokens]) of
+                {ok, _} = Res -> Res;
+                _ -> Error
+            end
+    end.
 
 %% unwrap single-expr definitions, wrapped in guards by the parser
 build_macro_def({'-', Anno}, {define_expr, AttrAnno}, {Name, {guard_or, _, [{guard_and, _, [Body]}]}}) ->
@@ -1048,6 +1058,8 @@ record_fields([]) -> [].
 -spec ret_err(_, _) -> no_return().
 ret_err(Anno, S) ->
     return_error(erl_anno:location(Anno), S).
+
+set_dot(Expr) -> erlfmt_scan:put_anno(dot, true, Expr).
 
 set_parens(Expr) -> erlfmt_scan:put_anno(parens, true, Expr).
 
