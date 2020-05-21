@@ -54,7 +54,11 @@ format_files([FileName | FileNames], Config, HadErrors) ->
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
         false -> ok
     end,
-    ErlfmtConfig = {Config#config.require_pragma, Config#config.out},
+    Pragma = case Config#config.require_pragma of
+        true -> require;
+        _ -> ignore
+    end,
+    ErlfmtConfig = {Pragma, Config#config.out},
     case erlfmt:format_file(FileName, ErlfmtConfig) of
         {ok, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],

@@ -54,7 +54,8 @@
     snapshot_overlong/1,
     simple_comments_range/1,
     comments_range/1,
-    broken_range/1
+    broken_range/1,
+    contains_pragma/1
 ]).
 
 suite() ->
@@ -110,13 +111,16 @@ groups() ->
             simple_comments_range,
             comments_range,
             broken_range
+        ]},
+        {pragma_tests, [parallel], [
+            contains_pragma
         ]}
     ].
 
 group(_) -> [].
 
 all() ->
-    [{group, smoke_tests}, {group, parser}, {group, range_tests}].
+    [{group, smoke_tests}, {group, parser}, {group, range_tests}, {group, pragma_tests}].
 
 %%--------------------------------------------------------------------
 %% TEST CASES
@@ -868,7 +872,7 @@ snapshot_overlong(Config) -> snapshot_formatted("overlong.erl", Config).
 snapshot_same(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     PrivDir = ?config(priv_dir, Config),
-    {ok, _} = erlfmt:format_file(filename:join(DataDir, Module), {false, {path, PrivDir}}),
+    {ok, _} = erlfmt:format_file(filename:join(DataDir, Module), {ignore, {path, PrivDir}}),
     {ok, Original} = file:read_file(filename:join(DataDir, Module)),
     {ok, Formatted} = file:read_file(filename:join(PrivDir, Module)),
     ?assertEqual(Original, Formatted).
@@ -877,12 +881,12 @@ snapshot_formatted(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     PrivDir = ?config(priv_dir, Config),
     {ok, Expected} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
-    {ok, _} = erlfmt:format_file(filename:join([DataDir, Module]), {false, {path, PrivDir}}),
+    {ok, _} = erlfmt:format_file(filename:join([DataDir, Module]), {ignore, {path, PrivDir}}),
     {ok, Formatted} = file:read_file(filename:join([PrivDir, Module])),
     ?assertEqual(Expected, Formatted),
     {ok, _} = erlfmt:format_file(
         filename:join([DataDir, Module ++ ".formatted"]),
-        {false, {path, PrivDir}}
+        {ignore, {path, PrivDir}}
     ),
     {ok, FormattedFormatted} =
         file:read_file(filename:join([PrivDir, Module ++ ".formatted"])),
@@ -909,3 +913,60 @@ range_format_exact([], _Path) -> ok;
 range_format_exact([{Start,End}|Options], Path) ->
     {ok, _Output, _} = erlfmt:format_range(Path, Start, End),
     range_format_exact(Options, Path).
+
+contains_pragma(Config) when is_list(Config) ->
+    ?assertEqual(true, contains_pragma_string("file.erl", 
+    "% @format\n"
+    "\n"
+    "-module(pragma).\n"
+    "\n"
+    "-export([f/3]).\n"
+    "\n"
+    "f(_Arg1,_Arg2,   _Arg3) ->\n"
+    "ok.\n")),
+    ?assertEqual(true, contains_pragma_string("file.erl",
+    "\n"
+    "\n"
+    "% @format\n"
+    "\n"
+    "-module(pragma).\n")),
+    ?assertEqual(false, contains_pragma_string("file.erl",
+    "-module(pragma).\n"
+    "-export([f/3]).\n"
+    "\n"
+    "f(_Arg1,_Arg2,   _Arg3) ->\n"
+    "ok.\n")),
+    ?assertEqual(false, contains_pragma_string("file.erl", 
+    "% LICENSE\n"
+    "% LICENSE\n"
+    "% LICENSE\n"
+    "% LICENSE\n"
+    "\n"
+    "-module(pragma)\n."
+    "\n"
+    "-export([f/3]).\n"
+    "\n"
+    "f(_Arg1,_Arg2,   _Arg3) ->\n"
+    "ok.\n")),
+    ?assertEqual(true, contains_pragma_string("file.erl", 
+    "% LICENSE\n"
+    "% LICENSE\n"
+    "% LICENSE\n"
+    "% LICENSE\n"
+    "\n"
+    "% @format\n"
+    "\n"
+    "-module(pragma).\n"
+    "\n"
+    "-export([f/3]).\n"
+    "\n"
+    "f(_Arg1,_Arg2,   _Arg3) ->\n"
+    "ok.\n")),
+    ?assertEqual(true, contains_pragma_string("file.erl",
+    "% @format\n"
+    "-module(pragma).\n")).
+
+-spec contains_pragma_string(file:name_all(), string()) -> ok.
+contains_pragma_string(Filename, Content) ->
+    {ok, Forms, _ } = erlfmt:read_forms_string(Filename, Content),
+    erlfmt:contains_pragma_forms(Forms).

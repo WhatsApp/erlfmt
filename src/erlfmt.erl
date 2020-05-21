@@ -32,7 +32,9 @@
 
 -type out() :: standard_out | {path, file:name_all()} | replace.
 
--type config() :: {RequirePragma :: boolean(), Out :: out()}.
+-type pragma() :: require | ignore.
+
+-type config() :: {Pragma :: pragma(), Out :: out()}.
 
 -define(PAGE_WIDTH, 92).
 
@@ -68,10 +70,10 @@ init(State) ->
 
 %% API entry point
 -spec format_file(file:name_all(), config()) -> {ok, [error_info()]} | {error, error_info()}.
-format_file(FileName, {RequirePragma, Out}) ->
+format_file(FileName, {Pragma, Out}) ->
     try
         {ok, Forms, Warnings} = file_read_forms(FileName),
-        ShouldFormat = not RequirePragma or contains_pragma_forms(Forms),
+        ShouldFormat = (Pragma == ignore) or contains_pragma_forms(Forms),
         case ShouldFormat of
             true -> [$\n | Formatted] = format_forms(Forms),
                     verify_forms(FileName, Forms, Formatted),
@@ -84,23 +86,16 @@ format_file(FileName, {RequirePragma, Out}) ->
     end.
 
 -spec contains_pragma_forms([erlfmt_parse:abstract_form()]) -> boolean().
-contains_pragma_forms(Forms) -> lists:any(fun contains_pragma_form/1, Forms).
+contains_pragma_forms([Form | _Forms]) -> contains_pragma_form(Form);
+contains_pragma_forms(_) -> false.
 
-contains_pragma_form(Form) ->
-    case Form of
-        {attribute, Meta, _AfAtom, _AbstractExprs} ->
-            {PreComments, PostComments} = erlfmt_format:comments(Meta),
-            lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments);
-        _ -> false
-        end.
+contains_pragma_form({attribute, Meta, _AfAtom, _AbstractExprs}) ->
+    {PreComments, PostComments} = erlfmt_format:comments(Meta),
+    lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments);
+contains_pragma_form(_) -> false.
 
 contains_pragma_comment({comment, _Loc, Comments}) ->
-    lists:any(fun (Comment) ->
-        case string:find(Comment, "@format") of
-            nomatch -> false;
-            _ -> true
-        end
-    end, Comments);
+    string:find(Comments, "@format") =/= nomatch;
 contains_pragma_comment(_) -> false.
 
 -spec format_range(
