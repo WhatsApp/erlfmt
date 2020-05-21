@@ -968,5 +968,5 @@ contains_pragma(Config) when is_list(Config) ->
 
 -spec contains_pragma_string(file:name_all(), string()) -> ok.
 contains_pragma_string(Filename, Content) ->
-    {ok, Forms, _ } = erlfmt:read_forms_string(Filename, Content),
-    erlfmt:contains_pragma_forms(Forms).
+    {ok, Nodes, _ } = erlfmt:read_nodes_string(Filename, Content),
+    erlfmt:contains_pragma_nodes(Nodes).
