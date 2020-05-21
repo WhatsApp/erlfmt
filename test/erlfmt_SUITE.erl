@@ -868,7 +868,7 @@ snapshot_overlong(Config) -> snapshot_formatted("overlong.erl", Config).
 snapshot_same(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     PrivDir = ?config(priv_dir, Config),
-    {ok, _} = erlfmt:format_file(filename:join(DataDir, Module), {path, PrivDir}),
+    {ok, _} = erlfmt:format_file(filename:join(DataDir, Module), {false, {path, PrivDir}}),
     {ok, Original} = file:read_file(filename:join(DataDir, Module)),
     {ok, Formatted} = file:read_file(filename:join(PrivDir, Module)),
     ?assertEqual(Original, Formatted).
@@ -877,12 +877,12 @@ snapshot_formatted(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     PrivDir = ?config(priv_dir, Config),
     {ok, Expected} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
-    {ok, _} = erlfmt:format_file(filename:join([DataDir, Module]), {path, PrivDir}),
+    {ok, _} = erlfmt:format_file(filename:join([DataDir, Module]), {false, {path, PrivDir}}),
     {ok, Formatted} = file:read_file(filename:join([PrivDir, Module])),
     ?assertEqual(Expected, Formatted),
     {ok, _} = erlfmt:format_file(
         filename:join([DataDir, Module ++ ".formatted"]),
-        {path, PrivDir}
+        {false, {path, PrivDir}}
     ),
     {ok, FormattedFormatted} =
         file:read_file(filename:join([PrivDir, Module ++ ".formatted"])),

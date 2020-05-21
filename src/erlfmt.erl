@@ -22,14 +22,17 @@
     read_forms/1,
     read_forms_string/2,
     format_error/1,
-    format_error_info/1
+    format_error_info/1,
+    contains_pragma_forms/1
 ]).
 
--export_type([error_info/0, out/0]).
+-export_type([error_info/0, out/0, config/0]).
 
 -type error_info() :: {file:name_all(), erl_anno:location(), module(), Reason :: any()}.
 
 -type out() :: standard_out | {path, file:name_all()} | replace.
+
+-type config() :: {RequirePragma :: boolean(), Out :: out()}.
 
 -define(PAGE_WIDTH, 92).
 
@@ -64,17 +67,45 @@ init(State) ->
     rebar3_fmt_prv:init(State).
 
 %% API entry point
--spec format_file(file:name_all(), out()) -> {ok, [error_info()]} | {error, error_info()}.
-format_file(FileName, Out) ->
+-spec format_file(file:name_all(), config()) -> {ok, [error_info()]} | {error, error_info()}.
+format_file(FileName, {RequirePragma, Out}) ->
     try
         {ok, Forms, Warnings} = file_read_forms(FileName),
-        [$\n | Formatted] = format_forms(Forms),
-        verify_forms(FileName, Forms, Formatted),
-        write_forms(FileName, Formatted, Out),
-        {ok, Warnings}
+        ShouldFormat = not RequirePragma or contains_pragma_forms(Forms),
+        case ShouldFormat of
+            true -> [$\n | Formatted] = format_forms(Forms),
+                    verify_forms(FileName, Forms, Formatted),
+                    write_forms(FileName, Formatted, Out),
+                    {ok, Warnings};
+            false -> {ok, Warnings}
+        end
     catch
         {error, Error} -> {error, Error}
     end.
+
+-spec contains_pragma_forms([erlfmt_parse:abstract_form()]) -> boolean().
+contains_pragma_forms(Forms) -> lists:any(fun contains_pragma_form/1, Forms).
+
+contains_pragma_form(Form) ->
+    case Form of
+        {attribute, Meta, _AfAtom, _AbstractExprs} ->
+            case erlfmt_format:comments(Meta) of
+                {PreComments, PostComments} ->
+                    AllComments = PreComments ++ PostComments,
+                    lists:any(fun contains_pragma_comment/1, AllComments);
+                _ -> false
+            end;
+        _ -> false
+        end.
+
+contains_pragma_comment({comment, _Loc, Comments}) ->
+    lists:any(fun (Comment) ->
+        case string:find(Comment, "@format") of
+            nomatch -> false;
+            _ -> true
+        end
+    end, Comments);
+contains_pragma_comment(_) -> false.
 
 -spec format_range(
     file:name_all(),
