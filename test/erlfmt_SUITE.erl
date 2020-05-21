@@ -915,7 +915,7 @@ range_format_exact([{Start,End}|Options], Path) ->
     range_format_exact(Options, Path).
 
 contains_pragma(Config) when is_list(Config) ->
-    ?assertEqual(true, contains_pragma_string("file.erl", 
+    ?assertEqual(true, erlfmt:contains_pragma_string("file.erl", 
     "% @format\n"
     "\n"
     "-module(pragma).\n"
@@ -924,19 +924,19 @@ contains_pragma(Config) when is_list(Config) ->
     "\n"
     "f(_Arg1,_Arg2,   _Arg3) ->\n"
     "ok.\n")),
-    ?assertEqual(true, contains_pragma_string("file.erl",
+    ?assertEqual(true, erlfmt:contains_pragma_string("file.erl",
     "\n"
     "\n"
     "% @format\n"
     "\n"
     "-module(pragma).\n")),
-    ?assertEqual(false, contains_pragma_string("file.erl",
+    ?assertEqual(false, erlfmt:contains_pragma_string("file.erl",
     "-module(pragma).\n"
     "-export([f/3]).\n"
     "\n"
     "f(_Arg1,_Arg2,   _Arg3) ->\n"
     "ok.\n")),
-    ?assertEqual(false, contains_pragma_string("file.erl", 
+    ?assertEqual(false, erlfmt:contains_pragma_string("file.erl", 
     "% LICENSE\n"
     "% LICENSE\n"
     "% LICENSE\n"
@@ -948,7 +948,7 @@ contains_pragma(Config) when is_list(Config) ->
     "\n"
     "f(_Arg1,_Arg2,   _Arg3) ->\n"
     "ok.\n")),
-    ?assertEqual(true, contains_pragma_string("file.erl", 
+    ?assertEqual(true, erlfmt:contains_pragma_string("file.erl", 
     "% LICENSE\n"
     "% LICENSE\n"
     "% LICENSE\n"
@@ -962,11 +962,6 @@ contains_pragma(Config) when is_list(Config) ->
     "\n"
     "f(_Arg1,_Arg2,   _Arg3) ->\n"
     "ok.\n")),
-    ?assertEqual(true, contains_pragma_string("file.erl",
+    ?assertEqual(true, erlfmt:contains_pragma_string("file.erl",
     "% @format\n"
     "-module(pragma).\n")).
-
--spec contains_pragma_string(file:name_all(), string()) -> ok.
-contains_pragma_string(Filename, Content) ->
-    {ok, Nodes, _ } = erlfmt:read_nodes_string(Filename, Content),
-    erlfmt:contains_pragma_nodes(Nodes).
