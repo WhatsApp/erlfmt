@@ -1641,7 +1641,7 @@ comment(Config) when is_list(Config) ->
     ).
 
 format(String, PageWidth) ->
-    {ok, [Form], []} = erlfmt:read_forms_string("nofile", String),
-    Doc = erlfmt_format:form_to_algebra(Form),
+    {ok, [Node], []} = erlfmt:read_nodes_string("nofile", String),
+    Doc = erlfmt_format:to_algebra(Node),
     Rendered = erlfmt_algebra:document_render(Doc, [{page_width, PageWidth}]),
     unicode:characters_to_list(Rendered).

@@ -821,7 +821,7 @@ parse_type(String) ->
     Type.
 
 parse_form(String) ->
-    case erlfmt:read_forms_string("nofile", String) of
+    case erlfmt:read_nodes_string("nofile", String) of
         {ok, [Form], []} ->
             Form;
         {ok, _, [Warning | _]} ->
@@ -837,7 +837,7 @@ parse_form(String) ->
     end.
 
 parse_forms(String) ->
-    case erlfmt:read_forms_string("nofile", String) of
+    case erlfmt:read_nodes_string("nofile", String) of
         {ok, Forms, []} ->
             Forms;
         {ok, _, [Warning | _]} ->

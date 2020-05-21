@@ -17,26 +17,26 @@
 
 -export([recomment/2]).
 
--spec recomment(erlfmt_parse:abstract_form(), [erlfmt_scan:comment()]) ->
-    erlfmt_parse:abstract_form().
-recomment(Form, Comments) ->
-    insert_form(Form, Comments).
+-spec recomment(erlfmt_parse:abstract_node(), [erlfmt_scan:comment()]) ->
+    erlfmt_parse:abstract_node().
+recomment(Node, Comments) ->
+    insert_node(Node, Comments).
 
-insert_form(Form, []) ->
-    Form;
-insert_form({function, Meta0, Clauses0}, Comments0) ->
+insert_node(Node, []) ->
+    Node;
+insert_node({function, Meta0, Clauses0}, Comments0) ->
     {PreComments, Comments} = split_pre_comments(Meta0, Comments0),
     {Clauses, PostComments} = insert_expr_list(Clauses0, Comments),
     Meta1 = put_pre_comments(Meta0, PreComments),
     Meta = put_post_comments(Meta1, PostComments),
     {function, Meta, Clauses};
-insert_form({attribute, Meta0, Name, Values0}, Comments) ->
+insert_node({attribute, Meta0, Name, Values0}, Comments) ->
     {PreComments, InnerComments, PostCommennts} = split_comments(Meta0, Comments),
     Values = insert_expr_container(Values0, InnerComments),
     Meta1 = put_pre_comments(Meta0, PreComments),
     Meta = put_post_comments(Meta1, PostCommennts),
     {attribute, Meta, Name, Values};
-insert_form(Expr0, Comments) ->
+insert_node(Expr0, Comments) ->
     {PreComments, InnerComments, PostComments} = split_comments(element(2, Expr0), Comments),
     {Expr1, RestComments} = insert_expr(Expr0, InnerComments),
     Expr = put_pre_comments(Expr1, PreComments),
