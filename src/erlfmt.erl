@@ -22,14 +22,20 @@
     read_nodes/1,
     read_nodes_string/2,
     format_error/1,
-    format_error_info/1
+    format_error_info/1,
+    contains_pragma_file/1,
+    contains_pragma_string/2
 ]).
 
--export_type([error_info/0, out/0]).
+-export_type([error_info/0, out/0, config/0]).
 
 -type error_info() :: {file:name_all(), erl_anno:location(), module(), Reason :: any()}.
 
 -type out() :: standard_out | {path, file:name_all()} | replace.
+
+-type pragma() :: require | ignore.
+
+-type config() :: {Pragma :: pragma(), Out :: out()}.
 
 -define(PAGE_WIDTH, 92).
 
@@ -64,17 +70,45 @@ init(State) ->
     rebar3_fmt_prv:init(State).
 
 %% API entry point
--spec format_file(file:name_all(), out()) -> {ok, [error_info()]} | {error, error_info()}.
-format_file(FileName, Out) ->
+-spec format_file(file:name_all(), config()) -> {ok, [error_info()]} | {error, error_info()}.
+format_file(FileName, {Pragma, Out}) ->
     try
-        {ok, Nodes, Warnings} = file_read_nodes(FileName),
-        [$\n | Formatted] = format_nodes(Nodes),
-        verify_nodes(FileName, Nodes, Formatted),
-        write_formatted(FileName, Formatted, Out),
-        {ok, Warnings}
+        ShouldFormat = (Pragma == ignore) orelse contains_pragma_file(FileName),
+        case ShouldFormat of
+            true -> {ok, Nodes, Warnings} = file_read_nodes(FileName),
+                    [$\n | Formatted] = format_nodes(Nodes),
+                    verify_nodes(FileName, Nodes, Formatted),
+                    write_formatted(FileName, Formatted, Out),
+                    {ok, Warnings};
+            false -> {ok, []}
+        end
     catch
         {error, Error} -> {error, Error}
     end.
+
+-spec contains_pragma_file(file:name_all()) -> boolean().
+contains_pragma_file(FileName) ->
+    read_file(FileName, fun (File) ->
+        read_pragma_nodes(erlfmt_scan:io_node(File), FileName, [], [])
+    end).
+
+-spec contains_pragma_string(file:name_all(), string()) -> boolean().
+contains_pragma_string(FileName, String) ->
+    read_pragma_nodes(erlfmt_scan:string_node(String), FileName, [], []).
+
+read_pragma_nodes({ok, Tokens, Comments, Cont}, FileName, _Acc, Warnings0) ->
+    {Node, _Warnings} = parse_nodes(Tokens, Comments, FileName, Cont, Warnings0),
+    contains_pragma_node(Node);
+read_pragma_nodes(_, _, _, _) -> false.
+
+contains_pragma_node({attribute, Meta, _AfAtom, _AbstractExprs}) ->
+    {PreComments, PostComments} = erlfmt_format:comments(Meta),
+    lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments);
+contains_pragma_node(_) -> false.
+
+contains_pragma_comment({comment, _Loc, Comments}) ->
+    string:find(Comments, "@format") =/= nomatch;
+contains_pragma_comment(_) -> false.
 
 -spec format_range(
     file:name_all(),

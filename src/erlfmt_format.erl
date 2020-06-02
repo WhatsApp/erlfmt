@@ -15,7 +15,7 @@
 
 -include("erlfmt.hrl").
 
--export([to_algebra/1]).
+-export([to_algebra/1, comments/1]).
 
 -import(erlfmt_algebra, [
     document_text/1,

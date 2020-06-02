@@ -17,6 +17,7 @@
 
 -record(config, {
     verbose = false :: boolean(),
+    require_pragma = false :: boolean(),
     out = standard_out :: erlfmt:out()
 }).
 
@@ -28,6 +29,9 @@ opts() ->
         {write, $w, "write", undefined, "modify formatted files in place"},
         {out, $o, "out", binary, "output directory"},
         {verbose, undefined, "verbose", undefined, "include debug output"},
+        {require_pragma, undefined, "require-pragma", undefined, 
+            "Require a special comment @format, called a pragma, "
+            "to be present in the file's first docblock comment in order for prettier to format it."},
         {files, undefined, undefined, string, "files to format"}
     ].
 
@@ -50,7 +54,12 @@ format_files([FileName | FileNames], Config, HadErrors) ->
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
         false -> ok
     end,
-    case erlfmt:format_file(FileName, Config#config.out) of
+    Pragma = case Config#config.require_pragma of
+        true -> require;
+        _ -> ignore
+    end,
+    ErlfmtConfig = {Pragma, Config#config.out},
+    case erlfmt:format_file(FileName, ErlfmtConfig) of
         {ok, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
             format_files(FileNames, Config, HadErrors);
@@ -74,6 +83,8 @@ parse_opts([{out, Path} | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{out = {path, Path}});
 parse_opts([verbose | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{verbose = true});
+parse_opts([require_pragma | Rest], Name, Files, Config) ->
+    parse_opts(Rest, Name, Files, Config#config{require_pragma = true});
 parse_opts([{files, NewFiles} | Rest], Name, Files0, Config) ->
     parse_opts(Rest, Name, expand_files(NewFiles, Files0), Config);
 parse_opts([], _Name, Files, Config) ->
