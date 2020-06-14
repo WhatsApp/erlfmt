@@ -181,9 +181,24 @@ parse_nodes(Tokens, Comments, FileName, Cont, Warnings) ->
         {ok, Node} ->
             {erlfmt_recomment:recomment(Node, Comments), Warnings};
         {error, {ErrLoc, Mod, Reason}} ->
-            Warning = {FileName, ErrLoc, Mod, Reason},
-            {node_string(Cont), [Warning | Warnings]}
+            New_warnings =
+                parse_nodes_warnings({FileName, ErrLoc, Mod, Reason}, Tokens, Warnings),
+            {node_string(Cont), New_warnings}
     end.
+
+parse_nodes_warnings({_, #{end_location := {1, 2}, location := {1, 1}}, erlfmt_parse, ["syntax error before: ", "'#'"]} = Warning, Tokens, Warnings) ->
+    Escript_tokens = lists:filter(fun parse_nodes_warnings_escript_first_line/1, Tokens),
+    parse_nodes_warnings_escript_first_line(Escript_tokens, Warning, Warnings);
+parse_nodes_warnings(Warning, _Tokens, Warnings) ->
+    [Warning | Warnings].
+
+parse_nodes_warnings_escript_first_line({_, #{end_location := {1, _}, text := "escript"}, _}) ->
+    true;
+parse_nodes_warnings_escript_first_line(_) ->
+    false.
+
+parse_nodes_warnings_escript_first_line([_], _Warning, Warnings) -> Warnings;
+parse_nodes_warnings_escript_first_line([], Warning, Warnings) -> [Warning | Warnings].
 
 node_string(Cont) ->
     {String, Anno} = erlfmt_scan:last_node_string(Cont),

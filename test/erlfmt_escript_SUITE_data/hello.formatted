@@ -1,0 +1,3 @@
+#! /usr/bin/env escript
+
+main( _ ) -> io:fwrite( "hello world\n" ).
