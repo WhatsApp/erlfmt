@@ -284,6 +284,14 @@ $ rebar3 dialyzer
 You can use erlfmt as a rebar plugin on itself thanks to the symlink in
 `_checkouts` and recursive plugin override in `rebar.config`.
 
+## Editor Integration
+
+### Visual Studio Code
+
+You can use erlfmt from Visual Studio Code with the
+[Erlang Formatter](https://marketplace.visualstudio.com/items?itemName=szTheory.erlang-formatter)
+extension.
+
 ## Join the erlfmt community
 See the [CONTRIBUTING](.github/CONTRIBUTING.md) file for how to help out.
 
