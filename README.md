@@ -268,6 +268,12 @@ end
 
 which after re-formatting will result in the original layout again.
 
+## Integrations
+
+ - Visual Studio Code's [Erlang Formatter](https://marketplace.visualstudio.com/items?itemName=szTheory.erlang-formatter) extension.
+
+Please contribute your integration by making a pull request.
+
 ## Internal Documentation
 
 To learn more about erlfmt internals, please explore the `doc/` directory
