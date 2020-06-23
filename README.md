@@ -272,7 +272,7 @@ which after re-formatting will result in the original layout again.
 
  - Visual Studio Code's [Erlang Formatter](https://marketplace.visualstudio.com/items?itemName=szTheory.erlang-formatter) extension.
 
-Please contribute your integration by making a pull request.
+Add your integration here, by making a pull request.
 
 ## Internal Documentation
 
