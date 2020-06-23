@@ -45,14 +45,14 @@ erlfmt requires Erlang/OTP 21+ and works on all platforms.
 The easiest way to use erlfmt is as a rebar plugin, by adding to your
 `rebar.config`:
 
-```erl
+```erl formatted rebarconfig1
 {plugins, [erlfmt]}.
 ```
 
 This will provide a new `rebar3 fmt` task. All erlfmt command-line options
 can be configured with defaults in your `rebar.config`, for example:
 
-```erl
+```erl formatted rebarconfig2
 {erlfmt, [
     write,
     {files, "{src,include,test}/*.{hrl,erl}"}
