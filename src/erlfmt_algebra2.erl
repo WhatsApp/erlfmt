@@ -72,7 +72,7 @@
 -define(tail_separator, <<" |">>).
 -define(newline, <<"\n">>).
 
--export_type([t/0]).
+-export_type([doc/0]).
 
 -export([
     empty/0,
@@ -100,45 +100,45 @@
 % Functional interface to "doc" records
 
 -record(doc_string, {
-    string :: t(),
+    string :: doc(),
     length :: non_neg_integer()
 }).
 
 -record(doc_cons, {
-    left :: t(),
-    right :: t()
+    left :: doc(),
+    right :: doc()
 }).
 
 -record(doc_nest, {
-    doc :: t(),
+    doc :: doc(),
     indent :: cursor | reset | non_neg_integer(),
     always_or_break :: always | break
 }).
 
 -record(doc_break, {
     break :: binary(),
-    mode :: flex | strict
+    flex_or_strict :: flex | strict
 }).
 
 -record(doc_group, {
-    group :: t(),
-    mode :: inherit | self
+    group :: doc(),
+    inherit_or_self :: inherit | self
 }).
 
 -record(doc_fits, {
-    group :: t(),
-    mode :: enabled | disabled
+    group :: doc(),
+    enabled_or_disabled :: enabled | disabled
 }).
 
 -record(doc_force, {
-    group :: t()
+    group :: doc()
 }).
 
 -record(doc_collapse, {
     count :: pos_integer()
 }).
 
--opaque t() :: binary()
+-opaque doc() :: binary() 
     | doc_line
     | doc_nil
     | #doc_break{}
@@ -220,7 +220,7 @@
 
 
 %%%%%%%%%%%%%%%%%% TODO
-%   @spec container_doc(t, [any], t, Inspect.Opts.t(), (term, Inspect.Opts.t() -> t), keyword()) ::
+%   @spec container_doc(t, [any], t, Inspect.Opts.doc(), (term, Inspect.Opts.doc() -> t), keyword()) ::
 %           t
 %   def container_doc(left, collection, right, inspect_opts, fun, opts \\ [])
 %       when is_doc(left) and is_list(collection) and is_doc(right) and is_function(fun, 2) and
@@ -299,7 +299,7 @@
 
 %   """
 
--spec empty() -> t().
+-spec empty() -> doc().
 empty() -> doc_nil.
 
 %   Creates a document represented by string.
@@ -328,7 +328,7 @@ empty() -> doc_nil.
 %       iex> Inspect.Algebra.format(doc, 9)
 %       ["olá", " ", "mundo"]
 
--spec string(binary()) -> t().
+-spec string(binary()) -> doc().
 string(String) when is_binary(String) ->
     #doc_string{string = String, length = string:length(String)}.
 
@@ -340,7 +340,7 @@ string(String) when is_binary(String) ->
 %       iex> Inspect.Algebra.format(doc, 80)
 %       ["hello", "world"]
 
--spec concat(t(), t()) -> t().
+-spec concat(doc(), doc()) -> doc().
 concat(Left, Right) when ?is_doc(Left), ?is_doc(Right) ->
     #doc_cons{left = Left, right = Right}.
 
@@ -352,7 +352,7 @@ concat(Left, Right) when ?is_doc(Left), ?is_doc(Right) ->
 %       iex> Inspect.Algebra.format(doc, 80)
 %       ["a", "b", "c"]
 
--spec concat([t()]) -> t().
+-spec concat([doc()]) -> doc().
 concat(Docs) when is_list(Docs) ->
     fold_doc(Docs, fun concat/2).
 
@@ -380,11 +380,11 @@ concat(Docs) when is_list(Docs) ->
     (is_integer(Indent) andalso Indent >= 0)
 )).
 
--spec nest(t(), non_neg_integer() | cursor | reset) -> t().
+-spec nest(doc(), non_neg_integer() | cursor | reset) -> doc().
 nest(Doc, Level) ->
     nest(Doc, Level, always).
 
--spec nest(t(), non_neg_integer() | cursor | reset, always | break) -> t().
+-spec nest(doc(), non_neg_integer() | cursor | reset, always | break) -> doc().
 nest(Doc, 0, _Mode) when ?is_doc(Doc) ->
     Doc;
 nest(Doc, Level, always) when ?is_doc(Doc), ?is_indent(Level)  ->
@@ -415,17 +415,18 @@ nest(Doc, Level, break) when ?is_doc(Doc), ?is_indent(Level)  ->
 %       iex> Inspect.Algebra.format(doc, 10)
 %       ["aaaaaaaaaaaaaaaaaaaa", "\n", "b"]
 
--spec break() -> t().
-break() -> break(<<" ">>).
+-spec break() -> doc().
+break() ->
+    break(<<" ">>).
 
--spec break(binary()) -> t().
+-spec break(binary()) -> doc().
 break(String) when is_binary(String) ->
-    #doc_break{break = String, mode = strict}.
+    #doc_break{break = String, flex_or_strict = strict}.
 
 %   Collapse any new lines and whitespace following this
 %   node, emitting up to `max` new lines.
-
--spec collapse_lines(pos_integer()) -> t().
+  
+-spec collapse_lines(pos_integer()) -> doc().
 collapse_lines(Max) when is_integer(Max) andalso Max > 0 ->
     #doc_collapse{count = Max}.
 
@@ -473,17 +474,17 @@ collapse_lines(Max) when is_integer(Max) andalso Max > 0 ->
     Mode == disabled
 )).
 
--spec next_break_fits(t()) -> t().
+-spec next_break_fits(doc()) -> doc().
 next_break_fits(Doc) ->
     next_break_fits(Doc, enabled).
 
--spec next_break_fits(t(), enabled | disabled) -> t().
+-spec next_break_fits(doc(), enabled | disabled) -> doc().
 next_break_fits(Doc, Mode) when ?is_doc(Doc) and ?is_next_break_mode(Mode) ->
-    #doc_fits{group = Doc, mode = Mode}.
+    #doc_fits{group = Doc, enabled_or_disabled = Mode}.
 
 %   Forces the current group to be unfit.
 
--spec force_unfit(t()) -> t().
+-spec force_unfit(doc()) -> doc().
 force_unfit(Doc) when ?is_doc(Doc) ->
     #doc_force{group = Doc}.
 
@@ -514,12 +515,12 @@ force_unfit(Doc) when ?is_doc(Doc) ->
 %   This function is used by `container_doc/6` and friends to the
 %   maximum number of entries on the same line.
 
--spec flex_break() -> t().
+-spec flex_break() -> doc().
 flex_break() -> flex_break(<<" ">>).
 
--spec flex_break(binary()) -> t().
+-spec flex_break(binary()) -> doc().
 flex_break(String) when is_binary(String) ->
-    #doc_break{break = String, mode = flex}.
+    #doc_break{break = String, flex_or_strict = flex}.
 
 %   Glues two documents (`doc1` and `doc2`) inserting a
 %   `flex_break/1` given by `break_string` between them.
@@ -527,11 +528,11 @@ flex_break(String) when is_binary(String) ->
 %   This function is used by `container_doc/6` and friends
 %   to the maximum number of entries on the same line.
 
--spec flex_glue(t(), t()) -> t().
+-spec flex_glue(doc(), doc()) -> doc().
 flex_glue(Doc1, Doc2) ->
     flex_glue(Doc1, <<" ">>, Doc2).
 
--spec flex_glue(t(), binary(), t()) -> t().
+-spec flex_glue(doc(), binary(), doc()) -> doc().
 flex_glue(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
     concat(Doc1, concat(flex_break(BreakString), Doc2)).
 
@@ -550,11 +551,11 @@ flex_glue(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
 %       iex> Inspect.Algebra.format(doc, 80)
 %       ["hello", "\t", "world"]
 
--spec glue(t(), t()) -> t().
+-spec glue(doc(), doc()) -> doc().
 glue(Doc1, Doc2) ->
     glue(Doc1, <<" ">>, Doc2).
 
--spec glue(t(), binary(), t()) -> t().
+-spec glue(doc(), binary(), doc()) -> doc().
 glue(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
     concat(Doc1, concat(break(BreakString), Doc2)).
 
@@ -591,13 +592,13 @@ glue(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
 %       iex> Inspect.Algebra.format(doc, 6)
 %       ["Hello,", "\n", "A", "\n", "B"]
 
--spec group(t()) -> t().
+-spec group(doc()) -> doc().
 group(Doc) ->
     group(Doc, self).
 
--spec group(t(), self | inherit) -> t().
+-spec group(doc(), self | inherit) -> doc().
 group(Doc, Mode) when ?is_doc(Doc), Mode == self orelse Mode == inherit ->
-    #doc_group{group = Doc, mode = Mode}.
+    #doc_group{group = Doc, inherit_or_self = Mode}.
 
 %   Inserts a mandatory single space between two documents.
 
@@ -607,7 +608,7 @@ group(Doc, Mode) when ?is_doc(Doc), Mode == self orelse Mode == inherit ->
 %       iex> Inspect.Algebra.format(doc, 5)
 %       ["Hughes", " ", "Wadler"]
 
--spec space(t(), t()) -> t().
+-spec space(doc(), doc()) -> doc().
 space(Doc1, Doc2) ->
     concat(Doc1, concat(<<" ">>, Doc2)).
 
@@ -628,7 +629,7 @@ space(Doc1, Doc2) ->
 %       iex> Inspect.Algebra.format(doc, 80)
 %       ["Hughes", "\n", "Wadler"]
 
--spec line() -> t().
+-spec line() -> doc().
 line() -> doc_line.
 
 %   Inserts a mandatory linebreak between two documents.
@@ -641,7 +642,7 @@ line() -> doc_line.
 %       iex> Inspect.Algebra.format(doc, 80)
 %       ["Hughes", "\n", "Wadler"]
 
--spec line(t(), t()) -> t().
+-spec line(doc(), doc()) -> doc().
 line(Doc1, Doc2) -> concat(Doc1, concat(line(), Doc2)).
 
 %   Folds a list of documents into a document using the given folder function.
@@ -660,7 +661,7 @@ line(Doc1, Doc2) -> concat(Doc1, concat(line(), Doc2)).
 %       iex> Inspect.Algebra.format(docs, 80)
 %       ["A", "!", "B", "!", "C"]
 
--spec fold_doc([t()], fun((t(), t()) -> t())) -> t().
+-spec fold_doc([doc()], fun((doc(), doc()) -> doc())) -> doc().
 fold_doc([], _Fun) ->
     empty();
 fold_doc([Doc], _Fun) ->
@@ -685,7 +686,7 @@ fold_doc([Doc | Docs], Fun) ->
 %       iex> doc |> Inspect.Algebra.format(10) |> IO.iodata_to_binary()
 %       "hello\nworld"
 
--spec format(t(), non_neg_integer() | infinity) -> iodata().
+-spec format(doc(), non_neg_integer() | infinity) -> iodata().
 format(Doc, Width) when ?is_doc(Doc) andalso (Width == infinity orelse Width >= 0) ->
     format(Width, 0, [{0, flat, Doc}]).
 
@@ -702,7 +703,7 @@ format(Doc, Width) when ?is_doc(Doc) andalso (Width == infinity orelse Width >= 
 -type mode() :: flat | flat_no_break | break | break_no_flat.
 
 -spec fits(integer(), integer(), boolean(), Entries) -> boolean()
-    when Entries :: maybe_improper_list({integer(), mode(), t()}, {tail, boolean(), Entries} | []).
+    when Entries :: maybe_improper_list({integer(), mode(), doc()}, {tail, boolean(), Entries} | []).
 
 % We need at least a break to consider the document does not fit since a
 % large document without breaks has no option but fitting its current line.
@@ -710,9 +711,9 @@ format(Doc, Width) when ?is_doc(Doc) andalso (Width == infinity orelse Width >= 
 % In case we have groups and the group fits, we need to consider the group
 % parent without the child breaks, hence {:tail, b?, t} below.
 
-fits(W, K, B, _) when K > W andalso B -> false;
+fits(Width, K, B, _) when K > Width andalso B -> false;
 fits(_, _, _, []) -> true;
-fits(W, K, _, {tail, B, T}) -> fits(W, K, B, T);
+fits(Width, K, _, {tail, B, Doc}) -> fits(Width, K, B, Doc);
 
 %   defp fits?(w, k, b?, _) when k > w and b?, do: false
 %   defp fits?(_, _, _, []), do: true
@@ -720,28 +721,28 @@ fits(W, K, _, {tail, B, T}) -> fits(W, K, B, T);
 
 %   ## Flat no break
 
-fits(W, K, B, [{I, _, #doc_fits{group = X, mode = disabled}} | T]) ->
-    fits(W, K, B, [{I, flat_no_break, X} | T]);
+fits(Width, K, B, [{I, _, #doc_fits{group = X, enabled_or_disabled = disabled}} | T]) ->
+    fits(Width, K, B, [{I, flat_no_break, X} | T]);
 
 %   defp fits?(w, k, b?, [{i, _, doc_fits(x, :disabled)} | t]),
 %     do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
 
-fits(W, K, B, [{I, flat_no_break, #doc_fits{group = X}} | T]) ->
-    fits(W, K, B, [{I, flat_no_break, X} | T]);
+fits(Width, K, B, [{I, flat_no_break, #doc_fits{group = X}} | T]) ->
+    fits(Width, K, B, [{I, flat_no_break, X} | T]);
 
 %   defp fits?(w, k, b?, [{i, :flat_no_break, doc_fits(x, _)} | t]),
 %     do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
 
 %   ## Breaks no flat
 
-fits(W, K, B, [{I, _, #doc_fits{group = X, mode = enabled}} | T]) ->
-    fits(W, K, B, [{I, break_no_flat, X} | T]);
+fits(Width, K, B, [{I, _, #doc_fits{group = X, enabled_or_disabled = enabled}} | T]) ->
+    fits(Width, K, B, [{I, break_no_flat, X} | T]);
 
 %   defp fits?(w, k, b?, [{i, _, doc_fits(x, :enabled)} | t]),
 %     do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
 
-fits(W, K, B, [{I, break_no_flat, #doc_force{group = X}} | T]) ->
-    fits(W, K, B, [{I, break_no_flat, X} | T]);
+fits(Width, K, B, [{I, break_no_flat, #doc_force{group = X}} | T]) ->
+    fits(Width, K, B, [{I, break_no_flat, X} | T]);
 
 %   defp fits?(w, k, b?, [{i, :break_no_flat, doc_force(x)} | t]),
 %     do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
@@ -764,85 +765,85 @@ fits(_, _, _, [{_, break, doc_line} | _]) ->
 %   defp fits?(_, _, _, [{_, :break, doc_break(_, _)} | _]), do: true
 %   defp fits?(_, _, _, [{_, :break, :doc_line} | _]), do: true
 
-fits(W, K, B, [{I, break, #doc_group{group = X}} | T]) ->
-    fits(W, K, B, [{I, flat, X} | {tail, B, T}]);
+fits(Width, K, B, [{I, break, #doc_group{group = X}} | T]) ->
+    fits(Width, K, B, [{I, flat, X} | {tail, B, T}]);
 
 %   defp fits?(w, k, b?, [{i, :break, doc_group(x, _)} | t]),
 %     do: fits?(w, k, b?, [{i, :flat, x} | {:tail, b?, t}])
 
 %   ## Catch all
 
-fits(W, _, _, [{I, _, doc_line} | T]) ->
-    fits(W, I, false, T);
+fits(Width, _, _, [{I, _, doc_line} | T]) ->
+    fits(Width, I, false, T);
 %   defp fits?(w, _, _, [{i, _, :doc_line} | t]), do: fits?(w, i, false, t)
-fits(W, K, B, [{_, _, doc_nil} | T]) ->
-    fits(W, K, B, T);
+fits(Width, K, B, [{_, _, doc_nil} | T]) ->
+    fits(Width, K, B, T);
 %   defp fits?(w, k, b?, [{_, _, :doc_nil} | t]), do: fits?(w, k, b?, t)
-fits(W, _, B, [{I, _, #doc_collapse{}} | T]) ->
-    fits(W, I, B, T);
+fits(Width, _, B, [{I, _, #doc_collapse{}} | T]) ->
+    fits(Width, I, B, T);
 %   defp fits?(w, _, b?, [{i, _, doc_collapse(_)} | t]), do: fits?(w, i, b?, t)
-fits(W, K, B, [{_, _, #doc_string{length = L}} | T]) ->
-    fits(W, K + L, B, T);
+fits(Width, K, B, [{_, _, #doc_string{length = L}} | T]) ->
+    fits(Width, K + L, B, T);
 %   defp fits?(w, k, b?, [{_, _, doc_string(_, l)} | t]), do: fits?(w, k + l, b?, t)
-fits(W, K, B, [{_, _, S} | T]) when is_binary(S) ->
-    fits(W, K + byte_size(S), B, T);
+fits(Width, K, B, [{_, _, S} | T]) when is_binary(S) ->
+    fits(Width, K + byte_size(S), B, T);
 %   defp fits?(w, k, b?, [{_, _, s} | t]) when is_binary(s), do: fits?(w, k + byte_size(s), b?, t)
 fits(_, _, _, [{_, _, #doc_force{}} | _]) ->
     false;
 %   defp fits?(_, _, _, [{_, _, doc_force(_)} | _]), do: false
-fits(W, K, _, [{_, _, #doc_break{break = S}} | T]) ->
-    fits(W, K + byte_size(S), true, T);
+fits(Width, K, _, [{_, _, #doc_break{break = S}} | T]) ->
+    fits(Width, K + byte_size(S), true, T);
 %   defp fits?(w, k, _, [{_, _, doc_break(s, _)} | t]), do: fits?(w, k + byte_size(s), true, t)
-fits(W, K, B, [{I, M, #doc_nest{doc = X, always_or_break = break}} | T]) ->
-    fits(W, K, B, [{I, M, X} | T]);
+fits(Width, K, B, [{I, M, #doc_nest{doc = X, always_or_break = break}} | T]) ->
+    fits(Width, K, B, [{I, M, X} | T]);
 %   defp fits?(w, k, b?, [{i, m, doc_nest(x, _, :break)} | t]), do: fits?(w, k, b?, [{i, m, x} | t])
-fits(W, K, B, [{I, M, #doc_nest{doc = X, indent = J}} | T]) ->
-    fits(W, K, B, [{apply_nesting(I, K, J), M, X} | T]);
+fits(Width, K, B, [{I, M, #doc_nest{doc = X, indent = J}} | T]) ->
+    fits(Width, K, B, [{apply_nesting(I, K, J), M, X} | T]);
 %   defp fits?(w, k, b?, [{i, m, doc_nest(x, j, _)} | t]),
 %     do: fits?(w, k, b?, [{apply_nesting(i, k, j), m, x} | t])
-fits(W, K, B, [{I, M, #doc_cons{left = X, right = Y}} | T]) ->
-    fits(W, K, B, [{I, M, X}, {I, M, Y} | T]);
+fits(Width, K, B, [{I, M, #doc_cons{left = X, right = Y}} | T]) ->
+    fits(Width, K, B, [{I, M, X}, {I, M, Y} | T]);
 %   defp fits?(w, k, b?, [{i, m, doc_cons(x, y)} | t]),
 %     do: fits?(w, k, b?, [{i, m, x}, {i, m, y} | t])
-fits(W, K, B, [{I, M, #doc_group{group = X}} | T]) ->
-    fits(W, K, B, [{I, M, X} | {tail, B, T}]).
+fits(Width, K, B, [{I, M, #doc_group{group = X}} | T]) ->
+    fits(Width, K, B, [{I, M, X} | {tail, B, T}]).
 
--spec format(integer() | infinity, integer(), [{integer(), mode(), t()}]) -> [binary()].
+-spec format(integer() | infinity, integer(), [{integer(), mode(), doc()}]) -> [binary()].
 %   @spec format(integer | :infinity, integer, [{integer, mode, t}]) :: [binary]
 format(_, _, []) ->
     [];
 %   defp format(_, _, []), do: []
-format(W, K, [{_, _, doc_nil} | T]) ->
-    format(W, K, T);
+format(Width, K, [{_, _, doc_nil} | T]) ->
+    format(Width, K, T);
 %   defp format(w, k, [{_, _, :doc_nil} | t]), do: format(w, k, t)
-format(W, _, [{I, _, doc_line} | T]) ->
-    [indent(I) | format(W, I, T)];
+format(Width, _, [{I, _, doc_line} | T]) ->
+    [indent(I) | format(Width, I, T)];
 %   defp format(w, _, [{i, _, :doc_line} | t]), do: [indent(i) | format(w, i, t)]
-format(W, K, [{I, M, #doc_cons{left = X, right = Y}} | T]) ->
-    format(W, K, [{I, M, X}, {I, M, Y} | T]);
+format(Width, K, [{I, M, #doc_cons{left = X, right = Y}} | T]) ->
+    format(Width, K, [{I, M, X}, {I, M, Y} | T]);
 %   defp format(w, k, [{i, m, doc_cons(x, y)} | t]), do: format(w, k, [{i, m, x}, {i, m, y} | t])
-format(W, K, [{_, _, #doc_string{string = S, length = L}} | T]) ->
-    [S | format(W, K + L, T)];
+format(Width, K, [{_, _, #doc_string{string = S, length = L}} | T]) ->
+    [S | format(Width, K + L, T)];
 %   defp format(w, k, [{_, _, doc_string(s, l)} | t]), do: [s | format(w, k + l, t)]
-format(W, K, [{_, _, S} | T]) when is_binary(S) ->
-    [S | format(W, K + byte_size(S), T)];
+format(Width, K, [{_, _, S} | T]) when is_binary(S) ->
+    [S | format(Width, K + byte_size(S), T)];
 %   defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, k + byte_size(s), t)]
-format(W, K, [{I, M, #doc_force{group = X}} | T]) ->
-    format(W, K, [{I, M, X} | T]);
+format(Width, K, [{I, M, #doc_force{group = X}} | T]) ->
+    format(Width, K, [{I, M, X} | T]);
 %   defp format(w, k, [{i, m, doc_force(x)} | t]), do: format(w, k, [{i, m, x} | t])
-format(W, K, [{I, M, #doc_fits{group = X}} | T]) ->
-    format(W, K, [{I, M, X} | T]);
+format(Width, K, [{I, M, #doc_fits{group = X}} | T]) ->
+    format(Width, K, [{I, M, X} | T]);
 %   defp format(w, k, [{i, m, doc_fits(x, _)} | t]), do: format(w, k, [{i, m, x} | t])
-format(W, _, [{I, _, #doc_collapse{count = Max}} | T]) ->
-    collapse(format(W, I, T), Max, 0, I);
+format(Width, _, [{I, _, #doc_collapse{count = Max}} | T]) ->
+    collapse(format(Width, I, T), Max, 0, I);
 %   defp format(w, _, [{i, _, doc_collapse(max)} | t]), do: collapse(format(w, i, t), max, 0, i)
 
 %   # Flex breaks are not conditional to the mode
-format(W, K0, [{I, M, #doc_break{break = S, mode = flex}} | T]) ->
+format(Width, K0, [{I, M, #doc_break{break = S, flex_or_strict = flex}} | T]) ->
     K = K0 + byte_size(S),
-    case W == infinity orelse M == flat orelse fits(W, K, true, T) of
-        true -> [S | format(W, K, T)];
-        false -> [indent(I) | format(W, I, T)]
+    case Width == infinity orelse M == flat orelse fits(Width, K, true, T) of
+        true -> [S | format(Width, K, T)];
+        false -> [indent(I) | format(Width, I, T)]
     end;
 
 %   defp format(w, k, [{i, m, doc_break(s, :flex)} | t]) do
@@ -856,10 +857,10 @@ format(W, K0, [{I, M, #doc_break{break = S, mode = flex}} | T]) ->
 %   end
 
 %   # Strict breaks are conditional to the mode
-format(W, K, [{I, M, #doc_break{break = S, mode = strict}} | T]) ->
+format(Width, K, [{I, M, #doc_break{break = S, flex_or_strict = strict}} | T]) ->
     case M of
-        break -> [indent(I) | format(W, I, T)];
-        _ -> [S | format(W, K + byte_size(S), T)]
+        break -> [indent(I) | format(Width, I, T)];
+        _ -> [S | format(Width, K + byte_size(S), T)]
     end;
 
 %   defp format(w, k, [{i, mode, doc_break(s, :strict)} | t]) do
@@ -871,10 +872,10 @@ format(W, K, [{I, M, #doc_break{break = S, mode = strict}} | T]) ->
 %   end
 
 %   # Nesting is conditional to the mode.
-format(W, K, [{I, M, #doc_nest{doc = X, indent = J, always_or_break = Nest}} | T]) ->
+format(Width, K, [{I, M, #doc_nest{doc = X, indent = J, always_or_break = Nest}} | T]) ->
     case Nest == always orelse (Nest == break andalso M == break) of
-        true -> format(W, K, [{apply_nesting(I, K, J), M, X} | T]);
-        false -> format(W, K, [{I, M, X} | T])
+        true -> format(Width, K, [{apply_nesting(I, K, J), M, X} | T]);
+        false -> format(Width, K, [{I, M, X} | T])
     end;
 %   defp format(w, k, [{i, mode, doc_nest(x, j, nest)} | t]) do
 %     if nest == :always or (nest == :break and mode == :break) do
@@ -885,17 +886,17 @@ format(W, K, [{I, M, #doc_nest{doc = X, indent = J, always_or_break = Nest}} | T
 %   end
 
 %   # Groups must do the fitting decision.
-format(W, K, [{I, break, #doc_group{group = X, mode = inherit}} | T]) ->
-    format(W, K, [{I, break, X} | T]);
+format(Width, K, [{I, break, #doc_group{group = X, inherit_or_self = inherit}} | T]) ->
+    format(Width, K, [{I, break, X} | T]);
 
 %   defp format(w, k, [{i, :break, doc_group(x, :inherit)} | t]) do
 %     format(w, k, [{i, :break, x} | t])
 %   end
 
-format(W, K, [{I, _, #doc_group{group = X}} | T]) ->
-    case W == infinity orelse fits(W, K, false, [{I, flat, X}]) of
-        true -> format(W, K, [{I, flat, X} | T]);
-        false -> format(W, K, [{I, break, X} | T])
+format(Width, K, [{I, _, #doc_group{group = X}} | T]) ->
+    case Width == infinity orelse fits(Width, K, false, [{I, flat, X}]) of
+        true -> format(Width, K, [{I, flat, X} | T]);
+        false -> format(Width, K, [{I, break, X} | T])
     end.
 %   defp format(w, k, [{i, _, doc_group(x, _)} | t]) do
 %     if w == :infinity or fits?(w, k, false, [{i, :flat, x}]) do
