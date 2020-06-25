@@ -75,12 +75,12 @@
 -export_type([t/0]).
 
 -export([
-    empty/0, 
-    string/1, 
-    concat/1, concat/2, 
+    empty/0,
+    string/1,
+    concat/1, concat/2,
     nest/2, nest/3,
     break/0, break/1,
-    collapse_lines/1, 
+    collapse_lines/1,
     next_break_fits/1, next_break_fits/2,
     force_unfit/1,
     flex_break/0, flex_break/1,
@@ -138,7 +138,7 @@
     count :: pos_integer()
 }).
 
--opaque t() :: binary() 
+-opaque t() :: binary()
     | doc_line
     | doc_nil
     | #doc_break{}
@@ -165,8 +165,8 @@
 
 -define(is_doc(Doc),
     (
-        is_binary(Doc) orelse 
-        (Doc == doc_nil) orelse 
+        is_binary(Doc) orelse
+        (Doc == doc_nil) orelse
         (Doc == doc_line) orelse
         is_record(Doc, doc_break) orelse
         is_record(Doc, doc_collapse) orelse
@@ -376,7 +376,7 @@ concat(Docs) when is_list(Docs) ->
 
 -define(is_indent(Indent), (
     Indent == reset orelse
-    Indent == always orelse
+    Indent == cursor orelse
     (is_integer(Indent) andalso Indent >= 0)
 )).
 
@@ -416,8 +416,7 @@ nest(Doc, Level, break) when ?is_doc(Doc), ?is_indent(Level)  ->
 %       ["aaaaaaaaaaaaaaaaaaaa", "\n", "b"]
 
 -spec break() -> t().
-break() ->
-    #doc_break{break = <<"">>, mode = strict}.
+break() -> break(<<" ">>).
 
 -spec break(binary()) -> t().
 break(String) when is_binary(String) ->
@@ -425,7 +424,7 @@ break(String) when is_binary(String) ->
 
 %   Collapse any new lines and whitespace following this
 %   node, emitting up to `max` new lines.
-  
+
 -spec collapse_lines(pos_integer()) -> t().
 collapse_lines(Max) when is_integer(Max) andalso Max > 0 ->
     #doc_collapse{count = Max}.
@@ -691,15 +690,15 @@ format(Doc, Width) when ?is_doc(Doc) andalso (Width == infinity orelse Width >= 
     format(Width, 0, [{0, flat, Doc}]).
 
 %   Type representing the document mode to be rendered
-%  
+%
 %     * flat - represents a document with breaks as flats (a break may fit, as it may break)
 %     * break - represents a document with breaks as breaks (a break always fits, since it breaks)
-%  
+%
 %   The following modes are exclusive to fitting
-%  
+%
 %     * flat_no_break - represents a document with breaks as flat not allowed to enter in break mode
 %     * break_no_flat - represents a document with breaks as breaks not allowed to enter in flat mode
-  
+
 -type mode() :: flat | flat_no_break | break | break_no_flat.
 
 -spec fits(integer(), integer(), boolean(), Entries) -> boolean()
@@ -810,7 +809,7 @@ fits(W, K, B, [{I, M, #doc_group{group = X}} | T]) ->
 
 -spec format(integer() | infinity, integer(), [{integer(), mode(), t()}]) -> [binary()].
 %   @spec format(integer | :infinity, integer, [{integer, mode, t}]) :: [binary]
-format(_, _, []) -> 
+format(_, _, []) ->
     [];
 %   defp format(_, _, []), do: []
 format(W, K, [{_, _, doc_nil} | T]) ->
@@ -935,7 +934,7 @@ apply_nesting(I, _, J) -> I + J.
 %   defp apply_nesting(i, _, j), do: i + j
 
 indent(0) -> ?newline;
-indent(I) when is_integer(I) -> 
+indent(I) when is_integer(I) ->
     Spaces = binary:copy(<<" ">>, I),
     <<?newline/binary,Spaces/binary>>.
 
