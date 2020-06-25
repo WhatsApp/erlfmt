@@ -430,7 +430,7 @@ break(String) when is_binary(String) ->
 %   node, emitting up to `max` new lines.
   
 -spec collapse_lines(pos_integer()) -> t().
-collapse_lines(Max) when is_integer(Max) and Max > 0 ->
+collapse_lines(Max) when is_integer(Max) andalso Max > 0 ->
     #doc_collapse{count = Max}.
 
 %   Considers the next break as fit.
@@ -938,8 +938,8 @@ apply_nesting(I, _, J) -> I + J.
 %   defp apply_nesting(i, _, j), do: i + j
 
 indent(0) -> ?newline;
-indent(I) -> 
-    Spaces = binary:copy(" ", I),
+indent(I) when is_integer(I) -> 
+    Spaces = binary:copy(<<" ">>, I),
     <<?newline/binary,Spaces/binary>>.
 
 %   defp indent(0), do: @newline
