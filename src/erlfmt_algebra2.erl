@@ -72,6 +72,31 @@
 -define(tail_separator, <<" |">>).
 -define(newline, <<"\n">>).
 
+-export_type([t/0]).
+
+-export([
+    empty/0, 
+    string/1, 
+    concat/1, concat/2, 
+    nest/2, nest/3,
+    break/0, break/1,
+    collapse_lines/1, 
+    next_break_fits/1, next_break_fits/2,
+    force_unfit/1,
+    flex_break/0, flex_break/1,
+    flex_glue/2, flex_glue/3,
+    glue/2, glue/3,
+    group/1, group/2,
+    space/2,
+    line/0, line/2,
+    fold_doc/2,
+    format/2, format/3,
+    fits/4,
+    collapse/4,
+    apply_nesting/3,
+    indent/1
+]).
+
 % Functional interface to "doc" records
 
 -record(doc_string, {
