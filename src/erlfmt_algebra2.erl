@@ -374,11 +374,6 @@ concat(Docs) when is_list(Docs) ->
 %       iex> Inspect.Algebra.format(doc, 5)
 %       ["hello", "\n     ", "world"]
 
--define(is_nest_mode(Mode), (
-    (Mode == always) orelse
-    (Mode == break)
-)).
-
 -define(is_indent(Indent), (
     Indent == reset orelse
     Indent == always orelse
@@ -390,10 +385,12 @@ nest(Doc, Level) ->
     nest(Doc, Level, always).
 
 -spec nest(t(), non_neg_integer() | cursor | reset, always | break) -> t().
-nest(Doc, 0, Mode) when ?is_doc(Doc), ?is_nest_mode(Mode) ->
+nest(Doc, 0, _Mode) when ?is_doc(Doc) ->
     Doc;
-nest(Doc, Level, Mode) when ?is_doc(Doc), ?is_indent(Level), ?is_nest_mode(Mode)  ->
-    #doc_nest{doc = Doc, indent = Level, always_or_break = mode}.
+nest(Doc, Level, always) when ?is_doc(Doc), ?is_indent(Level)  ->
+    #doc_nest{doc = Doc, indent = Level, always_or_break = always};
+nest(Doc, Level, break) when ?is_doc(Doc), ?is_indent(Level)  ->
+    #doc_nest{doc = Doc, indent = Level, always_or_break = break}.
 
 %   Returns a break document based on the given `string`.
 
