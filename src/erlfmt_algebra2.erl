@@ -68,8 +68,6 @@
 
 -module(erlfmt_algebra2).
 
--define(container_separator, <<",">>).
--define(tail_separator, <<" |">>).
 -define(newline, <<"\n">>).
 
 -export_type([doc/0]).
@@ -94,7 +92,8 @@
     fits/4,
     collapse/4,
     apply_nesting/3,
-    indent/1
+    indent/1,
+    container_doc/3, container_doc/4
 ]).
 
 % Functional interface to "doc" records
@@ -218,8 +217,27 @@
 %       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary()
 %       "[1! 2! 3! ...]"
 
+-spec container_doc(doc(), [doc()], doc()) -> doc().
+container_doc(Left, Collection, Right) ->
+    container_doc(Left, Collection, Right, #{}).
 
-%%%%%%%%%%%%%%%%%% TODO
+-spec container_doc(doc(), [doc()], doc(), map()) -> doc().
+container_doc(Left, [], Right, Opts) when 
+    ?is_doc(Left), ?is_doc(Right), is_map(Opts)  ->
+        concat(Left, Right);
+container_doc(Left, Collection, Right, Opts) when 
+    ?is_doc(Left), is_list(Collection), ?is_doc(Right), is_map(Opts)  ->
+    Break = maps:get(break, Opts, maybe),
+    Separator = maps:get(separator, Opts, <<",">>),
+    {Docs0, Simple} = container_each(Collection, [], Break == maybe),
+    Flex = Simple orelse Break == flex,
+    Docs = fold_doc(Docs0, fun(L, R) -> join(L, R, Flex, Separator) end),
+    case Flex of
+        % TODO: 1 and 2 should probably not be constants
+        true -> group(concat(concat(Left, nest(Docs, 1)), Right));
+        false -> group(glue(nest(glue(Left, <<"">>, Docs), 2), <<"">>, Right))
+    end.
+
 %   @spec container_doc(t, [any], t, Inspect.Opts.doc(), (term, Inspect.Opts.doc() -> t), keyword()) ::
 %           t
 %   def container_doc(left, collection, right, inspect_opts, fun, opts \\ [])
@@ -245,6 +263,15 @@
 %         end
 %     end
 %   end
+
+container_each([], Acc, Simple) ->
+    {lists:reverse(Acc), Simple};
+container_each([Doc | Docs], Acc, Simple) when is_list(Docs) ->
+    container_each(Docs, [Doc | Acc], Simple andalso simple(Doc));
+container_each([Left | Right], Acc, Simple0) ->
+    Simple = Simple0 and simple(Left) and simple(Right),
+    Doc = join(Left, Right, Simple, <<" |">>),
+    {lists:reverse([Doc | Acc]), Simple}.
 
 %   defp container_each([], _limit, _opts, _fun, acc, simple?) do
 %     {:lists.reverse(acc), simple?}
@@ -273,14 +300,23 @@
 %   defp decrement(:infinity), do: :infinity
 %   defp decrement(counter), do: counter - 1
 
+join(Left, doc_nil, _, _) -> Left;
+join(doc_nil, Right, _, _) -> Right;
+join(Left, Right, true, Sep) -> flex_glue(concat(Left, Sep), Right);
+join(Left, Right, false, Sep) -> glue(concat(Left, Sep), Right).
+
 %   defp join(:doc_nil, :doc_nil, _, _), do: :doc_nil
 %   defp join(left, :doc_nil, _, _), do: left
 %   defp join(:doc_nil, right, _, _), do: right
 %   defp join(left, right, true, sep), do: flex_glue(concat(left, sep), right)
 %   defp join(left, right, false, sep), do: glue(concat(left, sep), right)
 
+simple(#doc_cons{left = Left, right = Right}) -> simple(Left) andalso simple(Right);
+simple(#doc_string{}) -> true;
+simple(doc_nil) -> true;
+simple(Other) -> is_binary(Other).
+
 %   defp simple?(doc_cons(left, right)), do: simple?(left) and simple?(right)
-%   defp simple?(doc_color(doc, _)), do: simple?(doc)
 %   defp simple?(doc_string(_, _)), do: true
 %   defp simple?(:doc_nil), do: true
 %   defp simple?(other), do: is_binary(other)
