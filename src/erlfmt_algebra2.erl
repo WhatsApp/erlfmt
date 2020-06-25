@@ -751,45 +751,23 @@ fits(Width, K, B, _) when K > Width andalso B -> false;
 fits(_, _, _, []) -> true;
 fits(Width, K, _, {tail, B, Doc}) -> fits(Width, K, B, Doc);
 
-%   defp fits?(w, k, b?, _) when k > w and b?, do: false
-%   defp fits?(_, _, _, []), do: true
-%   defp fits?(w, k, _, {:tail, b?, t}), do: fits?(w, k, b?, t)
-
 %   ## Flat no break
 
 fits(Width, K, B, [{I, _, #doc_fits{group = X, enabled_or_disabled = disabled}} | T]) ->
     fits(Width, K, B, [{I, flat_no_break, X} | T]);
-
-%   defp fits?(w, k, b?, [{i, _, doc_fits(x, :disabled)} | t]),
-%     do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
-
 fits(Width, K, B, [{I, flat_no_break, #doc_fits{group = X}} | T]) ->
     fits(Width, K, B, [{I, flat_no_break, X} | T]);
-
-%   defp fits?(w, k, b?, [{i, :flat_no_break, doc_fits(x, _)} | t]),
-%     do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
 
 %   ## Breaks no flat
 
 fits(Width, K, B, [{I, _, #doc_fits{group = X, enabled_or_disabled = enabled}} | T]) ->
     fits(Width, K, B, [{I, break_no_flat, X} | T]);
-
-%   defp fits?(w, k, b?, [{i, _, doc_fits(x, :enabled)} | t]),
-%     do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
-
 fits(Width, K, B, [{I, break_no_flat, #doc_force{group = X}} | T]) ->
     fits(Width, K, B, [{I, break_no_flat, X} | T]);
-
-%   defp fits?(w, k, b?, [{i, :break_no_flat, doc_force(x)} | t]),
-%     do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
-
 fits(_, _, _, [{_, break_no_flat, #doc_break{}} | _]) ->
     true;
 fits(_, _, _, [{_, break_no_flat, doc_line} | _]) ->
     true;
-
-%   defp fits?(_, _, _, [{_, :break_no_flat, doc_break(_, _)} | _]), do: true
-%   defp fits?(_, _, _, [{_, :break_no_flat, :doc_line} | _]), do: true
 
 %   ## Breaks
 
@@ -797,82 +775,53 @@ fits(_, _, _, [{_, break, #doc_break{}} | _]) ->
     true;
 fits(_, _, _, [{_, break, doc_line} | _]) ->
     true;
-
-%   defp fits?(_, _, _, [{_, :break, doc_break(_, _)} | _]), do: true
-%   defp fits?(_, _, _, [{_, :break, :doc_line} | _]), do: true
-
 fits(Width, K, B, [{I, break, #doc_group{group = X}} | T]) ->
     fits(Width, K, B, [{I, flat, X} | {tail, B, T}]);
-
-%   defp fits?(w, k, b?, [{i, :break, doc_group(x, _)} | t]),
-%     do: fits?(w, k, b?, [{i, :flat, x} | {:tail, b?, t}])
 
 %   ## Catch all
 
 fits(Width, _, _, [{I, _, doc_line} | T]) ->
     fits(Width, I, false, T);
-%   defp fits?(w, _, _, [{i, _, :doc_line} | t]), do: fits?(w, i, false, t)
 fits(Width, K, B, [{_, _, doc_nil} | T]) ->
     fits(Width, K, B, T);
-%   defp fits?(w, k, b?, [{_, _, :doc_nil} | t]), do: fits?(w, k, b?, t)
 fits(Width, _, B, [{I, _, #doc_collapse{}} | T]) ->
     fits(Width, I, B, T);
-%   defp fits?(w, _, b?, [{i, _, doc_collapse(_)} | t]), do: fits?(w, i, b?, t)
 fits(Width, K, B, [{_, _, #doc_string{length = L}} | T]) ->
     fits(Width, K + L, B, T);
-%   defp fits?(w, k, b?, [{_, _, doc_string(_, l)} | t]), do: fits?(w, k + l, b?, t)
 fits(Width, K, B, [{_, _, S} | T]) when is_binary(S) ->
     fits(Width, K + byte_size(S), B, T);
-%   defp fits?(w, k, b?, [{_, _, s} | t]) when is_binary(s), do: fits?(w, k + byte_size(s), b?, t)
 fits(_, _, _, [{_, _, #doc_force{}} | _]) ->
     false;
-%   defp fits?(_, _, _, [{_, _, doc_force(_)} | _]), do: false
 fits(Width, K, _, [{_, _, #doc_break{break = S}} | T]) ->
     fits(Width, K + byte_size(S), true, T);
-%   defp fits?(w, k, _, [{_, _, doc_break(s, _)} | t]), do: fits?(w, k + byte_size(s), true, t)
 fits(Width, K, B, [{I, M, #doc_nest{doc = X, always_or_break = break}} | T]) ->
     fits(Width, K, B, [{I, M, X} | T]);
-%   defp fits?(w, k, b?, [{i, m, doc_nest(x, _, :break)} | t]), do: fits?(w, k, b?, [{i, m, x} | t])
 fits(Width, K, B, [{I, M, #doc_nest{doc = X, indent = J}} | T]) ->
     fits(Width, K, B, [{apply_nesting(I, K, J), M, X} | T]);
-%   defp fits?(w, k, b?, [{i, m, doc_nest(x, j, _)} | t]),
-%     do: fits?(w, k, b?, [{apply_nesting(i, k, j), m, x} | t])
 fits(Width, K, B, [{I, M, #doc_cons{left = X, right = Y}} | T]) ->
     fits(Width, K, B, [{I, M, X}, {I, M, Y} | T]);
-%   defp fits?(w, k, b?, [{i, m, doc_cons(x, y)} | t]),
-%     do: fits?(w, k, b?, [{i, m, x}, {i, m, y} | t])
 fits(Width, K, B, [{I, M, #doc_group{group = X}} | T]) ->
     fits(Width, K, B, [{I, M, X} | {tail, B, T}]).
 
 -spec format(integer() | infinity, integer(), [{integer(), mode(), doc()}]) -> [binary()].
-%   @spec format(integer | :infinity, integer, [{integer, mode, t}]) :: [binary]
 format(_, _, []) ->
     [];
-%   defp format(_, _, []), do: []
 format(Width, K, [{_, _, doc_nil} | T]) ->
     format(Width, K, T);
-%   defp format(w, k, [{_, _, :doc_nil} | t]), do: format(w, k, t)
 format(Width, _, [{I, _, doc_line} | T]) ->
     [indent(I) | format(Width, I, T)];
-%   defp format(w, _, [{i, _, :doc_line} | t]), do: [indent(i) | format(w, i, t)]
 format(Width, K, [{I, M, #doc_cons{left = X, right = Y}} | T]) ->
     format(Width, K, [{I, M, X}, {I, M, Y} | T]);
-%   defp format(w, k, [{i, m, doc_cons(x, y)} | t]), do: format(w, k, [{i, m, x}, {i, m, y} | t])
 format(Width, K, [{_, _, #doc_string{string = S, length = L}} | T]) ->
     [S | format(Width, K + L, T)];
-%   defp format(w, k, [{_, _, doc_string(s, l)} | t]), do: [s | format(w, k + l, t)]
 format(Width, K, [{_, _, S} | T]) when is_binary(S) ->
     [S | format(Width, K + byte_size(S), T)];
-%   defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, k + byte_size(s), t)]
 format(Width, K, [{I, M, #doc_force{group = X}} | T]) ->
     format(Width, K, [{I, M, X} | T]);
-%   defp format(w, k, [{i, m, doc_force(x)} | t]), do: format(w, k, [{i, m, x} | t])
 format(Width, K, [{I, M, #doc_fits{group = X}} | T]) ->
     format(Width, K, [{I, M, X} | T]);
-%   defp format(w, k, [{i, m, doc_fits(x, _)} | t]), do: format(w, k, [{i, m, x} | t])
 format(Width, _, [{I, _, #doc_collapse{count = Max}} | T]) ->
     collapse(format(Width, I, T), Max, 0, I);
-%   defp format(w, _, [{i, _, doc_collapse(max)} | t]), do: collapse(format(w, i, t), max, 0, i)
 
 %   # Flex breaks are not conditional to the mode
 format(Width, K0, [{I, M, #doc_break{break = S, flex_or_strict = flex}} | T]) ->
@@ -882,16 +831,6 @@ format(Width, K0, [{I, M, #doc_break{break = S, flex_or_strict = flex}} | T]) ->
         false -> [indent(I) | format(Width, I, T)]
     end;
 
-%   defp format(w, k, [{i, m, doc_break(s, :flex)} | t]) do
-%     k = k + byte_size(s)
-
-%     if w == :infinity or m == :flat or fits?(w, k, true, t) do
-%       [s | format(w, k, t)]
-%     else
-%       [indent(i) | format(w, i, t)]
-%     end
-%   end
-
 %   # Strict breaks are conditional to the mode
 format(Width, K, [{I, M, #doc_break{break = S, flex_or_strict = strict}} | T]) ->
     case M of
@@ -899,81 +838,39 @@ format(Width, K, [{I, M, #doc_break{break = S, flex_or_strict = strict}} | T]) -
         _ -> [S | format(Width, K + byte_size(S), T)]
     end;
 
-%   defp format(w, k, [{i, mode, doc_break(s, :strict)} | t]) do
-%     if mode == :break do
-%       [indent(i) | format(w, i, t)]
-%     else
-%       [s | format(w, k + byte_size(s), t)]
-%     end
-%   end
-
 %   # Nesting is conditional to the mode.
 format(Width, K, [{I, M, #doc_nest{doc = X, indent = J, always_or_break = Nest}} | T]) ->
     case Nest == always orelse (Nest == break andalso M == break) of
         true -> format(Width, K, [{apply_nesting(I, K, J), M, X} | T]);
         false -> format(Width, K, [{I, M, X} | T])
     end;
-%   defp format(w, k, [{i, mode, doc_nest(x, j, nest)} | t]) do
-%     if nest == :always or (nest == :break and mode == :break) do
-%       format(w, k, [{apply_nesting(i, k, j), mode, x} | t])
-%     else
-%       format(w, k, [{i, mode, x} | t])
-%     end
-%   end
 
 %   # Groups must do the fitting decision.
 format(Width, K, [{I, break, #doc_group{group = X, inherit_or_self = inherit}} | T]) ->
     format(Width, K, [{I, break, X} | T]);
-
-%   defp format(w, k, [{i, :break, doc_group(x, :inherit)} | t]) do
-%     format(w, k, [{i, :break, x} | t])
-%   end
 
 format(Width, K, [{I, _, #doc_group{group = X}} | T]) ->
     case Width == infinity orelse fits(Width, K, false, [{I, flat, X}]) of
         true -> format(Width, K, [{I, flat, X} | T]);
         false -> format(Width, K, [{I, break, X} | T])
     end.
-%   defp format(w, k, [{i, _, doc_group(x, _)} | t]) do
-%     if w == :infinity or fits?(w, k, false, [{i, :flat, x}]) do
-%       format(w, k, [{i, :flat, x} | t])
-%     else
-%       format(w, k, [{i, :break, x} | t])
-%     end
-%   end
 
 collapse([<<"\n", _/binary>> | T], Max, Count, I) ->
     collapse(T, Max, Count + 1, I);
 
-%   defp collapse(["\n" <> _ | t], max, count, i) do
-%     collapse(t, max, count + 1, i)
-%   end
-
 collapse([<<"">> | T], Max, Count, I) ->
     collapse(T, Max, Count, I);
-%   defp collapse(["" | t], max, count, i) do
-%     collapse(t, max, count, i)
-%   end
 
 collapse(T, Max, Count, I) ->
     NewLines = binary:copy(<<"\n">>, min(Max, Count)),
     Spaces = binary:copy(<<" ">>, I),
     [<<NewLines/binary, Spaces/binary>> | T].
-%   defp collapse(t, max, count, i) do
-%     [:binary.copy("\n", min(max, count)) <> :binary.copy(" ", i) | t]
-%   end
 
 apply_nesting(_, K, cursor) -> K;
 apply_nesting(_, _, reset) -> 0;
 apply_nesting(I, _, J) -> I + J.
-%   defp apply_nesting(_, k, :cursor), do: k
-%   defp apply_nesting(_, _, :reset), do: 0
-%   defp apply_nesting(i, _, j), do: i + j
 
 indent(0) -> ?newline;
 indent(I) when is_integer(I) ->
     Spaces = binary:copy(<<" ">>, I),
     <<?newline/binary,Spaces/binary>>.
-
-%   defp indent(0), do: @newline
-%   defp indent(i), do: @newline <> :binary.copy(" ", i)
