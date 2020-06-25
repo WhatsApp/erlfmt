@@ -939,7 +939,7 @@ apply_nesting(I, _, J) -> I + J.
 
 indent(0) -> ?newline;
 indent(I) -> 
-    Spaces = binary:copy(" ", i),
+    Spaces = binary:copy(" ", I),
     <<?newline/binary,Spaces/binary>>.
 
 %   defp indent(0), do: @newline
