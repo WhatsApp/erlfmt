@@ -6,18 +6,18 @@
 %   additions, like support for binary nodes and a break mode that
 %   maximises use of horizontal space.
 
-%       iex> Inspect.Algebra.empty()
-%       :doc_nil
+%       > erlfmt_algebra2:empty()
+%       doc_nil
 
-%       iex> "foo"
-%       "foo"
+%       > <<"foo">>
+%       <<"foo">>
 
 %   With the functions in this module, we can concatenate different
 %   elements together and render them:
 
-%       iex> doc = Inspect.Algebra.concat(Inspect.Algebra.empty(), "foo")
-%       iex> Inspect.Algebra.format(doc, 80)
-%       ["foo"]
+%       > Doc = erlfmt_algebra2:concat(erlfmt_algebra2:empty(), <<"foo">>)),
+%       > iodata_to_binary(erlfmt_algebra2:format(Doc, 80))
+%       <<"foo">>
 
 %   The functions `nest/2`, `space/2` and `line/2` help you put the
 %   document together into a rigid structure. However, the document
@@ -137,7 +137,7 @@
     count :: pos_integer()
 }).
 
--opaque doc() :: binary() 
+-opaque doc() :: binary()
     | doc_line
     | doc_nil
     | #doc_break{}
@@ -221,11 +221,11 @@
 container_doc(Left, Collection, Right) ->
     container_doc(Left, Collection, Right, #{}).
 
--spec container_doc(doc(), [doc()], doc(), map()) -> doc().
-container_doc(Left, [], Right, Opts) when 
+-spec container_doc(doc(), [doc()], doc(), #{separator => doc(), break => maybe | flex}) -> doc().
+container_doc(Left, [], Right, Opts) when
     ?is_doc(Left), ?is_doc(Right), is_map(Opts)  ->
         concat(Left, Right);
-container_doc(Left, Collection, Right, Opts) when 
+container_doc(Left, Collection, Right, Opts) when
     ?is_doc(Left), is_list(Collection), ?is_doc(Right), is_map(Opts)  ->
     Break = maps:get(break, Opts, maybe),
     Separator = maps:get(separator, Opts, <<",">>),
@@ -461,7 +461,7 @@ break(String) when is_binary(String) ->
 
 %   Collapse any new lines and whitespace following this
 %   node, emitting up to `max` new lines.
-  
+
 -spec collapse_lines(pos_integer()) -> doc().
 collapse_lines(Max) when is_integer(Max) andalso Max > 0 ->
     #doc_collapse{count = Max}.

@@ -51,7 +51,9 @@
     test_force_and_cancel/1,
     test_groups_with_lines/1,
     test_infinite_width/1,
-    test_container/1
+    test_container/1,
+    test_concat/1,
+    test_docs/1
 ]).
 
 -import(erlfmt_algebra2, [
@@ -79,7 +81,9 @@
     force_unfit/1,
     next_break_fits/1,
     next_break_fits/2,
-    container_doc/4
+    container_doc/3,
+    container_doc/4,
+    fold_doc/2
 ]).
 
 suite() ->
@@ -127,7 +131,9 @@ all() ->
         test_force_and_cancel,
         test_groups_with_lines,
         test_infinite_width,
-        test_container
+        test_container,
+        test_concat,
+        test_docs
     ].
 
 % doctest Inspect.Algebra
@@ -288,6 +294,78 @@ test_container(Config) when is_list(Config) ->
     ?assertEqual(<<"[a | b]">>, Render([<<"a">> | <<"b">>])),
     ?assertEqual(<<"[a]">>, Render([<<"a">> | empty()])),
     ?assertEqual(<<"[b]">>, Render([empty() | <<"b">>])).
+
+test_concat(Config) when is_list(Config) ->
+    ?assertEqual(<<"foo">>, render(concat(empty(), <<"foo">>), 80)).
+
+test_docs(Config) when is_list(Config) ->
+    ?assertEqual(<<"a b">>, render(group(glue(<<"a">>, <<" ">>, <<"b">>)), 80)),
+    ?assertEqual(<<"aaaaaaaaaaaaaaaaaaaa\nb">>, render(group(glue(binary:copy(<<"a">>, 20), <<" ">>, <<"b">>)), 10)),
+
+    ?assertEqual(
+        <<"[1,\n 2,\n 3,\n 4,\n 5]">>,
+        render(container_doc(<<"[">>, [integer_to_binary(I) || I <- lists:seq(1, 5)], <<"]">>), 5)
+    ),
+    ?assertEqual(
+        <<"[a! b]">>,
+        render(container_doc(<<"[">>, [<<"a">>, <<"b">>], <<"]">>, #{separator => <<"!">>}), 20)
+    ),
+
+    ?assertEqual(
+        <<"olá\nmundo"/utf8>>,
+        render(group(glue(<<"olá"/utf8>>, <<" ">>, <<"mundo">>)), 9)
+    ),
+    ?assertEqual(
+       <<"olá mundo"/utf8>>,
+       render(group(glue(string(<<"olá"/utf8>>), <<" ">>, <<"mundo">>)), 9)
+    ),
+
+    ?assertEqual(
+        <<"helloworld">>,
+        render(concat(<<"hello">>, <<"world">>), 80)
+    ),
+
+    ?assertEqual(
+        <<"abc">>,
+        render(concat([<<"a">>, <<"b">>, <<"c">>]), 80)
+    ),
+
+    ?assertEqual(
+        <<"hello\n     world">>,
+        render(group(nest(glue(<<"hello">>, <<"world">>), 5)), 5)
+    ),
+
+    ?assertEqual(
+        <<"a\tb">>,
+        render(concat([<<"a">>, break(<<"\t">>), <<"b">>]), 80)
+    ),
+    ?assertEqual(
+        <<"aaaaaaaaaaaaaaaaaaaa\nb">>,
+        render(group(concat([binary:copy(<<"a">>, 20), break(<<"\t">>), <<"b">>])), 10)
+    ),
+
+    ?assertEqual(<<"hello world">>, render(glue(<<"hello">>, <<"world">>), 80)),
+    ?assertEqual(<<"hello\tworld">>, render(glue(<<"hello">>, <<"\t">>, <<"world">>), 80)),
+
+    Doc1 = group(concat(
+        group(concat(<<"Hello,">>, concat(break(), <<"A">>))),
+        concat(break(), <<"B">>)
+    )),
+    ?assertEqual(<<"Hello, A B">>, render(Doc1, 80)),
+    ?assertEqual(<<"Hello,\nA\nB">>, render(Doc1, 6)),
+
+    ?assertEqual(<<"Hughes Wadler">>, render(space(<<"Hughes">>, <<"Wadler">>), 5)),
+    ?assertEqual(<<"Hughes\nWadler">>, render(concat(concat(<<"Hughes">>, line()), <<"Wadler">>), 80)),
+    ?assertEqual(<<"Hughes\nWadler">>, render(line(<<"Hughes">>, <<"Wadler">>), 80)),
+
+    ?assertEqual(
+        <<"A!B!C">>,
+        render(fold_doc([<<"A">>, <<"B">>, <<"C">>], fun (D, Acc) -> concat([D, <<"!">>, Acc]) end), 80)
+    ),
+
+    Doc2 = group(glue(<<"hello">>, <<" ">>, <<"world">>)),
+    ?assertEqual(<<"hello world">>, render(Doc2, 30)),
+    ?assertEqual(<<"hello\nworld">>, render(Doc2, 10)).
 
 render(Doc, Limit) ->
     erlang:iolist_to_binary(format(group(Doc), Limit)).
