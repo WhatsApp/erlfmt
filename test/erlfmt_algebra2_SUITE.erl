@@ -50,7 +50,8 @@
     test_collapse/1,
     test_force_and_cancel/1,
     test_groups_with_lines/1,
-    test_infinite_width/1
+    test_infinite_width/1,
+    test_container/1
 ]).
 
 -import(erlfmt_algebra2, [
@@ -77,7 +78,8 @@
     collapse_lines/1,
     force_unfit/1,
     next_break_fits/1,
-    next_break_fits/2
+    next_break_fits/2,
+    container_doc/4
 ]).
 
 suite() ->
@@ -124,7 +126,8 @@ all() ->
         test_collapse,
         test_force_and_cancel,
         test_groups_with_lines,
-        test_infinite_width
+        test_infinite_width,
+        test_container
     ].
 
 % doctest Inspect.Algebra
@@ -269,23 +272,22 @@ test_infinite_width(Config) when is_list(Config) ->
         render(Doc, infinity)
     ).
 
-%   test "formatting container_doc with empty" do
-%     sm = &container_doc("[", &1, "]", %Inspect.Opts{}, fn d, _ -> d end, separator: ",")
+test_container(Config) when is_list(Config) ->
+    Render = fun (Docs) -> render(container_doc(<<"[">>, Docs, <<"]">>, #{separator => <<",">>}), 80) end,
 
-%     assert sm.([]) |> render(80) == "[]"
-%     assert sm.([empty()]) |> render(80) == "[]"
-%     assert sm.([empty(), empty()]) |> render(80) == "[]"
-%     assert sm.(["a"]) |> render(80) == "[a]"
-%     assert sm.(["a", empty()]) |> render(80) == "[a]"
-%     assert sm.([empty(), "a"]) |> render(80) == "[a]"
-%     assert sm.(["a", empty(), "b"]) |> render(80) == "[a, b]"
-%     assert sm.([empty(), "a", "b"]) |> render(80) == "[a, b]"
-%     assert sm.(["a", "b", empty()]) |> render(80) == "[a, b]"
-%     assert sm.(["a", "b" | "c"]) |> render(80) == "[a, b | c]"
-%     assert sm.(["a" | "b"]) |> render(80) == "[a | b]"
-%     assert sm.(["a" | empty()]) |> render(80) == "[a]"
-%     assert sm.([empty() | "b"]) |> render(80) == "[b]"
-%   end
+    ?assertEqual(<<"[]">>, Render([])),
+    ?assertEqual(<<"[]">>, Render([empty()])),
+    ?assertEqual(<<"[]">>, Render([empty(), empty()])),
+    ?assertEqual(<<"[a]">>, Render([<<"a">>])),
+    ?assertEqual(<<"[a]">>, Render([<<"a">>, empty()])),
+    ?assertEqual(<<"[a]">>, Render([empty(), <<"a">>])),
+    ?assertEqual(<<"[a, b]">>, Render([<<"a">>, empty(), <<"b">>])),
+    ?assertEqual(<<"[a, b]">>, Render([empty(), <<"a">>, <<"b">>])),
+    ?assertEqual(<<"[a, b]">>, Render([<<"a">>, <<"b">>, empty()])),
+    ?assertEqual(<<"[a, b | c]">>, Render([<<"a">>, <<"b">> | <<"c">>])),
+    ?assertEqual(<<"[a | b]">>, Render([<<"a">> | <<"b">>])),
+    ?assertEqual(<<"[a]">>, Render([<<"a">> | empty()])),
+    ?assertEqual(<<"[b]">>, Render([empty() | <<"b">>])).
 
 render(Doc, Limit) ->
     erlang:iolist_to_binary(format(group(Doc), Limit)).
