@@ -138,9 +138,9 @@ groups() ->
 
 all() ->
     [
-        {group, expressions}
+        {group, expressions},
         % {group, forms}
-        % comment
+        comment
     ].
 
 %%--------------------------------------------------------------------
@@ -694,11 +694,22 @@ record_field(Config) when is_list(Config) ->
     ?assertSame("X?FOO.bar").
 
 force_break(Config) when is_list(Config) ->
-    % ?assertSame(
-    %     "[\n"
-    %     "    %% foo\n"
-    %     "]"
-    % ),
+    ?assertSame(
+        "[\n"
+        "    %% foo\n"
+        "]"
+    ),
+
+    ?assertFormat(
+        "[1, 2\n"
+        "    %% foo\n"
+        "]",
+        "[\n"
+        "    1,\n"
+        "    2\n"
+        "    %% foo\n"
+        "]"
+    ),
     ?assertFormat(
         "[x\n"
         "]",
@@ -1651,7 +1662,28 @@ comment(Config) when is_list(Config) ->
         "1 +\n"
         "    %% foo\n"
         "    2"
+    ),
+    ?assertFormat(
+        "[%% foo\n"
+        "]",
+        "%% foo\n"
+        "[]"
+    ),
+    ?assertFormat(
+        "[\n"
+        "    1 %% foo\n"
+        "]",
+        "[\n"
+        "    %% foo\n"
+        "    1\n"
+        "]"
     ).
+    % ?assertFormat(
+    %     "[1,2,3 %% foo\n"
+    %     "]",
+    %     "%% foo\n"
+    %     "[1, 2, 3]"
+    % ).
 
 format(String, PageWidth) ->
     {ok, [Node], []} = erlfmt:read_nodes_string("nofile", String),

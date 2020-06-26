@@ -405,10 +405,10 @@ binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
 %     ),
 %     fill_container_values_to_algebra(Acc, Rest).
 
-container(Meta, [], Left, Right) ->
+container(_Meta, [], Left, Right) ->
     concat(Left, Right);
 container(Meta, [Value | _] = Values, Left, Right) ->
-    ValuesD = lists:map(fun expr_to_algebra/1, Values),
+    ValuesD = container_exprs_to_algebra(Values, no_fits),
     case has_inner_break(Meta, Value) of
         true -> 
             Doc = fold_doc(fun (D, Acc) -> line(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
@@ -418,13 +418,19 @@ container(Meta, [Value | _] = Values, Left, Right) ->
             surround(Left, Doc, Right)
     end.
 
-container_exprs_to_algebra([Value]) ->
+container_exprs_to_algebra([{comment, _, _} | _] = Comments, _LastBreak) ->
+    [comments_to_algebra(Comments)];
+container_exprs_to_algebra([Value | [{comment, _, _} | _] = Comments], _LastBreak) ->
+    [line(expr_to_algebra(Value), comments_to_algebra(Comments))];
+container_exprs_to_algebra([Value], fits) ->
     case is_next_break_fits(Value) of
         true -> [next_break_fits(expr_to_algebra(Value), enabled)];
         false -> [expr_to_algebra(Value)]
     end;
-container_exprs_to_algebra([Value | Values]) ->
-    [expr_to_algebra(Value) | container_exprs_to_algebra(Values)].
+container_exprs_to_algebra([Value], no_fits) ->
+    [expr_to_algebra(Value)];
+container_exprs_to_algebra([Value | Values], LastBreak) ->
+    [expr_to_algebra(Value) | container_exprs_to_algebra(Values, LastBreak)].
 
 % container_to_algebra(_Meta, [], Left, Right) ->
 %     concat(Left, Right);
@@ -831,26 +837,24 @@ maybe_wrap_in_parens(Meta, Doc) ->
         false -> Doc
     end.
 
-% % TODO
-combine_comments(_Meta, Doc) -> Doc.
-% % combine_comments(Meta, Doc) ->
-% %     {Pre, Post} = comments(Meta),
-% %     combine_post_comments(Post, combine_pre_comments(Pre, Doc)).
+combine_comments(Meta, Doc) ->
+    {Pre, Post} = comments(Meta),
+    combine_post_comments(Post, combine_pre_comments(Pre, Doc)).
 
-% % combine_pre_comments([], Doc) -> Doc;
-% % combine_pre_comments(Comments, Doc) -> line(comments_to_algebra(Comments), Doc).
+combine_pre_comments([], Doc) -> Doc;
+combine_pre_comments(Comments, Doc) -> line(comments_to_algebra(Comments), Doc).
 
-% % combine_post_comments([], Doc) -> Doc;
-% % combine_post_comments(Comments, Doc) -> line(Doc, comments_to_algebra(Comments)).
+combine_post_comments([], Doc) -> Doc;
+combine_post_comments(Comments, Doc) -> line(Doc, comments_to_algebra(Comments)).
 
-% % comments_to_algebra(Comments) ->
-% %     %% TODO: should we add spaces in between?
-% %     CommentsD = lists:map(fun comment_to_algebra/1, Comments),
-% %     document_reduce(fun line/2, CommentsD).
+comments_to_algebra(Comments) ->
+    CommentsD = lists:map(fun comment_to_algebra/1, Comments),
+    Doc = fold_doc(fun (C, Acc) -> concat([C, line(), line(), Acc]) end, CommentsD),
+    force_unfit(Doc).
 
-% % comment_to_algebra({comment, _Meta, Lines}) ->
-% %     LinesD = lists:map(fun erlfmt_algebra:string/1, Lines),
-% %     document_reduce(fun line/2, LinesD).
+comment_to_algebra({comment, _Meta, Lines}) ->
+    LinesD = lists:map(fun erlfmt_algebra2:string/1, Lines),
+    fold_doc(fun erlfmt_algebra2:line/2, LinesD).
 
 comments(Meta) ->
     {erlfmt_scan:get_anno(pre_comments, Meta, []),
