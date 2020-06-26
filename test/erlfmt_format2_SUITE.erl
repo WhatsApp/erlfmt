@@ -357,11 +357,11 @@ binary_operator(Config) when is_list(Config) ->
     ),
 
     %% Next break fits
-    % ?assertSame(
-    %     "Foo = [\n"
-    %     "    1\n"
-    %     "]"
-    % ),
+    ?assertSame(
+        "Foo = [\n"
+        "    1\n"
+        "]"
+    ),
     % ?assertSame(
     %     "Foo = foo(\n"
     %     "    1\n"
@@ -468,7 +468,7 @@ tuple(Config) when is_list(Config) ->
 list(Config) when is_list(Config) ->
     ?assertFormat("[\n]", "[]"),
     % ?assertSame("[1 | [2 | []]]"),
-    % ?assertFormat("[ 1 ,2,3, 4]", "[1, 2, 3, 4]"),
+    ?assertFormat("[ 1 ,2,3, 4]", "[1, 2, 3, 4]"),
     % ?assertFormat("[1,2,3|4]", "[1, 2, 3 | 4]"),
     ?assertFormat(
         "[long,[2,3,4]]",
