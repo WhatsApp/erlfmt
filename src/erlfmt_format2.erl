@@ -132,8 +132,8 @@ do_expr_to_algebra({op, Meta, Op, Left, Right}) ->
     binary_op_to_algebra(Op, Meta, Left, Right);
 % do_expr_to_algebra({tuple, Meta, Values}) ->
 %     fill_container_to_algebra(Meta, Values, string("{"), string("}"));
-% do_expr_to_algebra({list, Meta, Values}) ->
-%     container_to_algebra(Meta, Values, string("["), string("]"));
+do_expr_to_algebra({list, Meta, Values}) ->
+    container(Meta, Values, <<"[">>, <<"]">>);
 % do_expr_to_algebra({cons, _, Head, Tail}) ->
 %     cons_to_algebra(Head, Tail);
 % do_expr_to_algebra({bin, Meta, Values}) ->
@@ -269,6 +269,9 @@ wrap_in_parens(Doc) ->
 %     Nested = concat(document_spaces(?INDENT), Doc),
 %     line(Left, line(Nested, Right)).
 
+surround(Left, Doc, Right) ->
+    group(glue(nest(glue(Left, <<"">>, Doc), ?INDENT, break), <<"">>, Right)).
+
 string_to_algebra(Text) ->
     case string:split(Text, "\n", all) of
         [Line] ->
@@ -292,7 +295,7 @@ string_lines_to_algebra([Line | Lines]) ->
 %% there's always at least two elements in concat
 concat_to_algebra([Value1, Value2 | _] = Values) ->
     ValuesD = lists:map(fun expr_to_algebra/1, Values),
-    case break_between(Value1, Value2) of
+    case has_break_between(Value1, Value2) of
         true ->
             group(fold_doc(fun erlfmt_algebra2:line/2, ValuesD));
         false ->
@@ -338,7 +341,7 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     OpD = string(atom_to_binary(Op, utf8)),
     LeftD = binary_operand_to_algebra(Op, Left, Indent),
     RightD = binary_operand_to_algebra(Op, Right, 0),
-    HasBreak = break_between(Left, Right),
+    HasBreak = has_break_between(Left, Right),
     NextBreakFits = next_break_fits_op(Op, Right) andalso not HasBreak,
 
     Doc = with_next_break_fits(NextBreakFits, RightD, fun(R) ->
@@ -400,6 +403,19 @@ binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
 %         )
 %     ),
 %     fill_container_values_to_algebra(Acc, Rest).
+
+container(Meta, [], Left, Right) ->
+    concat(Left, Right);
+container(Meta, [Value | _] = Values, Left, Right) ->
+    ValuesD = lists:map(fun expr_to_algebra/1, Values),
+    case has_inner_break(Meta, Value) of
+        true -> 
+            Doc = fold_doc(fun (D, Acc) -> line(concat(D, <<",">>), Acc) end, ValuesD),
+            surround(Left, force_unfit(Doc), Right);
+        false ->
+            Doc = fold_doc(fun (D, Acc) -> glue(concat(D, <<",">>), Acc) end, ValuesD),
+            surround(Left, Doc, Right)
+    end.
 
 % container_to_algebra(_Meta, [], Left, Right) ->
 %     concat(Left, Right);
@@ -784,8 +800,11 @@ binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
 %             )
 %     end.
 
-break_between(Left, Right) ->
+has_break_between(Left, Right) ->
     erlfmt_scan:get_end_line(Left) < erlfmt_scan:get_line(Right).
+
+has_inner_break(Outer, Inner) ->
+    erlfmt_scan:get_line(Outer) < erlfmt_scan:get_line(Inner).
 
 next_break_fits_op(Op, Expr) ->
     lists:member(Op, ?NEXT_BREAK_FITS_OPS) andalso

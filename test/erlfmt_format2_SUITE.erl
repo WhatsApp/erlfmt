@@ -91,7 +91,7 @@ groups() ->
         {expressions, [parallel], [
             literals,
             string_concat,
-            % {group, containers},
+            {group, containers},
             {group, operators}
             % {group, comprehensions},
             % call,
@@ -114,16 +114,16 @@ groups() ->
         {operators, [parallel], [
             unary_operator
             % binary_operator
-        ]}
-        % {containers, [parallel], [
+        ]},
+        {containers, [parallel], [
         %     % tuple,
-        %     % list,
+              list,
         %     % binary,
         %     % map_create,
         %     % map_update,
         %     % {group, records},
-        %     % force_break
-        % ]},
+              force_break
+        ]}
         % {records, [parallel], [
         %     % record_create,
         %     % record_update,
@@ -467,9 +467,9 @@ tuple(Config) when is_list(Config) ->
 
 list(Config) when is_list(Config) ->
     ?assertFormat("[\n]", "[]"),
-    ?assertSame("[1 | [2 | []]]"),
-    ?assertFormat("[ 1 ,2,3, 4]", "[1, 2, 3, 4]"),
-    ?assertFormat("[1,2,3|4]", "[1, 2, 3 | 4]"),
+    % ?assertSame("[1 | [2 | []]]"),
+    % ?assertFormat("[ 1 ,2,3, 4]", "[1, 2, 3, 4]"),
+    % ?assertFormat("[1,2,3|4]", "[1, 2, 3 | 4]"),
     ?assertFormat(
         "[long,[2,3,4]]",
         "[\n"
@@ -477,32 +477,32 @@ list(Config) when is_list(Config) ->
         "    [2, 3, 4]\n"
         "]",
         15
-    ),
-    ?assertFormat(
-        "[11,2|3]",
-        "[\n"
-        "    11,\n"
-        "    2 | 3\n"
-        "]",
-        10
-    ),
-    ?assertFormat(
-        "[11,22|33]",
-        "[\n"
-        "    11,\n"
-        "    22\n"
-        "    | 33\n"
-        "]",
-        10
-    ),
-    ?assertFormat(
-        "[short, [long, word]]",
-        "[short, [\n"
-        "    long,\n"
-        "    word\n"
-        "]]",
-        15
     ).
+    % ?assertFormat(
+    %     "[11,2|3]",
+    %     "[\n"
+    %     "    11,\n"
+    %     "    2 | 3\n"
+    %     "]",
+    %     10
+    % ),
+    % ?assertFormat(
+    %     "[11,22|33]",
+    %     "[\n"
+    %     "    11,\n"
+    %     "    22\n"
+    %     "    | 33\n"
+    %     "]",
+    %     10
+    % ),
+    % ?assertFormat(
+    %     "[short, [long, word]]",
+    %     "[short, [\n"
+    %     "    long,\n"
+    %     "    word\n"
+    %     "]]",
+    %     15
+    % ).
 
 binary(Config) when is_list(Config) ->
     ?assertFormat("<< >>", "<<>>"),
@@ -681,11 +681,11 @@ record_field(Config) when is_list(Config) ->
     ?assertSame("X?FOO.bar").
 
 force_break(Config) when is_list(Config) ->
-    ?assertSame(
-        "[\n"
-        "    %% foo\n"
-        "]"
-    ),
+    % ?assertSame(
+    %     "[\n"
+    %     "    %% foo\n"
+    %     "]"
+    % ),
     ?assertFormat(
         "[x\n"
         "]",
@@ -697,120 +697,120 @@ force_break(Config) when is_list(Config) ->
         "[\n"
         "    x\n"
         "]"
-    ),
-    ?assertFormat(
-        "{x\n"
-        "}",
-        "{x}"
-    ),
-    ?assertFormat(
-        "{\n"
-        " x}",
-        "{\n"
-        "    x\n"
-        "}"
-    ),
-    ?assertFormat(
-        "<<x\n"
-        ">>",
-        "<<x>>"
-    ),
-    ?assertFormat(
-        "<<\n"
-        " x>>",
-        "<<\n"
-        "    x\n"
-        ">>"
-    ),
-    ?assertFormat(
-        "#{x => y\n"
-        "}",
-        "#{x => y}"
-    ),
-    ?assertFormat(
-        "X#{\n"
-        " x => y}",
-        "X#{\n"
-        "    x => y\n"
-        "}"
-    ),
-    ?assertFormat(
-        "X#{x => y\n"
-        "}",
-        "X#{x => y}"
-    ),
-    ?assertFormat(
-        "X#{\n"
-        " x => y}",
-        "X#{\n"
-        "    x => y\n"
-        "}"
-    ),
-    ?assertFormat(
-        "#foo{x = 1\n"
-        "}",
-        "#foo{x = 1}"
-    ),
-    ?assertFormat(
-        "#foo{\n"
-        " x = 1}",
-        "#foo{\n"
-        "    x = 1\n"
-        "}"
-    ),
-    ?assertFormat(
-        "X#foo{x = 1\n"
-        "}",
-        "X#foo{x = 1}"
-    ),
-    ?assertFormat(
-        "X#foo{\n"
-        " x = 1}",
-        "X#foo{\n"
-        "    x = 1\n"
-        "}"
-    ),
-    ?assertFormat(
-        "foo(x\n"
-        ")",
-        "foo(x)"
-    ),
-    ?assertFormat(
-        "foo(\n"
-        " x)",
-        "foo(\n"
-        "    x\n"
-        ")"
-    ),
-    ?assertFormat(
-        "foo(x\n"
-        ") -> x.",
-        "foo(x) -> x."
-    ),
-    ?assertFormat(
-        "foo(\n"
-        " x) -> x.",
-        "foo(\n"
-        "    x\n"
-        ") ->\n"
-        "    x."
-    ),
-    ?assertFormat(
-        "foo(1) -> x;\n"
-        "foo(2) ->\n"
-        "    y.",
-        "foo(1) -> x;\n"
-        "foo(2) -> y."
-    ),
-    ?assertFormat(
-        "foo(1) ->\n"
-        "    x;\n"
-        "foo(2) -> y.",
-        "foo(1) ->\n"
-        "    x;\n"
-        "foo(2) ->\n"
-        "    y."
     ).
+    % ?assertFormat(
+    %     "{x\n"
+    %     "}",
+    %     "{x}"
+    % ),
+    % ?assertFormat(
+    %     "{\n"
+    %     " x}",
+    %     "{\n"
+    %     "    x\n"
+    %     "}"
+    % ),
+    % ?assertFormat(
+    %     "<<x\n"
+    %     ">>",
+    %     "<<x>>"
+    % ),
+    % ?assertFormat(
+    %     "<<\n"
+    %     " x>>",
+    %     "<<\n"
+    %     "    x\n"
+    %     ">>"
+    % ),
+    % ?assertFormat(
+    %     "#{x => y\n"
+    %     "}",
+    %     "#{x => y}"
+    % ),
+    % ?assertFormat(
+    %     "X#{\n"
+    %     " x => y}",
+    %     "X#{\n"
+    %     "    x => y\n"
+    %     "}"
+    % ),
+    % ?assertFormat(
+    %     "X#{x => y\n"
+    %     "}",
+    %     "X#{x => y}"
+    % ),
+    % ?assertFormat(
+    %     "X#{\n"
+    %     " x => y}",
+    %     "X#{\n"
+    %     "    x => y\n"
+    %     "}"
+    % ),
+    % ?assertFormat(
+    %     "#foo{x = 1\n"
+    %     "}",
+    %     "#foo{x = 1}"
+    % ),
+    % ?assertFormat(
+    %     "#foo{\n"
+    %     " x = 1}",
+    %     "#foo{\n"
+    %     "    x = 1\n"
+    %     "}"
+    % ),
+    % ?assertFormat(
+    %     "X#foo{x = 1\n"
+    %     "}",
+    %     "X#foo{x = 1}"
+    % ),
+    % ?assertFormat(
+    %     "X#foo{\n"
+    %     " x = 1}",
+    %     "X#foo{\n"
+    %     "    x = 1\n"
+    %     "}"
+    % ),
+    % ?assertFormat(
+    %     "foo(x\n"
+    %     ")",
+    %     "foo(x)"
+    % ),
+    % ?assertFormat(
+    %     "foo(\n"
+    %     " x)",
+    %     "foo(\n"
+    %     "    x\n"
+    %     ")"
+    % ),
+    % ?assertFormat(
+    %     "foo(x\n"
+    %     ") -> x.",
+    %     "foo(x) -> x."
+    % ),
+    % ?assertFormat(
+    %     "foo(\n"
+    %     " x) -> x.",
+    %     "foo(\n"
+    %     "    x\n"
+    %     ") ->\n"
+    %     "    x."
+    % ),
+    % ?assertFormat(
+    %     "foo(1) -> x;\n"
+    %     "foo(2) ->\n"
+    %     "    y.",
+    %     "foo(1) -> x;\n"
+    %     "foo(2) -> y."
+    % ),
+    % ?assertFormat(
+    %     "foo(1) ->\n"
+    %     "    x;\n"
+    %     "foo(2) -> y.",
+    %     "foo(1) ->\n"
+    %     "    x;\n"
+    %     "foo(2) ->\n"
+    %     "    y."
+    % ).
 
 list_comprehension(Config) when is_list(Config) ->
     ?assertFormat("[X||X<-List]", "[X || X <- List]"),
