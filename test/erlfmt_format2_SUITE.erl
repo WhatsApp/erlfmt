@@ -467,9 +467,9 @@ tuple(Config) when is_list(Config) ->
 
 list(Config) when is_list(Config) ->
     ?assertFormat("[\n]", "[]"),
-    % ?assertSame("[1 | [2 | []]]"),
+    ?assertSame("[1 | [2 | []]]"),
     ?assertFormat("[ 1 ,2,3, 4]", "[1, 2, 3, 4]"),
-    % ?assertFormat("[1,2,3|4]", "[1, 2, 3 | 4]"),
+    ?assertFormat("[1,2,3|4]", "[1, 2, 3 | 4]"),
     ?assertFormat(
         "[long,[2,3,4]]",
         "[\n"
@@ -487,23 +487,24 @@ list(Config) when is_list(Config) ->
         "]",
         15
     ),
-    % ?assertFormat(
-    %     "[11,2|3]",
-    %     "[\n"
-    %     "    11,\n"
-    %     "    2 | 3\n"
-    %     "]",
-    %     10
-    % ),
-    % ?assertFormat(
-    %     "[11,22|33]",
-    %     "[\n"
-    %     "    11,\n"
-    %     "    22\n"
-    %     "    | 33\n"
-    %     "]",
-    %     10
-    % ),
+    ?assertFormat(
+        "[11,2|3]",
+        "[\n"
+        "    11,\n"
+        "    2\n"
+        "    | 3\n"
+        "]",
+        10
+    ),
+    ?assertFormat(
+        "[11,22|33]",
+        "[\n"
+        "    11,\n"
+        "    22\n"
+        "    | 33\n"
+        "]",
+        10
+    ),
     ?assertFormat(
         "[short, [long, word]]",
         "[\n"

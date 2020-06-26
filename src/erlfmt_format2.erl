@@ -135,8 +135,8 @@ do_expr_to_algebra({op, Meta, Op, Left, Right}) ->
 %     fill_container_to_algebra(Meta, Values, string("{"), string("}"));
 do_expr_to_algebra({list, Meta, Values}) ->
     container(Meta, Values, <<"[">>, <<"]">>);
-% do_expr_to_algebra({cons, _, Head, Tail}) ->
-%     cons_to_algebra(Head, Tail);
+do_expr_to_algebra({cons, _, Head, Tail}) ->
+    cons_to_algebra(Head, Tail);
 % do_expr_to_algebra({bin, Meta, Values}) ->
 %     fill_container_to_algebra(Meta, Values, string("<<"), string(">>"));
 % do_expr_to_algebra({bin_element, _Meta, Expr, Size, Types}) ->
@@ -481,14 +481,10 @@ container_exprs_to_algebra([Value | Values]) ->
 %         container_vertical_values_to_algebra(Rest)
 %     ).
 
-% cons_to_algebra(Head, Tail) ->
-%     HeadD = expr_to_algebra(Head),
-%     TailD = concat(string("| "), expr_to_algebra(Tail)),
-
-%     document_choice(
-%         space(document_single_line(HeadD), document_single_line(TailD)),
-%         line(HeadD, TailD)
-%     ).
+cons_to_algebra(Head, Tail) ->
+    HeadD = expr_to_algebra(Head),
+    TailD = concat(string("| "), expr_to_algebra(Tail)),
+    glue(HeadD, TailD).
 
 % bin_element_to_algebra(Expr, Size, Types) ->
 %     Docs =
