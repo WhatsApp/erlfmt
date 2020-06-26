@@ -126,10 +126,10 @@ do_expr_to_algebra({Atomic, Meta, _Value}) when ?IS_ATOMIC(Atomic) ->
     string(erlfmt_scan:get_anno(text, Meta));
 do_expr_to_algebra({concat, _Meta, Values}) ->
     concat_to_algebra(Values);
-% do_expr_to_algebra({op, _Meta, Op, Expr}) ->
-%     unary_op_to_algebra(Op, Expr);
-% do_expr_to_algebra({op, Meta, Op, Left, Right}) ->
-%     binary_op_to_algebra(Op, Meta, Left, Right);
+do_expr_to_algebra({op, _Meta, Op, Expr}) ->
+    unary_op_to_algebra(Op, Expr);
+do_expr_to_algebra({op, Meta, Op, Left, Right}) ->
+    binary_op_to_algebra(Op, Meta, Left, Right);
 % do_expr_to_algebra({tuple, Meta, Values}) ->
 %     fill_container_to_algebra(Meta, Values, document_text("{"), document_text("}"));
 % do_expr_to_algebra({list, Meta, Values}) ->
@@ -311,67 +311,71 @@ concat_to_algebra([Value1, Value2 | _] = Values) ->
             group(fold_doc(fun erlfmt_algebra2:glue/2, ValuesD))
     end.
 
-% unary_op_to_algebra(Op, Expr) ->
-%     OpD = document_text(atom_to_binary(Op, utf8)),
-%     ExprD = expr_to_algebra(Expr),
-%     NeedsSpace = unary_needs_space(Expr, Op),
-%     if
-%         NeedsSpace ->
-%             combine_space(OpD, ExprD);
-%         true ->
-%             document_combine(OpD, ExprD)
-%     end.
+unary_op_to_algebra(Op, Expr) ->
+    OpD = string(atom_to_binary(Op, utf8)),
+    ExprD = expr_to_algebra(Expr),
+    NeedsSpace = unary_needs_space(Expr, Op),
+    if
+        NeedsSpace ->
+            space(OpD, ExprD);
+        true ->
+            concat(OpD, ExprD)
+    end.
 
-% unary_needs_space(_, Op) when Op =:= 'not'; Op =:= 'bnot'; Op =:= 'catch' ->
-%     true;
-% unary_needs_space({op, Meta, _, _}, _) ->
-%     not erlfmt_scan:get_anno(parens, Meta, false);
-% unary_needs_space(_, _) ->
-%     false.
+unary_needs_space(_, Op) when Op =:= 'not'; Op =:= 'bnot'; Op =:= 'catch' ->
+    true;
+unary_needs_space({op, Meta, _, _}, _) ->
+    not erlfmt_scan:get_anno(parens, Meta, false);
+unary_needs_space(_, _) ->
+    false.
 
-% binary_op_to_algebra('..', _Meta, Left, Right) ->
-%     %% .. is special - non-assoc, no spaces around and never breaks
-%     wrap(expr_to_algebra(Left), document_text(".."), expr_to_algebra(Right));
-% binary_op_to_algebra('/', _Meta, {atom, _, _} = Left, {integer, _, _} = Right) ->
-%     %% special-case the foo/N syntax in attributes, division with a literal atom
-%     %% doesn't make sense in normal code, so it's safe to apply it everywhere
-%     wrap(expr_to_algebra(Left), document_text("/"), expr_to_algebra(Right));
-% binary_op_to_algebra('|' = Op, Meta0, Left, Right) ->
-%     %% | does not increase indentation
-%     %% don't print parens and comments twice - expr_to_algebra took care of it already
-%     Meta = erlfmt_scan:delete_annos([parens, pre_comments, post_comments], Meta0),
-%     binary_op_to_algebra(Op, Meta, Left, Right, 0);
-% binary_op_to_algebra(Op, Meta0, Left, Right) ->
-%     %% don't print parens and comments twice - expr_to_algebra took care of it already
-%     Meta = erlfmt_scan:delete_annos([parens, pre_comments, post_comments], Meta0),
-%     binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT).
+binary_op_to_algebra('..', _Meta, Left, Right) ->
+    %% .. is special - non-assoc, no spaces around and never breaks
+    concat([expr_to_algebra(Left), <<"..">>, expr_to_algebra(Right)]);
+binary_op_to_algebra('/', _Meta, {atom, _, _} = Left, {integer, _, _} = Right) ->
+    %% special-case the foo/N syntax in attributes, division with a literal atom
+    %% doesn't make sense in normal code, so it's safe to apply it everywhere
+    concat([expr_to_algebra(Left), <<"/">>, expr_to_algebra(Right)]);
+binary_op_to_algebra('|' = Op, Meta0, Left, Right) ->
+    %% | does not increase indentation
+    %% don't print parens and comments twice - expr_to_algebra took care of it already
+    Meta = erlfmt_scan:delete_annos([parens, pre_comments, post_comments], Meta0),
+    binary_op_to_algebra(Op, Meta, Left, Right, 0);
+binary_op_to_algebra(Op, Meta0, Left, Right) ->
+    %% don't print parens and comments twice - expr_to_algebra took care of it already
+    Meta = erlfmt_scan:delete_annos([parens, pre_comments, post_comments], Meta0),
+    binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT).
 
-% binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
-%     OpD = document_text(atom_to_binary(Op, utf8)),
-%     LeftD = binary_operand_to_algebra(Op, Left, Indent),
-%     RightD = binary_operand_to_algebra(Op, Right, 0),
-%     LeftOpD = combine_space(LeftD, OpD),
+binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
+    OpD = string(atom_to_binary(Op, utf8)),
+    LeftD = binary_operand_to_algebra(Op, Left, Indent),
+    RightD = binary_operand_to_algebra(Op, Right, 0),
+    HasBreak = break_between(Left, Right),
+    NextBreakFits = next_break_fits_op(Op, Right) andalso not HasBreak,
 
-%     SingleD =
-%         case {next_break_fits_op(Op, Right), break_between(Left, Right)} of
-%             {true, _} -> prepend_space(LeftOpD, RightD);
-%             {false, true} -> document_fail();
-%             {false, false} -> combine_space(LeftOpD, document_single_line(RightD))
-%         end,
-%     Doc = document_choice(
-%         SingleD,
-%         combine_newline(LeftOpD, document_combine(document_spaces(Indent), RightD))
-%     ),
-%     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
+    Doc = with_next_break_fits(NextBreakFits, RightD, fun(R) ->
+        RightOpD = nest(glue(concat(<<" ">>, OpD), group(R)), Indent, break),
+        concat(group(LeftD),group(maybe_force_unfit(HasBreak, RightOpD)))
+    end),
 
-% binary_operand_to_algebra(Op, {op, Meta, Op, Left, Right}, Indent) ->
-%     %% Same operator, no parens, means correct side and no repeated nesting
-%     case erlfmt_scan:get_anno(parens, Meta, false) of
-%         false -> binary_op_to_algebra(Op, Meta, Left, Right, Indent);
-%         _ -> binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT)
-%     end;
-% binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
-%     expr_to_algebra(Expr).
+    combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
+
+maybe_force_unfit(true, Doc) -> force_unfit(Doc);
+maybe_force_unfit(false, Doc) -> Doc.
+
+with_next_break_fits(true, Doc, Fun) ->
+    next_break_fits(Fun(next_break_fits(Doc, enabled)), disabled);
+with_next_break_fits(false, Doc, Fun) ->
+    Fun(Doc).
+
+binary_operand_to_algebra(Op, {op, Meta, Op, Left, Right}, Indent) ->
+    %% Same operator, no parens, means correct side and no repeated nesting
+    case erlfmt_scan:get_anno(parens, Meta, false) of
+        false -> binary_op_to_algebra(Op, Meta, Left, Right, Indent);
+        _ -> binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT)
+    end;
+binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
+    expr_to_algebra(Expr).
 
 % fill_container_to_algebra(_Meta, [], Left, Right) ->
 %     document_combine(Left, Right);
@@ -795,9 +799,9 @@ concat_to_algebra([Value1, Value2 | _] = Values) ->
 break_between(Left, Right) ->
     erlfmt_scan:get_end_line(Left) < erlfmt_scan:get_line(Right).
 
-% next_break_fits_op(Op, Expr) ->
-%     lists:member(Op, ?NEXT_BREAK_FITS_OPS) andalso
-%         next_break_fits(Expr, [call, macro_call]).
+next_break_fits_op(Op, Expr) ->
+    lists:member(Op, ?NEXT_BREAK_FITS_OPS) andalso
+        next_break_fits(Expr, [call, macro_call]).
 
 % next_break_fits(Expr, Extra) ->
 %     lists:member(element(1, Expr), Extra ++ ?NEXT_BREAK_FITS) andalso

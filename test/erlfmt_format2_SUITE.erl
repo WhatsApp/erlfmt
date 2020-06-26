@@ -90,9 +90,9 @@ groups() ->
     [
         {expressions, [parallel], [
             literals,
-            string_concat
+            string_concat,
             % {group, containers},
-            % {group, operators},
+            {group, operators}
             % {group, comprehensions},
             % call,
             % block,
@@ -102,7 +102,7 @@ groups() ->
             % try_expression,
             % if_expression,
             % macro
-        ]}
+        ]},
         % {forms, [parallel], [
         %     % function,
         %     % attribute,
@@ -111,10 +111,10 @@ groups() ->
         %     % define,
         %     % type
         % ]},
-        % {operators, [parallel], [
-        %     % unary_operator,
-        %     % binary_operator
-        % ]},
+        {operators, [parallel], [
+            unary_operator
+            % binary_operator
+        ]}
         % {containers, [parallel], [
         %     % tuple,
         %     % list,
@@ -238,12 +238,12 @@ unary_operator(Config) when is_list(Config) ->
     ?assertFormat("+ 1", "+1"),
     ?assertFormat("- 1", "-1"),
 
-    %% Formats word operators with space
+    % %% Formats word operators with space
     ?assertSame("bnot 1"),
     ?assertSame("not true"),
     ?assertSame("catch 1"),
 
-    %% Does not change parenthesis, only whitespace
+    % %% Does not change parenthesis, only whitespace
     ?assertFormat("bnot+1", "bnot +1"),
     ?assertSame("+ +1"),
     ?assertSame("+(+1)"),
@@ -254,7 +254,7 @@ unary_operator(Config) when is_list(Config) ->
     ?assertFormat("(bnot 1)*1", "(bnot 1) * 1"),
     ?assertSame("(catch 1) + 1"),
 
-    %% Unless it's nested not or bnot
+    % %% Unless it's nested not or bnot
     ?assertSame("bnot bnot Var"),
     ?assertSame("not not true").
 
