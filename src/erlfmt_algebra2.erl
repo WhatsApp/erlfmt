@@ -16,7 +16,7 @@
 %   elements together and render them:
 
 %       > Doc = erlfmt_algebra2:concat(erlfmt_algebra2:empty(), <<"foo">>)),
-%       > iodata_to_binary(erlfmt_algebra2:format(Doc, 80))
+%       > unicode:chardata_to_binary(erlfmt_algebra2:format(Doc, 80))
 %       <<"foo">>
 
 %   The functions `nest/2`, `space/2` and `line/2` help you put the
@@ -364,8 +364,8 @@ empty() -> doc_nil.
 %       iex> Inspect.Algebra.format(doc, 9)
 %       ["olá", " ", "mundo"]
 
--spec string(binary()) -> doc().
-string(String) when is_binary(String) ->
+-spec string(unicode:chardata()) -> doc().
+string(String) ->
     #doc_string{string = String, length = string:length(String)}.
 
 %   Concatenates two document entities returning a new document.
@@ -722,7 +722,7 @@ fold_doc([Doc | Docs], Fun) ->
 %       iex> doc |> Inspect.Algebra.format(10) |> IO.iodata_to_binary()
 %       "hello\nworld"
 
--spec format(doc(), non_neg_integer() | infinity) -> iodata().
+-spec format(doc(), non_neg_integer() | infinity) -> unicode:chardata().
 format(Doc, Width) when ?is_doc(Doc) andalso (Width == infinity orelse Width >= 0) ->
     format(Width, 0, [{0, flat, Doc}]).
 

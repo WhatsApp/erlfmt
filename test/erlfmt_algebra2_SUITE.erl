@@ -368,4 +368,4 @@ test_docs(Config) when is_list(Config) ->
     ?assertEqual(<<"hello\nworld">>, render(Doc2, 10)).
 
 render(Doc, Limit) ->
-    erlang:iolist_to_binary(format(group(Doc), Limit)).
+    unicode:characters_to_binary(format(group(Doc), Limit)).
