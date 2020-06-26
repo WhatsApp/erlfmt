@@ -231,7 +231,7 @@ container_doc(Left, Collection, Right, Opts) when
     Separator = maps:get(separator, Opts, <<",">>),
     {Docs0, Simple} = container_each(Collection, [], Break == maybe),
     Flex = Simple orelse Break == flex,
-    Docs = fold_doc(Docs0, fun(L, R) -> join(L, R, Flex, Separator) end),
+    Docs = fold_doc(fun(L, R) -> join(L, R, Flex, Separator) end, Docs0),
     case Flex of
         % TODO: 1 and 2 should probably not be constants
         true -> group(concat(concat(Left, nest(Docs, 1)), Right));
@@ -390,7 +390,7 @@ concat(Left, Right) when ?is_doc(Left), ?is_doc(Right) ->
 
 -spec concat([doc()]) -> doc().
 concat(Docs) when is_list(Docs) ->
-    fold_doc(Docs, fun concat/2).
+    fold_doc(fun concat/2, Docs).
 
 %   Nests the given document at the given `level`.
 
@@ -697,13 +697,13 @@ line(Doc1, Doc2) -> concat(Doc1, concat(line(), Doc2)).
 %       iex> Inspect.Algebra.format(docs, 80)
 %       ["A", "!", "B", "!", "C"]
 
--spec fold_doc([doc()], fun((doc(), doc()) -> doc())) -> doc().
-fold_doc([], _Fun) ->
+-spec fold_doc(fun((doc(), doc()) -> doc()), [doc()]) -> doc().
+fold_doc(_Fun, []) ->
     empty();
-fold_doc([Doc], _Fun) ->
+fold_doc(_Fun, [Doc]) ->
     Doc;
-fold_doc([Doc | Docs], Fun) ->
-    Fun(Doc, fold_doc(Docs, Fun)).
+fold_doc(Fun, [Doc | Docs]) ->
+    Fun(Doc, fold_doc(Fun, Docs)).
 
 %   Formats a given document for a given width.
 

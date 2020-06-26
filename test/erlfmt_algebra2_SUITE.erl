@@ -360,7 +360,7 @@ test_docs(Config) when is_list(Config) ->
 
     ?assertEqual(
         <<"A!B!C">>,
-        render(fold_doc([<<"A">>, <<"B">>, <<"C">>], fun (D, Acc) -> concat([D, <<"!">>, Acc]) end), 80)
+        render(fold_doc(fun (D, Acc) -> concat([D, <<"!">>, Acc]) end, [<<"A">>, <<"B">>, <<"C">>]), 80)
     ),
 
     Doc2 = group(glue(<<"hello">>, <<" ">>, <<"world">>)),
