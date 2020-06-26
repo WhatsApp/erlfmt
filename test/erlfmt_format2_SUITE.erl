@@ -477,7 +477,16 @@ list(Config) when is_list(Config) ->
         "    [2, 3, 4]\n"
         "]",
         15
-    ).
+    ),
+    ?assertFormat(
+        "[\n"
+        "long,[2,3,4]]",
+        "[\n"
+        "    long,\n"
+        "    [2, 3, 4]\n"
+        "]",
+        15
+    ),
     % ?assertFormat(
     %     "[11,2|3]",
     %     "[\n"
@@ -495,14 +504,17 @@ list(Config) when is_list(Config) ->
     %     "]",
     %     10
     % ),
-    % ?assertFormat(
-    %     "[short, [long, word]]",
-    %     "[short, [\n"
-    %     "    long,\n"
-    %     "    word\n"
-    %     "]]",
-    %     15
-    % ).
+    ?assertFormat(
+        "[short, [long, word]]",
+        "[\n"
+        "    short,\n"
+        "    [\n"
+        "        long,\n"
+        "        word\n"
+        "    ]\n"
+        "]",
+        15
+    ).
 
 binary(Config) when is_list(Config) ->
     ?assertFormat("<< >>", "<<>>"),

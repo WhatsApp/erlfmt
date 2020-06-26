@@ -93,7 +93,8 @@
     collapse/4,
     apply_nesting/3,
     indent/1,
-    container_doc/3, container_doc/4
+    container_doc/3, container_doc/4,
+    concat_to_last_group/2
 ]).
 
 % Functional interface to "doc" records
@@ -391,6 +392,14 @@ concat(Left, Right) when ?is_doc(Left), ?is_doc(Right) ->
 -spec concat([doc()]) -> doc().
 concat(Docs) when is_list(Docs) ->
     fold_doc(fun concat/2, Docs).
+
+-spec concat_to_last_group(doc(), doc()) -> doc().
+concat_to_last_group(#doc_cons{right = Right} = Cons, Doc) ->
+    Cons#doc_cons{right = concat_to_last_group(Right, Doc)};
+concat_to_last_group(#doc_group{group = Inner} = Group, Doc) ->
+    Group#doc_group{group = #doc_cons{left = Inner, right = Doc}};
+concat_to_last_group(Other, Doc) ->
+    #doc_cons{left = Other, right = Doc}.
 
 %   Nests the given document at the given `level`.
 

@@ -44,7 +44,8 @@
     next_break_fits/2,
     container_doc/3,
     container_doc/4,
-    fold_doc/2
+    fold_doc/2,
+    concat_to_last_group/2
 ]).
 
 -define(INDENT, 4).
@@ -342,9 +343,9 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     LeftD = binary_operand_to_algebra(Op, Left, Indent),
     RightD = binary_operand_to_algebra(Op, Right, 0),
     HasBreak = has_break_between(Left, Right),
-    NextBreakFits = next_break_fits_op(Op, Right) andalso not HasBreak,
+    IsNextBreakFits = is_next_break_fits_op(Op, Right) andalso not HasBreak,
 
-    Doc = with_next_break_fits(NextBreakFits, RightD, fun(R) ->
+    Doc = with_next_break_fits(IsNextBreakFits, RightD, fun(R) ->
         RightOpD = nest(glue(concat(<<" ">>, OpD), group(R)), Indent, break),
         concat(group(LeftD),group(maybe_force_unfit(HasBreak, RightOpD)))
     end),
@@ -410,12 +411,20 @@ container(Meta, [Value | _] = Values, Left, Right) ->
     ValuesD = lists:map(fun expr_to_algebra/1, Values),
     case has_inner_break(Meta, Value) of
         true -> 
-            Doc = fold_doc(fun (D, Acc) -> line(concat(D, <<",">>), Acc) end, ValuesD),
+            Doc = fold_doc(fun (D, Acc) -> line(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
             surround(Left, force_unfit(Doc), Right);
         false ->
-            Doc = fold_doc(fun (D, Acc) -> glue(concat(D, <<",">>), Acc) end, ValuesD),
+            Doc = fold_doc(fun (D, Acc) -> glue(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
             surround(Left, Doc, Right)
     end.
+
+container_exprs_to_algebra([Value]) ->
+    case is_next_break_fits(Value) of
+        true -> [next_break_fits(expr_to_algebra(Value), enabled)];
+        false -> [expr_to_algebra(Value)]
+    end;
+container_exprs_to_algebra([Value | Values]) ->
+    [expr_to_algebra(Value) | container_exprs_to_algebra(Values)].
 
 % container_to_algebra(_Meta, [], Left, Right) ->
 %     concat(Left, Right);
@@ -806,19 +815,19 @@ has_break_between(Left, Right) ->
 has_inner_break(Outer, Inner) ->
     erlfmt_scan:get_line(Outer) < erlfmt_scan:get_line(Inner).
 
-next_break_fits_op(Op, Expr) ->
+is_next_break_fits_op(Op, Expr) ->
     lists:member(Op, ?NEXT_BREAK_FITS_OPS) andalso
-        next_break_fits(Expr, [call, macro_call]).
+        is_next_break_fits(Expr, [call, macro_call]).
 
-% next_break_fits(Expr, Extra) ->
-%     lists:member(element(1, Expr), Extra ++ ?NEXT_BREAK_FITS) andalso
-%         no_comments_or_parens(Expr).
+is_next_break_fits(Expr) -> is_next_break_fits(Expr, []).
 
-% next_break_fits(Expr) -> next_break_fits(Expr, []).
+is_next_break_fits(Expr, Extra) ->
+    lists:member(element(1, Expr), Extra ++ ?NEXT_BREAK_FITS) andalso
+        has_no_comments_or_parens(Expr).
 
-% no_comments_or_parens(Meta) ->
-%     {Pre, Post} = comments(Meta),
-%     Pre =:= [] andalso Post =:= [] andalso not erlfmt_scan:get_anno(parens, Meta, false).
+has_no_comments_or_parens(Meta) ->
+    {Pre, Post} = comments(Meta),
+    Pre =:= [] andalso Post =:= [] andalso not erlfmt_scan:get_anno(parens, Meta, false).
 
 maybe_wrap_in_parens(Meta, Doc) ->
     case erlfmt_scan:get_anno(parens, Meta, false) of
