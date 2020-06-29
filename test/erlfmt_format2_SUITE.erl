@@ -118,7 +118,7 @@ groups() ->
         {containers, [parallel], [
             tuple,
             list,
-        %     % binary,
+            binary,
             map_create,
             map_update,
             {group, records},
@@ -528,24 +528,24 @@ binary(Config) when is_list(Config) ->
     ?assertSame("<<\"żółć\"/utf8>>"),
     ?assertFormat("<<1/float,<<22,33>>/binary>>", "<<1/float, <<22, 33>>/binary>>"),
     ?assertFormat(
-        "<<1/float,<<22,33>>>>",
+        "<<1/float,<<222,333>>>>",
         "<<1/float,\n"
-        "    <<22,\n"
-        "        33>>>>",
+        "    <<222,\n"
+        "        333>>>>",
         15
     ),
     ?assertSame(
         "<<\n"
         "    1/float,\n"
-        "    <<22, 33>>\n"
+        "    <<222, 333>>\n"
         ">>"
     ),
     ?assertSame(
         "<<\n"
         "    1/float,\n"
         "    <<\n"
-        "        22,\n"
-        "        33\n"
+        "        222,\n"
+        "        333\n"
         "    >>\n"
         ">>"
     ).
@@ -744,18 +744,18 @@ force_break(Config) when is_list(Config) ->
         "    x\n"
         "}"
     ),
-    % ?assertFormat(
-    %     "<<x\n"
-    %     ">>",
-    %     "<<x>>"
-    % ),
-    % ?assertFormat(
-    %     "<<\n"
-    %     " x>>",
-    %     "<<\n"
-    %     "    x\n"
-    %     ">>"
-    % ),
+    ?assertFormat(
+        "<<x\n"
+        ">>",
+        "<<x>>"
+    ),
+    ?assertFormat(
+        "<<\n"
+        " x>>",
+        "<<\n"
+        "    x\n"
+        ">>"
+    ),
     ?assertFormat(
         "#{x => y\n"
         "}",

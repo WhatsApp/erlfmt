@@ -137,10 +137,10 @@ do_expr_to_algebra({list, Meta, Values}) ->
     container(Meta, Values, <<"[">>, <<"]">>);
 do_expr_to_algebra({cons, _, Head, Tail}) ->
     cons_to_algebra(Head, Tail);
-% do_expr_to_algebra({bin, Meta, Values}) ->
-%     fill_container_to_algebra(Meta, Values, string("<<"), string(">>"));
-% do_expr_to_algebra({bin_element, _Meta, Expr, Size, Types}) ->
-%     bin_element_to_algebra(Expr, Size, Types);
+do_expr_to_algebra({bin, Meta, Values}) ->
+    flex_container(Meta, Values, <<"<<">>, <<">>">>);
+do_expr_to_algebra({bin_element, _Meta, Expr, Size, Types}) ->
+    bin_element_to_algebra(Expr, Size, Types);
 do_expr_to_algebra({map, Meta, Values}) ->
     container(Meta, Values, <<"#{">>, <<"}">>);
 do_expr_to_algebra({map, Meta, Expr, Values}) ->
@@ -226,8 +226,6 @@ do_expr_to_algebra(Other) ->
     error(unsupported, [Other]).
 
 comma_space(D1, D2) -> concat([D1, <<", ">>, D2]).
-
-dash(D1, D2) -> concat([D1, <<"-">>, D2]).
 
 semi_space(D1, D2) -> concat([D1, <<"; ">>, D2]).
 
@@ -366,42 +364,6 @@ binary_operand_to_algebra(Op, {op, Meta, Op, Left, Right}, Indent) ->
 binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
     expr_to_algebra(Expr).
 
-% fill_container_to_algebra(_Meta, [], Left, Right) ->
-%     concat(Left, Right);
-% fill_container_to_algebra(#{newline := true}, Values, Left, Right) ->
-%     VerticalD = container_vertical_values_to_algebra(Values),
-%     wrap_nested(Left, VerticalD, Right);
-% fill_container_to_algebra(_Meta, [Value], Left, Right) ->
-%     wrap_prepend(Left, expr_to_algebra(Value), Right);
-% fill_container_to_algebra(_Meta, [Value | Values], Left, Right) ->
-%     ValueD = concat(expr_to_algebra(Value), string(", ")),
-%     Doc = fill_container_values_to_algebra(ValueD, Values),
-%     wrap_prepend(Left, Doc, Right).
-
-% fill_container_values_to_algebra(Acc0, [Expr]) ->
-%     ExprD = expr_to_algebra(Expr),
-%     Doc = document_choice(
-%         concat(Acc0, document_single_line(ExprD)),
-%         combine_nested(Acc0, ExprD)
-%     ),
-%     case next_break_fits(Expr) of
-%         true ->
-%             document_choice(document_prepend(document_single_line(Acc0), ExprD), Doc);
-%         false ->
-%             Doc
-%     end;
-% fill_container_values_to_algebra(Acc0, [Expr | Rest]) ->
-%     ExprD = concat(expr_to_algebra(Expr), string(", ")),
-%     SingleExprD = document_single_line(ExprD),
-%     Acc = document_choice(
-%         concat(Acc0, SingleExprD),
-%         document_choice(
-%             combine_nested(Acc0, SingleExprD),
-%             combine_nested(Acc0, document_flush(ExprD))
-%         )
-%     ),
-%     fill_container_values_to_algebra(Acc, Rest).
-
 container(Meta, Values, Left, Right) ->
     container_common(Meta, Values, Left, Right, glue, last_normal).
 
@@ -441,79 +403,24 @@ container_exprs_to_algebra([Value], last_normal) ->
 container_exprs_to_algebra([Value | Values], Last) ->
     [expr_to_algebra(Value) | container_exprs_to_algebra(Values, Last)].
 
-% container_to_algebra(_Meta, [], Left, Right) ->
-%     concat(Left, Right);
-% container_to_algebra(Meta, Values, Left, Right) ->
-%     {Single, Multi} = container_to_algebra_pair(Meta, Values, Left, Right),
-%     document_choice(Single, Multi).
-
-% container_to_algebra_pair(_, [], Left, Right) ->
-%     Doc = concat(Left, Right),
-%     {Doc, Doc};
-% container_to_algebra_pair(#{newline := true}, Values, Left, Right) ->
-%     VerticalD = container_vertical_values_to_algebra(Values),
-%     {document_fail(), wrap_nested(Left, VerticalD, Right)};
-% container_to_algebra_pair(_, Values, Left, Right) ->
-%     {Horizontal, LastFits, Vertical} = container_values_to_algebra_pair(Values),
-%     HorizontalD = wrap(Left, Horizontal, Right),
-%     VerticalD = document_choice(
-%         wrap_prepend(Left, LastFits, Right),
-%         wrap_nested(Left, Vertical, Right)
-%     ),
-%     {HorizontalD, VerticalD}.
-
-% %% standalone comments are always trailing, but can appear as only expressions
-% container_values_to_algebra_pair([{comment, _, _} | _] = Comments) ->
-%     {document_fail(), document_fail(), comments_to_algebra(Comments)};
-% container_values_to_algebra_pair([Expr | [{comment, _, _} | _] = Comments]) ->
-%     CommentsD = comments_to_algebra(Comments),
-%     ExprD = expr_to_algebra(Expr),
-%     {document_fail(), document_fail(), line(ExprD, CommentsD)};
-% container_values_to_algebra_pair([Expr]) ->
-%     ExprD = expr_to_algebra(Expr),
-%     case next_break_fits(Expr) of
-%         true -> {document_single_line(ExprD), ExprD, ExprD};
-%         false -> {document_single_line(ExprD), document_fail(), ExprD}
-%     end;
-% container_values_to_algebra_pair([Expr | Rest]) ->
-%     ExprD = expr_to_algebra(Expr),
-%     SingleExprD = document_single_line(ExprD),
-%     {RestSingle, RestLastFits, RestMulti} = container_values_to_algebra_pair(Rest),
-%     Single = comma_space(SingleExprD, RestSingle),
-%     LastFits = prepend_comma_space(SingleExprD, RestLastFits),
-%     Multi = comma_newline(ExprD, RestMulti),
-%     {Single, LastFits, Multi}.
-
-% container_vertical_values_to_algebra([{comment, _, _} | _] = Comments) ->
-%     comments_to_algebra(Comments);
-% container_vertical_values_to_algebra([Expr | [{comment, _, _} | _] = Comments]) ->
-%     line(expr_to_algebra(Expr), comments_to_algebra(Comments));
-% container_vertical_values_to_algebra([Expr]) ->
-%     expr_to_algebra(Expr);
-% container_vertical_values_to_algebra([Expr | Rest]) ->
-%     comma_newline(
-%         expr_to_algebra(Expr),
-%         container_vertical_values_to_algebra(Rest)
-%     ).
-
 cons_to_algebra(Head, Tail) ->
     HeadD = expr_to_algebra(Head),
-    TailD = concat(string("| "), expr_to_algebra(Tail)),
+    TailD = concat(<<"| ">>, expr_to_algebra(Tail)),
     glue(HeadD, TailD).
 
-% bin_element_to_algebra(Expr, Size, Types) ->
-%     Docs =
-%         [expr_to_algebra(Expr)] ++
-%             [bin_size_to_algebra(Size) || Size =/= default] ++
-%             [bin_types_to_algebra(Types) || Types =/= default],
-%     document_reduce(fun erlfmt_algebra:concat/2, Docs).
+bin_element_to_algebra(Expr, Size, Types) ->
+    Docs =
+        [expr_to_algebra(Expr)] ++
+            [bin_size_to_algebra(Size) || Size =/= default] ++
+            [bin_types_to_algebra(Types) || Types =/= default],
+    concat(Docs).
 
-% bin_size_to_algebra(Expr) ->
-%     concat(string(":"), expr_to_algebra(Expr)).
+bin_size_to_algebra(Expr) ->
+    concat(<<":">>, expr_to_algebra(Expr)).
 
-% bin_types_to_algebra(Types) ->
-%     TypesD = lists:map(fun expr_to_algebra/1, Types),
-%     concat(string("/"), document_reduce(fun dash/2, TypesD)).
+bin_types_to_algebra(Types) ->
+    TypesD = lists:map(fun expr_to_algebra/1, Types),
+    concat(<<"/">>, fold_doc(fun (Doc, Acc) -> concat([Doc, <<"-">>, Acc]) end, TypesD)).
 
 record_access_to_algebra(Meta, Name, Key) ->
     concat([record_name_to_algebra(Meta, Name), <<".">>, expr_to_algebra(Key)]).
