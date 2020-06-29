@@ -110,8 +110,20 @@
     right :: doc()
 }).
 
+% If indent is an integer, that's the indentation appended to line breaks whenever they occur.
+% If the level is `cursor`, the current position of the "cursor" in the document becomes the nesting.
+% If the level is `reset`, it is set back to 0.
+% Only integer was mentioned in the original paper.
+-define(is_indent(Indent), (
+    Indent == reset orelse
+    Indent == cursor orelse
+    (is_integer(Indent) andalso Indent >= 0)
+)).
+
 % In doc_nest, all breaks inside the field `doc` that are printed as newlines are followed by `indent` spaces.
 % `always_or_break` was not part of the original paper.
+% `always` means nesting always happen,
+% `break` means nesting only happens inside a group that has been broken.
 -record(doc_nest, {
     doc :: doc(),
     indent :: cursor | reset | non_neg_integer(),
@@ -152,8 +164,6 @@
 % doc_break is added as part of the implementation in section 3.
 % doc_collapse, doc_fits and doc_force are newly added.
 -opaque doc() :: binary()
-    % doc_nil is not printed at all, but it is essential to implement optional output: if ... then "output" else doc_nil;
-    % doc_nil is mapped to the empty string by the pretty printer.
     | doc_nil
     | #doc_string{}
     % doc_line should be thought of as a space character which may be replaced by a line break when necessary.
@@ -195,79 +205,29 @@
     )
 ).
 
-
-
-%%%%%%%%%%%%%%%
-
-%   # Algebra API
-
-%   @doc """
-%   Returns a document entity used to represent nothingness.
-
-%   ## Examples
-
-%       iex> Inspect.Algebra.empty()
-%       :doc_nil
-
-%   """
-
+% empty is not printed at all, but it is essential to implement optional output: if ... then "output" else empty;
+% empty is mapped to the empty string by the pretty printer.
 -spec empty() -> doc().
 empty() -> doc_nil.
 
-%   Creates a document represented by string.
-
-%   While `Inspect.Algebra` accepts binaries as documents,
-%   those are counted by binary size. On the other hand,
-%   `string` documents are measured in terms of graphemes
-%   towards the document size.
-
-%   ## Examples
-
-%   The following document has 10 bytes and therefore it
-%   does not format to width 9 without breaks:
-
-%       iex> doc = Inspect.Algebra.glue("olá", " ", "mundo")
-%       iex> doc = Inspect.Algebra.group(doc)
-%       iex> Inspect.Algebra.format(doc, 9)
-%       ["olá", "\n", "mundo"]
-
-%   However, if we use `string`, then the string length is
-%   used, instead of byte size, correctly fitting:
-
-%       iex> string = Inspect.Algebra.string("olá")
-%       iex> doc = Inspect.Algebra.glue(string, " ", "mundo")
-%       iex> doc = Inspect.Algebra.group(doc)
-%       iex> Inspect.Algebra.format(doc, 9)
-%       ["olá", " ", "mundo"]
-
+% string documents are measured in terms of graphemes towards the document size.
 -spec string(unicode:chardata()) -> doc().
 string(String) ->
     #doc_string{string = String, length = string:length(String)}.
 
-%   Concatenates two document entities returning a new document.
-
-%   ## Examples
-
-%       iex> doc = Inspect.Algebra.concat("hello", "world")
-%       iex> Inspect.Algebra.format(doc, 80)
-%       ["hello", "world"]
-
+% Concatenates two document entities returning a new document.
 -spec concat(doc(), doc()) -> doc().
 concat(Left, Right) when ?is_doc(Left), ?is_doc(Right) ->
     #doc_cons{left = Left, right = Right}.
 
-%   Concatenates a list of documents returning a new document.
-
-%   ## Examples
-
-%       iex> doc = Inspect.Algebra.concat(["a", "b", "c"])
-%       iex> Inspect.Algebra.format(doc, 80)
-%       ["a", "b", "c"]
-
+% Concatenates a list of documents returning a new document.
 -spec concat([doc()]) -> doc().
 concat(Docs) when is_list(Docs) ->
     fold_doc(fun concat/2, Docs).
 
+% concat_to_last_group finds the last element of the doc_cons list,
+% if it is a group it concatenates itself to the end of that inner group.
+% otherwise this function is equivalent to a concat function.
 -spec concat_to_last_group(doc(), doc()) -> doc().
 concat_to_last_group(#doc_cons{right = Right} = Cons, Doc) ->
     Cons#doc_cons{right = concat_to_last_group(Right, Doc)};
@@ -276,30 +236,7 @@ concat_to_last_group(#doc_group{group = Inner} = Group, Doc) ->
 concat_to_last_group(Other, Doc) ->
     #doc_cons{left = Other, right = Doc}.
 
-%   Nests the given document at the given `level`.
-
-%   If `level` is an integer, that's the indentation appended
-%   to line breaks whenever they occur. If the level is `:cursor`,
-%   the current position of the "cursor" in the document becomes
-%   the nesting. If the level is `:reset`, it is set back to 0.
-
-%   `mode` can be `:always`, which means nesting always happen,
-%   or `:break`, which means nesting only happens inside a group
-%   that has been broken.
-
-%   ## Examples
-
-%       iex> doc = Inspect.Algebra.nest(Inspect.Algebra.glue("hello", "world"), 5)
-%       iex> doc = Inspect.Algebra.group(doc)
-%       iex> Inspect.Algebra.format(doc, 5)
-%       ["hello", "\n     ", "world"]
-
--define(is_indent(Indent), (
-    Indent == reset orelse
-    Indent == cursor orelse
-    (is_integer(Indent) andalso Indent >= 0)
-)).
-
+% Nests the given document at the given `level`.
 -spec nest(doc(), non_neg_integer() | cursor | reset) -> doc().
 nest(Doc, Level) ->
     nest(Doc, Level, always).
@@ -312,29 +249,7 @@ nest(Doc, Level, always) when ?is_doc(Doc), ?is_indent(Level)  ->
 nest(Doc, Level, break) when ?is_doc(Doc), ?is_indent(Level)  ->
     #doc_nest{doc = Doc, indent = Level, always_or_break = break}.
 
-%   Returns a break document based on the given `string`.
-
-%   This break can be rendered as a linebreak or as the given `string`,
-%   depending on the `mode` of the chosen layout.
-
-%   ## Examples
-
-%   Let's create a document by concatenating two strings with a break between
-%   them:
-
-%       iex> doc = Inspect.Algebra.concat(["a", Inspect.Algebra.break("\t"), "b"])
-%       iex> Inspect.Algebra.format(doc, 80)
-%       ["a", "\t", "b"]
-
-%   Notice the break was represented with the given string, because we didn't
-%   reach a line limit. Once we do, it is replaced by a newline:
-
-%       iex> break = Inspect.Algebra.break("\t")
-%       iex> doc = Inspect.Algebra.concat([String.duplicate("a", 20), break, "b"])
-%       iex> doc = Inspect.Algebra.group(doc)
-%       iex> Inspect.Algebra.format(doc, 10)
-%       ["aaaaaaaaaaaaaaaaaaaa", "\n", "b"]
-
+% This break can be rendered as a linebreak or as the given `string`, depending on the `mode` or line limit of the chosen layout.
 -spec break() -> doc().
 break() ->
     break(<<" ">>).
@@ -343,9 +258,7 @@ break() ->
 break(String) when is_binary(String) ->
     #doc_break{break = String, flex_or_strict = strict}.
 
-%   Collapse any new lines and whitespace following this
-%   node, emitting up to `max` new lines.
-
+% Collapse any new lines and whitespace following this node, emitting up to `max` new lines.
 -spec collapse_lines(pos_integer()) -> doc().
 collapse_lines(Max) when is_integer(Max) andalso Max > 0 ->
     #doc_collapse{count = Max}.
@@ -389,21 +302,15 @@ collapse_lines(Max) when is_integer(Max) andalso Max > 0 ->
 %         ...
 %       })
 
--define(is_next_break_mode(Mode), (
-    Mode == enabled orelse
-    Mode == disabled
-)).
-
 -spec next_break_fits(doc()) -> doc().
 next_break_fits(Doc) ->
     next_break_fits(Doc, enabled).
 
 -spec next_break_fits(doc(), enabled | disabled) -> doc().
-next_break_fits(Doc, Mode) when ?is_doc(Doc) and ?is_next_break_mode(Mode) ->
+next_break_fits(Doc, Mode) when ?is_doc(Doc), Mode == enabled orelse Mode == disabled ->
     #doc_fits{group = Doc, enabled_or_disabled = Mode}.
 
-%   Forces the current group to be unfit.
-
+% Forces the current group to be unfit.
 -spec force_unfit(doc()) -> doc().
 force_unfit(Doc) when ?is_doc(Doc) ->
     #doc_force{group = Doc}.
@@ -532,55 +439,26 @@ group(Doc, Mode) when ?is_doc(Doc), Mode == self orelse Mode == inherit ->
 space(Doc1, Doc2) ->
     concat(Doc1, concat(<<" ">>, Doc2)).
 
-%   A mandatory linebreak.
-
-%   A group with linebreaks will fit if all lines in the group fit.
-
-%   ## Examples
-
-%       iex> doc =
-%       ...>   Inspect.Algebra.concat(
-%       ...>     Inspect.Algebra.concat(
-%       ...>       "Hughes",
-%       ...>       Inspect.Algebra.line()
-%       ...>     ),
-%       ...>     "Wadler"
-%       ...>   )
-%       iex> Inspect.Algebra.format(doc, 80)
-%       ["Hughes", "\n", "Wadler"]
-
+% A mandatory linebreak, but in the paper doc_line was described as optional? (is this mandatory or optional in this implementation)
+% A group with linebreaks will fit if all lines in the group fit.
 -spec line() -> doc().
 line() -> doc_line.
 
-%   Inserts a mandatory linebreak between two documents.
-
-%   See `line/0`.
-
-%   ## Examples
-
-%       iex> doc = Inspect.Algebra.line("Hughes", "Wadler")
-%       iex> Inspect.Algebra.format(doc, 80)
-%       ["Hughes", "\n", "Wadler"]
-
+% Inserts a mandatory linebreak between two documents.
 -spec line(doc(), doc()) -> doc().
 line(Doc1, Doc2) -> concat(Doc1, concat(line(), Doc2)).
 
 %   Folds a list of documents into a document using the given folder function.
-
 %   The list of documents is folded "from the right"; in that, this function is
 %   similar to `List.foldr/3`, except that it doesn't expect an initial
 %   accumulator and uses the last element of `docs` as the initial accumulator.
-
-%   ## Examples
-
-%       iex> docs = ["A", "B", "C"]
-%       iex> docs =
-%       ...>   Inspect.Algebra.fold_doc(docs, fn doc, acc ->
-%       ...>     Inspect.Algebra.concat([doc, "!", acc])
-%       ...>   end)
-%       iex> Inspect.Algebra.format(docs, 80)
-%       ["A", "!", "B", "!", "C"]
-
+%   Example:
+%   ``` 
+%   Docs = ["A", "B", "C"],
+%   FoldedDocs = fold_doc(fun(Doc, Acc) -> concat([Doc, "!", Acc]) end, Docs),
+%   io:format("~p", [FoldedDocs]).
+%   ```
+%   ["A", "!", "B", "!", "C"]
 -spec fold_doc(fun((doc(), doc()) -> doc()), [doc()]) -> doc().
 fold_doc(_Fun, []) ->
     empty();
@@ -589,23 +467,11 @@ fold_doc(_Fun, [Doc]) ->
 fold_doc(Fun, [Doc | Docs]) ->
     Fun(Doc, fold_doc(Fun, Docs)).
 
-%   Formats a given document for a given width.
-
-%   Takes the maximum width and a document to print as its arguments
-%   and returns an IO data representation of the best layout for the
-%   document to fit in the given width.
-
-%   The document starts flat (without breaks) until a group is found.
-
-%   ## Examples
-
-%       iex> doc = Inspect.Algebra.glue("hello", " ", "world")
-%       iex> doc = Inspect.Algebra.group(doc)
-%       iex> doc |> Inspect.Algebra.format(30) |> IO.iodata_to_binary()
-%       "hello world"
-%       iex> doc |> Inspect.Algebra.format(10) |> IO.iodata_to_binary()
-%       "hello\nworld"
-
+% Formats a given document for a given width.
+% Takes the maximum width and a document to print as its arguments
+% and returns an string representation of the best layout for the
+% document to fit in the given width.
+% The document starts flat (without breaks) until a group is found.
 -spec format(doc(), non_neg_integer() | infinity) -> unicode:chardata().
 format(Doc, Width) when ?is_doc(Doc) andalso (Width == infinity orelse Width >= 0) ->
     format(Width, 0, [{0, flat, Doc}]).
