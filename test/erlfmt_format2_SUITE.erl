@@ -107,7 +107,7 @@ groups() ->
         %     % function,
             attribute,
         %     % spec,
-        %     % record_definition,
+            record_definition,
             define
         %     % type
         ]},

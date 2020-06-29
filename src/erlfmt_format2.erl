@@ -75,20 +75,17 @@ to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
 %     ValueD = expr_to_algebra(Value),
 %     Doc = wrap_prepend(NameD, ValueD, string(".")),
 %     combine_comments(Meta, Doc);
-% to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Values}]}) ->
-%     HeadD = wrap(string("-record("), expr_to_algebra(Name), string(",")),
-%     case no_comments_or_parens(TMeta) of
-%         true ->
-%             Prefix = concat(HeadD, string(" {")),
-%             Doc = container_to_algebra(TMeta, Values, Prefix, string("}).")),
-%             combine_comments(Meta, Doc);
-%         false ->
-%             Doc = line(
-%                 combine_nested(HeadD, expr_to_algebra({tuple, TMeta, Values})),
-%                 string(").")
-%             ),
-%             combine_comments(Meta, Doc)
-%     end;
+to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Values} = Tuple]}) ->
+    HeadD = concat([<<"-record(">>, expr_to_algebra(Name), <<",">>]),
+    case has_no_comments_or_parens(TMeta) of
+        true ->
+            Prefix = concat(HeadD, string(" {")),
+            Doc = container(TMeta, Values, Prefix, <<"}).">>),
+            combine_comments(Meta, Doc);
+        false ->
+            Doc = surround(HeadD, <<"">>, expr_to_algebra(Tuple), <<"">>, <<").">>),
+            combine_comments(Meta, Doc)
+    end;
 to_algebra({attribute, Meta, Name, Values}) ->
     Prefix = concat([<<"-">>, expr_to_algebra(Name), <<"(">>]),
     Doc = call(Meta, Values, Prefix, <<").">>),
@@ -151,8 +148,8 @@ do_expr_to_algebra({record_field, _Meta, Key, Value}) ->
     field_to_algebra(<<" =">>, Key, Value);
 do_expr_to_algebra({record_index, Meta, Name, Key}) ->
     record_access_to_algebra(Meta, Name, Key);
-% do_expr_to_algebra({record_field, _Meta, Name}) ->
-%     expr_to_algebra(Name);
+do_expr_to_algebra({record_field, _Meta, Name}) ->
+    expr_to_algebra(Name);
 do_expr_to_algebra({record_field, Meta, Expr, Name, Key}) ->
     concat(expr_to_algebra(Expr), record_access_to_algebra(Meta, Name, Key));
 % do_expr_to_algebra({lc, _Meta, Expr, LcExprs}) ->
