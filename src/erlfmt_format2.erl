@@ -89,10 +89,10 @@ to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
 %             ),
 %             combine_comments(Meta, Doc)
 %     end;
-% to_algebra({attribute, Meta, Name, Values}) ->
-%     Prefix = wrap(string("-"), expr_to_algebra(Name), string("(")),
-%     Doc = container_to_algebra(Meta, Values, Prefix, string(").")),
-%     combine_comments(Meta, Doc);
+to_algebra({attribute, Meta, Name, Values}) ->
+    Prefix = concat([<<"-">>, expr_to_algebra(Name), <<"(">>]),
+    Doc = call(Meta, Values, Prefix, <<").">>),
+    combine_comments(Meta, Doc);
 to_algebra(Expr) ->
     Meta = element(2, Expr),
     Doc = do_expr_to_algebra(Expr),

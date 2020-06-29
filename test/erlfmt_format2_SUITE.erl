@@ -105,7 +105,7 @@ groups() ->
         ]},
         {forms, [parallel], [
         %     % function,
-        %     % attribute,
+            attribute,
         %     % spec,
         %     % record_definition,
             define
@@ -1491,14 +1491,21 @@ function(Config) when is_list(Config) ->
 
 attribute(Config) when is_list(Config) ->
     ?assertFormat("-else .", "-else."),
-    ?assertFormat("- foo (\n1).", "-foo(1)."),
+    ?assertFormat("- foo ( 1 ).", "-foo(1)."),
+    ?assertFormat(
+        "- foo (\n"
+        "1).",
+        "-foo(\n"
+        "    1\n"
+        ")."
+    ),
     ?assertSame("-compile([export_all, nowarn_export_all])."),
     ?assertSame("-import(foo, [bar/2, baz/0])."),
     ?assertSame("-export([bar/2, baz/3])."),
     ?assertFormat(
-        "-attribute([Long, Value]).",
+        "-attribute({Very, Long, Value}).",
         "-attribute(\n"
-        "    [Long, Value]\n"
+        "    {Very, Long, Value}\n"
         ").",
         25
     ),
