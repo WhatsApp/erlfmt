@@ -19,12 +19,14 @@
 
 -export([
     put_anno/3,
+    merge_anno/2,
     delete_anno/2,
     delete_annos/2,
     get_anno/2,
     get_anno/3,
     get_line/1,
     get_end_line/1,
+    get_inner_line/1,
     update_anno/3
 ]).
 
@@ -52,6 +54,7 @@
 -type anno() :: #{
     location := location(),
     end_location := location(),
+    inner_location => location(),
     text => string(),
     newline => true,
     atom() => term()
@@ -258,6 +261,11 @@ put_anno(Key, Value, Anno) when is_map(Anno) ->
 put_anno(Key, Value, Node) when is_tuple(Node) ->
     setelement(2, Node, (element(2, Node))#{Key => Value}).
 
+merge_anno(Map, Anno) when is_map(Anno) ->
+    maps:merge(Anno, Map);
+merge_anno(Map, Node) when is_tuple(Node) ->
+    setelement(2, Node, maps:merge(element(2, Node), Map)).
+
 delete_anno(Key, Anno) when is_map(Anno) ->
     maps:remove(Key, Anno);
 delete_anno(Key, Node) when is_tuple(Node) ->
@@ -271,6 +279,9 @@ delete_annos(Keys, Node) when is_tuple(Node) ->
 get_line(Anno) -> element(1, get_anno(location, Anno)).
 
 get_end_line(Anno) -> element(1, get_anno(end_location, Anno)).
+
+get_inner_line(Anno) ->
+    element(1, get_anno(inner_location, Anno, get_anno(location, Anno))).
 
 get_anno(Key, Anno) when is_map(Anno) ->
     map_get(Key, Anno);

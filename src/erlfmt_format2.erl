@@ -410,7 +410,7 @@ container(_Meta, [], Left, Right) ->
 container(Meta, [Value | _] = Values, Left, Right) ->
     ValuesD = container_exprs_to_algebra(Values, no_fits),
     case has_inner_break(Meta, Value) of
-        true -> 
+        true ->
             Doc = fold_doc(fun (D, Acc) -> line(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
             surround(Left, force_unfit(Doc), Right);
         false ->
@@ -815,7 +815,7 @@ has_break_between(Left, Right) ->
     erlfmt_scan:get_end_line(Left) < erlfmt_scan:get_line(Right).
 
 has_inner_break(Outer, Inner) ->
-    erlfmt_scan:get_line(Outer) < erlfmt_scan:get_line(Inner).
+    erlfmt_scan:get_inner_line(Outer) < erlfmt_scan:get_line(Inner).
 
 is_next_break_fits_op(Op, Expr) ->
     lists:member(Op, ?NEXT_BREAK_FITS_OPS) andalso

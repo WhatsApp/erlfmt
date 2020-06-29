@@ -1677,13 +1677,13 @@ comment(Config) when is_list(Config) ->
         "    %% foo\n"
         "    1\n"
         "]"
+    ),
+    ?assertFormat(
+        "[1,2,3 %% foo\n"
+        "]",
+        "%% foo\n"
+        "[1, 2, 3]"
     ).
-    % ?assertFormat(
-    %     "[1,2,3 %% foo\n"
-    %     "]",
-    %     "%% foo\n"
-    %     "[1, 2, 3]"
-    % ).
 
 format(String, PageWidth) ->
     {ok, [Node], []} = erlfmt:read_nodes_string("nofile", String),
