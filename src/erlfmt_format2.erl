@@ -173,9 +173,9 @@ do_expr_to_algebra({record_field, Meta, Expr, Name, Key}) ->
 %     field_to_algebra(<<" <-">>, Left, Right);
 % do_expr_to_algebra({b_generate, _Meta, Left, Right}) ->
 %     field_to_algebra(<<" <=">>, Left, Right);
-% do_expr_to_algebra({call, Meta, Name, Args}) ->
-%     Prefix = concat(expr_to_algebra(Name), string("(")),
-%     container_to_algebra(Meta, Args, Prefix, string(")"));
+do_expr_to_algebra({call, Meta, Name, Args}) ->
+    Prefix = concat(expr_to_algebra(Name), <<"(">>),
+    call(Meta, Args, Prefix, <<")">>);
 % do_expr_to_algebra({macro_call, _Meta, Name, none}) ->
 %     concat(string("?"), expr_to_algebra(Name));
 % do_expr_to_algebra({macro_call, Meta, Name, Args}) ->
@@ -183,8 +183,8 @@ do_expr_to_algebra({record_field, Meta, Expr, Name, Key}) ->
 %     container_to_algebra(Meta, Args, Prefix, string(")"));
 % do_expr_to_algebra({macro_string, _Meta, Name}) ->
 %     concat(string("??"), expr_to_algebra(Name));
-% do_expr_to_algebra({remote, _Meta, Left, Right}) ->
-%     combine_sep(expr_to_algebra(Left), ":", expr_to_algebra(Right));
+do_expr_to_algebra({remote, _Meta, Left, Right}) ->
+    concat([expr_to_algebra(Left), <<":">>, expr_to_algebra(Right)]);
 % do_expr_to_algebra({block, _Meta, Exprs}) ->
 %     wrap_nested(string("begin"), block_to_algebra(Exprs), string("end"));
 % do_expr_to_algebra({'fun', _Meta, Expr}) ->
@@ -402,10 +402,16 @@ binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
 %     ),
 %     fill_container_values_to_algebra(Acc, Rest).
 
-container(_Meta, [], Left, Right) ->
+container(Meta, Values, Left, Right) ->
+    container_common(Meta, Values, Left, Right, no_fits).
+
+call(Meta, Values, Left, Right) ->
+    container_common(Meta, Values, Left, Right, fits).
+
+container_common(_Meta, [], Left, Right, _Fits) ->
     concat(Left, Right);
-container(Meta, [Value | _] = Values, Left, Right) ->
-    ValuesD = container_exprs_to_algebra(Values, no_fits),
+container_common(Meta, [Value | _] = Values, Left, Right, Fits) ->
+    ValuesD = container_exprs_to_algebra(Values, Fits),
     case has_inner_break(Meta, Value) of
         true ->
             Doc = fold_doc(fun (D, Acc) -> line(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
