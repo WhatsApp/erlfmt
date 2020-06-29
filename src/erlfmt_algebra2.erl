@@ -99,6 +99,7 @@
 
 % Functional interface to "doc" records
 
+% doc_string represents Literal text, which is simply printed as is.
 -record(doc_string, {
     string :: doc(),
     length :: non_neg_integer()
@@ -109,20 +110,29 @@
     right :: doc()
 }).
 
+% In doc_nest, all breaks inside the field `doc` that are printed as newlines are followed by `indent` spaces.
+% `always_or_break` was not part of the original paper.
 -record(doc_nest, {
     doc :: doc(),
     indent :: cursor | reset | non_neg_integer(),
     always_or_break :: always | break
 }).
 
--record(doc_break, {
-    break :: binary(),
-    flex_or_strict :: flex | strict
-}).
-
+% The decision for each group affects all the line breaks of a group at a whole but is made for subgroups individually.
+% 1. Print every optional line break of the current group and all its subgroups as spaces. If
+% the current group then fits completely into the remaining space of current line this is
+% the layout of the group.
+% 2. If the former fails every optional line break of the current group is printed as a newline.
+% Subgroups and their line breaks, however, are considered individually as they are reached
+% by the pretty printing process.
 -record(doc_group, {
     group :: doc(),
     inherit_or_self :: inherit | self
+}).
+
+-record(doc_break, {
+    break :: binary(),
+    flex_or_strict :: flex | strict
 }).
 
 -record(doc_fits, {
@@ -138,17 +148,23 @@
     count :: pos_integer()
 }).
 
+% The first six constructors are described in the original paper at "Figure 1: Six constructors for the doc data type".
+% doc_break is added as part of the implementation in section 3.
+% doc_collapse, doc_fits and doc_force are newly added.
 -opaque doc() :: binary()
-    | doc_line
+    % doc_nil is not printed at all, but it is essential to implement optional output: if ... then "output" else doc_nil;
+    % doc_nil is mapped to the empty string by the pretty printer.
     | doc_nil
+    | #doc_string{}
+    % doc_line should be thought of as a space character which may be replaced by a line break when necessary.
+    | doc_line
+    | #doc_cons{}
+    | #doc_nest{}
+    | #doc_group{}
     | #doc_break{}
     | #doc_collapse{}
-    | #doc_cons{}
     | #doc_fits{}
     | #doc_force{}
-    | #doc_group{}
-    | #doc_nest{}
-    | #doc_string{}
     .
 
 -define(docs, [
