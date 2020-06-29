@@ -157,13 +157,12 @@ do_expr_to_algebra({record, Meta, Expr, Name, Values}) ->
     concat(expr_to_algebra(Expr), container(Meta, Values, Prefix, <<"}">>));
 do_expr_to_algebra({record_field, _Meta, Key, Value}) ->
     field_to_algebra(<<" =">>, Key, Value);
-% do_expr_to_algebra({record_index, Meta, Name, Key}) ->
-%     record_access_to_algebra(Meta, Name, Key);
+do_expr_to_algebra({record_index, Meta, Name, Key}) ->
+    record_access_to_algebra(Meta, Name, Key);
 % do_expr_to_algebra({record_field, _Meta, Name}) ->
 %     expr_to_algebra(Name);
-% do_expr_to_algebra({record_field, Meta, Expr, Name, Key}) ->
-%     Access = record_access_to_algebra(Meta, Name, Key),
-%     concat(expr_to_algebra(Expr), Access);
+do_expr_to_algebra({record_field, Meta, Expr, Name, Key}) ->
+    concat(expr_to_algebra(Expr), record_access_to_algebra(Meta, Name, Key));
 % do_expr_to_algebra({lc, _Meta, Expr, LcExprs}) ->
 %     ExprD = expr_to_algebra(Expr),
 %     comprehension_to_algebra(ExprD, LcExprs, string("["), string("]"));
@@ -504,11 +503,8 @@ cons_to_algebra(Head, Tail) ->
 %     TypesD = lists:map(fun expr_to_algebra/1, Types),
 %     concat(string("/"), document_reduce(fun dash/2, TypesD)).
 
-% record_access_to_algebra(Meta, Name, Key) ->
-%     NameD = record_name_to_algebra(Meta, Name),
-%     KeyD = expr_to_algebra(Key),
-%     DotD = string("."),
-%     concat(NameD, concat(DotD, KeyD)).
+record_access_to_algebra(Meta, Name, Key) ->
+    concat([record_name_to_algebra(Meta, Name), <<".">>, expr_to_algebra(Key)]).
 
 record_name_to_algebra(Meta, Name) ->
     %% Differentiate between #?FOO{} and ?FOO{}

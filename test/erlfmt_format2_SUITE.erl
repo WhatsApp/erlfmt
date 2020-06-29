@@ -126,9 +126,9 @@ groups() ->
         ]},
         {records, [parallel], [
             record_create,
-            record_update
-        %     % record_index,
-        %     % record_field
+            record_update,
+            record_index,
+            record_field
         ]}
         % {comprehensions, [parallel], [
         %     % list_comprehension,
@@ -660,7 +660,7 @@ record_update(Config) when is_list(Config) ->
     ?assertFormat("X #foo {\n}", "X#foo{}"),
     ?assertSame("#foo{}#bar{}"),
     ?assertSame("#foo{}#bar{}#baz{}"),
-    % ?assertSame("X#foo.bar#baz{}"),
+    ?assertSame("X#foo.bar#baz{}"),
     ?assertSame("(catch 1)#foo{}"),
     ?assertFormat(
         "X#foo{aa = aa, bb = bb}",
@@ -685,9 +685,9 @@ record_update(Config) when is_list(Config) ->
     % ?assertSame("X?FOO{}").
 
 record_index(Config) when is_list(Config) ->
-    ?assertSame("#foo.bar"),
-    ?assertSame("#?FOO.bar"),
-    ?assertSame("?FOO.bar").
+    ?assertSame("#foo.bar").
+    % ?assertSame("#?FOO.bar"),
+    % ?assertSame("?FOO.bar").
 
 record_field(Config) when is_list(Config) ->
     ?assertSame("X#foo.bar"),
@@ -698,9 +698,9 @@ record_field(Config) when is_list(Config) ->
         "(Foo +\n"
         "    Bar)#foo.bar",
         5
-    ),
-    ?assertSame("X#?FOO.bar"),
-    ?assertSame("X?FOO.bar").
+    ).
+    % ?assertSame("X#?FOO.bar"),
+    % ?assertSame("X?FOO.bar").
 
 force_break(Config) when is_list(Config) ->
     ?assertSame(
