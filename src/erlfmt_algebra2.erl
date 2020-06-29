@@ -564,11 +564,26 @@ format(Width, K, [{I, M, #doc_nest{doc = X, indent = J, always_or_break = Nest}}
 format(Width, K, [{I, break, #doc_group{group = X, inherit_or_self = inherit}} | T]) ->
     format(Width, K, [{I, break, X} | T]);
 
-format(Width, K, [{I, _, #doc_group{group = X}} | T]) ->
+format(Width, K, [{I, _, #doc_group{group = X}} | T0]) ->
     case Width == infinity orelse fits(Width, K, false, [{I, flat, X}]) of
-        true -> format(Width, K, [{I, flat, X} | T]);
-        false -> format(Width, K, [{I, break, X} | T])
+        true ->
+            format(Width, K, [{I, flat, X} | T0]);
+        false ->
+            T = force_next_flex_break(T0),
+            format(Width, K, [{I, break, X} | T])
     end.
+
+%% after a group breaks, we force next flex break to also break
+force_next_flex_break([{I, M, #doc_break{flex_or_strict = flex} = Break} | T]) ->
+    [{I, M, Break#doc_break{flex_or_strict = strict}} | T];
+force_next_flex_break([{_, _, #doc_break{flex_or_strict = strict}} | _] = Stack) ->
+    Stack;
+force_next_flex_break([{I, M, #doc_cons{left = Left, right = Right}} | T]) ->
+    force_next_flex_break([{I, M, Left}, {I, M, Right} | T]);
+force_next_flex_break([Other | T]) ->
+    [Other | force_next_flex_break(T)];
+force_next_flex_break([]) ->
+    [].
 
 collapse([<<"\n", _/binary>> | T], Max, Count, I) ->
     collapse(T, Max, Count + 1, I);

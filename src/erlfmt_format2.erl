@@ -131,8 +131,8 @@ do_expr_to_algebra({op, _Meta, Op, Expr}) ->
     unary_op_to_algebra(Op, Expr);
 do_expr_to_algebra({op, Meta, Op, Left, Right}) ->
     binary_op_to_algebra(Op, Meta, Left, Right);
-% do_expr_to_algebra({tuple, Meta, Values}) ->
-%     fill_container_to_algebra(Meta, Values, string("{"), string("}"));
+do_expr_to_algebra({tuple, Meta, Values}) ->
+    flex_container(Meta, Values, <<"{">>, <<"}">>);
 do_expr_to_algebra({list, Meta, Values}) ->
     container(Meta, Values, <<"[">>, <<"]">>);
 do_expr_to_algebra({cons, _, Head, Tail}) ->
@@ -403,37 +403,43 @@ binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
 %     fill_container_values_to_algebra(Acc, Rest).
 
 container(Meta, Values, Left, Right) ->
-    container_common(Meta, Values, Left, Right, no_fits).
+    container_common(Meta, Values, Left, Right, glue, last_normal).
+
+flex_container(Meta, Values, Left, Right) ->
+    container_common(Meta, Values, Left, Right, flex_glue, last_normal).
 
 call(Meta, Values, Left, Right) ->
-    container_common(Meta, Values, Left, Right, fits).
+    container_common(Meta, Values, Left, Right, glue, last_fits).
 
-container_common(_Meta, [], Left, Right, _Fits) ->
+container_common(_Meta, [], Left, Right, _Combine, _Last) ->
     concat(Left, Right);
-container_common(Meta, [Value | _] = Values, Left, Right, Fits) ->
-    ValuesD = container_exprs_to_algebra(Values, Fits),
+container_common(Meta, [Value | _] = Values, Left, Right, Combine, Last) ->
+    ValuesD = container_exprs_to_algebra(Values, Last),
     case has_inner_break(Meta, Value) of
         true ->
             Doc = fold_doc(fun (D, Acc) -> line(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
             surround(Left, force_unfit(Doc), Right);
-        false ->
+        false when Combine =:= glue ->
             Doc = fold_doc(fun (D, Acc) -> glue(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
-            surround(Left, Doc, Right)
+            surround(Left, Doc, Right);
+        false when Combine =:= flex_glue ->
+            Doc = fold_doc(fun (D, Acc) -> flex_glue(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
+            group(concat(nest(concat(Left, Doc), ?INDENT), Right))
     end.
 
-container_exprs_to_algebra([{comment, _, _} | _] = Comments, _LastBreak) ->
+container_exprs_to_algebra([{comment, _, _} | _] = Comments, _Last) ->
     [comments_to_algebra(Comments)];
-container_exprs_to_algebra([Value | [{comment, _, _} | _] = Comments], _LastBreak) ->
+container_exprs_to_algebra([Value | [{comment, _, _} | _] = Comments], _Last) ->
     [line(expr_to_algebra(Value), comments_to_algebra(Comments))];
-container_exprs_to_algebra([Value], fits) ->
+container_exprs_to_algebra([Value], last_fits) ->
     case is_next_break_fits(Value) of
         true -> [next_break_fits(expr_to_algebra(Value), enabled)];
         false -> [expr_to_algebra(Value)]
     end;
-container_exprs_to_algebra([Value], no_fits) ->
+container_exprs_to_algebra([Value], last_normal) ->
     [expr_to_algebra(Value)];
-container_exprs_to_algebra([Value | Values], LastBreak) ->
-    [expr_to_algebra(Value) | container_exprs_to_algebra(Values, LastBreak)].
+container_exprs_to_algebra([Value | Values], Last) ->
+    [expr_to_algebra(Value) | container_exprs_to_algebra(Values, Last)].
 
 % container_to_algebra(_Meta, [], Left, Right) ->
 %     concat(Left, Right);

@@ -116,7 +116,7 @@ groups() ->
             binary_operator
         ]},
         {containers, [parallel], [
-        %     % tuple,
+            tuple,
             list,
         %     % binary,
             map_create,
@@ -396,22 +396,22 @@ tuple(Config) when is_list(Config) ->
     ?assertFormat("{1,2}", "{1, 2}"),
     ?assertFormat("{1,{2,3}}", "{1, {2, 3}}"),
     ?assertFormat(
-        "{verylong,{2,3,4}}",
+        "{verylong,{22,33,44}}",
         "{verylong,\n"
-        "    {2, 3, 4}}",
+        "    {22, 33, 44}}",
         20
     ),
     ?assertFormat(
-        "{long,x,{2,3,4},y}",
+        "{long,x,{22,33,44},y}",
         "{long, x,\n"
-        "    {2, 3, 4}, y}",
+        "    {22, 33, 44}, y}",
         20
     ),
     ?assertFormat(
-        "{verylong,x,{2,3,4},y,{5,6,7},z}",
+        "{verylong,x,{22,33,44},y,{55,66,77},z}",
         "{verylong, x,\n"
-        "    {2, 3, 4}, y,\n"
-        "    {5, 6, 7}, z}",
+        "    {22, 33, 44}, y,\n"
+        "    {55, 66, 77}, z}",
         20
     ),
     ?assertFormat(
@@ -424,12 +424,13 @@ tuple(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "{{a,long,tuple},[nested,1,long,list]}",
-        "{{a, long, tuple}, [\n"
-        "    nested,\n"
-        "    1,\n"
-        "    long,\n"
-        "    list\n"
-        "]}",
+        "{{a, long, tuple},\n"
+        "    [\n"
+        "        nested,\n"
+        "        1,\n"
+        "        long,\n"
+        "        list\n"
+        "    ]}",
         20
     ),
     ?assertFormat(
@@ -445,17 +446,17 @@ tuple(Config) when is_list(Config) ->
         25
     ),
     ?assertFormat(
-        "{{a,long,tuple},the,atoms,[nested,long,list],other,bare,atoms,this_does_not_fit}",
+        "{{a,long,tuple},bare,atoms,[nested,long,list],bare,atoms,this_does_not_fit}",
         "{{a, long, tuple},\n"
-        "    the, atoms,\n"
+        "    bare, atoms,\n"
         "    [\n"
         "        nested,\n"
         "        long,\n"
         "        list\n"
         "    ],\n"
-        "    other, bare, atoms,\n"
+        "    bare, atoms,\n"
         "    this_does_not_fit}",
-        25
+        20
     ),
     ?assertFormat(
         "{short, {a,long,tuple}}",
@@ -731,18 +732,18 @@ force_break(Config) when is_list(Config) ->
         "    x\n"
         "]"
     ),
-    % ?assertFormat(
-    %     "{x\n"
-    %     "}",
-    %     "{x}"
-    % ),
-    % ?assertFormat(
-    %     "{\n"
-    %     " x}",
-    %     "{\n"
-    %     "    x\n"
-    %     "}"
-    % ),
+    ?assertFormat(
+        "{x\n"
+        "}",
+        "{x}"
+    ),
+    ?assertFormat(
+        "{\n"
+        " x}",
+        "{\n"
+        "    x\n"
+        "}"
+    ),
     % ?assertFormat(
     %     "<<x\n"
     %     ">>",
@@ -926,13 +927,13 @@ call(Config) when is_list(Config) ->
     ?assertSame("foo:bar(1, 2, 3)"),
     ?assertSame("Foo:Bar(1, 2, 3)"),
     ?assertSame("(get_module()):(get_fun())()"),
-    % ?assertFormat(
-    %     "long_name({Long, Expression})",
-    %     "long_name(\n"
-    %     "    {Long, Expression}\n"
-    %     ")",
-    %     25
-    % ),
+    ?assertFormat(
+        "long_name({Long, Expression})",
+        "long_name(\n"
+        "    {Long, Expression}\n"
+        ")",
+        25
+    ),
     ?assertFormat(
         "very_very_long_name([Very, Long, Expression])",
         "very_very_long_name(\n"
@@ -944,22 +945,22 @@ call(Config) when is_list(Config) ->
         ")",
         20
     ),
-    % ?assertFormat(
-    %     "very_very_long_name({Very, Long, Expression})",
-    %     "very_very_long_name(\n"
-    %     "    {Very, Long,\n"
-    %     "        Expression}\n"
-    %     ")",
-    %     20
-    % ),
-    % ?assertFormat(
-    %     "long_name({Long, Expression}, AnotherArgument)",
-    %     "long_name(\n"
-    %     "    {Long, Expression},\n"
-    %     "    AnotherArgument\n"
-    %     ")",
-    %     25
-    % ),
+    ?assertFormat(
+        "very_very_long_name({Very, Long, Expression})",
+        "very_very_long_name(\n"
+        "    {Very, Long,\n"
+        "        Expression}\n"
+        ")",
+        20
+    ),
+    ?assertFormat(
+        "long_name({Long, Expression}, AnotherArgument)",
+        "long_name(\n"
+        "    {Long, Expression},\n"
+        "    AnotherArgument\n"
+        ")",
+        25
+    ),
     ?assertFormat(
         "long_name(Arg, [Very, Long, Expression])",
         "long_name(Arg, [\n"
