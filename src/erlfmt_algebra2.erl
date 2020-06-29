@@ -11,7 +11,7 @@
 %   algebra gets interesting when using functions like `glue/3` and
 %   `group/1`. A glue inserts a break between two documents. A group
 %   indicates a document that must fit the current line, otherwise
-%   breaks are rendered as new lines. 
+%   breaks are rendered as new lines.
 
 %   ## Implementation details
 
@@ -418,7 +418,7 @@ line(Doc1, Doc2) -> concat(Doc1, concat(line(), Doc2)).
 %   similar to `List.foldr/3`, except that it doesn't expect an initial
 %   accumulator and uses the last element of `docs` as the initial accumulator.
 %   Example:
-%   ``` 
+%   ```
 %   Docs = ["A", "B", "C"],
 %   FoldedDocs = fold_doc(fun(Doc, Acc) -> concat([Doc, "!", Acc]) end, Docs),
 %   io:format("~p", [FoldedDocs]).
@@ -453,7 +453,7 @@ format(Doc, Width) when ?is_doc(Doc) andalso (Width == infinity orelse Width >= 
 
 -type mode() :: flat | flat_no_break | break | break_no_flat.
 
--spec fits(integer(), integer(), boolean(), Entries) -> boolean()
+-spec fits(Width :: integer(), Column :: integer(), HasBreaks :: boolean(), Entries) -> boolean()
     when Entries :: maybe_improper_list({integer(), mode(), doc()}, {tail, boolean(), Entries} | []).
 
 % We need at least a break to consider the document does not fit since a
