@@ -94,14 +94,14 @@ groups() ->
             {group, containers},
             {group, operators},
             % {group, comprehensions},
-            call
+            call,
             % block,
             % fun_expression,
             % case_expression,
             % receive_expression,
             % try_expression,
             % if_expression,
-            % macro
+            macro
         ]},
         % {forms, [parallel], [
         %     % function,
@@ -367,11 +367,11 @@ binary_operator(Config) when is_list(Config) ->
         "    1\n"
         ")"
     ),
-    % ?assertSame(
-    %     "Foo = ?foo(\n"
-    %     "    1\n"
-    %     ")"
-    % ),
+    ?assertSame(
+        "Foo = ?foo(\n"
+        "    1\n"
+        ")"
+    ),
     % ?assertSame(
     %     "Foo = fun () ->\n"
     %     "    ok\n"
@@ -638,8 +638,8 @@ record_create(Config) when is_list(Config) ->
         "}",
         15
     ),
-    % ?assertSame("#?FOO{}"),
-    % ?assertSame("?FOO{}"),
+    ?assertSame("#?FOO{}"),
+    ?assertSame("?FOO{}"),
     ?assertSame(
         "#foo{\n"
         "    a = [\n"
@@ -680,14 +680,14 @@ record_update(Config) when is_list(Config) ->
         "    bb = bb\n"
         "}",
         15
-    ).
-    % ?assertSame("X#?FOO{}"),
-    % ?assertSame("X?FOO{}").
+    ),
+    ?assertSame("X#?FOO{}"),
+    ?assertSame("X?FOO{}").
 
 record_index(Config) when is_list(Config) ->
-    ?assertSame("#foo.bar").
-    % ?assertSame("#?FOO.bar"),
-    % ?assertSame("?FOO.bar").
+    ?assertSame("#foo.bar"),
+    ?assertSame("#?FOO.bar"),
+    ?assertSame("?FOO.bar").
 
 record_field(Config) when is_list(Config) ->
     ?assertSame("X#foo.bar"),
@@ -698,9 +698,9 @@ record_field(Config) when is_list(Config) ->
         "(Foo +\n"
         "    Bar)#foo.bar",
         5
-    ).
-    % ?assertSame("X#?FOO.bar"),
-    % ?assertSame("X?FOO.bar").
+    ),
+    ?assertSame("X#?FOO.bar"),
+    ?assertSame("X?FOO.bar").
 
 force_break(Config) when is_list(Config) ->
     ?assertSame(

@@ -176,13 +176,13 @@ do_expr_to_algebra({record_field, Meta, Expr, Name, Key}) ->
 do_expr_to_algebra({call, Meta, Name, Args}) ->
     Prefix = concat(expr_to_algebra(Name), <<"(">>),
     call(Meta, Args, Prefix, <<")">>);
-% do_expr_to_algebra({macro_call, _Meta, Name, none}) ->
-%     concat(string("?"), expr_to_algebra(Name));
-% do_expr_to_algebra({macro_call, Meta, Name, Args}) ->
-%     Prefix = wrap(string("?"), expr_to_algebra(Name), string("(")),
-%     container_to_algebra(Meta, Args, Prefix, string(")"));
-% do_expr_to_algebra({macro_string, _Meta, Name}) ->
-%     concat(string("??"), expr_to_algebra(Name));
+do_expr_to_algebra({macro_call, _Meta, Name, none}) ->
+    concat(<<"?">>, expr_to_algebra(Name));
+do_expr_to_algebra({macro_call, Meta, Name, Args}) ->
+    Prefix = concat([<<"?">>, expr_to_algebra(Name), <<"(">>]),
+    call(Meta, Args, Prefix, <<")">>);
+do_expr_to_algebra({macro_string, _Meta, Name}) ->
+    concat(<<"??">>, expr_to_algebra(Name));
 do_expr_to_algebra({remote, _Meta, Left, Right}) ->
     concat([expr_to_algebra(Left), <<":">>, expr_to_algebra(Right)]);
 % do_expr_to_algebra({block, _Meta, Exprs}) ->
