@@ -141,15 +141,15 @@ do_expr_to_algebra({cons, _, Head, Tail}) ->
 %     fill_container_to_algebra(Meta, Values, string("<<"), string(">>"));
 % do_expr_to_algebra({bin_element, _Meta, Expr, Size, Types}) ->
 %     bin_element_to_algebra(Expr, Size, Types);
-% do_expr_to_algebra({map, Meta, Values}) ->
-%     container_to_algebra(Meta, Values, string("#{"), string("}"));
+do_expr_to_algebra({map, Meta, Values}) ->
+    container(Meta, Values, <<"#{">>, <<"}">>);
 % do_expr_to_algebra({map, Meta, Expr, Values}) ->
 %     Prefix = concat(expr_to_algebra(Expr), string("#{")),
 %     container_to_algebra(Meta, Values, Prefix, string("}"));
-% do_expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
-%     field_to_algebra("=>", Key, Value);
-% do_expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
-%     field_to_algebra(":=", Key, Value);
+do_expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
+    field_to_algebra(<<" =>">>, Key, Value);
+do_expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
+    field_to_algebra(<<" :=">>, Key, Value);
 % do_expr_to_algebra({record, Meta, Name, Values}) ->
 %     Prefix = concat(record_name_to_algebra(Meta, Name), string("{")),
 %     container_to_algebra(Meta, Values, Prefix, string("}"));
@@ -158,7 +158,7 @@ do_expr_to_algebra({cons, _, Head, Tail}) ->
 %     Prefix = concat(expr_to_algebra(Expr), PrefixName),
 %     container_to_algebra(Meta, Values, Prefix, string("}"));
 % do_expr_to_algebra({record_field, _Meta, Key, Value}) ->
-%     field_to_algebra("=", Key, Value);
+%     field_to_algebra(<<" =">>, Key, Value);
 % do_expr_to_algebra({record_index, Meta, Name, Key}) ->
 %     record_access_to_algebra(Meta, Name, Key);
 % do_expr_to_algebra({record_field, _Meta, Name}) ->
@@ -173,9 +173,9 @@ do_expr_to_algebra({cons, _, Head, Tail}) ->
 %     ExprD = expr_to_algebra(Expr),
 %     comprehension_to_algebra(ExprD, LcExprs, string("<<"), string(">>"));
 % do_expr_to_algebra({generate, _Meta, Left, Right}) ->
-%     field_to_algebra("<-", Left, Right);
+%     field_to_algebra(<<" <-">>, Left, Right);
 % do_expr_to_algebra({b_generate, _Meta, Left, Right}) ->
-%     field_to_algebra("<=", Left, Right);
+%     field_to_algebra(<<" <=">>, Left, Right);
 % do_expr_to_algebra({call, Meta, Name, Args}) ->
 %     Prefix = concat(expr_to_algebra(Name), string("(")),
 %     container_to_algebra(Meta, Args, Prefix, string(")"));
@@ -519,23 +519,13 @@ cons_to_algebra(Head, Tail) ->
 %         false -> concat(string("#"), expr_to_algebra(Name))
 %     end.
 
-% field_to_algebra(Op, Key, Value) ->
-%     KeyD = expr_to_algebra(Key),
-%     ValueD = expr_to_algebra(Value),
-%     KeyOpD = space(KeyD, string(Op)),
+field_to_algebra(Op, Key, Value) ->
+    KeyD = expr_to_algebra(Key),
+    ValueD = expr_to_algebra(Value),
 
-%     case next_break_fits(Value, [call, macro_call]) of
-%         true ->
-%             document_choice(
-%                 prepend_space(KeyOpD, ValueD),
-%                 combine_nested(KeyOpD, ValueD)
-%             );
-%         false ->
-%             document_choice(
-%                 space(KeyOpD, document_single_line(ValueD)),
-%                 combine_nested(KeyOpD, ValueD)
-%             )
-%     end.
+    with_next_break_fits(is_next_break_fits(Value, [call, macro_call]), ValueD, fun (V) ->
+        concat(group(KeyD), group(nest(glue(Op, group(V)), ?INDENT, break)))
+    end).
 
 % comprehension_to_algebra(ExprD, LcExprs, Left, Right) ->
 %     PipesD = string("|| "),

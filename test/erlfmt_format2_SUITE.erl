@@ -117,12 +117,12 @@ groups() ->
         ]},
         {containers, [parallel], [
         %     % tuple,
-              list,
+            list,
         %     % binary,
-        %     % map_create,
+            map_create,
         %     % map_update,
         %     % {group, records},
-              force_break
+            force_break
         ]}
         % {records, [parallel], [
         %     % record_create,
@@ -569,6 +569,14 @@ map_create(Config) when is_list(Config) ->
         "        44\n"
         "}",
         10
+    ),
+    ?assertSame(
+        "#{\n"
+        "    1 => [\n"
+        "        2\n"
+        "    ],\n"
+        "    3 => 4\n"
+        "}"
     ).
 
 map_update(Config) when is_list(Config) ->
@@ -721,7 +729,7 @@ force_break(Config) when is_list(Config) ->
         "[\n"
         "    x\n"
         "]"
-    ).
+    ),
     % ?assertFormat(
     %     "{x\n"
     %     "}",
@@ -746,11 +754,11 @@ force_break(Config) when is_list(Config) ->
     %     "    x\n"
     %     ">>"
     % ),
-    % ?assertFormat(
-    %     "#{x => y\n"
-    %     "}",
-    %     "#{x => y}"
-    % ),
+    ?assertFormat(
+        "#{x => y\n"
+        "}",
+        "#{x => y}"
+    ).
     % ?assertFormat(
     %     "X#{\n"
     %     " x => y}",
