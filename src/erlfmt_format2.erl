@@ -149,15 +149,15 @@ do_expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
     field_to_algebra(<<" =>">>, Key, Value);
 do_expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
     field_to_algebra(<<" :=">>, Key, Value);
-% do_expr_to_algebra({record, Meta, Name, Values}) ->
-%     Prefix = concat(record_name_to_algebra(Meta, Name), string("{")),
-%     container_to_algebra(Meta, Values, Prefix, string("}"));
+do_expr_to_algebra({record, Meta, Name, Values}) ->
+    Prefix = concat(record_name_to_algebra(Meta, Name), <<"{">>),
+    container(Meta, Values, Prefix, <<"}">>);
 % do_expr_to_algebra({record, Meta, Expr, Name, Values}) ->
 %     PrefixName = concat(record_name_to_algebra(Meta, Name), string("{")),
 %     Prefix = concat(expr_to_algebra(Expr), PrefixName),
 %     container_to_algebra(Meta, Values, Prefix, string("}"));
-% do_expr_to_algebra({record_field, _Meta, Key, Value}) ->
-%     field_to_algebra(<<" =">>, Key, Value);
+do_expr_to_algebra({record_field, _Meta, Key, Value}) ->
+    field_to_algebra(<<" =">>, Key, Value);
 % do_expr_to_algebra({record_index, Meta, Name, Key}) ->
 %     record_access_to_algebra(Meta, Name, Key);
 % do_expr_to_algebra({record_field, _Meta, Name}) ->
@@ -511,12 +511,12 @@ cons_to_algebra(Head, Tail) ->
 %     DotD = string("."),
 %     concat(NameD, concat(DotD, KeyD)).
 
-% record_name_to_algebra(Meta, Name) ->
-%     %% Differentiate between #?FOO{} and ?FOO{}
-%     case erlfmt_scan:get_anno(macro_record, Meta, false) of
-%         true -> expr_to_algebra(Name);
-%         false -> concat(string("#"), expr_to_algebra(Name))
-%     end.
+record_name_to_algebra(Meta, Name) ->
+    %% Differentiate between #?FOO{} and ?FOO{}
+    case erlfmt_scan:get_anno(macro_record, Meta, false) of
+        true -> expr_to_algebra(Name);
+        false -> concat(<<"#">>, expr_to_algebra(Name))
+    end.
 
 field_to_algebra(Op, Key, Value) ->
     KeyD = expr_to_algebra(Key),

@@ -121,15 +121,15 @@ groups() ->
         %     % binary,
             map_create,
             map_update,
-        %     % {group, records},
+            {group, records},
             force_break
-        ]}
-        % {records, [parallel], [
-        %     % record_create,
+        ]},
+        {records, [parallel], [
+            record_create
         %     % record_update,
         %     % record_index,
         %     % record_field
-        % ]},
+        ]}
         % {comprehensions, [parallel], [
         %     % list_comprehension,
         %     % binary_comprehension
@@ -626,7 +626,7 @@ record_create(Config) when is_list(Config) ->
         "    a = 1,\n"
         "    b = 2 + 3\n"
         "}",
-        10
+        15
     ),
     ?assertFormat(
         "#foo{a=1,b=Foo+Bar}",
@@ -636,10 +636,10 @@ record_create(Config) when is_list(Config) ->
         "        Foo +\n"
         "            Bar\n"
         "}",
-        10
+        15
     ),
-    ?assertSame("#?FOO{}"),
-    ?assertSame("?FOO{}"),
+    % ?assertSame("#?FOO{}"),
+    % ?assertSame("?FOO{}"),
     ?assertSame(
         "#foo{\n"
         "    a = [\n"
@@ -649,8 +649,9 @@ record_create(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "#foo{\n"
-        "    long_key =\n"
-        "        [long_value]\n"
+        "    long_key = [\n"
+        "        long_value\n"
+        "    ]\n"
         "}",
         20
     ).
