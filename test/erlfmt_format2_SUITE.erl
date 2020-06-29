@@ -125,8 +125,8 @@ groups() ->
             force_break
         ]},
         {records, [parallel], [
-            record_create
-        %     % record_update,
+            record_create,
+            record_update
         %     % record_index,
         %     % record_field
         ]}
@@ -660,7 +660,7 @@ record_update(Config) when is_list(Config) ->
     ?assertFormat("X #foo {\n}", "X#foo{}"),
     ?assertSame("#foo{}#bar{}"),
     ?assertSame("#foo{}#bar{}#baz{}"),
-    ?assertSame("X#foo.bar#baz{}"),
+    % ?assertSame("X#foo.bar#baz{}"),
     ?assertSame("(catch 1)#foo{}"),
     ?assertFormat(
         "X#foo{aa = aa, bb = bb}",
@@ -680,9 +680,9 @@ record_update(Config) when is_list(Config) ->
         "    bb = bb\n"
         "}",
         15
-    ),
-    ?assertSame("X#?FOO{}"),
-    ?assertSame("X?FOO{}").
+    ).
+    % ?assertSame("X#?FOO{}"),
+    % ?assertSame("X?FOO{}").
 
 record_index(Config) when is_list(Config) ->
     ?assertSame("#foo.bar"),

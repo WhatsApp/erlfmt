@@ -144,7 +144,7 @@ do_expr_to_algebra({cons, _, Head, Tail}) ->
 do_expr_to_algebra({map, Meta, Values}) ->
     container(Meta, Values, <<"#{">>, <<"}">>);
 do_expr_to_algebra({map, Meta, Expr, Values}) ->
-    concat(group(expr_to_algebra(Expr)), container(Meta, Values, <<"#{">>, <<"}">>));
+    concat(expr_to_algebra(Expr), container(Meta, Values, <<"#{">>, <<"}">>));
 do_expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
     field_to_algebra(<<" =>">>, Key, Value);
 do_expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
@@ -152,10 +152,9 @@ do_expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
 do_expr_to_algebra({record, Meta, Name, Values}) ->
     Prefix = concat(record_name_to_algebra(Meta, Name), <<"{">>),
     container(Meta, Values, Prefix, <<"}">>);
-% do_expr_to_algebra({record, Meta, Expr, Name, Values}) ->
-%     PrefixName = concat(record_name_to_algebra(Meta, Name), string("{")),
-%     Prefix = concat(expr_to_algebra(Expr), PrefixName),
-%     container_to_algebra(Meta, Values, Prefix, string("}"));
+do_expr_to_algebra({record, Meta, Expr, Name, Values}) ->
+    Prefix = concat(record_name_to_algebra(Meta, Name), <<"{">>),
+    concat(expr_to_algebra(Expr), container(Meta, Values, Prefix, <<"}">>));
 do_expr_to_algebra({record_field, _Meta, Key, Value}) ->
     field_to_algebra(<<" =">>, Key, Value);
 % do_expr_to_algebra({record_index, Meta, Name, Key}) ->
