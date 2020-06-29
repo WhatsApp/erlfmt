@@ -95,7 +95,7 @@ groups() ->
             {group, operators},
             % {group, comprehensions},
             call,
-            % block,
+            block,
             % fun_expression,
             % case_expression,
             % receive_expression,
@@ -982,10 +982,17 @@ call(Config) when is_list(Config) ->
     ).
 
 block(Config) when is_list(Config) ->
-    ?assertFormat(
-        "begin 1 end",
+    ?assertSame("begin 1 end"),
+    ?assertSame(
         "begin\n"
         "    1\n"
+        "end"
+    ),
+    ?assertFormat(
+        "begin 1, 2 end",
+        "begin\n"
+        "    1,\n"
+        "    2\n"
         "end"
     ),
     ?assertFormat(

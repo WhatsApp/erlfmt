@@ -186,8 +186,8 @@ do_expr_to_algebra({macro_string, _Meta, Name}) ->
     concat(<<"??">>, expr_to_algebra(Name));
 do_expr_to_algebra({remote, _Meta, Left, Right}) ->
     concat([expr_to_algebra(Left), <<":">>, expr_to_algebra(Right)]);
-% do_expr_to_algebra({block, _Meta, Exprs}) ->
-%     wrap_nested(string("begin"), block_to_algebra(Exprs), string("end"));
+do_expr_to_algebra({block, Meta, Exprs}) ->
+    surround(<<"begin">>, block_to_algebra(Meta, Exprs), <<"end">>, <<" ">>);
 % do_expr_to_algebra({'fun', _Meta, Expr}) ->
 %     fun_to_algebra(Expr);
 % do_expr_to_algebra({'case', _Meta, Expr, Clauses}) ->
@@ -266,8 +266,8 @@ wrap_in_parens(Doc) ->
 %     Nested = concat(document_spaces(?INDENT), Doc),
 %     line(Left, line(Nested, Right)).
 
-surround(Left, Doc, Right) ->
-    group(glue(nest(glue(Left, <<"">>, Doc), ?INDENT, break), <<"">>, Right)).
+surround(Left, Doc, Right, Spacer) ->
+    group(glue(nest(glue(Left, Spacer, Doc), ?INDENT, break), Spacer, Right)).
 
 string_to_algebra(Text) ->
     case string:split(Text, "\n", all) of
@@ -381,10 +381,10 @@ container_common(Meta, [Value | _] = Values, Left, Right, Combine, Last) ->
     case has_inner_break(Meta, Value) of
         true ->
             Doc = fold_doc(fun (D, Acc) -> line(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
-            surround(Left, force_unfit(Doc), Right);
+            surround(Left, force_unfit(Doc), Right, <<"">>);
         false when Combine =:= glue ->
             Doc = fold_doc(fun (D, Acc) -> glue(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
-            surround(Left, Doc, Right);
+            surround(Left, Doc, Right, <<"">>);
         false when Combine =:= flex_glue ->
             Doc = fold_doc(fun (D, Acc) -> flex_glue(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
             group(concat(nest(concat(Left, Doc), ?INDENT), Right))
@@ -461,18 +461,23 @@ field_to_algebra(Op, Key, Value) ->
 %         wrap_nested(Left, Multiline, Right)
 %     ).
 
-% %% standalone comments are always trailing other expressions
-% block_to_algebra([Expr | [{comment, _, _} | _] = Comments]) ->
-%     line(expr_to_algebra(Expr), comments_to_algebra(Comments));
-% block_to_algebra([Expr]) ->
-%     expr_to_algebra(Expr);
-% block_to_algebra([Expr | [Next | _] = Rest]) ->
-%     ExprD = expr_to_algebra(Expr),
-%     RestD = block_to_algebra(Rest),
-%     case erlfmt_scan:get_end_line(Expr) + 1 < erlfmt_scan:get_line(Next) of
-%         true -> combine_comma_double_newline(ExprD, RestD);
-%         false -> comma_newline(ExprD, RestD)
-%     end.
+block_to_algebra(Meta, [Expr]) ->
+    maybe_force_unfit(has_inner_break(Meta, Expr), expr_to_algebra(Expr));
+block_to_algebra(_Meta, Exprs) ->
+    force_unfit(block_to_algebra_each(Exprs)).
+
+%% standalone comments are always trailing other expressions
+block_to_algebra_each([Expr | [{comment, _, _} | _] = Comments]) ->
+    line(expr_to_algebra(Expr), comments_to_algebra(Comments));
+block_to_algebra_each([Expr]) ->
+    expr_to_algebra(Expr);
+block_to_algebra_each([Expr | [Next | _] = Rest]) ->
+    ExprD = expr_to_algebra(Expr),
+    RestD = block_to_algebra_each(Rest),
+    case erlfmt_scan:get_end_line(Expr) + 1 < erlfmt_scan:get_line(Next) of
+        true -> concat([ExprD, <<",">>, line(2), RestD]);
+        false -> concat([ExprD, <<",">>, line(), RestD])
+    end.
 
 % fun_to_algebra({function, _Anno, Name, Arity}) ->
 %     concat([
