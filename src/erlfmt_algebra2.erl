@@ -195,148 +195,7 @@
     )
 ).
 
-%   Wraps `collection` in `left` and `right` according to limit and contents.
 
-%   It uses the given `left` and `right` documents as surrounding and the
-%   separator document `separator` to separate items in `docs`. If all entries
-%   in the collection are simple documents (texts or strings), then this function
-%   attempts to put as much as possible on the same line. If they are not simple,
-%   only one entry is shown per line if they do not fit.
-
-%   The limit in the given `inspect_opts` is respected and when reached this
-%   function stops processing and outputs `"..."` instead.
-
-%   ## Options
-
-%     * `:separator` - the separator used between each doc
-%     * `:break` - If `:strict`, always break between each element. If `:flex`,
-%       breaks only when necessary. If `:maybe`, chooses `:flex` only if all
-%       elements are text-based, otherwise is `:strict`
-
-%   ## Examples
-
-%       iex> inspect_opts = %Inspect.Opts{limit: :infinity}
-%       iex> fun = fn i, _opts -> to_string(i) end
-%       iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect_opts, fun)
-%       iex> Inspect.Algebra.format(doc, 5) |> IO.iodata_to_binary()
-%       "[1,\n 2,\n 3,\n 4,\n 5]"
-
-%       iex> inspect_opts = %Inspect.Opts{limit: 3}
-%       iex> fun = fn i, _opts -> to_string(i) end
-%       iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect_opts, fun)
-%       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary()
-%       "[1, 2, 3, ...]"
-
-%       iex> inspect_opts = %Inspect.Opts{limit: 3}
-%       iex> fun = fn i, _opts -> to_string(i) end
-%       iex> opts = [separator: "!"]
-%       iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect_opts, fun, opts)
-%       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary()
-%       "[1! 2! 3! ...]"
-
--spec container_doc(doc(), [doc()], doc()) -> doc().
-container_doc(Left, Collection, Right) ->
-    container_doc(Left, Collection, Right, #{}).
-
--spec container_doc(doc(), [doc()], doc(), #{separator => doc(), break => maybe | flex}) -> doc().
-container_doc(Left, [], Right, Opts) when
-    ?is_doc(Left), ?is_doc(Right), is_map(Opts)  ->
-        concat(Left, Right);
-container_doc(Left, Collection, Right, Opts) when
-    ?is_doc(Left), is_list(Collection), ?is_doc(Right), is_map(Opts)  ->
-    Break = maps:get(break, Opts, maybe),
-    Separator = maps:get(separator, Opts, <<",">>),
-    {Docs0, Simple} = container_each(Collection, [], Break == maybe),
-    Flex = Simple orelse Break == flex,
-    Docs = fold_doc(fun(L, R) -> join(L, R, Flex, Separator) end, Docs0),
-    case Flex of
-        % TODO: 1 and 2 should probably not be constants
-        true -> group(concat(concat(Left, nest(Docs, 1)), Right));
-        false -> group(glue(nest(glue(Left, <<"">>, Docs), 2), <<"">>, Right))
-    end.
-
-%   @spec container_doc(t, [any], t, Inspect.Opts.doc(), (term, Inspect.Opts.doc() -> t), keyword()) ::
-%           t
-%   def container_doc(left, collection, right, inspect_opts, fun, opts \\ [])
-%       when is_doc(left) and is_list(collection) and is_doc(right) and is_function(fun, 2) and
-%              is_list(opts) do
-%     case collection do
-%       [] ->
-%         concat(left, right)
-
-%       _ ->
-%         break = Keyword.get(opts, :break, :maybe)
-%         separator = Keyword.get(opts, :separator, @container_separator)
-
-%         {docs, simple?} =
-%           container_each(collection, inspect_opts.limit, inspect_opts, fun, [], break == :maybe)
-
-%         flex? = simple? or break == :flex
-%         docs = fold_doc(docs, &join(&1, &2, flex?, separator))
-
-%         case flex? do
-%           true -> group(concat(concat(left, nest(docs, 1)), right))
-%           false -> group(glue(nest(glue(left, "", docs), 2), "", right))
-%         end
-%     end
-%   end
-
-container_each([], Acc, Simple) ->
-    {lists:reverse(Acc), Simple};
-container_each([Doc | Docs], Acc, Simple) when is_list(Docs) ->
-    container_each(Docs, [Doc | Acc], Simple andalso simple(Doc));
-container_each([Left | Right], Acc, Simple0) ->
-    Simple = Simple0 and simple(Left) and simple(Right),
-    Doc = join(Left, Right, Simple, <<" |">>),
-    {lists:reverse([Doc | Acc]), Simple}.
-
-%   defp container_each([], _limit, _opts, _fun, acc, simple?) do
-%     {:lists.reverse(acc), simple?}
-%   end
-
-%   defp container_each(_, 0, _opts, _fun, acc, simple?) do
-%     {:lists.reverse(["..." | acc]), simple?}
-%   end
-
-%   defp container_each([term | terms], limit, opts, fun, acc, simple?) when is_list(terms) do
-%     limit = decrement(limit)
-%     doc = fun.(term, %{opts | limit: limit})
-%     container_each(terms, limit, opts, fun, [doc | acc], simple? and simple?(doc))
-%   end
-
-%   defp container_each([left | right], limit, opts, fun, acc, simple?) do
-%     limit = decrement(limit)
-%     left = fun.(left, %{opts | limit: limit})
-%     right = fun.(right, %{opts | limit: limit})
-%     simple? = simple? and simple?(left) and simple?(right)
-
-%     doc = join(left, right, simple?, @tail_separator)
-%     {:lists.reverse([doc | acc]), simple?}
-%   end
-
-%   defp decrement(:infinity), do: :infinity
-%   defp decrement(counter), do: counter - 1
-
-join(Left, doc_nil, _, _) -> Left;
-join(doc_nil, Right, _, _) -> Right;
-join(Left, Right, true, Sep) -> flex_glue(concat(Left, Sep), Right);
-join(Left, Right, false, Sep) -> glue(concat(Left, Sep), Right).
-
-%   defp join(:doc_nil, :doc_nil, _, _), do: :doc_nil
-%   defp join(left, :doc_nil, _, _), do: left
-%   defp join(:doc_nil, right, _, _), do: right
-%   defp join(left, right, true, sep), do: flex_glue(concat(left, sep), right)
-%   defp join(left, right, false, sep), do: glue(concat(left, sep), right)
-
-simple(#doc_cons{left = Left, right = Right}) -> simple(Left) andalso simple(Right);
-simple(#doc_string{}) -> true;
-simple(doc_nil) -> true;
-simple(Other) -> is_binary(Other).
-
-%   defp simple?(doc_cons(left, right)), do: simple?(left) and simple?(right)
-%   defp simple?(doc_string(_, _)), do: true
-%   defp simple?(:doc_nil), do: true
-%   defp simple?(other), do: is_binary(other)
 
 %%%%%%%%%%%%%%%
 
@@ -899,3 +758,146 @@ indent(0) -> ?newline;
 indent(I) when is_integer(I) ->
     Spaces = binary:copy(<<" ">>, I),
     <<?newline/binary,Spaces/binary>>.
+
+%   Wraps `collection` in `left` and `right` according to limit and contents.
+
+%   It uses the given `left` and `right` documents as surrounding and the
+%   separator document `separator` to separate items in `docs`. If all entries
+%   in the collection are simple documents (texts or strings), then this function
+%   attempts to put as much as possible on the same line. If they are not simple,
+%   only one entry is shown per line if they do not fit.
+
+%   The limit in the given `inspect_opts` is respected and when reached this
+%   function stops processing and outputs `"..."` instead.
+
+%   ## Options
+
+%     * `:separator` - the separator used between each doc
+%     * `:break` - If `:strict`, always break between each element. If `:flex`,
+%       breaks only when necessary. If `:maybe`, chooses `:flex` only if all
+%       elements are text-based, otherwise is `:strict`
+
+%   ## Examples
+
+%       iex> inspect_opts = %Inspect.Opts{limit: :infinity}
+%       iex> fun = fn i, _opts -> to_string(i) end
+%       iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect_opts, fun)
+%       iex> Inspect.Algebra.format(doc, 5) |> IO.iodata_to_binary()
+%       "[1,\n 2,\n 3,\n 4,\n 5]"
+
+%       iex> inspect_opts = %Inspect.Opts{limit: 3}
+%       iex> fun = fn i, _opts -> to_string(i) end
+%       iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect_opts, fun)
+%       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary()
+%       "[1, 2, 3, ...]"
+
+%       iex> inspect_opts = %Inspect.Opts{limit: 3}
+%       iex> fun = fn i, _opts -> to_string(i) end
+%       iex> opts = [separator: "!"]
+%       iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect_opts, fun, opts)
+%       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary()
+%       "[1! 2! 3! ...]"
+
+-spec container_doc(doc(), [doc()], doc()) -> doc().
+container_doc(Left, Collection, Right) ->
+    container_doc(Left, Collection, Right, #{}).
+
+-spec container_doc(doc(), [doc()], doc(), #{separator => doc(), break => maybe | flex}) -> doc().
+container_doc(Left, [], Right, Opts) when
+    ?is_doc(Left), ?is_doc(Right), is_map(Opts)  ->
+        concat(Left, Right);
+container_doc(Left, Collection, Right, Opts) when
+    ?is_doc(Left), is_list(Collection), ?is_doc(Right), is_map(Opts)  ->
+    Break = maps:get(break, Opts, maybe),
+    Separator = maps:get(separator, Opts, <<",">>),
+    {Docs0, Simple} = container_each(Collection, [], Break == maybe),
+    Flex = Simple orelse Break == flex,
+    Docs = fold_doc(fun(L, R) -> join(L, R, Flex, Separator) end, Docs0),
+    case Flex of
+        % TODO: 1 and 2 should probably not be constants
+        true -> group(concat(concat(Left, nest(Docs, 1)), Right));
+        false -> group(glue(nest(glue(Left, <<"">>, Docs), 2), <<"">>, Right))
+    end.
+
+%   @spec container_doc(t, [any], t, Inspect.Opts.doc(), (term, Inspect.Opts.doc() -> t), keyword()) ::
+%           t
+%   def container_doc(left, collection, right, inspect_opts, fun, opts \\ [])
+%       when is_doc(left) and is_list(collection) and is_doc(right) and is_function(fun, 2) and
+%              is_list(opts) do
+%     case collection do
+%       [] ->
+%         concat(left, right)
+
+%       _ ->
+%         break = Keyword.get(opts, :break, :maybe)
+%         separator = Keyword.get(opts, :separator, @container_separator)
+
+%         {docs, simple?} =
+%           container_each(collection, inspect_opts.limit, inspect_opts, fun, [], break == :maybe)
+
+%         flex? = simple? or break == :flex
+%         docs = fold_doc(docs, &join(&1, &2, flex?, separator))
+
+%         case flex? do
+%           true -> group(concat(concat(left, nest(docs, 1)), right))
+%           false -> group(glue(nest(glue(left, "", docs), 2), "", right))
+%         end
+%     end
+%   end
+
+container_each([], Acc, Simple) ->
+    {lists:reverse(Acc), Simple};
+container_each([Doc | Docs], Acc, Simple) when is_list(Docs) ->
+    container_each(Docs, [Doc | Acc], Simple andalso simple(Doc));
+container_each([Left | Right], Acc, Simple0) ->
+    Simple = Simple0 and simple(Left) and simple(Right),
+    Doc = join(Left, Right, Simple, <<" |">>),
+    {lists:reverse([Doc | Acc]), Simple}.
+
+%   defp container_each([], _limit, _opts, _fun, acc, simple?) do
+%     {:lists.reverse(acc), simple?}
+%   end
+
+%   defp container_each(_, 0, _opts, _fun, acc, simple?) do
+%     {:lists.reverse(["..." | acc]), simple?}
+%   end
+
+%   defp container_each([term | terms], limit, opts, fun, acc, simple?) when is_list(terms) do
+%     limit = decrement(limit)
+%     doc = fun.(term, %{opts | limit: limit})
+%     container_each(terms, limit, opts, fun, [doc | acc], simple? and simple?(doc))
+%   end
+
+%   defp container_each([left | right], limit, opts, fun, acc, simple?) do
+%     limit = decrement(limit)
+%     left = fun.(left, %{opts | limit: limit})
+%     right = fun.(right, %{opts | limit: limit})
+%     simple? = simple? and simple?(left) and simple?(right)
+
+%     doc = join(left, right, simple?, @tail_separator)
+%     {:lists.reverse([doc | acc]), simple?}
+%   end
+
+%   defp decrement(:infinity), do: :infinity
+%   defp decrement(counter), do: counter - 1
+
+join(Left, doc_nil, _, _) -> Left;
+join(doc_nil, Right, _, _) -> Right;
+join(Left, Right, true, Sep) -> flex_glue(concat(Left, Sep), Right);
+join(Left, Right, false, Sep) -> glue(concat(Left, Sep), Right).
+
+%   defp join(:doc_nil, :doc_nil, _, _), do: :doc_nil
+%   defp join(left, :doc_nil, _, _), do: left
+%   defp join(:doc_nil, right, _, _), do: right
+%   defp join(left, right, true, sep), do: flex_glue(concat(left, sep), right)
+%   defp join(left, right, false, sep), do: glue(concat(left, sep), right)
+
+simple(#doc_cons{left = Left, right = Right}) -> simple(Left) andalso simple(Right);
+simple(#doc_string{}) -> true;
+simple(doc_nil) -> true;
+simple(Other) -> is_binary(Other).
+
+%   defp simple?(doc_cons(left, right)), do: simple?(left) and simple?(right)
+%   defp simple?(doc_string(_, _)), do: true
+%   defp simple?(:doc_nil), do: true
+%   defp simple?(other), do: is_binary(other)
