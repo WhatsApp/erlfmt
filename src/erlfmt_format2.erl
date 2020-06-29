@@ -69,12 +69,11 @@ to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
         Doc = surround(HeadD, <<" ">>, BodyD, <<"">>, <<").">>),
         combine_comments(Meta, Doc)
     end);
-% to_algebra({attribute, Meta, {atom, _, RawName} = Name, [Value]})
-%         when RawName =:= type; RawName =:= opaque; RawName =:= spec; RawName =:= callback ->
-%     NameD = wrap(string("-"), expr_to_algebra(Name), string(" ")),
-%     ValueD = expr_to_algebra(Value),
-%     Doc = wrap_prepend(NameD, ValueD, string(".")),
-%     combine_comments(Meta, Doc);
+to_algebra({attribute, Meta, {atom, _, RawName} = Name, [Value]})
+        when RawName =:= type; RawName =:= opaque; RawName =:= spec; RawName =:= callback ->
+    ValueD = next_break_fits(expr_to_algebra(Value), enabled),
+    Doc = concat([<<"-">>, expr_to_algebra(Name), <<" ">>, ValueD, <<".">>]),
+    combine_comments(Meta, Doc);
 to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Values} = Tuple]}) ->
     HeadD = concat([<<"-record(">>, expr_to_algebra(Name), <<",">>]),
     case has_no_comments_or_parens(TMeta) of
@@ -207,8 +206,8 @@ do_expr_to_algebra({block, Meta, Exprs}) ->
 %     combine_nested(expr_to_algebra(Name), clauses_to_algebra(Clauses));
 % do_expr_to_algebra({'...', _Meta}) ->
 %     string("...");
-% do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
-%     wrap(expr_to_algebra(Left), string("*"), expr_to_algebra(Right));
+do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
+    concat([expr_to_algebra(Left), <<"*">>, expr_to_algebra(Right)]);
 % do_expr_to_algebra({guard_or, _Meta, Guards}) ->
 %     element(2, do_guard_or_to_algebra_pair(Guards, "")).
 do_expr_to_algebra(Other) ->
