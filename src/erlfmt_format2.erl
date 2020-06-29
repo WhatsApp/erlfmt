@@ -143,9 +143,8 @@ do_expr_to_algebra({cons, _, Head, Tail}) ->
 %     bin_element_to_algebra(Expr, Size, Types);
 do_expr_to_algebra({map, Meta, Values}) ->
     container(Meta, Values, <<"#{">>, <<"}">>);
-% do_expr_to_algebra({map, Meta, Expr, Values}) ->
-%     Prefix = concat(expr_to_algebra(Expr), string("#{")),
-%     container_to_algebra(Meta, Values, Prefix, string("}"));
+do_expr_to_algebra({map, Meta, Expr, Values}) ->
+    concat(group(expr_to_algebra(Expr)), container(Meta, Values, <<"#{">>, <<"}">>));
 do_expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
     field_to_algebra(<<" =>">>, Key, Value);
 do_expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->

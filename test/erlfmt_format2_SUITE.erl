@@ -120,7 +120,7 @@ groups() ->
             list,
         %     % binary,
             map_create,
-        %     % map_update,
+            map_update,
         %     % {group, records},
             force_break
         ]}
@@ -583,7 +583,7 @@ map_update(Config) when is_list(Config) ->
     ?assertFormat("X # {\n}", "X#{}"),
     ?assertSame("#{}#{}"),
     ?assertSame("#{}#{}#{}"),
-    ?assertSame("(X#foo.bar)#{}"),
+    % ?assertSame("(X#foo.bar)#{}"),
     ?assertSame("(catch 1)#{}"),
     ?assertSame("X#{A => B, C := D}"),
     ?assertFormat(
@@ -604,16 +604,16 @@ map_update(Config) when is_list(Config) ->
         "    33 => 44\n"
         "}",
         15
-    ),
-    ?assertSame(
-        "#{\n"
-        "    a => [\n"
-        "        b\n"
-        "    ],\n"
-        "    c := d(\n"
-        "        e\n"
-        "    )\n"
-        "}"
+    % ),
+    % ?assertSame(
+    %     "#{\n"
+    %     "    a => [\n"
+    %     "        b\n"
+    %     "    ],\n"
+    %     "    c := d(\n"
+    %     "        e\n"
+    %     "    )\n"
+    %     "}"
     ).
 
 record_create(Config) when is_list(Config) ->
