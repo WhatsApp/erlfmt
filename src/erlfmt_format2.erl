@@ -35,6 +35,7 @@
     nest/2,
     nest/3,
     line/0,
+    line/1,
     line/2,
     concat/1,
     concat/2,
@@ -752,7 +753,7 @@ combine_post_comments(Comments, Doc) -> line(Doc, comments_to_algebra(Comments))
 
 comments_to_algebra(Comments) ->
     CommentsD = lists:map(fun comment_to_algebra/1, Comments),
-    Doc = fold_doc(fun (C, Acc) -> concat([C, line(), line(), Acc]) end, CommentsD),
+    Doc = fold_doc(fun (C, Acc) -> concat([C, line(2), Acc]) end, CommentsD),
     force_unfit(Doc).
 
 comment_to_algebra({comment, _Meta, Lines}) ->

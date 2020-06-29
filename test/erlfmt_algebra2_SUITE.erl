@@ -74,6 +74,7 @@
     nest/2,
     nest/3,
     line/0,
+    line/1,
     line/2,
     concat/1,
     concat/2,
@@ -205,9 +206,11 @@ test_reset_nest(Config) when is_list(Config) ->
     ?assertEqual(<<"a\nb">>, render(nest(nest(line(<<"a">>, <<"b">>), reset), 10), 2)).
 
 test_line(Config) when is_list(Config) ->
-    ?assertEqual({doc_cons, <<"a">>, {doc_cons, doc_line, <<"b">>}}, line(<<"a">>, <<"b">>)),
+    ?assertEqual({doc_cons, <<"a">>, {doc_cons, {doc_line, 1}, <<"b">>}}, line(<<"a">>, <<"b">>)),
+    ?assertEqual({doc_line, 2}, line(2)),
 
-    ?assertEqual(<<"aaa bbb\nccc ddd">>, render(line(glue(<<"aaa">>, <<"bbb">>), glue(<<"ccc">>, <<"ddd">>)), 10)).
+    ?assertEqual(<<"aaa bbb\nccc ddd">>, render(line(glue(<<"aaa">>, <<"bbb">>), glue(<<"ccc">>, <<"ddd">>)), 10)),
+    ?assertEqual(<<"a\n\nb">>, render(concat([<<"a">>, line(2), <<"b">>]), 80)).
 
 test_self_group(Config) when is_list(Config) ->
     ?assertEqual({doc_group, <<"ab">>, self}, group(<<"ab">>)),

@@ -51,7 +51,7 @@
     glue/2, glue/3,
     group/1, group/2,
     space/2,
-    line/0, line/2,
+    line/0, line/1, line/2,
     fold_doc/2,
     format/2, format/3,
     fits/4,
@@ -68,6 +68,10 @@
 -record(doc_string, {
     string :: doc(),
     length :: non_neg_integer()
+}).
+
+-record(doc_line, {
+    count :: integer()
 }).
 
 -record(doc_cons, {
@@ -132,7 +136,7 @@
     | doc_nil
     | #doc_string{}
     % doc_line should be thought of as a space character which may be replaced by a line break when necessary.
-    | doc_line
+    | #doc_line{}
     | #doc_cons{}
     | #doc_nest{}
     | #doc_group{}
@@ -158,7 +162,7 @@
     (
         is_binary(Doc) orelse
         (Doc == doc_nil) orelse
-        (Doc == doc_line) orelse
+        is_record(Doc, doc_line) orelse
         is_record(Doc, doc_break) orelse
         is_record(Doc, doc_collapse) orelse
         is_record(Doc, doc_cons) orelse
@@ -407,7 +411,10 @@ space(Doc1, Doc2) ->
 % A mandatory linebreak, but in the paper doc_line was described as optional? (is this mandatory or optional in this implementation)
 % A group with linebreaks will fit if all lines in the group fit.
 -spec line() -> doc().
-line() -> doc_line.
+line() -> #doc_line{count = 1}.
+
+-spec line(pos_integer()) -> doc().
+line(Count) when is_integer(Count), Count > 0 -> #doc_line{count = Count}.
 
 % Inserts a mandatory linebreak between two documents.
 -spec line(doc(), doc()) -> doc().
@@ -481,21 +488,21 @@ fits(Width, K, B, [{I, break_no_flat, #doc_force{group = X}} | T]) ->
     fits(Width, K, B, [{I, break_no_flat, X} | T]);
 fits(_, _, _, [{_, break_no_flat, #doc_break{}} | _]) ->
     true;
-fits(_, _, _, [{_, break_no_flat, doc_line} | _]) ->
+fits(_, _, _, [{_, break_no_flat, #doc_line{}} | _]) ->
     true;
 
 %   ## Breaks
 
 fits(_, _, _, [{_, break, #doc_break{}} | _]) ->
     true;
-fits(_, _, _, [{_, break, doc_line} | _]) ->
+fits(_, _, _, [{_, break, #doc_line{}} | _]) ->
     true;
 fits(Width, K, B, [{I, break, #doc_group{group = X}} | T]) ->
     fits(Width, K, B, [{I, flat, X} | {tail, B, T}]);
 
 %   ## Catch all
 
-fits(Width, _, _, [{I, _, doc_line} | T]) ->
+fits(Width, _, _, [{I, _, #doc_line{}} | T]) ->
     fits(Width, I, false, T);
 fits(Width, K, B, [{_, _, doc_nil} | T]) ->
     fits(Width, K, B, T);
@@ -523,8 +530,9 @@ format(_, _, []) ->
     [];
 format(Width, K, [{_, _, doc_nil} | T]) ->
     format(Width, K, T);
-format(Width, _, [{I, _, doc_line} | T]) ->
-    [indent(I) | format(Width, I, T)];
+format(Width, _, [{I, _, #doc_line{count = Count}} | T]) ->
+    NewLines = binary:copy(<<"\n">>, Count - 1),
+    [NewLines, indent(I) | format(Width, I, T)];
 format(Width, K, [{I, M, #doc_cons{left = X, right = Y}} | T]) ->
     format(Width, K, [{I, M, X}, {I, M, Y} | T]);
 format(Width, K, [{_, _, #doc_string{string = S, length = L}} | T]) ->
