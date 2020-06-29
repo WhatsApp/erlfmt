@@ -6,57 +6,22 @@
 %   additions, like support for binary nodes and a break mode that
 %   maximises use of horizontal space.
 
-%       > erlfmt_algebra2:empty()
-%       doc_nil
-
-%       > <<"foo">>
-%       <<"foo">>
-
-%   With the functions in this module, we can concatenate different
-%   elements together and render them:
-
-%       > Doc = erlfmt_algebra2:concat(erlfmt_algebra2:empty(), <<"foo">>)),
-%       > unicode:chardata_to_binary(erlfmt_algebra2:format(Doc, 80))
-%       <<"foo">>
-
 %   The functions `nest/2`, `space/2` and `line/2` help you put the
 %   document together into a rigid structure. However, the document
 %   algebra gets interesting when using functions like `glue/3` and
 %   `group/1`. A glue inserts a break between two documents. A group
 %   indicates a document that must fit the current line, otherwise
-%   breaks are rendered as new lines. Let's glue two docs together
-%   with a break, group it and then render it:
-
-%       iex> doc = Inspect.Algebra.glue("a", " ", "b")
-%       iex> doc = Inspect.Algebra.group(doc)
-%       iex> Inspect.Algebra.format(doc, 80)
-%       ["a", " ", "b"]
-
-%   Notice the break was represented as is, because we haven't reached
-%   a line limit. Once we do, it is replaced by a newline:
-
-%       iex> doc = Inspect.Algebra.glue(String.duplicate("a", 20), " ", "b")
-%       iex> doc = Inspect.Algebra.group(doc)
-%       iex> Inspect.Algebra.format(doc, 10)
-%       ["aaaaaaaaaaaaaaaaaaaa", "\n", "b"]
-
-%   This module uses the byte size to compute how much space there is
-%   left. If your document contains strings, then those need to be
-%   wrapped in `string/1`, which then relies on `String.length/1` to
-%   precompute the document size.
-
-%   Finally, this module also contains Elixir related functions, a bit
-%   tied to Elixir formatting, such as `to_doc/2`.
+%   breaks are rendered as new lines. 
 
 %   ## Implementation details
 
 %   The implementation of `Inspect.Algebra` is based on the Strictly Pretty
 %   paper by [Lindig][0] which builds on top of previous pretty printing
-%   algorithms but is tailored to strict languages, such as Elixir.
+%   algorithms but is tailored to strict languages, such as Erlang.
 %   The core idea in the paper is the use of explicit document groups which
 %   are rendered as flat (breaks as spaces) or as break (breaks as newlines).
 
-%   This implementation provides two types of breaks: `:strict` and `:flex`.
+%   This implementation provides two types of breaks: `strict` and `flex`.
 %   When a group does not fit, all strict breaks are treated as newlines.
 %   Flex breaks however are re-evaluated on every occurrence and may still
 %   be rendered flat. See `break/1` and `flex_break/1` for more information.

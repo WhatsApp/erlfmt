@@ -300,6 +300,14 @@ test_concat(Config) when is_list(Config) ->
 
 test_docs(Config) when is_list(Config) ->
     ?assertEqual(<<"a b">>, render(group(glue(<<"a">>, <<" ">>, <<"b">>)), 80)),
+
+    % A glue inserts a break between two documents. A group
+    % indicates a document that must fit the current line, otherwise
+    % breaks are rendered as new lines. Let's glue two docs together
+    % with a break, group it and then render it.
+    ?assertEqual(<<"aaaaaaaaaaaaaaaaaaaa b">>, render(group(glue(binary:copy(<<"a">>, 20), <<" ">>, <<"b">>)), 80)),
+    % Notice the break was represented as is, because we haven't reached
+    % a line limit. Once we do, it is replaced by a newline:
     ?assertEqual(<<"aaaaaaaaaaaaaaaaaaaa\nb">>, render(group(glue(binary:copy(<<"a">>, 20), <<" ">>, <<"b">>)), 10)),
 
     ?assertEqual(
