@@ -103,14 +103,14 @@ groups() ->
             % if_expression,
             macro
         ]},
-        % {forms, [parallel], [
+        {forms, [parallel], [
         %     % function,
         %     % attribute,
         %     % spec,
         %     % record_definition,
-        %     % define,
+            define
         %     % type
-        % ]},
+        ]},
         {operators, [parallel], [
             unary_operator,
             binary_operator
@@ -139,7 +139,7 @@ groups() ->
 all() ->
     [
         {group, expressions},
-        % {group, forms}
+        {group, forms},
         comment
     ].
 
@@ -1615,14 +1615,14 @@ define(Config) when is_list(Config) ->
     ?assertSame(
         "-define(IN_RANGE(Value, Low, High), Value >= Low andalso Value =< High)."
     ),
-    ?assertFormat(
-        "-define(OUT_OF_RANGE(Value, Low, High), (Value) =< long_expression(Low), Value >= long_expression(High)).",
-        "-define(OUT_OF_RANGE(Value, Low, High),\n"
-        "    (Value) =< long_expression(Low),\n"
-        "    Value >= long_expression(High)\n"
-        ").",
-        40
-    ),
+    % ?assertFormat(
+    %     "-define(OUT_OF_RANGE(Value, Low, High), (Value) =< long_expression(Low), Value >= long_expression(High)).",
+    %     "-define(OUT_OF_RANGE(Value, Low, High),\n"
+    %     "    (Value) =< long_expression(Low),\n"
+    %     "    Value >= long_expression(High)\n"
+    %     ").",
+    %     40
+    % ),
     ?assertSame(
         "-define(FOO(X), begin\n"
         "    is_atom(X) orelse is_tuple(X)\n"

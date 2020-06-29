@@ -59,25 +59,16 @@
 % to_algebra({function, Meta, Clauses}) ->
 %     Doc = concat(clauses_to_algebra(Clauses), string(".")),
 %     combine_comments(Meta, Doc);
-% to_algebra({attribute, Meta, Name, []}) ->
-%     Doc = wrap(string("-"), expr_to_algebra(Name), string(".")),
-%     combine_comments(Meta, Doc);
-% to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
-%     HeadD = concat(string("-define("), expr_to_algebra(Define)),
-%     BodyD = block_to_algebra(Body),
-%     EndD = string(")."),
-%     case next_break_fits(hd(Body)) of
-%         true ->
-%             Doc = prepend_comma_space(HeadD, concat(BodyD, EndD)),
-%             combine_comments(Meta, Doc);
-%         false ->
-%             SingleBody = concat(document_single_line(BodyD), EndD),
-%             Doc = document_choice(
-%                 comma_space(HeadD, SingleBody),
-%                 wrap_nested(concat(HeadD, string(",")), BodyD, EndD)
-%             ),
-%             combine_comments(Meta, Doc)
-%     end;
+to_algebra({attribute, Meta, Name, []}) ->
+    Doc = concat([<<"-">>, expr_to_algebra(Name), <<".">>]),
+    combine_comments(Meta, Doc);
+to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
+    HeadD = concat([<<"-define(">>, expr_to_algebra(Define), <<",">>]),
+    NextBreakFits = length(Body) =:= 1 andalso is_next_break_fits(hd(Body)),
+    with_next_break_fits(NextBreakFits, block_to_algebra(Meta, Body), fun (BodyD) ->
+        Doc = surround(HeadD, <<" ">>, BodyD, <<"">>, <<").">>),
+        combine_comments(Meta, Doc)
+    end);
 % to_algebra({attribute, Meta, {atom, _, RawName} = Name, [Value]})
 %         when RawName =:= type; RawName =:= opaque; RawName =:= spec; RawName =:= callback ->
 %     NameD = wrap(string("-"), expr_to_algebra(Name), string(" ")),
@@ -187,7 +178,7 @@ do_expr_to_algebra({macro_string, _Meta, Name}) ->
 do_expr_to_algebra({remote, _Meta, Left, Right}) ->
     concat([expr_to_algebra(Left), <<":">>, expr_to_algebra(Right)]);
 do_expr_to_algebra({block, Meta, Exprs}) ->
-    surround(<<"begin">>, block_to_algebra(Meta, Exprs), <<"end">>, <<" ">>);
+    surround(<<"begin">>, <<" ">>, block_to_algebra(Meta, Exprs), <<" ">>, <<"end">>);
 % do_expr_to_algebra({'fun', _Meta, Expr}) ->
 %     fun_to_algebra(Expr);
 % do_expr_to_algebra({'case', _Meta, Expr, Clauses}) ->
@@ -266,8 +257,8 @@ wrap_in_parens(Doc) ->
 %     Nested = concat(document_spaces(?INDENT), Doc),
 %     line(Left, line(Nested, Right)).
 
-surround(Left, Doc, Right, Spacer) ->
-    group(glue(nest(glue(Left, Spacer, Doc), ?INDENT, break), Spacer, Right)).
+surround(Left, LeftSpace, Doc, RightSpace, Right) ->
+    group(glue(nest(glue(Left, LeftSpace, Doc), ?INDENT, break), RightSpace, Right)).
 
 string_to_algebra(Text) ->
     case string:split(Text, "\n", all) of
@@ -381,10 +372,10 @@ container_common(Meta, [Value | _] = Values, Left, Right, Combine, Last) ->
     case has_inner_break(Meta, Value) of
         true ->
             Doc = fold_doc(fun (D, Acc) -> line(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
-            surround(Left, force_unfit(Doc), Right, <<"">>);
+            surround(Left, <<"">>, force_unfit(Doc), <<"">>, Right);
         false when Combine =:= glue ->
             Doc = fold_doc(fun (D, Acc) -> glue(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
-            surround(Left, Doc, Right, <<"">>);
+            surround(Left, <<"">>, Doc, <<"">>, Right);
         false when Combine =:= flex_glue ->
             Doc = fold_doc(fun (D, Acc) -> flex_glue(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
             group(concat(nest(concat(Left, Doc), ?INDENT), Right))
