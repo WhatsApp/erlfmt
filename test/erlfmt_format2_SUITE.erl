@@ -112,8 +112,8 @@ groups() ->
         %     % type
         % ]},
         {operators, [parallel], [
-            unary_operator
-            % binary_operator
+            unary_operator,
+            binary_operator
         ]},
         {containers, [parallel], [
         %     % tuple,
