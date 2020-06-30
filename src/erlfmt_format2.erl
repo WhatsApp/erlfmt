@@ -208,8 +208,10 @@ do_expr_to_algebra({'...', _Meta}) ->
     <<"...">>;
 do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
     concat([expr_to_algebra(Left), <<"*">>, expr_to_algebra(Right)]);
-% do_expr_to_algebra({guard_or, _Meta, Guards}) ->
-%     element(2, do_guard_or_to_algebra_pair(Guards, "")).
+do_expr_to_algebra({guard_or, _Meta, Guards}) ->
+    guard_or_to_algebra(Guards);
+do_expr_to_algebra({guard_and, _Meta, Guards}) ->
+    guard_and_to_algebra(Guards);
 do_expr_to_algebra(Other) ->
     error(unsupported, [Other]).
 
@@ -607,41 +609,15 @@ fun_to_algebra({type, Meta, Args, Result}) ->
 %     ExprD = expr_to_algebra(Expr),
 %     {document_single_line(ExprD), ExprD}.
 
-% guard_or_to_algebra_pair({guard_or, Meta, Guards}, When) ->
-%     case comments(Meta) of
-%         {[], []} ->
-%             {Single, Multi} = do_guard_or_to_algebra_pair(Guards, When),
-%             {Single, Multi, Multi};
-%         {Pre, Post} ->
-%             {_Single, Multi} = do_guard_or_to_algebra_pair(Guards, When),
-%             Doc = combine_pre_comments(Pre, combine_post_comments(Post, Multi)),
-%             {document_fail(), document_fail(), Doc}
-%     end.
+guard_or_to_algebra(Guards) ->
+    GuardsD = lists:map(fun expr_to_algebra/1, Guards),
+    Doc = fold_doc(fun (GuardD, Acc) -> glue(concat(GuardD, <<";">>), Acc) end, GuardsD),
+    group(Doc).
 
-% do_guard_or_to_algebra_pair(Guards, When) ->
-%     WhenD = string(When),
-%     {SingleLine, MultiLine} =
-%         lists:unzip(lists:map(fun guard_and_to_algebra_pair/1, Guards)),
-%     SingleLineD = document_reduce(fun semi_space/2, SingleLine),
-%     MultiLineD = document_reduce(fun combine_semi_newline/2, MultiLine),
-%     {
-%         concat(WhenD, SingleLineD),
-%         concat(WhenD, document_choice(SingleLineD, MultiLineD))
-%     }.
-
-% guard_and_to_algebra_pair({guard_and, Meta, Exprs}) ->
-%     ExprsD = lists:map(fun expr_to_algebra/1, Exprs),
-%     case comments(Meta) of
-%         {[], []} ->
-%             SingleLine = lists:map(fun erlfmt_algebra:document_single_line/1, ExprsD),
-
-%             SingleLineD = document_reduce(fun comma_space/2, SingleLine),
-%             MultiLineD = document_reduce(fun comma_newline/2, ExprsD),
-%             {SingleLineD, document_choice(SingleLineD, MultiLineD)};
-%         {Pre, Post} ->
-%             Doc = document_reduce(fun comma_newline/2, ExprsD),
-%             {document_fail(), combine_pre_comments(Pre, combine_post_comments(Post, Doc))}
-%     end.
+guard_and_to_algebra(Guards) ->
+    GuardsD = lists:map(fun expr_to_algebra/1, Guards),
+    Doc = fold_doc(fun (GuardD, Acc) -> glue(concat(GuardD, <<",">>), Acc) end, GuardsD),
+    group(Doc).
 
 % %% Because the spec syntax is different from regular function syntax,
 % %% in the general case we have to indent them differently, but with just
