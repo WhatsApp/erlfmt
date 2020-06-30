@@ -503,10 +503,10 @@ block_to_algebra_each([Expr | [Next | _] = Rest]) ->
 fun_to_algebra(type) ->
     <<"fun()">>;
 fun_to_algebra({type, Meta, Args, Result}) ->
-    ArgsD = container(Meta, Args, string("("), string(") ->")),
+    ArgsD = group(call(Meta, Args, <<"fun((">>, <<") ->">>)),
     with_next_break_fits(is_next_break_fits(Result), expr_to_algebra(Result), fun (ResultD) ->
-        Body = glue(ArgsD, nest(ResultD, ?INDENT)),
-        concat([<<"fun(">>, Body, <<")">>])
+        Body = concat(ArgsD, group(concat(break(), ResultD))),
+        group(glue(nest(Body, ?INDENT, break), <<"">>, <<")">>))
     end).
 
 % clauses_to_algebra([{_, #{newline := true}, _, _, _} | _] = Clauses) ->

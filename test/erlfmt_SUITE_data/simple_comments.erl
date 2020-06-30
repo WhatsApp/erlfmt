@@ -30,7 +30,8 @@
             ...
         ) ->
             %% comment 3
-            bar()).
+            bar()
+    ).
 
 -spec foo() ->
     %% comment

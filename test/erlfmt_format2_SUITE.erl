@@ -1688,6 +1688,44 @@ type(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "-type foo() :: {fun(), fun((...) -> mod:bar()), fun(() -> integer())}."
+    ),
+    ?assertSame(
+        "-type bar() ::\n"
+        "    fun((\n"
+        "            %% foo\n"
+        "            ...\n"
+        "        ) -> float()\n"
+        "    )."
+    ),
+    ?assertSame(
+        "-type bar() ::\n"
+        "    fun(() -> [\n"
+        "        atom()\n"
+        "    ])."
+    ),
+    ?assertSame(
+        "-type bar() ::\n"
+        "    fun((\n"
+        "            %% foo\n"
+        "            ...\n"
+        "        ) -> [\n"
+        "            atom()\n"
+        "        ]\n"
+        "    )."
+    ),
+    ?assertSame(
+        "-type bar() :: fun((\n"
+        "        %% foo\n"
+        "        ...\n"
+        "    ) -> float()\n"
+        ")."
+    ),
+    ?assertFormat(
+        "-type bar() :: fun((\n"
+        "        ...\n"
+        "    ) -> float()\n"
+        ").",
+        "-type bar() :: fun((...) -> float())."
     ).
 
 comment(Config) when is_list(Config) ->
