@@ -432,7 +432,7 @@ field_to_algebra(Op, Key, Value) ->
 
 comprehension_to_algebra(Expr, LcExprs, Left, Right) ->
     ExprD = expr_to_algebra(Expr),
-    {HasTrailingComment, LcExprsD} = container_exprs_to_algebra(LcExprs, last_normal, []),
+    {_HasTrailingComment, LcExprsD} = container_exprs_to_algebra(LcExprs, last_normal, []),
     LcExprD = fold_doc(fun (D, Acc) -> glue(concat_to_last_group(D, <<",">>), Acc) end, LcExprsD),
     Doc = concat([ExprD, break(<<" ">>), <<"||">>, <<" ">>, nest(group(LcExprD), 3)]),
     surround(Left, <<"">>, Doc, <<"">>, Right).

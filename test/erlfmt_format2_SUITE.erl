@@ -877,6 +877,17 @@ list_comprehension(Config) when is_list(Config) ->
         25
     ),
     ?assertFormat(
+        "[X || X <- Y, X < 10\n"
+        " % trailing comment \n"
+        "]",
+        "[\n"
+        "    X\n"
+        "    || X <- Y,\n"
+        "       X < 10\n"
+        "       % trailing comment \n"
+        "]"
+    ),
+    ?assertFormat(
         "[{Very, Long, Expression} || X <- Y, X < 10]",
         "[\n"
         "    {Very, Long,\n"
