@@ -175,9 +175,9 @@ do_expr_to_algebra({block, Meta, Exprs}) ->
     surround(<<"begin">>, <<" ">>, block_to_algebra(Meta, Exprs), <<" ">>, <<"end">>);
 do_expr_to_algebra({'fun', _Meta, Expr}) ->
     fun_to_algebra(Expr);
-% do_expr_to_algebra({'case', _Meta, Expr, Clauses}) ->
-%     Prefix = wrap(string("case "), expr_to_algebra(Expr), string(" of")),
-%     wrap_nested(Prefix, clauses_to_algebra(Clauses), string("end"));
+do_expr_to_algebra({'case', _Meta, Expr, Clauses}) ->
+    Prefix = surround(<<"case">>, <<" ">>, expr_to_algebra(Expr), <<" ">>, <<"of">>),
+    surround(Prefix, <<"">>,  force_unfit(clauses_to_algebra(Clauses)), <<" ">>, <<"end">>);
 % do_expr_to_algebra({'receive', _Meta, Clauses}) ->
 %     wrap_nested(
 %         string("receive"),
@@ -493,6 +493,24 @@ fun_to_algebra({type, Meta, Args, Result}) ->
         Body = concat(ArgsD, group(concat(break(), ResultD))),
         group(glue(nest(Body, ?INDENT, break), <<"">>, <<")">>))
     end).
+
+clauses_to_algebra([Clause | _] = Clauses) ->
+    ClausesD = lists:map(fun clause_to_algebra/1, Clauses),
+    Doc = fold_doc(fun (D, Acc) -> line(concat(D, <<";">>), Acc) end, ClausesD),
+    HasBreak = clause_has_break(Clause),
+    group(maybe_force_unfit(HasBreak, Doc)).
+
+clause_has_break({clause, Meta, _Head, _Guards, [Body | _]}) -> has_break_between(Meta, Body).
+
+clause_to_algebra({clause, Meta, Head, empty, Body}) ->
+    HeadD = expr_to_algebra(Head),
+    BodyD = block_to_algebra(Meta, Body),
+    concat([HeadD, <<" ">>, <<"->">>, break(<<" ">>), nest(BodyD, ?INDENT)]);
+clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
+    HeadD = expr_to_algebra(Head),
+    GuardsD = expr_to_algebra(Guards),
+    BodyD = block_to_algebra(Meta, Body),
+    concat([HeadD, <<" ">>, <<"when">>, <<" ">>, GuardsD, <<" ">>, <<"->">>, break(<<" ">>), nest(BodyD, ?INDENT)]).
 
 % clauses_to_algebra([{_, #{newline := true}, _, _, _} | _] = Clauses) ->
 %     {_Single, Multi} = clauses_to_algebra_pair(Clauses),
