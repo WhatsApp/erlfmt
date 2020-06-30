@@ -93,7 +93,7 @@ groups() ->
             string_concat,
             {group, containers},
             {group, operators},
-            % {group, comprehensions},
+            {group, comprehensions},
             call,
             block,
             % fun_expression,
@@ -129,11 +129,11 @@ groups() ->
             record_update,
             record_index,
             record_field
+        ]},
+        {comprehensions, [parallel], [
+            list_comprehension,
+            binary_comprehension
         ]}
-        % {comprehensions, [parallel], [
-        %     % list_comprehension,
-        %     % binary_comprehension
-        % ]}
     ].
 
 all() ->
@@ -871,7 +871,8 @@ list_comprehension(Config) when is_list(Config) ->
         "        Very,\n"
         "        Long,\n"
         "        Expression\n"
-        "    ] || X <- Y, X < 10\n"
+        "    ]\n"
+        "    || X <- Y, X < 10\n"
         "]",
         25
     ),

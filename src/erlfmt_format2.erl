@@ -151,16 +151,14 @@ do_expr_to_algebra({record_field, _Meta, Name}) ->
     expr_to_algebra(Name);
 do_expr_to_algebra({record_field, Meta, Expr, Name, Key}) ->
     concat(expr_to_algebra(Expr), record_access_to_algebra(Meta, Name, Key));
-% do_expr_to_algebra({lc, _Meta, Expr, LcExprs}) ->
-%     ExprD = expr_to_algebra(Expr),
-%     comprehension_to_algebra(ExprD, LcExprs, string("["), string("]"));
-% do_expr_to_algebra({bc, _Meta, Expr, LcExprs}) ->
-%     ExprD = expr_to_algebra(Expr),
-%     comprehension_to_algebra(ExprD, LcExprs, string("<<"), string(">>"));
-% do_expr_to_algebra({generate, _Meta, Left, Right}) ->
-%     field_to_algebra(<<" <-">>, Left, Right);
-% do_expr_to_algebra({b_generate, _Meta, Left, Right}) ->
-%     field_to_algebra(<<" <=">>, Left, Right);
+do_expr_to_algebra({lc, _Meta, Expr, LcExprs}) ->
+    comprehension_to_algebra(Expr, LcExprs, <<"[">>, <<"]">>);
+do_expr_to_algebra({bc, _Meta, Expr, LcExprs}) ->
+    comprehension_to_algebra(Expr, LcExprs, <<"<<">>, <<">>">>);
+do_expr_to_algebra({generate, _Meta, Left, Right}) ->
+    field_to_algebra(<<" <-">>, Left, Right);
+do_expr_to_algebra({b_generate, _Meta, Left, Right}) ->
+    field_to_algebra(<<" <=">>, Left, Right);
 do_expr_to_algebra({call, Meta, Name, Args}) ->
     Prefix = concat(expr_to_algebra(Name), <<"(">>),
     call(Meta, Args, Prefix, <<")">>);
@@ -432,25 +430,12 @@ field_to_algebra(Op, Key, Value) ->
         concat(group(KeyD), group(nest(glue(Op, group(V)), ?INDENT, break)))
     end).
 
-% comprehension_to_algebra(ExprD, LcExprs, Left, Right) ->
-%     PipesD = string("|| "),
-%     {LcExprsSingleD, _LcExprsLastFitsD, LcExprsMultiD} =
-%         container_values_to_algebra_pair(LcExprs),
-%     LcExprsD = document_choice(LcExprsSingleD, LcExprsMultiD),
-
-%     SingleLine = space(
-%         document_single_line(ExprD),
-%         concat(PipesD, LcExprsSingleD)
-%     ),
-%     Multiline = document_choice(
-%         space(ExprD, concat(PipesD, LcExprsSingleD)),
-%         line(ExprD, concat(PipesD, LcExprsD))
-%     ),
-
-%     document_choice(
-%         wrap(Left, SingleLine, Right),
-%         wrap_nested(Left, Multiline, Right)
-%     ).
+comprehension_to_algebra(Expr, LcExprs, Left, Right) ->
+    ExprD = expr_to_algebra(Expr),
+    {HasTrailingComment, LcExprsD} = container_exprs_to_algebra(LcExprs, last_normal, []),
+    LcExprD = fold_doc(fun (D, Acc) -> glue(concat_to_last_group(D, <<",">>), Acc) end, LcExprsD),
+    Doc = concat([ExprD, break(<<" ">>), <<"||">>, <<" ">>, nest(group(LcExprD), 3)]),
+    surround(Left, <<"">>, Doc, <<"">>, Right).
 
 block_to_algebra(Meta, [Expr]) ->
     maybe_force_unfit(has_inner_break(Meta, Expr), expr_to_algebra(Expr));
