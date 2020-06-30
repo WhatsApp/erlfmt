@@ -175,8 +175,8 @@ do_expr_to_algebra({remote, _Meta, Left, Right}) ->
     concat([expr_to_algebra(Left), <<":">>, expr_to_algebra(Right)]);
 do_expr_to_algebra({block, Meta, Exprs}) ->
     surround(<<"begin">>, <<" ">>, block_to_algebra(Meta, Exprs), <<" ">>, <<"end">>);
-% do_expr_to_algebra({'fun', _Meta, Expr}) ->
-%     fun_to_algebra(Expr);
+do_expr_to_algebra({'fun', _Meta, Expr}) ->
+    fun_to_algebra(Expr);
 % do_expr_to_algebra({'case', _Meta, Expr, Clauses}) ->
 %     Prefix = wrap(string("case "), expr_to_algebra(Expr), string(" of")),
 %     wrap_nested(Prefix, clauses_to_algebra(Clauses), string("end"));
@@ -204,8 +204,8 @@ do_expr_to_algebra({block, Meta, Exprs}) ->
 %     single_clause_spec_to_algebra(Name, SingleClause);
 % do_expr_to_algebra({spec, _Meta, Name, Clauses}) ->
 %     combine_nested(expr_to_algebra(Name), clauses_to_algebra(Clauses));
-% do_expr_to_algebra({'...', _Meta}) ->
-%     string("...");
+do_expr_to_algebra({'...', _Meta}) ->
+    <<"...">>;
 do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
     concat([expr_to_algebra(Left), <<"*">>, expr_to_algebra(Right)]);
 % do_expr_to_algebra({guard_or, _Meta, Guards}) ->
@@ -496,18 +496,14 @@ block_to_algebra_each([Expr | [Next | _] = Rest]) ->
 %         wrap(string("fun "), document_single_line(ClausesD), string(" end")),
 %         wrap_nested(string("fun"), ClausesD, string("end"))
 %     );
-% fun_to_algebra(type) ->
-%     string("fun()");
-% fun_to_algebra({type, Anno, Args, Result}) ->
-%     ResultD = expr_to_algebra(Result),
-%     ArgsD = container_to_algebra(Anno, Args, string("("), string(") ->")),
-%     SingleLine =
-%         case next_break_fits(Result) of
-%             true -> prepend_space(ArgsD, ResultD);
-%             false -> space(ArgsD, document_single_line(ResultD))
-%         end,
-%     Body = document_choice(SingleLine, combine_nested(ArgsD, ResultD)),
-%     wrap(string("fun("), Body, string(")")).
+fun_to_algebra(type) ->
+    <<"fun()">>;
+fun_to_algebra({type, Meta, Args, Result}) ->
+    ArgsD = container(Meta, Args, string("("), string(") ->")),
+    with_next_break_fits(is_next_break_fits(Result), expr_to_algebra(Result), fun (ResultD) ->
+        Body = glue(ArgsD, nest(ResultD, ?INDENT)),
+        concat([<<"fun(">>, Body, <<")">>])
+    end).
 
 % clauses_to_algebra([{_, #{newline := true}, _, _, _} | _] = Clauses) ->
 %     {_Single, Multi} = clauses_to_algebra_pair(Clauses),

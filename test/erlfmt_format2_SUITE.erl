@@ -1658,11 +1658,11 @@ type(Config) when is_list(Config) ->
         "}.",
         50
     ),
-    % ?assertSame(
-    %     "-type foo() ::\n"
-    %     "    fun((A, B, C) -> return_type(A, B, C)).",
-    %     50
-    % ),
+    ?assertSame(
+        "-type foo() ::\n"
+        "    fun((A, B, C) -> return_type(A, B, C)).",
+        50
+    ),
     ?assertSame(
         "-type foo() :: #{\n"
         "    a := integer(),\n"
@@ -1671,10 +1671,10 @@ type(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "-opaque foo() :: {<<>>, <<_:8>>, <<_:_*4>>, <<_:8, _:_*4>>}."
+    ),
+    ?assertSame(
+        "-type foo() :: {fun(), fun((...) -> mod:bar()), fun(() -> integer())}."
     ).
-    % ?assertSame(
-    %     "-type foo() :: {fun(), fun((...) -> mod:bar()), fun(() -> integer())}."
-    % ).
 
 comment(Config) when is_list(Config) ->
     ?assertSame(
