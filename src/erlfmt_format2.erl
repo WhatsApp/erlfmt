@@ -209,9 +209,9 @@ do_expr_to_algebra({'...', _Meta}) ->
 do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
     concat([expr_to_algebra(Left), <<"*">>, expr_to_algebra(Right)]);
 do_expr_to_algebra({guard_or, _Meta, Guards}) ->
-    guard_or_to_algebra(Guards);
+    guard_to_algebra(Guards, <<";">>);
 do_expr_to_algebra({guard_and, _Meta, Guards}) ->
-    guard_and_to_algebra(Guards);
+    guard_to_algebra(Guards, <<",">>);
 do_expr_to_algebra(Other) ->
     error(unsupported, [Other]).
 
@@ -611,14 +611,9 @@ fun_to_algebra({type, Meta, Args, Result}) ->
 %     ExprD = expr_to_algebra(Expr),
 %     {document_single_line(ExprD), ExprD}.
 
-guard_or_to_algebra(Guards) ->
+guard_to_algebra(Guards, Separator) ->
     GuardsD = lists:map(fun expr_to_algebra/1, Guards),
-    Doc = fold_doc(fun (GuardD, Acc) -> glue(concat(GuardD, <<";">>), Acc) end, GuardsD),
-    group(Doc).
-
-guard_and_to_algebra(Guards) ->
-    GuardsD = lists:map(fun expr_to_algebra/1, Guards),
-    Doc = fold_doc(fun (GuardD, Acc) -> glue(concat(GuardD, <<",">>), Acc) end, GuardsD),
+    Doc = fold_doc(fun (GuardD, Acc) -> glue(concat(GuardD, Separator), Acc) end, GuardsD),
     group(Doc).
 
 % %% Because the spec syntax is different from regular function syntax,
