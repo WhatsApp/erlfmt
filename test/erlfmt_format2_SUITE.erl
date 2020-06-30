@@ -464,6 +464,20 @@ tuple(Config) when is_list(Config) ->
         "    {a, long,\n"
         "        tuple}}",
         15
+    ),
+    ?assertSame(
+        "{\n"
+        "    foo\n"
+        "}"
+    ),
+    ?assertFormat(
+        "{foo\n"
+        " %% bar\n"
+        "}",
+        "{\n"
+        "    foo\n"
+        "    %% bar\n"
+        "}"
     ).
 
 list(Config) when is_list(Config) ->

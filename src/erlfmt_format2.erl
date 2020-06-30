@@ -366,8 +366,8 @@ call(Meta, Values, Left, Right) ->
 container_common(_Meta, [], Left, Right, _Combine, _Last) ->
     concat(Left, Right);
 container_common(Meta, [Value | _] = Values, Left, Right, Combine, Last) ->
-    ValuesD = container_exprs_to_algebra(Values, Last),
-    case has_inner_break(Meta, Value) of
+    {HasTrailingComments, ValuesD} = container_exprs_to_algebra(Values, Last, []),
+    case HasTrailingComments orelse has_inner_break(Meta, Value) of
         true ->
             Doc = fold_doc(fun (D, Acc) -> line(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
             surround(Left, <<"">>, force_unfit(Doc), <<"">>, Right);
@@ -379,19 +379,21 @@ container_common(Meta, [Value | _] = Values, Left, Right, Combine, Last) ->
             group(concat(nest(concat(Left, Doc), ?INDENT), Right))
     end.
 
-container_exprs_to_algebra([{comment, _, _} | _] = Comments, _Last) ->
-    [comments_to_algebra(Comments)];
-container_exprs_to_algebra([Value | [{comment, _, _} | _] = Comments], _Last) ->
-    [line(expr_to_algebra(Value), comments_to_algebra(Comments))];
-container_exprs_to_algebra([Value], last_fits) ->
-    case is_next_break_fits(Value) of
-        true -> [next_break_fits(expr_to_algebra(Value), enabled)];
-        false -> [expr_to_algebra(Value)]
-    end;
-container_exprs_to_algebra([Value], last_normal) ->
-    [expr_to_algebra(Value)];
-container_exprs_to_algebra([Value | Values], Last) ->
-    [expr_to_algebra(Value) | container_exprs_to_algebra(Values, Last)].
+container_exprs_to_algebra([{comment, _, _} | _] = Comments, _Last, Acc) ->
+    {true, lists:reverse(Acc, [comments_to_algebra(Comments)])};
+container_exprs_to_algebra([Value | [{comment, _, _} | _] = Comments], _Last, Acc) ->
+    {true, lists:reverse(Acc, [line(expr_to_algebra(Value), comments_to_algebra(Comments))])};
+container_exprs_to_algebra([Value], last_fits, Acc) ->
+    ValueD =
+        case is_next_break_fits(Value) of
+            true -> next_break_fits(expr_to_algebra(Value), enabled);
+            false -> expr_to_algebra(Value)
+        end,
+    {false, lists:reverse(Acc, [ValueD])};
+container_exprs_to_algebra([Value], last_normal, Acc) ->
+    {false, lists:reverse(Acc, [expr_to_algebra(Value)])};
+container_exprs_to_algebra([Value | Values], Last, Acc) ->
+    container_exprs_to_algebra(Values, Last, [expr_to_algebra(Value) | Acc]).
 
 cons_to_algebra(Head, Tail) ->
     HeadD = expr_to_algebra(Head),
