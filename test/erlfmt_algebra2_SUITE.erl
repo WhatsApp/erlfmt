@@ -37,8 +37,7 @@
     test_string/1,
     test_strict_break/1,
     test_flex_break/1,
-    test_glue/1,
-    test_flex_glue/1,
+    test_break/1,
     test_space/1,
     test_always_nest/1,
     test_break_nest/1,
@@ -64,12 +63,12 @@
     empty/0,
     break/0,
     break/1,
+    break/2,
+    break/3,
     flex_break/1,
     flex_break/0,
-    glue/2,
-    glue/3,
-    flex_glue/2,
-    flex_glue/3,
+    flex_break/2,
+    flex_break/3,
     space/2,
     nest/2,
     nest/3,
@@ -118,8 +117,8 @@ all() ->
         test_string,
         test_strict_break,
         test_flex_break,
-        test_glue,
-        test_flex_glue,
+        test_break,
+        test_flex_break,
         test_space,
         test_always_nest,
         test_break_nest,
@@ -148,29 +147,28 @@ test_binary(Config) when is_list(Config) ->
 
 test_string(Config) when is_list(Config) ->
     ?assertEqual({doc_string, <<"ólá"/utf8>>, 3}, string(<<"ólá"/utf8>>)),
-    ?assertEqual(<<"ólá mundo"/utf8>>, render(glue(string(<<"ólá"/utf8>>), <<" ">>, string(<<"mundo">>)), 80)).
+    ?assertEqual(<<"ólá mundo"/utf8>>, render(break(string(<<"ólá"/utf8>>), <<" ">>, string(<<"mundo">>)), 80)).
 
 test_strict_break(Config) when is_list(Config) ->
     ?assertEqual({doc_break, <<"break">>, strict}, break(<<"break">>)),
     ?assertEqual({doc_break, <<" ">>, strict}, break()),
 
     ?assertEqual(<<"_">>, render(break(<<"_">>), 80)),
-    ?assertEqual(<<"foo\nbar\nbaz">>, render(glue(<<"foo">>, <<" ">>, glue(<<"bar">>, <<" ">>, <<"baz">>)), 10)).
+    ?assertEqual(<<"foo\nbar\nbaz">>, render(break(<<"foo">>, <<" ">>, break(<<"bar">>, <<" ">>, <<"baz">>)), 10)).
 
 test_flex_break(Config) when is_list(Config) ->
     ?assertEqual({doc_break, <<"break">>, flex}, flex_break(<<"break">>)),
     ?assertEqual({doc_break, <<" ">>, flex}, flex_break()),
 
     ?assertEqual(<<"_">>, render(flex_break(<<"_">>), 80)),
-    ?assertEqual(<<"foo bar\nbaz">>, render(flex_glue(<<"foo">>, <<" ">>, flex_glue(<<"bar">>, <<" ">>, <<"baz">>)), 10)).
+    ?assertEqual(<<"foo bar\nbaz">>, render(flex_break(<<"foo">>, <<" ">>, flex_break(<<"bar">>, <<" ">>, <<"baz">>)), 10)),
 
-test_glue(Config) when is_list(Config) ->
-    ?assertEqual({doc_cons, <<"a">>, {doc_cons, {doc_break, <<"->">>, strict}, <<"b">>}}, glue(<<"a">>, <<"->">>, <<"b">>)),
-    ?assertEqual(glue(<<"a">>, <<"b">>), glue(<<"a">>, <<" ">>, <<"b">>)).
+    ?assertEqual({doc_cons, <<"a">>, {doc_cons, {doc_break, <<"->">>, flex}, <<"b">>}}, flex_break(<<"a">>, <<"->">>, <<"b">>)),
+    ?assertEqual(flex_break(<<"a">>, <<"b">>), flex_break(<<"a">>, <<" ">>, <<"b">>)).
 
-test_flex_glue(Config) when is_list(Config) ->
-    ?assertEqual({doc_cons, <<"a">>, {doc_cons, {doc_break, <<"->">>, flex}, <<"b">>}}, flex_glue(<<"a">>, <<"->">>, <<"b">>)),
-    ?assertEqual(flex_glue(<<"a">>, <<"b">>), flex_glue(<<"a">>, <<" ">>, <<"b">>)).
+test_break(Config) when is_list(Config) ->
+    ?assertEqual({doc_cons, <<"a">>, {doc_cons, {doc_break, <<"->">>, strict}, <<"b">>}}, break(<<"a">>, <<"->">>, <<"b">>)),
+    ?assertEqual(break(<<"a">>, <<"b">>), break(<<"a">>, <<" ">>, <<"b">>)).
 
 test_space(Config) when is_list(Config) ->
     ?assertEqual({doc_cons, <<"a">>, {doc_cons, <<" ">>, <<"b">>}}, space(<<"a">>, <<"b">>)).
@@ -180,7 +178,7 @@ test_always_nest(Config) when is_list(Config) ->
     ?assertEqual(empty(), nest(empty(), 0)),
 
     ?assertEqual(<<"a">>, render(nest(<<"a">>, 1), 80)),
-    ?assertEqual(<<"a\n b">>, render(nest(glue(<<"a">>, <<"b">>), 1), 2)),
+    ?assertEqual(<<"a\n b">>, render(nest(break(<<"a">>, <<"b">>), 1), 2)),
     ?assertEqual(<<"a\n b">>, render(nest(line(<<"a">>, <<"b">>), 1), 20)).
 
 test_break_nest(Config) when is_list(Config) ->
@@ -188,45 +186,45 @@ test_break_nest(Config) when is_list(Config) ->
     ?assertEqual(empty(), nest(empty(), 0, break)),
 
     ?assertEqual(<<"a">>, render(nest(<<"a">>, 1, break), 80)),
-    ?assertEqual(<<"a\n b">>, render(nest(glue(<<"a">>, <<"b">>), 1, break), 2)),
+    ?assertEqual(<<"a\n b">>, render(nest(break(<<"a">>, <<"b">>), 1, break), 2)),
     ?assertEqual(<<"a\nb">>, render(nest(line(<<"a">>, <<"b">>), 1, break), 20)).
 
 test_cursor_nest(Config) when is_list(Config) ->
     ?assertEqual({doc_nest, empty(), cursor, always}, nest(empty(), cursor)),
 
     ?assertEqual(<<"a">>, render(nest(<<"a">>, cursor), 80)),
-    ?assertEqual(<<"prefix a\n       b">>, render(concat(<<"prefix ">>, nest(glue(<<"a">>, <<"b">>), cursor)), 2)),
+    ?assertEqual(<<"prefix a\n       b">>, render(concat(<<"prefix ">>, nest(break(<<"a">>, <<"b">>), cursor)), 2)),
     ?assertEqual(<<"prefix a\n       b">>, render(concat(<<"prefix ">>, nest(line(<<"a">>, <<"b">>), cursor)), 2)).
 
 test_reset_nest(Config) when is_list(Config) ->
     ?assertEqual({doc_nest, empty(), reset, always}, nest(empty(), reset)),
 
     ?assertEqual(<<"a">>, render(nest(<<"a">>, reset), 80)),
-    ?assertEqual(<<"a\nb">>, render(nest(nest(glue(<<"a">>, <<"b">>), reset), 10), 2)),
+    ?assertEqual(<<"a\nb">>, render(nest(nest(break(<<"a">>, <<"b">>), reset), 10), 2)),
     ?assertEqual(<<"a\nb">>, render(nest(nest(line(<<"a">>, <<"b">>), reset), 10), 2)).
 
 test_line(Config) when is_list(Config) ->
     ?assertEqual({doc_cons, <<"a">>, {doc_cons, {doc_line, 1}, <<"b">>}}, line(<<"a">>, <<"b">>)),
     ?assertEqual({doc_line, 2}, line(2)),
 
-    ?assertEqual(<<"aaa bbb\nccc ddd">>, render(line(glue(<<"aaa">>, <<"bbb">>), glue(<<"ccc">>, <<"ddd">>)), 10)),
+    ?assertEqual(<<"aaa bbb\nccc ddd">>, render(line(break(<<"aaa">>, <<"bbb">>), break(<<"ccc">>, <<"ddd">>)), 10)),
     ?assertEqual(<<"a\n\nb">>, render(concat([<<"a">>, line(2), <<"b">>]), 80)).
 
 test_self_group(Config) when is_list(Config) ->
     ?assertEqual({doc_group, <<"ab">>, self}, group(<<"ab">>)),
     ?assertEqual({doc_group, empty(), self}, group(empty())),
 
-    Doc = concat(glue(glue(glue(<<"hello">>, <<"a">>), <<"b">>), <<"c">>), <<"d">>),
+    Doc = concat(break(break(break(<<"hello">>, <<"a">>), <<"b">>), <<"c">>), <<"d">>),
     ?assertEqual(<<"hello\na\nb\ncd">>, render(group(Doc), 5)).
 
 test_inherit_group(Config) when is_list(Config) ->
     ?assertEqual({doc_group, <<"ab">>, inherit}, group(<<"ab">>, inherit)),
     ?assertEqual({doc_group, empty(), inherit}, group(empty(), inherit)),
 
-    Doc1 = concat(glue(glue(group(glue(<<"a">>, <<"b">>), self), <<"c">>), <<"d">>), <<"hello">>),
+    Doc1 = concat(break(break(group(break(<<"a">>, <<"b">>), self), <<"c">>), <<"d">>), <<"hello">>),
     ?assertEqual(<<"a b\nc\ndhello">>, render(group(Doc1), 5)),
 
-    Doc2 = concat(glue(glue(group(glue(<<"a">>, <<"b">>), inherit), <<"c">>), <<"d">>), <<"hello">>),
+    Doc2 = concat(break(break(group(break(<<"a">>, <<"b">>), inherit), <<"c">>), <<"d">>), <<"hello">>),
     ?assertEqual(<<"a\nb\nc\ndhello">>, render(group(Doc2), 5)).
 
 test_collapse(Config) when is_list(Config) ->
@@ -262,20 +260,20 @@ test_force_and_cancel(Config) when is_list(Config) ->
     ?assertEqual({doc_fits, <<"ab">>, disabled}, next_break_fits(<<"ab">>, disabled)),
     ?assertEqual({doc_fits, empty(), disabled}, next_break_fits(empty(), disabled)),
 
-    Doc = force_unfit(concat(glue(glue(glue(<<"hello">>, <<"a">>), <<"b">>), <<"c">>), <<"d">>)),
+    Doc = force_unfit(concat(break(break(break(<<"hello">>, <<"a">>), <<"b">>), <<"c">>), <<"d">>)),
     ?assertEqual(<<"hello\na\nb\ncd">>, render(Doc, 20)),
     ?assertEqual(<<"hello a b cd">>, render(next_break_fits(Doc, enabled), 20)),
     ?assertEqual(<<"hello\na\nb\ncd">>, render(next_break_fits(next_break_fits(Doc, enabled), disabled), 20)).
 
 test_groups_with_lines(Config) when is_list(Config) ->
-    Doc = line(glue(<<"a">>, <<"b">>), glue(<<"hello">>, <<"world">>)),
+    Doc = line(break(<<"a">>, <<"b">>), break(<<"hello">>, <<"world">>)),
     ?assertEqual(<<"a\nb\nhello\nworld">>, render(group(Doc), 5)),
     ?assertEqual(<<"a b\nhello world">>, render(group(Doc), 100)).
 
 test_infinite_width(Config) when is_list(Config) ->
     Str = binary:copy(<<"x">>, 50),
 
-    Doc = group(glue(glue(glue(glue(Str, <<";">>, Str), <<";">>, Str), <<";">>, Str), <<";">>, Str)),
+    Doc = group(break(break(break(break(Str, <<";">>, Str), <<";">>, Str), <<";">>, Str), <<";">>, Str)),
     ?assertEqual(
         <<Str/binary, ";", Str/binary, ";", Str/binary, ";", Str/binary, ";", Str/binary>>,
         render(Doc, infinity)
@@ -302,16 +300,16 @@ test_concat(Config) when is_list(Config) ->
     ?assertEqual(<<"foo">>, render(concat(empty(), <<"foo">>), 80)).
 
 test_docs(Config) when is_list(Config) ->
-    ?assertEqual(<<"a b">>, render(group(glue(<<"a">>, <<" ">>, <<"b">>)), 80)),
+    ?assertEqual(<<"a b">>, render(group(break(<<"a">>, <<" ">>, <<"b">>)), 80)),
 
-    % A glue inserts a break between two documents. A group
+    % A break inserts a break between two documents. A group
     % indicates a document that must fit the current line, otherwise
-    % breaks are rendered as new lines. Let's glue two docs together
+    % breaks are rendered as new lines. Let's break two docs together
     % with a break, group it and then render it.
-    ?assertEqual(<<"aaaaaaaaaaaaaaaaaaaa b">>, render(group(glue(binary:copy(<<"a">>, 20), <<" ">>, <<"b">>)), 80)),
+    ?assertEqual(<<"aaaaaaaaaaaaaaaaaaaa b">>, render(group(break(binary:copy(<<"a">>, 20), <<" ">>, <<"b">>)), 80)),
     % Notice the break was represented as is, because we haven't reached
     % a line limit. Once we do, it is replaced by a newline:
-    ?assertEqual(<<"aaaaaaaaaaaaaaaaaaaa\nb">>, render(group(glue(binary:copy(<<"a">>, 20), <<" ">>, <<"b">>)), 10)),
+    ?assertEqual(<<"aaaaaaaaaaaaaaaaaaaa\nb">>, render(group(break(binary:copy(<<"a">>, 20), <<" ">>, <<"b">>)), 10)),
 
     ?assertEqual(
         <<"[1,\n 2,\n 3,\n 4,\n 5]">>,
@@ -324,11 +322,11 @@ test_docs(Config) when is_list(Config) ->
 
     ?assertEqual(
         <<"olá\nmundo"/utf8>>,
-        render(group(glue(<<"olá"/utf8>>, <<" ">>, <<"mundo">>)), 9)
+        render(group(break(<<"olá"/utf8>>, <<" ">>, <<"mundo">>)), 9)
     ),
     ?assertEqual(
        <<"olá mundo"/utf8>>,
-       render(group(glue(string(<<"olá"/utf8>>), <<" ">>, <<"mundo">>)), 9)
+       render(group(break(string(<<"olá"/utf8>>), <<" ">>, <<"mundo">>)), 9)
     ),
 
     ?assertEqual(
@@ -343,7 +341,7 @@ test_docs(Config) when is_list(Config) ->
 
     ?assertEqual(
         <<"hello\n     world">>,
-        render(group(nest(glue(<<"hello">>, <<"world">>), 5)), 5)
+        render(group(nest(break(<<"hello">>, <<"world">>), 5)), 5)
     ),
 
     ?assertEqual(
@@ -355,8 +353,8 @@ test_docs(Config) when is_list(Config) ->
         render(group(concat([binary:copy(<<"a">>, 20), break(<<"\t">>), <<"b">>])), 10)
     ),
 
-    ?assertEqual(<<"hello world">>, render(glue(<<"hello">>, <<"world">>), 80)),
-    ?assertEqual(<<"hello\tworld">>, render(glue(<<"hello">>, <<"\t">>, <<"world">>), 80)),
+    ?assertEqual(<<"hello world">>, render(break(<<"hello">>, <<"world">>), 80)),
+    ?assertEqual(<<"hello\tworld">>, render(break(<<"hello">>, <<"\t">>, <<"world">>), 80)),
 
     Doc1 = group(concat(
         group(concat(<<"Hello,">>, concat(break(), <<"A">>))),
@@ -374,7 +372,7 @@ test_docs(Config) when is_list(Config) ->
         render(fold_doc(fun (D, Acc) -> concat([D, <<"!">>, Acc]) end, [<<"A">>, <<"B">>, <<"C">>]), 80)
     ),
 
-    Doc2 = group(glue(<<"hello">>, <<" ">>, <<"world">>)),
+    Doc2 = group(break(<<"hello">>, <<" ">>, <<"world">>)),
     ?assertEqual(<<"hello world">>, render(Doc2, 30)),
     ?assertEqual(<<"hello\nworld">>, render(Doc2, 10)).
 

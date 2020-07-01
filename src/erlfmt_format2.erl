@@ -25,12 +25,12 @@
     empty/0,
     break/0,
     break/1,
+    break/2,
+    break/3,
     flex_break/1,
     flex_break/0,
-    glue/2,
-    glue/3,
-    flex_glue/2,
-    flex_glue/3,
+    flex_break/2,
+    flex_break/3,
     space/2,
     nest/2,
     nest/3,
@@ -256,7 +256,7 @@ wrap_in_parens(Doc) ->
 %     line(Left, line(Nested, Right)).
 
 surround(Left, LeftSpace, Doc, RightSpace, Right) ->
-    group(glue(nest(glue(Left, LeftSpace, Doc), ?INDENT, break), RightSpace, Right)).
+    group(break(nest(break(Left, LeftSpace, Doc), ?INDENT, break), RightSpace, Right)).
 
 string_to_algebra(Text) ->
     case string:split(Text, "\n", all) of
@@ -285,7 +285,7 @@ concat_to_algebra([Value1, Value2 | _] = Values) ->
         true ->
             group(fold_doc(fun erlfmt_algebra2:line/2, ValuesD));
         false ->
-            group(fold_doc(fun erlfmt_algebra2:glue/2, ValuesD))
+            group(fold_doc(fun erlfmt_algebra2:break/2, ValuesD))
     end.
 
 unary_op_to_algebra(Op, Expr) ->
@@ -331,7 +331,7 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     IsNextBreakFits = is_next_break_fits_op(Op, Right) andalso not HasBreak,
 
     Doc = with_next_break_fits(IsNextBreakFits, RightD, fun(R) ->
-        RightOpD = nest(glue(concat(<<" ">>, OpD), group(R)), Indent, break),
+        RightOpD = nest(break(concat(<<" ">>, OpD), group(R)), Indent, break),
         concat(group(LeftD),group(maybe_force_unfit(HasBreak, RightOpD)))
     end),
 
@@ -355,13 +355,13 @@ binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
     expr_to_algebra(Expr).
 
 container(Meta, Values, Left, Right) ->
-    container_common(Meta, Values, Left, Right, glue, last_normal).
+    container_common(Meta, Values, Left, Right, break, last_normal).
 
 flex_container(Meta, Values, Left, Right) ->
-    container_common(Meta, Values, Left, Right, flex_glue, last_normal).
+    container_common(Meta, Values, Left, Right, flex_break, last_normal).
 
 call(Meta, Values, Left, Right) ->
-    container_common(Meta, Values, Left, Right, glue, last_fits).
+    container_common(Meta, Values, Left, Right, break, last_fits).
 
 container_common(_Meta, [], Left, Right, _Combine, _Last) ->
     concat(Left, Right);
@@ -371,11 +371,11 @@ container_common(Meta, [Value | _] = Values, Left, Right, Combine, Last) ->
         true ->
             Doc = fold_doc(fun (D, Acc) -> line(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
             surround(Left, <<"">>, force_unfit(Doc), <<"">>, Right);
-        false when Combine =:= glue ->
-            Doc = fold_doc(fun (D, Acc) -> glue(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
+        false when Combine =:= break ->
+            Doc = fold_doc(fun (D, Acc) -> break(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
             surround(Left, <<"">>, Doc, <<"">>, Right);
-        false when Combine =:= flex_glue ->
-            Doc = fold_doc(fun (D, Acc) -> flex_glue(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
+        false when Combine =:= flex_break ->
+            Doc = fold_doc(fun (D, Acc) -> flex_break(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
             group(concat(nest(concat(Left, Doc), ?INDENT), Right))
     end.
 
@@ -398,7 +398,7 @@ container_exprs_to_algebra([Value | Values], Last, Acc) ->
 cons_to_algebra(Head, Tail) ->
     HeadD = expr_to_algebra(Head),
     TailD = concat(<<"| ">>, expr_to_algebra(Tail)),
-    glue(HeadD, TailD).
+    break(HeadD, TailD).
 
 bin_element_to_algebra(Expr, Size, Types) ->
     Docs =
@@ -429,13 +429,13 @@ field_to_algebra(Op, Key, Value) ->
     ValueD = expr_to_algebra(Value),
 
     with_next_break_fits(is_next_break_fits(Value, [call, macro_call]), ValueD, fun (V) ->
-        concat(group(KeyD), group(nest(glue(Op, group(V)), ?INDENT, break)))
+        concat(group(KeyD), group(nest(break(Op, group(V)), ?INDENT, break)))
     end).
 
 comprehension_to_algebra(Expr, LcExprs, Left, Right) ->
     ExprD = expr_to_algebra(Expr),
     {_HasTrailingComment, LcExprsD} = container_exprs_to_algebra(LcExprs, last_normal, []),
-    LcExprD = fold_doc(fun (D, Acc) -> glue(concat_to_last_group(D, <<",">>), Acc) end, LcExprsD),
+    LcExprD = fold_doc(fun (D, Acc) -> break(concat_to_last_group(D, <<",">>), Acc) end, LcExprsD),
     Doc = concat([ExprD, break(<<" ">>), <<"||">>, <<" ">>, nest(group(LcExprD), 3)]),
     surround(Left, <<"">>, Doc, <<"">>, Right).
 
@@ -493,7 +493,7 @@ fun_to_algebra({type, Meta, Args, Result}) ->
     ArgsD = group(call(Meta, Args, <<"fun((">>, <<") ->">>)),
     with_next_break_fits(is_next_break_fits(Result), expr_to_algebra(Result), fun (ResultD) ->
         Body = concat(ArgsD, group(concat(break(), ResultD))),
-        group(glue(nest(Body, ?INDENT, break), <<"">>, <<")">>))
+        group(break(nest(Body, ?INDENT, break), <<"">>, <<")">>))
     end).
 
 clauses_to_algebra([Clause | _] = Clauses) ->
@@ -628,7 +628,7 @@ clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
 
 guard_to_algebra(Guards, Separator) ->
     GuardsD = lists:map(fun expr_to_algebra/1, Guards),
-    Doc = fold_doc(fun (GuardD, Acc) -> glue(concat(GuardD, Separator), Acc) end, GuardsD),
+    Doc = fold_doc(fun (GuardD, Acc) -> break(concat(GuardD, Separator), Acc) end, GuardsD),
     group(Doc).
 
 % %% Because the spec syntax is different from regular function syntax,
@@ -645,7 +645,7 @@ receive_after_to_algebra(Expr, Body) ->
 
     HeadD = concat([<<"after ">>, ExprD, <<" ->">>]),
     CommentHeadD = combine_pre_comments(Pre, HeadD),
-    nest(glue(CommentHeadD, group(BodyD)), ?INDENT).
+    nest(break(CommentHeadD, group(BodyD)), ?INDENT).
 
 % try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
 %     Clauses =

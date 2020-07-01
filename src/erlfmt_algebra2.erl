@@ -8,8 +8,8 @@
 
 %   The functions `nest/2`, `space/2` and `line/2` help you put the
 %   document together into a rigid structure. However, the document
-%   algebra gets interesting when using functions like `glue/3` and
-%   `group/1`. A glue inserts a break between two documents. A group
+%   algebra gets interesting when using functions like `break/3` and
+%   `group/1`. A break inserts a break between two documents. A group
 %   indicates a document that must fit the current line, otherwise
 %   breaks are rendered as new lines.
 
@@ -47,8 +47,8 @@
     next_break_fits/1, next_break_fits/2,
     force_unfit/1,
     flex_break/0, flex_break/1,
-    flex_glue/2, flex_glue/3,
-    glue/2, glue/3,
+    flex_break/2, flex_break/3,
+    break/2, break/3,
     group/1, group/2,
     space/2,
     line/0, line/1, line/2,
@@ -318,41 +318,41 @@ flex_break() -> flex_break(<<" ">>).
 flex_break(String) when is_binary(String) ->
     #doc_break{break = String, flex_or_strict = flex}.
 
-%   Glues two documents (`doc1` and `doc2`) inserting a
+%   Breaks two documents (`doc1` and `doc2`) inserting a
 %   `flex_break/1` given by `break_string` between them.
 
 %   This function is used by `container_doc/6` and friends
 %   to the maximum number of entries on the same line.
 
--spec flex_glue(doc(), doc()) -> doc().
-flex_glue(Doc1, Doc2) ->
-    flex_glue(Doc1, <<" ">>, Doc2).
+-spec flex_break(doc(), doc()) -> doc().
+flex_break(Doc1, Doc2) ->
+    flex_break(Doc1, <<" ">>, Doc2).
 
--spec flex_glue(doc(), binary(), doc()) -> doc().
-flex_glue(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
+-spec flex_break(doc(), binary(), doc()) -> doc().
+flex_break(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
     concat(Doc1, concat(flex_break(BreakString), Doc2)).
 
-%   Glues two documents (`doc1` and `doc2`) inserting the given
+%   Breaks two documents (`doc1` and `doc2`) inserting the given
 %   break `break_string` between them.
 
 %   For more information on how the break is inserted, see `break/1`.
 
 %   ## Examples
 
-%       iex> doc = Inspect.Algebra.glue("hello", "world")
+%       iex> doc = Inspect.Algebra.break("hello", "world")
 %       iex> Inspect.Algebra.format(doc, 80)
 %       ["hello", " ", "world"]
 
-%       iex> doc = Inspect.Algebra.glue("hello", "\t", "world")
+%       iex> doc = Inspect.Algebra.break("hello", "\t", "world")
 %       iex> Inspect.Algebra.format(doc, 80)
 %       ["hello", "\t", "world"]
 
--spec glue(doc(), doc()) -> doc().
-glue(Doc1, Doc2) ->
-    glue(Doc1, <<" ">>, Doc2).
+-spec break(doc(), doc()) -> doc().
+break(Doc1, Doc2) ->
+    break(Doc1, <<" ">>, Doc2).
 
--spec glue(doc(), binary(), doc()) -> doc().
-glue(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
+-spec break(doc(), binary(), doc()) -> doc().
+break(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
     concat(Doc1, concat(break(BreakString), Doc2)).
 
 %   Returns a group containing the specified document `doc`.
@@ -670,7 +670,7 @@ container_doc(Left, Collection, Right, Opts) when
     case Flex of
         % TODO: 1 and 2 should probably not be constants
         true -> group(concat(concat(Left, nest(Docs, 1)), Right));
-        false -> group(glue(nest(glue(Left, <<"">>, Docs), 2), <<"">>, Right))
+        false -> group(break(nest(break(Left, <<"">>, Docs), 2), <<"">>, Right))
     end.
 
 %   @spec container_doc(t, [any], t, Inspect.Opts.doc(), (term, Inspect.Opts.doc() -> t), keyword()) ::
@@ -694,7 +694,7 @@ container_doc(Left, Collection, Right, Opts) when
 
 %         case flex? do
 %           true -> group(concat(concat(left, nest(docs, 1)), right))
-%           false -> group(glue(nest(glue(left, "", docs), 2), "", right))
+%           false -> group(break(nest(break(left, "", docs), 2), "", right))
 %         end
 %     end
 %   end
@@ -737,14 +737,14 @@ container_each([Left | Right], Acc, Simple0) ->
 
 join(Left, doc_nil, _, _) -> Left;
 join(doc_nil, Right, _, _) -> Right;
-join(Left, Right, true, Sep) -> flex_glue(concat(Left, Sep), Right);
-join(Left, Right, false, Sep) -> glue(concat(Left, Sep), Right).
+join(Left, Right, true, Sep) -> flex_break(concat(Left, Sep), Right);
+join(Left, Right, false, Sep) -> break(concat(Left, Sep), Right).
 
 %   defp join(:doc_nil, :doc_nil, _, _), do: :doc_nil
 %   defp join(left, :doc_nil, _, _), do: left
 %   defp join(:doc_nil, right, _, _), do: right
-%   defp join(left, right, true, sep), do: flex_glue(concat(left, sep), right)
-%   defp join(left, right, false, sep), do: glue(concat(left, sep), right)
+%   defp join(left, right, true, sep), do: flex_break(concat(left, sep), right)
+%   defp join(left, right, false, sep), do: break(concat(left, sep), right)
 
 simple(#doc_cons{left = Left, right = Right}) -> simple(Left) andalso simple(Right);
 simple(#doc_string{}) -> true;
