@@ -1273,6 +1273,12 @@ receive_expression(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "receive\n"
+        "%% comment\n"
+        "after 0 -> ok\n"
+        "end"
+    ),
+    ?assertSame(
+        "receive\n"
         "after 0 ->\n"
         "    some:long(Expression)\n"
         "end",

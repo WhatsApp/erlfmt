@@ -638,9 +638,9 @@ receive_after_to_algebra(Expr, Body) ->
     ExprD = do_expr_to_algebra(Expr),
     BodyD = block_to_algebra_each(Body),
 
-    HeadD = concat(<<"after ">>, ExprD, <<" ->">>),
-    CommentHeadD = combine_pre_comments(Pre, HeadD),
-    group(nest(break(CommentHeadD, group(BodyD)), ?INDENT)).
+    HeadD = concat([<<"after ">>, ExprD, <<" ->">>]),
+    Doc = group(nest(break(HeadD, group(BodyD)), ?INDENT)),
+    combine_pre_comments(Pre, Doc).
 
 % try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
 %     Clauses =
