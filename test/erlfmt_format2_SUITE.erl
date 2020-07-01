@@ -106,7 +106,7 @@ groups() ->
         {forms, [parallel], [
             function,
             attribute,
-            % spec,
+            spec,
             record_definition,
             define,
             type
@@ -1650,15 +1650,16 @@ spec(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "-spec foo(Int) -> atom() when Int :: integer().",
-        "-spec foo(Int) -> atom()\n"
-        "    when Int :: integer().",
+        "-spec foo(Int) -> atom() when\n"
+        "    Int :: integer().",
         40
     ),
     ?assertFormat(
         "-spec foo(Int) -> some_very:very(long, type) when Int :: integer().",
         "-spec foo(Int) ->\n"
         "    some_very:very(long, type)\n"
-        "    when Int :: integer().",
+        "when\n"
+        "    Int :: integer().",
         40
     ),
     ?assertSame(
@@ -1690,7 +1691,8 @@ spec(Config) when is_list(Config) ->
         "-spec foo\n"
         "    (Int) ->\n"
         "        some_very_very:very(long, type)\n"
-        "        when Int :: integer();\n"
+        "    when\n"
+        "        Int :: integer();\n"
         "    (1..2) ->\n"
         "        atom().",
         40

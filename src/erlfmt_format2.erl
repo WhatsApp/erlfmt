@@ -195,10 +195,10 @@ do_expr_to_algebra({'catch', _Meta, Exprs}) ->
     fold_doc(fun(Doc, Acc) -> concat(Doc, <<":">>, Acc) end, ExprsD);
 do_expr_to_algebra({'if', _Meta, Clauses}) ->
     surround_block(<<"if">>, clauses_to_algebra(Clauses), <<"end">>);
-% do_expr_to_algebra({spec, _Meta, Name, [SingleClause]}) ->
-%     single_clause_spec_to_algebra(Name, SingleClause);
-% do_expr_to_algebra({spec, _Meta, Name, Clauses}) ->
-%     combine_nested(expr_to_algebra(Name), clauses_to_algebra(Clauses));
+do_expr_to_algebra({spec, _Meta, Name, [SingleClause]}) ->
+    single_clause_spec_to_algebra(Name, SingleClause);
+do_expr_to_algebra({spec, _Meta, Name, Clauses}) ->
+    group(nest(line(expr_to_algebra(Name), clauses_to_algebra(Clauses)), ?INDENT));
 do_expr_to_algebra({'...', _Meta}) ->
     <<"...">>;
 do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
@@ -500,6 +500,7 @@ clauses_to_algebra([Clause | _] = Clauses) ->
 
 clause_has_break({clause, _Meta, empty, Guards, [Body | _]}) -> has_break_between(Guards, Body);
 clause_has_break({clause, _Meta, Head, _Guards, [Body | _]}) -> has_break_between(Head, Body);
+clause_has_break({spec_clause, _Meta, Head, [Body], _Guards}) -> has_break_between(Head, Body);
 clause_has_break({macro_call, _Meta, _Name, _Args}) -> false.
 
 clause_to_algebra({clause, _Meta, Head, empty, Body}) ->
@@ -523,7 +524,20 @@ clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
     );
 clause_to_algebra({macro_call, _, _, _} = Expr) ->
     %% It's possible the entire clause is defined inside of a macro call
-    expr_to_algebra(Expr).
+    expr_to_algebra(Expr);
+clause_to_algebra({spec_clause, Meta, Head, Body, empty}) ->
+    clause_to_algebra({clause, Meta, Head, empty, Body});
+clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
+    HeadD = expr_to_algebra(Head),
+    GuardsD = expr_to_algebra(Guards),
+    BodyD = expr_to_algebra(Body),
+
+    Nested = fun (Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
+    concat(
+        space(HeadD, <<"->">>),
+        group(concat(Nested(BodyD), break(<<" ">>), <<"when">>)),
+        Nested(GuardsD)
+    ).
 
 % clauses_to_algebra([{_, #{newline := true}, _, _, _} | _] = Clauses) ->
 %     {_Single, Multi} = clauses_to_algebra_pair(Clauses),
@@ -635,9 +649,9 @@ guard_to_algebra(Guards, Separator) ->
 % %% Because the spec syntax is different from regular function syntax,
 % %% in the general case we have to indent them differently, but with just
 % %% one clause we can indent them like functions, which seems more natural.
-% single_clause_spec_to_algebra(Name, {spec_clause, CMeta, Head, Body, Guards}) ->
-%     {args, AMeta, Args} = Head,
-%     clauses_to_algebra([{spec_clause, CMeta, {call, AMeta, Name, Args}, Body, Guards}]).
+single_clause_spec_to_algebra(Name, {spec_clause, CMeta, Head, Body, Guards}) ->
+    {args, AMeta, Args} = Head,
+    clauses_to_algebra([{spec_clause, CMeta, {call, AMeta, Name, Args}, Body, Guards}]).
 
 receive_after_to_algebra(Expr, Body) ->
     {Pre, []} = comments(element(2, Expr)),
