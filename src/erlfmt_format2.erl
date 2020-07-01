@@ -651,16 +651,12 @@ receive_after_to_algebra(Expr, Body) ->
     combine_pre_comments(Pre, Doc).
 
 try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
-    TryD = try_of_block(Exprs, OfClauses),
     Clauses =
-        [try_catch_to_algebra(CatchClauses) || CatchClauses =/= []] ++
-            [try_after_to_algebra(After) || After =/= []],
-    ClausesD = fold_doc(fun erlfmt_algebra2:line/2, Clauses),
-    group(line(TryD, line(ClausesD, <<"end">>))).
-
-% surround(TryD, <<" ">>, CatchClauses, <<" ">>, surround(<<"after">>, <<" ">>, )).
-% surround(Left, LeftSpace, Doc, RightSpace, Right) ->
-%     group(break(nest(break(TryD, <<" ">>, Doc), ?INDENT, break), RightSpace, Right)).
+        [try_of_block(Exprs, OfClauses)] ++ 
+            [try_catch_to_algebra(CatchClauses) || CatchClauses =/= []] ++
+            [try_after_to_algebra(After) || After =/= []] ++
+            [<<"end">>],
+    group(fold_doc(fun erlfmt_algebra2:line/2, Clauses)).
 
 try_catch_to_algebra(Clauses) ->
     group(nest(line(<<"catch">>, clauses_to_algebra(Clauses)), ?INDENT)).
@@ -677,7 +673,7 @@ try_of_block(Exprs, OfClauses) ->
             group(nest(break(<<"try">>, ExprsD), ?INDENT));
         _ ->
             concat(
-                group(break(nest(break(<<"try">>, ExprsD), ?INDENT), <<"of">>)),
+                surround(<<"try">>, <<" ">>, ExprsD, <<" ">>, <<"of">>),
                 nest(concat(line(), clauses_to_algebra(OfClauses)), ?INDENT)
             )
     end.
