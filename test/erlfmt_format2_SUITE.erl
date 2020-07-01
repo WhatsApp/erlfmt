@@ -1192,6 +1192,15 @@ case_expression(Config) when is_list(Config) ->
         100
     ),
     ?assertFormat(
+        "case 1 of 1 -> ok, ok end",
+        "case 1 of\n"
+        "    1 ->\n"
+        "        ok,\n"
+        "        ok\n"
+        "end",
+        100
+    ),
+    ?assertFormat(
         "case 1 of {Long} -> Expression end",
         "case 1 of\n"
         "    {Long} -> Expression\n"
