@@ -530,6 +530,16 @@ list(Config) when is_list(Config) ->
         "    ]\n"
         "]",
         15
+    ),
+    ?assertFormat(
+        "[1, begin 2 end, 3]",
+        "[\n"
+        "    1,\n"
+        "    begin\n"
+        "        2\n"
+        "    end,\n"
+        "    3\n"
+        "]"
     ).
 
 binary(Config) when is_list(Config) ->
@@ -829,36 +839,36 @@ force_break(Config) when is_list(Config) ->
         "foo(\n"
         "    x\n"
         ")"
+    ),
+    ?assertFormat(
+        "foo(x\n"
+        ") -> x.",
+        "foo(x) -> x."
+    ),
+    ?assertFormat(
+        "foo(\n"
+        " x) -> x.",
+        "foo(\n"
+        "    x\n"
+        ") ->\n"
+        "    x."
+    ),
+    ?assertFormat(
+        "foo(1) -> x;\n"
+        "foo(2) ->\n"
+        "    y.",
+        "foo(1) -> x;\n"
+        "foo(2) -> y."
+    ),
+    ?assertFormat(
+        "foo(1) ->\n"
+        "    x;\n"
+        "foo(2) -> y.",
+        "foo(1) ->\n"
+        "    x;\n"
+        "foo(2) ->\n"
+        "    y."
     ).
-    % ?assertFormat(
-    %     "foo(x\n"
-    %     ") -> x.",
-    %     "foo(x) -> x."
-    % ),
-    % ?assertFormat(
-    %     "foo(\n"
-    %     " x) -> x.",
-    %     "foo(\n"
-    %     "    x\n"
-    %     ") ->\n"
-    %     "    x."
-    % ),
-    % ?assertFormat(
-    %     "foo(1) -> x;\n"
-    %     "foo(2) ->\n"
-    %     "    y.",
-    %     "foo(1) -> x;\n"
-    %     "foo(2) -> y."
-    % ),
-    % ?assertFormat(
-    %     "foo(1) ->\n"
-    %     "    x;\n"
-    %     "foo(2) -> y.",
-    %     "foo(1) ->\n"
-    %     "    x;\n"
-    %     "foo(2) ->\n"
-    %     "    y."
-    % ).
 
 list_comprehension(Config) when is_list(Config) ->
     ?assertFormat("[X||X<-List]", "[X || X <- List]"),
@@ -1531,20 +1541,31 @@ function(Config) when is_list(Config) ->
         "f(1) -> one;\n"
         "f(2) -> two."
     ),
-    % ?assertFormat(
-    %     "f(1) -> one; f(2) -> begin two end.",
-    %     "f(1) ->\n"
-    %     "    one;\n"
-    %     "f(2) ->\n"
-    %     "    begin\n"
-    %     "        two\n"
-    %     "    end."
-    % ),
-    % ?assertSame(
-    %     "?FOO(1) -> ok;\n"
-    %     "?DEFAULT(?FOO)."
-    % ).
-    ok.
+    ?assertFormat(
+        "f(1) -> one; f(2) -> begin two end.",
+        "f(1) ->\n"
+        "    one;\n"
+        "f(2) ->\n"
+        "    begin\n"
+        "        two\n"
+        "    end."
+    ),
+    ?assertSame(
+        "?FOO(1) -> ok;\n"
+        "?DEFAULT(?FOO)."
+    ),
+    ?assertSame(
+        "?DEFAULT(?FOO);\n"
+        "?FOO(1) -> ok."
+    ),
+    ?assertSame(
+        "?DEFAULT(\n"
+        "    ?FOO\n"
+        ");\n"
+        "?FOO(1) ->\n"
+        "    ok."
+    ).
+
 
 attribute(Config) when is_list(Config) ->
     ?assertFormat("-else .", "-else."),

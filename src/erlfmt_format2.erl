@@ -184,7 +184,7 @@ do_expr_to_algebra({'receive', _Meta, Clauses}) ->
     surround_block(<<"receive">>, clauses_to_algebra(Clauses), <<"end">>);
 do_expr_to_algebra({'receive', _Meta, [], AfterExpr, AfterBody}) ->
     AfterD = receive_after_to_algebra(AfterExpr, AfterBody),
-    line(<<"receive">>, line(AfterD, <<"end">>));
+    force_unfit(line(<<"receive">>, line(AfterD, <<"end">>)));
 do_expr_to_algebra({'receive', _Meta, Clauses, AfterExpr, AfterBody}) ->
     AfterD = receive_after_to_algebra(AfterExpr, AfterBody),
     surround_block(<<"receive">>, clauses_to_algebra(Clauses), line(AfterD, <<"end">>));
@@ -255,7 +255,7 @@ surround(Left, LeftSpace, Doc, RightSpace, Right) ->
 
 
 surround_block(Left, Doc, Right) ->
-    group(line(nest(line(Left, Doc), ?INDENT), Right)).
+    force_unfit(group(line(nest(line(Left, Doc), ?INDENT), Right))).
 
 string_to_algebra(Text) ->
     case string:split(Text, "\n", all) of
@@ -499,7 +499,8 @@ clauses_to_algebra([Clause | _] = Clauses) ->
     group(maybe_force_unfit(HasBreak, Doc)).
 
 clause_has_break({clause, _Meta, empty, Guards, [Body | _]}) -> has_break_between(Guards, Body);
-clause_has_break({clause, _Meta, Head, _Guards, [Body | _]}) -> has_break_between(Head, Body).
+clause_has_break({clause, _Meta, Head, _Guards, [Body | _]}) -> has_break_between(Head, Body);
+clause_has_break({macro_call, _Meta, _Name, _Args}) -> false.
 
 clause_to_algebra({clause, _Meta, Head, empty, Body}) ->
     HeadD = expr_to_algebra(Head),
@@ -519,7 +520,10 @@ clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
         space(HeadD, <<"when">>),
         group(concat(Nested(GuardsD), break(<<" ">>), <<"->">>)),
         Nested(BodyD)
-    ).
+    );
+clause_to_algebra({macro_call, _, _, _} = Expr) ->
+    %% It's possible the entire clause is defined inside of a macro call
+    expr_to_algebra(Expr).
 
 % clauses_to_algebra([{_, #{newline := true}, _, _, _} | _] = Clauses) ->
 %     {_Single, Multi} = clauses_to_algebra_pair(Clauses),
@@ -650,7 +654,7 @@ try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
             [try_catch_to_algebra(CatchClauses) || CatchClauses =/= []] ++
             [try_after_to_algebra(After) || After =/= []] ++
             [<<"end">>],
-    group(fold_doc(fun erlfmt_algebra2:line/2, Clauses)).
+    force_unfit(group(fold_doc(fun erlfmt_algebra2:line/2, Clauses))).
 
 try_catch_to_algebra(Clauses) ->
     group(nest(line(<<"catch">>, clauses_to_algebra(Clauses)), ?INDENT)).
