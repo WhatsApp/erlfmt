@@ -40,7 +40,7 @@
 -export([
     empty/0,
     string/1,
-    concat/1, concat/2,
+    concat/1, concat/2, concat/3,
     nest/2, nest/3,
     break/0, break/1,
     collapse_lines/1,
@@ -194,6 +194,11 @@ concat(Left, Right) when ?is_doc(Left), ?is_doc(Right) ->
 concat(Docs) when is_list(Docs) ->
     fold_doc(fun concat/2, Docs).
 
+% Concatenates three document entities returning a new document.
+-spec concat(doc(), doc(), doc()) -> doc().
+concat(A, B, C) when ?is_doc(A), ?is_doc(B), ?is_doc(C) ->
+    concat(A, concat(B, C)).
+
 % concat_to_last_group finds the last element of the doc_cons list,
 % if it is a group it concatenates itself to the end of that inner group.
 % otherwise this function is equivalent to a concat function.
@@ -330,7 +335,7 @@ flex_break(Doc1, Doc2) ->
 
 -spec flex_break(doc(), binary(), doc()) -> doc().
 flex_break(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
-    concat(Doc1, concat(flex_break(BreakString), Doc2)).
+    concat(Doc1, flex_break(BreakString), Doc2).
 
 %   Breaks two documents (`doc1` and `doc2`) inserting the given
 %   break `break_string` between them.
@@ -353,7 +358,7 @@ break(Doc1, Doc2) ->
 
 -spec break(doc(), binary(), doc()) -> doc().
 break(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
-    concat(Doc1, concat(break(BreakString), Doc2)).
+    concat(Doc1, break(BreakString), Doc2).
 
 %   Returns a group containing the specified document `doc`.
 
@@ -406,7 +411,7 @@ group(Doc, Mode) when ?is_doc(Doc), Mode == self orelse Mode == inherit ->
 
 -spec space(doc(), doc()) -> doc().
 space(Doc1, Doc2) ->
-    concat(Doc1, concat(<<" ">>, Doc2)).
+    concat(Doc1, <<" ">>, Doc2).
 
 % A mandatory linebreak, but in the paper doc_line was described as optional? (is this mandatory or optional in this implementation)
 % A group with linebreaks will fit if all lines in the group fit.
@@ -418,7 +423,7 @@ line(Count) when is_integer(Count), Count > 0 -> #doc_line{count = Count}.
 
 % Inserts a mandatory linebreak between two documents.
 -spec line(doc(), doc()) -> doc().
-line(Doc1, Doc2) -> concat(Doc1, concat(line(), Doc2)).
+line(Doc1, Doc2) -> concat(Doc1, line(), Doc2).
 
 %   Folds a list of documents into a document using the given folder function.
 %   The list of documents is folded "from the right"; in that, this function is
@@ -669,7 +674,7 @@ container_doc(Left, Collection, Right, Opts) when
     Docs = fold_doc(fun(L, R) -> join(L, R, Flex, Separator) end, Docs0),
     case Flex of
         % TODO: 1 and 2 should probably not be constants
-        true -> group(concat(concat(Left, nest(Docs, 1)), Right));
+        true -> group(concat(Left, nest(Docs, 1), Right));
         false -> group(break(nest(break(Left, <<"">>, Docs), 2), <<"">>, Right))
     end.
 

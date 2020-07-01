@@ -39,6 +39,7 @@
     line/2,
     concat/1,
     concat/2,
+    concat/3,
     collapse_lines/1,
     force_unfit/1,
     next_break_fits/1,
@@ -60,10 +61,10 @@
 %     Doc = concat(clauses_to_algebra(Clauses), string(".")),
 %     combine_comments(Meta, Doc);
 to_algebra({attribute, Meta, Name, []}) ->
-    Doc = concat([<<"-">>, expr_to_algebra(Name), <<".">>]),
+    Doc = concat(<<"-">>, expr_to_algebra(Name), <<".">>),
     combine_comments(Meta, Doc);
 to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
-    HeadD = concat([<<"-define(">>, expr_to_algebra(Define), <<",">>]),
+    HeadD = concat(<<"-define(">>, expr_to_algebra(Define), <<",">>),
     NextBreakFits = length(Body) =:= 1 andalso is_next_break_fits(hd(Body)),
     with_next_break_fits(NextBreakFits, block_to_algebra(Meta, Body), fun (BodyD) ->
         Doc = surround(HeadD, <<" ">>, BodyD, <<"">>, <<").">>),
@@ -75,7 +76,7 @@ to_algebra({attribute, Meta, {atom, _, RawName} = Name, [Value]})
     Doc = concat([<<"-">>, expr_to_algebra(Name), <<" ">>, ValueD, <<".">>]),
     combine_comments(Meta, Doc);
 to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Values} = Tuple]}) ->
-    HeadD = concat([<<"-record(">>, expr_to_algebra(Name), <<",">>]),
+    HeadD = concat(<<"-record(">>, expr_to_algebra(Name), <<",">>),
     case has_no_comments_or_parens(TMeta) of
         true ->
             Prefix = concat(HeadD, string(" {")),
@@ -86,7 +87,7 @@ to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Values} = 
             combine_comments(Meta, Doc)
     end;
 to_algebra({attribute, Meta, Name, Values}) ->
-    Prefix = concat([<<"-">>, expr_to_algebra(Name), <<"(">>]),
+    Prefix = concat(<<"-">>, expr_to_algebra(Name), <<"(">>),
     Doc = call(Meta, Values, Prefix, <<").">>),
     combine_comments(Meta, Doc);
 to_algebra(Expr) ->
@@ -165,12 +166,12 @@ do_expr_to_algebra({call, Meta, Name, Args}) ->
 do_expr_to_algebra({macro_call, _Meta, Name, none}) ->
     concat(<<"?">>, expr_to_algebra(Name));
 do_expr_to_algebra({macro_call, Meta, Name, Args}) ->
-    Prefix = concat([<<"?">>, expr_to_algebra(Name), <<"(">>]),
+    Prefix = concat(<<"?">>, expr_to_algebra(Name), <<"(">>),
     call(Meta, Args, Prefix, <<")">>);
 do_expr_to_algebra({macro_string, _Meta, Name}) ->
     concat(<<"??">>, expr_to_algebra(Name));
 do_expr_to_algebra({remote, _Meta, Left, Right}) ->
-    concat([expr_to_algebra(Left), <<":">>, expr_to_algebra(Right)]);
+    concat(expr_to_algebra(Left), <<":">>, expr_to_algebra(Right));
 do_expr_to_algebra({block, Meta, Exprs}) ->
     surround(<<"begin">>, <<" ">>, block_to_algebra(Meta, Exprs), <<" ">>, <<"end">>);
 do_expr_to_algebra({'fun', _Meta, Expr}) ->
@@ -207,7 +208,7 @@ do_expr_to_algebra({'receive', _Meta, Clauses, AfterExpr, AfterBody}) ->
 do_expr_to_algebra({'...', _Meta}) ->
     <<"...">>;
 do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
-    concat([expr_to_algebra(Left), <<"*">>, expr_to_algebra(Right)]);
+    concat(expr_to_algebra(Left), <<"*">>, expr_to_algebra(Right));
 do_expr_to_algebra({guard_or, _Meta, Guards}) ->
     guard_to_algebra(Guards, <<";">>);
 do_expr_to_algebra({guard_and, _Meta, Guards}) ->
@@ -215,11 +216,11 @@ do_expr_to_algebra({guard_and, _Meta, Guards}) ->
 do_expr_to_algebra(Other) ->
     error(unsupported, [Other]).
 
-comma_space(D1, D2) -> concat([D1, <<", ">>, D2]).
+comma_space(D1, D2) -> concat(D1, <<", ">>, D2).
 
-semi_space(D1, D2) -> concat([D1, <<"; ">>, D2]).
+semi_space(D1, D2) -> concat(D1, <<"; ">>, D2).
 
-colon(D1, D2) -> concat([D1, <<":">>, D2]).
+colon(D1, D2) -> concat(D1, <<":">>, D2).
 
 comma_newline(D1, D2) ->
     line(concat(D1, <<",">>), D2).
@@ -243,13 +244,13 @@ comma_newline(D1, D2) ->
 %     wrap_prepend(D1, string(", "), D2).
 
 wrap(Left, Doc, Right) ->
-    concat(Left, concat(Doc, Right)).
+    concat(Left, Doc, Right).
 
 % wrap_prepend(Left, Doc, Right) ->
 %     document_prepend(Left, document_prepend(Doc, Right)).
 
 wrap_in_parens(Doc) ->
-    concat([<<"(">>, Doc, <<")">>]).
+    concat(<<"(">>, Doc, <<")">>).
 
 % wrap_nested(Left, Doc, Right) ->
 %     Nested = concat(document_spaces(?INDENT), Doc),
@@ -308,11 +309,11 @@ unary_needs_space(_, _) ->
 
 binary_op_to_algebra('..', _Meta, Left, Right) ->
     %% .. is special - non-assoc, no spaces around and never breaks
-    concat([expr_to_algebra(Left), <<"..">>, expr_to_algebra(Right)]);
+    concat(expr_to_algebra(Left), <<"..">>, expr_to_algebra(Right));
 binary_op_to_algebra('/', _Meta, {atom, _, _} = Left, {integer, _, _} = Right) ->
     %% special-case the foo/N syntax in attributes, division with a literal atom
     %% doesn't make sense in normal code, so it's safe to apply it everywhere
-    concat([expr_to_algebra(Left), <<"/">>, expr_to_algebra(Right)]);
+    concat(expr_to_algebra(Left), <<"/">>, expr_to_algebra(Right));
 binary_op_to_algebra('|' = Op, Meta0, Left, Right) ->
     %% | does not increase indentation
     %% don't print parens and comments twice - expr_to_algebra took care of it already
@@ -415,7 +416,7 @@ bin_types_to_algebra(Types) ->
     concat(<<"/">>, fold_doc(fun (Doc, Acc) -> concat([Doc, <<"-">>, Acc]) end, TypesD)).
 
 record_access_to_algebra(Meta, Name, Key) ->
-    concat([record_name_to_algebra(Meta, Name), <<".">>, expr_to_algebra(Key)]).
+    concat(record_name_to_algebra(Meta, Name), <<".">>, expr_to_algebra(Key)).
 
 record_name_to_algebra(Meta, Name) ->
     %% Differentiate between #?FOO{} and ?FOO{}
@@ -643,7 +644,7 @@ receive_after_to_algebra(Expr, Body) ->
     ExprD = do_expr_to_algebra(Expr),
     BodyD = block_to_algebra_each(Body),
 
-    HeadD = concat([<<"after ">>, ExprD, <<" ->">>]),
+    HeadD = concat(<<"after ">>, ExprD, <<" ->">>),
     CommentHeadD = combine_pre_comments(Pre, HeadD),
     nest(break(CommentHeadD, group(BodyD)), ?INDENT).
 
@@ -726,7 +727,7 @@ combine_post_comments(Comments, Doc) -> line(Doc, comments_to_algebra(Comments))
 
 comments_to_algebra(Comments) ->
     CommentsD = lists:map(fun comment_to_algebra/1, Comments),
-    Doc = fold_doc(fun (C, Acc) -> concat([C, line(2), Acc]) end, CommentsD),
+    Doc = fold_doc(fun (C, Acc) -> concat(C, line(2), Acc) end, CommentsD),
     force_unfit(Doc).
 
 comment_to_algebra({comment, _Meta, Lines}) ->
