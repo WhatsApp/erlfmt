@@ -1015,6 +1015,13 @@ call(Config) when is_list(Config) ->
         "        1\n"
         "    )\n"
         ")"
+    ),
+    ?assertSame(
+        "?MAKE_FUN(\n"
+        "    foo\n"
+        ")(\n"
+        "    bar\n"
+        ")."
     ).
 
 block(Config) when is_list(Config) ->
@@ -1292,6 +1299,15 @@ case_expression(Config) when is_list(Config) ->
         "    1 -> ok\n"
         "    %% comment\n"
         "end"
+    ),
+    ?assertSame(
+        "case\n"
+        "    [\n"
+        "        value\n"
+        "    ]\n"
+        "of\n"
+        "    _ -> ok\n"
+        "end."
     ).
 
 receive_expression(Config) when is_list(Config) ->

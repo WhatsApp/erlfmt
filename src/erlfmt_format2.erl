@@ -253,11 +253,11 @@ wrap_in_parens(Doc) ->
 %     line(Left, line(Nested, Right)).
 
 surround(Left, LeftSpace, Doc, RightSpace, Right) ->
-    group(break(nest(break(Left, LeftSpace, Doc), ?INDENT, break), RightSpace, Right)).
+    group(break(concat(Left, nest(concat(break(LeftSpace), Doc), ?INDENT, break)), RightSpace, Right)).
 
 
 surround_block(Left, Doc, Right) ->
-    force_unfit(group(line(nest(line(Left, Doc), ?INDENT), Right))).
+    force_unfit(group(line(concat(Left, nest(concat(line(), Doc), ?INDENT)), Right))).
 
 string_to_algebra(Text) ->
     case string:split(Text, "\n", all) of
