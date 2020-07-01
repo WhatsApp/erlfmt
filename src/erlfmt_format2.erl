@@ -178,25 +178,15 @@ do_expr_to_algebra({'fun', _Meta, Expr}) ->
     fun_to_algebra(Expr);
 do_expr_to_algebra({'case', _Meta, Expr, Clauses}) ->
     Prefix = surround(<<"case">>, <<" ">>, expr_to_algebra(Expr), <<" ">>, <<"of">>),
-    surround(Prefix, <<"">>,  force_unfit(clauses_to_algebra(Clauses)), <<" ">>, <<"end">>);
+    surround_block(Prefix, clauses_to_algebra(Clauses), <<"end">>);
 do_expr_to_algebra({'receive', _Meta, Clauses}) ->
-    surround(
-        <<"receive">>,
-        <<" ">>,
-        force_unfit(clauses_to_algebra(Clauses)),
-        <<" ">>,
-        <<"end">>
-    );
+    surround_block(<<"receive">>, clauses_to_algebra(Clauses), <<"end">>);
 do_expr_to_algebra({'receive', _Meta, [], AfterExpr, AfterBody}) ->
     AfterD = receive_after_to_algebra(AfterExpr, AfterBody),
-    group(line(
-        <<"receive">>,
-        line(AfterD, <<"end">>)
-    ));
+    line(<<"receive">>, line(AfterD, <<"end">>));
 do_expr_to_algebra({'receive', _Meta, Clauses, AfterExpr, AfterBody}) ->
     AfterD = receive_after_to_algebra(AfterExpr, AfterBody),
-    Suffix = group(line(AfterD, <<"end">>)),
-    surround(<<"receive">>, <<" ">>, force_unfit(clauses_to_algebra(Clauses)), <<" ">>, Suffix);
+    surround_block(<<"receive">>, clauses_to_algebra(Clauses), line(AfterD, <<"end">>));
 % do_expr_to_algebra({'try', _Meta, Exprs, OfClauses, CatchClauses, After}) ->
 %     try_to_algebra(Exprs, OfClauses, CatchClauses, After);
 % do_expr_to_algebra({'if', _Meta, Clauses}) ->
@@ -258,6 +248,10 @@ wrap_in_parens(Doc) ->
 
 surround(Left, LeftSpace, Doc, RightSpace, Right) ->
     group(break(nest(break(Left, LeftSpace, Doc), ?INDENT, break), RightSpace, Right)).
+
+
+surround_block(Left, Doc, Right) ->
+    group(line(nest(line(Left, Doc), ?INDENT), Right)).
 
 string_to_algebra(Text) ->
     case string:split(Text, "\n", all) of
@@ -646,7 +640,7 @@ receive_after_to_algebra(Expr, Body) ->
 
     HeadD = concat(<<"after ">>, ExprD, <<" ->">>),
     CommentHeadD = combine_pre_comments(Pre, HeadD),
-    nest(break(CommentHeadD, group(BodyD)), ?INDENT).
+    group(nest(break(CommentHeadD, group(BodyD)), ?INDENT)).
 
 % try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
 %     Clauses =
