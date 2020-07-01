@@ -490,7 +490,7 @@ fun_to_algebra(type) ->
 fun_to_algebra({type, Meta, Args, Result}) ->
     ArgsD = group(call(Meta, Args, <<"fun((">>, <<") ->">>)),
     with_next_break_fits(is_next_break_fits(Result), expr_to_algebra(Result), fun (ResultD) ->
-        Body = concat(ArgsD, group(concat(break(), ResultD))),
+        Body = concat(ArgsD, group(nest(concat(break(), ResultD), ?INDENT, break))),
         group(break(nest(Body, ?INDENT, break), <<"">>, <<")">>))
     end).
 

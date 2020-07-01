@@ -1821,6 +1821,16 @@ type(Config) when is_list(Config) ->
         "    ) -> float()\n"
         ").",
         "-type bar() :: fun((...) -> float())."
+    ),
+    ?assertSame(
+        "-type foo() ::\n"
+        "    fun((\n"
+        "            %% comment\n"
+        "            ...\n"
+        "        ) ->\n"
+        "            %% comment\n"
+        "            bar()\n"
+        "    )."
     ).
 
 comment(Config) when is_list(Config) ->
