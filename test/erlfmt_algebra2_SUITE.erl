@@ -52,7 +52,8 @@
     test_infinite_width/1,
     test_container/1,
     test_concat/1,
-    test_docs/1
+    test_docs/1,
+    test_group_string_concat/1
 ]).
 
 -import(erlfmt_algebra2, [
@@ -133,7 +134,8 @@ all() ->
         test_infinite_width,
         test_container,
         test_concat,
-        test_docs
+        test_docs,
+        test_group_string_concat
     ].
 
 % doctest Inspect.Algebra
@@ -171,7 +173,9 @@ test_break(Config) when is_list(Config) ->
     ?assertEqual(break(<<"a">>, <<"b">>), break(<<"a">>, <<" ">>, <<"b">>)).
 
 test_space(Config) when is_list(Config) ->
-    ?assertEqual({doc_cons, <<"a">>, {doc_cons, <<" ">>, <<"b">>}}, space(<<"a">>, <<"b">>)).
+    ?assertEqual({doc_string, [<<"a">>, <<" ">> | <<"b">>], 3}, space(<<"a">>, <<"b">>)),
+
+    ?assertEqual(<<"a b">>, render(space(<<"a">>, <<"b">>), 80)).
 
 test_always_nest(Config) when is_list(Config) ->
     ?assertEqual({doc_nest, empty(), 1, always}, nest(empty(), 1)),
@@ -375,6 +379,23 @@ test_docs(Config) when is_list(Config) ->
     Doc2 = group(break(<<"hello">>, <<" ">>, <<"world">>)),
     ?assertEqual(<<"hello world">>, render(Doc2, 30)),
     ?assertEqual(<<"hello\nworld">>, render(Doc2, 10)).
+
+test_group_string_concat(Config) when is_list(Config) ->
+    A20 = binary:copy(<<"a">>, 20),
+    Doc = concat(group(concat([A20, break(), <<"b">>])), <<"c">>),
+
+    ?assertEqual(
+        <<A20/binary, "\nbc">>,
+        render(Doc, 10)
+    ),
+    ?assertEqual(
+        <<A20/binary, "\nbc">>,
+        render(Doc, 22)
+    ),
+    ?assertEqual(
+        <<A20/binary, " bc">>,
+        render(Doc, 23)
+    ).
 
 render(Doc, Limit) ->
     unicode:characters_to_binary(format(group(Doc), Limit)).

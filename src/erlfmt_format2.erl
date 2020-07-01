@@ -46,8 +46,7 @@
     next_break_fits/2,
     container_doc/3,
     container_doc/4,
-    fold_doc/2,
-    concat_to_last_group/2
+    fold_doc/2
 ]).
 
 -define(INDENT, 4).
@@ -369,13 +368,13 @@ container_common(Meta, [Value | _] = Values, Left, Right, Combine, Last) ->
     {HasTrailingComments, ValuesD} = container_exprs_to_algebra(Values, Last, []),
     case HasTrailingComments orelse has_inner_break(Meta, Value) of
         true ->
-            Doc = fold_doc(fun (D, Acc) -> line(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
+            Doc = fold_doc(fun (D, Acc) -> line(concat(D, <<",">>), Acc) end, ValuesD),
             surround(Left, <<"">>, force_unfit(Doc), <<"">>, Right);
         false when Combine =:= break ->
-            Doc = fold_doc(fun (D, Acc) -> break(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
+            Doc = fold_doc(fun (D, Acc) -> break(concat(D, <<",">>), Acc) end, ValuesD),
             surround(Left, <<"">>, Doc, <<"">>, Right);
         false when Combine =:= flex_break ->
-            Doc = fold_doc(fun (D, Acc) -> flex_break(concat_to_last_group(D, <<",">>), Acc) end, ValuesD),
+            Doc = fold_doc(fun (D, Acc) -> flex_break(concat(D, <<",">>), Acc) end, ValuesD),
             group(concat(nest(concat(Left, Doc), ?INDENT), Right))
     end.
 
@@ -435,7 +434,7 @@ field_to_algebra(Op, Key, Value) ->
 comprehension_to_algebra(Expr, LcExprs, Left, Right) ->
     ExprD = expr_to_algebra(Expr),
     {_HasTrailingComment, LcExprsD} = container_exprs_to_algebra(LcExprs, last_normal, []),
-    LcExprD = fold_doc(fun (D, Acc) -> break(concat_to_last_group(D, <<",">>), Acc) end, LcExprsD),
+    LcExprD = fold_doc(fun (D, Acc) -> break(concat(D, <<",">>), Acc) end, LcExprsD),
     Doc = concat([ExprD, break(<<" ">>), <<"||">>, <<" ">>, nest(group(LcExprD), 3)]),
     surround(Left, <<"">>, Doc, <<"">>, Right).
 
@@ -647,7 +646,7 @@ receive_after_to_algebra(Expr, Body) ->
 
 try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
     Clauses =
-        [try_of_block(Exprs, OfClauses)] ++ 
+        [try_of_block(Exprs, OfClauses)] ++
             [try_catch_to_algebra(CatchClauses) || CatchClauses =/= []] ++
             [try_after_to_algebra(After) || After =/= []] ++
             [<<"end">>],

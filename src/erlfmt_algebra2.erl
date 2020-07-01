@@ -58,8 +58,7 @@
     collapse/4,
     apply_nesting/3,
     indent/1,
-    container_doc/3, container_doc/4,
-    concat_to_last_group/2
+    container_doc/3, container_doc/4
 ]).
 
 % Functional interface to "doc" records
@@ -186,6 +185,17 @@ string(String) ->
 
 % Concatenates two document entities returning a new document.
 -spec concat(doc(), doc()) -> doc().
+concat(Left, Right) when is_binary(Left), is_binary(Right) ->
+    #doc_string{string = [Left | Right], length = byte_size(Left) + byte_size(Right)};
+concat(#doc_string{string = String, length = Length}, Right) when is_binary(Right) ->
+    #doc_string{string = [String | Right], length = Length + byte_size(Right)};
+concat(Left, #doc_string{string = String, length = Length}) when is_binary(Left) ->
+    #doc_string{string = [Left | String], length = Length + byte_size(Left)};
+concat(#doc_string{} = Left, #doc_string{} = Right) ->
+    #doc_string{
+        string = [Left#doc_string.string | Right#doc_string.string],
+        length = Left#doc_string.length + Right#doc_string.length
+    };
 concat(Left, Right) when ?is_doc(Left), ?is_doc(Right) ->
     #doc_cons{left = Left, right = Right}.
 
@@ -198,17 +208,6 @@ concat(Docs) when is_list(Docs) ->
 -spec concat(doc(), doc(), doc()) -> doc().
 concat(A, B, C) when ?is_doc(A), ?is_doc(B), ?is_doc(C) ->
     concat(A, concat(B, C)).
-
-% concat_to_last_group finds the last element of the doc_cons list,
-% if it is a group it concatenates itself to the end of that inner group.
-% otherwise this function is equivalent to a concat function.
--spec concat_to_last_group(doc(), doc()) -> doc().
-concat_to_last_group(#doc_cons{right = Right} = Cons, Doc) ->
-    Cons#doc_cons{right = concat_to_last_group(Right, Doc)};
-concat_to_last_group(#doc_group{group = Inner} = Group, Doc) ->
-    Group#doc_group{group = #doc_cons{left = Inner, right = Doc}};
-concat_to_last_group(Other, Doc) ->
-    #doc_cons{left = Other, right = Doc}.
 
 % Nests the given document at the given `level`.
 -spec nest(doc(), non_neg_integer() | cursor | reset) -> doc().
@@ -578,13 +577,23 @@ format(Width, K, [{I, break, #doc_group{group = X, inherit_or_self = inherit}} |
     format(Width, K, [{I, break, X} | T]);
 
 format(Width, K, [{I, _, #doc_group{group = X}} | T0]) ->
-    case Width == infinity orelse fits(Width, K, false, [{I, flat, X}]) of
+    {StringLength, T1} = peek_next_string_length(T0),
+    case Width == infinity orelse fits(Width - StringLength, K, false, [{I, flat, X}]) of
         true ->
-            format(Width, K, [{I, flat, X} | T0]);
+            format(Width, K, [{I, flat, X} | T1]);
         false ->
-            T = force_next_flex_break(T0),
+            T = force_next_flex_break(T1),
             format(Width, K, [{I, break, X} | T])
     end.
+
+peek_next_string_length([{I, M, #doc_cons{left = Left, right = Right}} | T]) ->
+    peek_next_string_length([{I, M, Left}, {I, M, Right} | T]);
+peek_next_string_length([{_, _, #doc_string{length = Length}} | _] = Stack) ->
+    {Length, Stack};
+peek_next_string_length([{_, _, Binary} | _] = Stack) when is_binary(Binary) ->
+    {byte_size(Binary), Stack};
+peek_next_string_length(Stack) ->
+    {0, Stack}.
 
 %% after a group breaks, we force next flex break to also break
 force_next_flex_break([{I, M, #doc_break{flex_or_strict = flex} = Break} | T]) ->
