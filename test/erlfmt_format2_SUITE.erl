@@ -1286,6 +1286,12 @@ case_expression(Config) when is_list(Config) ->
         "        Expression\n"
         "end",
         25
+    ),
+    ?assertSame(
+        "case 1 of\n"
+        "    1 -> ok\n"
+        "    %% comment\n"
+        "end"
     ).
 
 receive_expression(Config) when is_list(Config) ->

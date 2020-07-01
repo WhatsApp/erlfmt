@@ -379,9 +379,9 @@ container_common(Meta, [Value | _] = Values, Left, Right, Combine, Last) ->
     end.
 
 container_exprs_to_algebra([{comment, _, _} | _] = Comments, _Last, Acc) ->
-    {true, lists:reverse(Acc, [comments_to_algebra(Comments)])};
+    {true, lists:reverse(Acc, [force_unfit(comments_to_algebra(Comments))])};
 container_exprs_to_algebra([Value | [{comment, _, _} | _] = Comments], _Last, Acc) ->
-    {true, lists:reverse(Acc, [line(expr_to_algebra(Value), comments_to_algebra(Comments))])};
+    {true, lists:reverse(Acc, [force_unfit(line(expr_to_algebra(Value), comments_to_algebra(Comments)))])};
 container_exprs_to_algebra([Value], last_fits, Acc) ->
     ValueD =
         case is_next_break_fits(Value) of
@@ -450,7 +450,7 @@ block_to_algebra(_Meta, Exprs) ->
 
 %% standalone comments are always trailing other expressions
 block_to_algebra_each([Expr | [{comment, _, _} | _] = Comments]) ->
-    line(expr_to_algebra(Expr), comments_to_algebra(Comments));
+    force_unfit(line(expr_to_algebra(Expr), comments_to_algebra(Comments)));
 block_to_algebra_each([Expr]) ->
     expr_to_algebra(Expr);
 block_to_algebra_each([Expr | [Next | _] = Rest]) ->
@@ -493,10 +493,16 @@ fun_to_algebra({type, Meta, Args, Result}) ->
     end).
 
 clauses_to_algebra([Clause | _] = Clauses) ->
-    ClausesD = lists:map(fun clause_to_algebra/1, Clauses),
-    Doc = fold_doc(fun (D, Acc) -> line(concat(D, <<";">>), Acc) end, ClausesD),
+    ClausesD = fold_clauses_to_algebra(Clauses),
     HasBreak = clause_has_break(Clause),
-    group(maybe_force_unfit(HasBreak, Doc)).
+    group(maybe_force_unfit(HasBreak, ClausesD)).
+
+fold_clauses_to_algebra([Clause | [{comment, _, _} | _] = Comments]) ->
+    line(clause_to_algebra(Clause), comments_to_algebra(Comments));
+fold_clauses_to_algebra([Clause]) ->
+    clause_to_algebra(Clause);
+fold_clauses_to_algebra([Clause | Clauses]) ->
+    line(concat(clause_to_algebra(Clause), <<";">>), fold_clauses_to_algebra(Clauses)).
 
 clause_has_break({clause, _Meta, empty, Guards, [Body | _]}) -> has_break_between(Guards, Body);
 clause_has_break({clause, _Meta, Head, _Guards, [Body | _]}) -> has_break_between(Head, Body);
@@ -721,15 +727,16 @@ combine_comments(Meta, Doc) ->
     combine_post_comments(Post, combine_pre_comments(Pre, Doc)).
 
 combine_pre_comments([], Doc) -> Doc;
-combine_pre_comments(Comments, Doc) -> line(comments_to_algebra(Comments), Doc).
+combine_pre_comments(Comments, Doc) ->
+    force_unfit(line(comments_to_algebra(Comments), Doc)).
 
 combine_post_comments([], Doc) -> Doc;
-combine_post_comments(Comments, Doc) -> line(Doc, comments_to_algebra(Comments)).
+combine_post_comments(Comments, Doc) ->
+    force_unfit(line(Doc, comments_to_algebra(Comments))).
 
 comments_to_algebra(Comments) ->
     CommentsD = lists:map(fun comment_to_algebra/1, Comments),
-    Doc = fold_doc(fun (C, Acc) -> concat(C, line(2), Acc) end, CommentsD),
-    force_unfit(Doc).
+    fold_doc(fun (C, Acc) -> concat(C, line(2), Acc) end, CommentsD).
 
 comment_to_algebra({comment, _Meta, Lines}) ->
     LinesD = lists:map(fun erlfmt_algebra2:string/1, Lines),
