@@ -178,22 +178,24 @@ do_expr_to_algebra({'fun', _Meta, Expr}) ->
 do_expr_to_algebra({'case', _Meta, Expr, Clauses}) ->
     Prefix = surround(<<"case">>, <<" ">>, expr_to_algebra(Expr), <<" ">>, <<"of">>),
     surround(Prefix, <<"">>,  force_unfit(clauses_to_algebra(Clauses)), <<" ">>, <<"end">>);
-% do_expr_to_algebra({'receive', _Meta, Clauses}) ->
-%     wrap_nested(
-%         string("receive"),
-%         clauses_to_algebra(Clauses),
-%         string("end")
-%     );
-% do_expr_to_algebra({'receive', _Meta, [], AfterExpr, AfterBody}) ->
-%     AfterD = receive_after_to_algebra(AfterExpr, AfterBody),
-%     line(
-%         string("receive"),
-%         line(AfterD, string("end"))
-%     );
-% do_expr_to_algebra({'receive', _Meta, Clauses, AfterExpr, AfterBody}) ->
-%     AfterD = receive_after_to_algebra(AfterExpr, AfterBody),
-%     Suffix = line(AfterD, string("end")),
-%     wrap_nested(string("receive"), clauses_to_algebra(Clauses), Suffix);
+do_expr_to_algebra({'receive', _Meta, Clauses}) ->
+    surround(
+        <<"receive">>,
+        <<" ">>,
+        force_unfit(clauses_to_algebra(Clauses)),
+        <<" ">>,
+        <<"end">>
+    );
+do_expr_to_algebra({'receive', _Meta, [], AfterExpr, AfterBody}) ->
+    AfterD = receive_after_to_algebra(AfterExpr, AfterBody),
+    group(line(
+        <<"receive">>,
+        line(AfterD, <<"end">>)
+    ));
+do_expr_to_algebra({'receive', _Meta, Clauses, AfterExpr, AfterBody}) ->
+    AfterD = receive_after_to_algebra(AfterExpr, AfterBody),
+    Suffix = group(line(AfterD, <<"end">>)),
+    surround(<<"receive">>, <<" ">>, force_unfit(clauses_to_algebra(Clauses)), <<" ">>, Suffix);
 % do_expr_to_algebra({'try', _Meta, Exprs, OfClauses, CatchClauses, After}) ->
 %     try_to_algebra(Exprs, OfClauses, CatchClauses, After);
 % do_expr_to_algebra({'if', _Meta, Clauses}) ->
@@ -636,17 +638,14 @@ guard_to_algebra(Guards, Separator) ->
 %     {args, AMeta, Args} = Head,
 %     clauses_to_algebra([{spec_clause, CMeta, {call, AMeta, Name, Args}, Body, Guards}]).
 
-% receive_after_to_algebra(Expr, Body) ->
-%     {Pre, []} = comments(element(2, Expr)),
-%     ExprD = do_expr_to_algebra(Expr),
-%     BodyD = block_to_algebra(Body),
+receive_after_to_algebra(Expr, Body) ->
+    {Pre, []} = comments(element(2, Expr)),
+    ExprD = do_expr_to_algebra(Expr),
+    BodyD = block_to_algebra_each(Body),
 
-%     HeadD = wrap(string("after "), ExprD, string(" ->")),
-%     CommentHeadD = combine_pre_comments(Pre, HeadD),
-%     document_choice(
-%         space(CommentHeadD, document_single_line(BodyD)),
-%         combine_nested(CommentHeadD, BodyD)
-%     ).
+    HeadD = concat([<<"after ">>, ExprD, <<" ->">>]),
+    CommentHeadD = combine_pre_comments(Pre, HeadD),
+    nest(glue(CommentHeadD, group(BodyD)), ?INDENT).
 
 % try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
 %     Clauses =

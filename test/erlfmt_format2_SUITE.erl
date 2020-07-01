@@ -98,7 +98,7 @@ groups() ->
             block,
             % fun_expression,
             case_expression,
-            % receive_expression,
+            receive_expression,
             % try_expression,
             % if_expression,
             macro
@@ -1310,8 +1310,9 @@ receive_expression(Config) when is_list(Config) ->
     ?assertFormat(
         "receive {Even, Longer} when Guarded -> Expression end",
         "receive\n"
-        "    {Even, Longer}\n"
-        "            when Guarded ->\n"
+        "    {Even, Longer} when\n"
+        "        Guarded\n"
+        "    ->\n"
         "        Expression\n"
         "end",
         30
@@ -1329,11 +1330,12 @@ receive_expression(Config) when is_list(Config) ->
         25
     ),
     ?assertFormat(
-        "receive {Long, Pattern} when Guard; Is, Long -> Expression end",
+        "receive {Long, Pattern} when VeryLongGuard; Is, Very, Long -> Expression end",
         "receive\n"
-        "    {Long, Pattern}\n"
-        "            when Guard;\n"
-        "                 Is, Long ->\n"
+        "    {Long, Pattern} when\n"
+        "        VeryLongGuard;\n"
+        "        Is, Very, Long\n"
+        "    ->\n"
         "        Expression\n"
         "end",
         30
