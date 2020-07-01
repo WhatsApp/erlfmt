@@ -100,7 +100,7 @@ groups() ->
             case_expression,
             receive_expression,
             try_expression,
-            % if_expression,
+            if_expression,
             macro
         ]},
         {forms, [parallel], [
@@ -1477,7 +1477,7 @@ if_expression(Config) when is_list(Config) ->
         "    Is, Long ->\n"
         "        Expression\n"
         "end",
-        25
+        20
     ),
     ?assertFormat(
         "if Short -> Expr; long(Guard, And) -> Expression end",

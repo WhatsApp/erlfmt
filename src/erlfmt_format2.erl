@@ -192,8 +192,8 @@ do_expr_to_algebra({'try', _Meta, Exprs, OfClauses, CatchClauses, After}) ->
 do_expr_to_algebra({'catch', _Meta, Exprs}) ->
     ExprsD = lists:map(fun expr_to_algebra/1, Exprs),
     fold_doc(fun(Doc, Acc) -> concat(Doc, <<":">>, Acc) end, ExprsD);
-% do_expr_to_algebra({'if', _Meta, Clauses}) ->
-%     wrap_nested(string("if"), clauses_to_algebra(Clauses), string("end"));
+do_expr_to_algebra({'if', _Meta, Clauses}) ->
+    surround_block(<<"if">>, clauses_to_algebra(Clauses), <<"end">>);
 % do_expr_to_algebra({spec, _Meta, Name, [SingleClause]}) ->
 %     single_clause_spec_to_algebra(Name, SingleClause);
 % do_expr_to_algebra({spec, _Meta, Name, Clauses}) ->
@@ -515,17 +515,26 @@ clause_to_algebra({clause, Meta, Head, empty, Body}) ->
         space(HeadD, <<"->">>),
         Nested(BodyD)
     );
+clause_to_algebra({clause, Meta, empty, Guards, Body}) ->
+    GuardsD = expr_to_algebra(Guards),
+    BodyD = block_to_algebra(Meta, Body),
+
+    Nested = fun (Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
+    concat(
+        group(space(GuardsD, <<"->">>)),
+        Nested(BodyD)
+    );
 clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
     HeadD = expr_to_algebra(Head),
     GuardsD = expr_to_algebra(Guards),
     BodyD = block_to_algebra(Meta, Body),
 
     Nested = fun (Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
-    concat([
+    concat(
         space(HeadD, <<"when">>),
-        group(concat([Nested(GuardsD), break(<<" ">>), <<"->">>])),
+        group(concat(Nested(GuardsD), break(<<" ">>), <<"->">>)),
         Nested(BodyD)
-    ]).
+    ).
 
 % clauses_to_algebra([{_, #{newline := true}, _, _, _} | _] = Clauses) ->
 %     {_Single, Multi} = clauses_to_algebra_pair(Clauses),
