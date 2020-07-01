@@ -99,7 +99,7 @@ groups() ->
             % fun_expression,
             case_expression,
             receive_expression,
-            % try_expression,
+            try_expression,
             % if_expression,
             macro
         ]},

@@ -187,8 +187,11 @@ do_expr_to_algebra({'receive', _Meta, [], AfterExpr, AfterBody}) ->
 do_expr_to_algebra({'receive', _Meta, Clauses, AfterExpr, AfterBody}) ->
     AfterD = receive_after_to_algebra(AfterExpr, AfterBody),
     surround_block(<<"receive">>, clauses_to_algebra(Clauses), line(AfterD, <<"end">>));
-% do_expr_to_algebra({'try', _Meta, Exprs, OfClauses, CatchClauses, After}) ->
-%     try_to_algebra(Exprs, OfClauses, CatchClauses, After);
+do_expr_to_algebra({'try', _Meta, Exprs, OfClauses, CatchClauses, After}) ->
+    try_to_algebra(Exprs, OfClauses, CatchClauses, After);
+do_expr_to_algebra({'catch', _Meta, Exprs}) ->
+    ExprsD = lists:map(fun expr_to_algebra/1, Exprs),
+    fold_doc(fun(Doc, Acc) -> concat(Doc, <<":">>, Acc) end, ExprsD);
 % do_expr_to_algebra({'if', _Meta, Clauses}) ->
 %     wrap_nested(string("if"), clauses_to_algebra(Clauses), string("end"));
 % do_expr_to_algebra({spec, _Meta, Name, [SingleClause]}) ->
@@ -434,6 +437,11 @@ comprehension_to_algebra(Expr, LcExprs, Left, Right) ->
     Doc = concat([ExprD, break(<<" ">>), <<"||">>, <<" ">>, nest(group(LcExprD), 3)]),
     surround(Left, <<"">>, Doc, <<"">>, Right).
 
+block_to_algebra([Expr]) ->
+    expr_to_algebra(Expr);
+block_to_algebra(Exprs) ->
+    force_unfit(block_to_algebra_each(Exprs)).
+
 block_to_algebra(Meta, [Expr]) ->
     maybe_force_unfit(has_inner_break(Meta, Expr), expr_to_algebra(Expr));
 block_to_algebra(_Meta, Exprs) ->
@@ -642,46 +650,37 @@ receive_after_to_algebra(Expr, Body) ->
     Doc = group(nest(break(HeadD, group(BodyD)), ?INDENT)),
     combine_pre_comments(Pre, Doc).
 
-% try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
-%     Clauses =
-%         [try_of_block(Exprs, OfClauses)] ++
-%             [try_catch_to_algebra(CatchClauses) || CatchClauses =/= []] ++
-%             [try_after_to_algebra(After) || After =/= []] ++
-%             [string("end")],
+try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
+    TryD = try_of_block(Exprs, OfClauses),
+    Clauses =
+        [try_catch_to_algebra(CatchClauses) || CatchClauses =/= []] ++
+            [try_after_to_algebra(After) || After =/= []],
+    ClausesD = fold_doc(fun erlfmt_algebra2:line/2, Clauses),
+    group(line(TryD, line(ClausesD, <<"end">>))).
 
-%     document_reduce(fun line/2, Clauses).
+% surround(TryD, <<" ">>, CatchClauses, <<" ">>, surround(<<"after">>, <<" ">>, )).
+% surround(Left, LeftSpace, Doc, RightSpace, Right) ->
+%     group(break(nest(break(TryD, <<" ">>, Doc), ?INDENT, break), RightSpace, Right)).
 
-% try_catch_to_algebra(Clauses) ->
-%     combine_nested(string("catch"), clauses_to_algebra(Clauses)).
+try_catch_to_algebra(Clauses) ->
+    group(nest(line(<<"catch">>, clauses_to_algebra(Clauses)), ?INDENT)).
 
-% try_after_to_algebra(Exprs) ->
-%     AfterD = string("after"),
-%     ExprsD = block_to_algebra(Exprs),
-%     document_choice(
-%         space(AfterD, document_single_line(ExprsD)),
-%         combine_nested(AfterD, ExprsD)
-%     ).
+try_after_to_algebra(Exprs) ->
+    ExprsD = block_to_algebra(Exprs),
+    group(nest(break(<<"after">>, ExprsD), ?INDENT)).
 
-% try_of_block(Exprs, OfClauses) ->
-%     TryD = string("try"),
-%     OfD = string("of"),
-%     ExprsD = block_to_algebra(Exprs),
+try_of_block(Exprs, OfClauses) ->
+    ExprsD = block_to_algebra(Exprs),
 
-%     TrySingle = space(TryD, document_single_line(ExprsD)),
-%     TryMulti = combine_nested(TryD, ExprsD),
-
-%     case OfClauses of
-%         [] ->
-%             document_choice(TrySingle, TryMulti);
-%         _ ->
-%             combine_nested(
-%                 document_choice(
-%                     space(TrySingle, OfD),
-%                     line(TryMulti, OfD)
-%                 ),
-%                 clauses_to_algebra(OfClauses)
-%             )
-%     end.
+    case OfClauses of
+        [] ->
+            group(nest(break(<<"try">>, ExprsD), ?INDENT));
+        _ ->
+            concat(
+                group(break(nest(break(<<"try">>, ExprsD), ?INDENT), <<"of">>)),
+                nest(concat(line(), clauses_to_algebra(OfClauses)), ?INDENT)
+            )
+    end.
 
 has_break_between(Left, Right) ->
     erlfmt_scan:get_end_line(Left) < erlfmt_scan:get_line(Right).
