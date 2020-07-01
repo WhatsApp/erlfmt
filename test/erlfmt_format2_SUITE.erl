@@ -104,7 +104,7 @@ groups() ->
             macro
         ]},
         {forms, [parallel], [
-            % function,
+            function,
             attribute,
             % spec,
             record_definition,
@@ -372,12 +372,12 @@ binary_operator(Config) when is_list(Config) ->
         "    1\n"
         ")"
     ),
-    % ?assertSame(
-    %     "Foo = fun () ->\n"
-    %     "    ok\n"
-    %     "end",
-    %     15
-    % ),
+    ?assertSame(
+        "Foo = fun () ->\n"
+        "    ok\n"
+        "end",
+        15
+    ),
     ?assertSame(
         "foo() :: #{\n"
         "    a := integer()\n"
@@ -1008,7 +1008,12 @@ call(Config) when is_list(Config) ->
     ).
 
 block(Config) when is_list(Config) ->
-    ?assertSame("begin 1 end"),
+    ?assertFormat(
+        "begin 1 end",
+        "begin\n"
+        "    1\n"
+        "end"
+    ),
     ?assertSame(
         "begin\n"
         "    1\n"
@@ -1526,19 +1531,20 @@ function(Config) when is_list(Config) ->
         "f(1) -> one;\n"
         "f(2) -> two."
     ),
-    ?assertFormat(
-        "f(1) -> one; f(2) -> begin two end.",
-        "f(1) ->\n"
-        "    one;\n"
-        "f(2) ->\n"
-        "    begin\n"
-        "        two\n"
-        "    end."
-    ),
-    ?assertSame(
-        "?FOO(1) -> ok;\n"
-        "?DEFAULT(?FOO)."
-    ).
+    % ?assertFormat(
+    %     "f(1) -> one; f(2) -> begin two end.",
+    %     "f(1) ->\n"
+    %     "    one;\n"
+    %     "f(2) ->\n"
+    %     "    begin\n"
+    %     "        two\n"
+    %     "    end."
+    % ),
+    % ?assertSame(
+    %     "?FOO(1) -> ok;\n"
+    %     "?DEFAULT(?FOO)."
+    % ).
+    ok.
 
 attribute(Config) when is_list(Config) ->
     ?assertFormat("-else .", "-else."),

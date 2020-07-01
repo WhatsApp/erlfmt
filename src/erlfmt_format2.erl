@@ -57,9 +57,9 @@
 -define(NEXT_BREAK_FITS_OPS, ['=', '::']).
 
 -spec to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra2:doc().
-% to_algebra({function, Meta, Clauses}) ->
-%     Doc = concat(clauses_to_algebra(Clauses), string(".")),
-%     combine_comments(Meta, Doc);
+to_algebra({function, Meta, Clauses}) ->
+    Doc = concat(clauses_to_algebra(Clauses), string(".")),
+    combine_comments(Meta, Doc);
 to_algebra({attribute, Meta, Name, []}) ->
     Doc = concat(<<"-">>, expr_to_algebra(Name), <<".">>),
     combine_comments(Meta, Doc);
@@ -173,7 +173,7 @@ do_expr_to_algebra({macro_string, _Meta, Name}) ->
 do_expr_to_algebra({remote, _Meta, Left, Right}) ->
     concat(expr_to_algebra(Left), <<":">>, expr_to_algebra(Right));
 do_expr_to_algebra({block, Meta, Exprs}) ->
-    surround(<<"begin">>, <<" ">>, block_to_algebra(Meta, Exprs), <<" ">>, <<"end">>);
+    surround_block(<<"begin">>, block_to_algebra(Meta, Exprs), <<"end">>);
 do_expr_to_algebra({'fun', _Meta, Expr}) ->
     fun_to_algebra(Expr);
 do_expr_to_algebra({args, Meta, Values}) ->
@@ -499,25 +499,17 @@ clauses_to_algebra([Clause | _] = Clauses) ->
     HasBreak = clause_has_break(Clause),
     group(maybe_force_unfit(HasBreak, Doc)).
 
-clause_has_break({clause, Meta, _Head, _Guards, [Body | _]}) -> has_break_between(Meta, Body).
+clause_has_break({clause, _Meta, empty, Guards, [Body | _]}) -> has_break_between(Guards, Body);
+clause_has_break({clause, _Meta, Head, _Guards, [Body | _]}) -> has_break_between(Head, Body).
 
-clause_to_algebra({clause, Meta, Head, empty, Body}) ->
+clause_to_algebra({clause, _Meta, Head, empty, Body}) ->
     HeadD = expr_to_algebra(Head),
-    BodyD = block_to_algebra(Meta, Body),
-    Nested = fun (Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
-    concat(
-        space(HeadD, <<"->">>),
-        Nested(BodyD)
-    );
-clause_to_algebra({clause, Meta, empty, Guards, Body}) ->
+    BodyD = block_to_algebra(Body),
+    space(HeadD, nest(break(<<"->">>, BodyD), ?INDENT));
+clause_to_algebra({clause, _Meta, empty, Guards, Body}) ->
     GuardsD = expr_to_algebra(Guards),
-    BodyD = block_to_algebra(Meta, Body),
-
-    Nested = fun (Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
-    concat(
-        group(space(GuardsD, <<"->">>)),
-        Nested(BodyD)
-    );
+    BodyD = block_to_algebra(Body),
+    space(GuardsD, nest(break(<<"->">>, BodyD), ?INDENT));
 clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
     HeadD = expr_to_algebra(Head),
     GuardsD = expr_to_algebra(Guards),
@@ -647,10 +639,10 @@ guard_to_algebra(Guards, Separator) ->
 receive_after_to_algebra(Expr, Body) ->
     {Pre, []} = comments(element(2, Expr)),
     ExprD = do_expr_to_algebra(Expr),
-    BodyD = block_to_algebra_each(Body),
+    BodyD = block_to_algebra(Body),
 
     HeadD = concat([<<"after ">>, ExprD, <<" ->">>]),
-    Doc = group(nest(break(HeadD, group(BodyD)), ?INDENT)),
+    Doc = group(nest(break(HeadD, BodyD), ?INDENT)),
     combine_pre_comments(Pre, Doc).
 
 try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
