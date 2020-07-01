@@ -176,6 +176,8 @@ do_expr_to_algebra({block, Meta, Exprs}) ->
     surround(<<"begin">>, <<" ">>, block_to_algebra(Meta, Exprs), <<" ">>, <<"end">>);
 do_expr_to_algebra({'fun', _Meta, Expr}) ->
     fun_to_algebra(Expr);
+do_expr_to_algebra({args, Meta, Values}) ->
+    container(Meta, Values, <<"(">>, <<")">>);
 do_expr_to_algebra({'case', _Meta, Expr, Clauses}) ->
     Prefix = surround(<<"case">>, <<" ">>, expr_to_algebra(Expr), <<" ">>, <<"of">>),
     surround_block(Prefix, clauses_to_algebra(Clauses), <<"end">>);
@@ -460,36 +462,28 @@ block_to_algebra_each([Expr | [Next | _] = Rest]) ->
         false -> concat([ExprD, <<",">>, line(), RestD])
     end.
 
-% fun_to_algebra({function, _Anno, Name, Arity}) ->
-%     concat([
-%         string("fun "),
-%         expr_to_algebra(Name),
-%         string("/"),
-%         expr_to_algebra(Arity)
-%     ]);
-% fun_to_algebra({function, _Anno, Mod, Name, Arity}) ->
-%     concat([
-%         string("fun "),
-%         expr_to_algebra(Mod),
-%         string(":"),
-%         expr_to_algebra(Name),
-%         string("/"),
-%         expr_to_algebra(Arity)
-%     ]);
-% fun_to_algebra({clauses, _Anno, [Clause]}) ->
-%     FunD = string("fun "),
-%     {Single, Multi} = clause_to_algebra_pair(Clause),
-%     MultiD = line(document_prepend(FunD, Multi), string("end")),
-%     case erlfmt_scan:get_anno(newline, Clause, false) of
-%         true -> MultiD;
-%         false -> document_choice(wrap(FunD, Single, string(" end")), MultiD)
-%     end;
-% fun_to_algebra({clauses, _Anno, Clauses}) ->
-%     ClausesD = clauses_to_algebra(Clauses),
-%     document_choice(
-%         wrap(string("fun "), document_single_line(ClausesD), string(" end")),
-%         wrap_nested(string("fun"), ClausesD, string("end"))
-%     );
+fun_to_algebra({function, _Anno, Name, Arity}) ->
+    concat([
+        <<"fun ">>,
+        expr_to_algebra(Name),
+        <<"/">>,
+        expr_to_algebra(Arity)
+    ]);
+fun_to_algebra({function, _Anno, Mod, Name, Arity}) ->
+    concat([
+        <<"fun ">>,
+        expr_to_algebra(Mod),
+        <<":">>,
+        expr_to_algebra(Name),
+        <<"/">>,
+        expr_to_algebra(Arity)
+    ]);
+fun_to_algebra({clauses, _Anno, [Clause]}) ->
+    ClauseD = maybe_force_unfit(clause_has_break(Clause), clause_to_algebra(Clause)),
+    group(break(space(<<"fun">>, ClauseD), <<"end">>));
+fun_to_algebra({clauses, _Anno, Clauses}) ->
+    ClausesD = clauses_to_algebra(Clauses),
+    surround_block(<<"fun">>, ClausesD, <<"end">>);
 fun_to_algebra(type) ->
     <<"fun()">>;
 fun_to_algebra({type, Meta, Args, Result}) ->

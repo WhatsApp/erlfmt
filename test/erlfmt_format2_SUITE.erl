@@ -96,7 +96,7 @@ groups() ->
             {group, comprehensions},
             call,
             block,
-            % fun_expression,
+            fun_expression,
             case_expression,
             receive_expression,
             try_expression,
@@ -1081,8 +1081,9 @@ fun_expression(Config) when is_list(Config) ->
     ?assertFormat(
         "fun (Even, Longer) when Guarded -> Expression; (ok) -> ok end",
         "fun\n"
-        "    (Even, Longer)\n"
-        "            when Guarded ->\n"
+        "    (Even, Longer) when\n"
+        "        Guarded\n"
+        "    ->\n"
         "        Expression;\n"
         "    (ok) ->\n"
         "        ok\n"
@@ -1104,11 +1105,12 @@ fun_expression(Config) when is_list(Config) ->
         25
     ),
     ?assertFormat(
-        "fun (Long, Pattern) when Guard; Is, Long -> Expression; (ok) -> ok end",
+        "fun (Long, Pattern) when VeryLongGuard; Is, Very, Long -> Expression; (ok) -> ok end",
         "fun\n"
-        "    (Long, Pattern)\n"
-        "            when Guard;\n"
-        "                 Is, Long ->\n"
+        "    (Long, Pattern) when\n"
+        "        VeryLongGuard;\n"
+        "        Is, Very, Long\n"
+        "    ->\n"
         "        Expression;\n"
         "    (ok) ->\n"
         "        ok\n"
@@ -1116,13 +1118,14 @@ fun_expression(Config) when is_list(Config) ->
         30
     ),
     ?assertFormat(
-        "fun (Long, Pattern) when Guard; Is, Even, Longer -> Expression; (ok) -> ok end",
+        "fun (Long, Pattern) when VeryLongGuard; Is, Even, Loooooooonger -> Expression; (ok) -> ok end",
         "fun\n"
-        "    (Long, Pattern)\n"
-        "            when Guard;\n"
-        "                 Is,\n"
-        "                 Even,\n"
-        "                 Longer ->\n"
+        "    (Long, Pattern) when\n"
+        "        VeryLongGuard;\n"
+        "        Is,\n"
+        "        Even,\n"
+        "        Loooooooonger\n"
+        "    ->\n"
         "        Expression;\n"
         "    (ok) ->\n"
         "        ok\n"
@@ -1145,8 +1148,9 @@ fun_expression(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "fun (Even, Longer) when Guarded -> Expression end",
-        "fun (Even, Longer)\n"
-        "        when Guarded ->\n"
+        "fun (Even, Longer) when\n"
+        "    Guarded\n"
+        "->\n"
         "    Expression\n"
         "end",
         25
@@ -1163,24 +1167,26 @@ fun_expression(Config) when is_list(Config) ->
         20
     ),
     ?assertFormat(
-        "fun (Long, Pattern) when Guard; Is, Long -> Expression end",
-        "fun (Long, Pattern)\n"
-        "        when Guard;\n"
-        "             Is, Long ->\n"
+        "fun (Long, Pattern) when LongerGuard; Is, Very, Long -> Expression end",
+        "fun (Long, Pattern) when\n"
+        "    LongerGuard;\n"
+        "    Is, Very, Long\n"
+        "->\n"
         "    Expression\n"
         "end",
         25
     ),
     ?assertFormat(
-        "fun (Long, Pattern) when Guard; Is, Even, Longer -> Expression end",
-        "fun (Long, Pattern)\n"
-        "        when Guard;\n"
-        "             Is,\n"
-        "             Even,\n"
-        "             Longer ->\n"
+        "fun (Long, Pattern) when VeryLongGuard; Is, Even, Loooooooonger -> Expression end",
+        "fun (Long, Pattern) when\n"
+        "    VeryLongGuard;\n"
+        "    Is,\n"
+        "    Even,\n"
+        "    Loooooooonger\n"
+        "->\n"
         "    Expression\n"
         "end",
-        30
+        25
     ).
 
 case_expression(Config) when is_list(Config) ->
