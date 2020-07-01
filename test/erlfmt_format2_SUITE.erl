@@ -1570,8 +1570,15 @@ function(Config) when is_list(Config) ->
         ");\n"
         "?FOO(1) ->\n"
         "    ok."
+    ),
+    ?assertSame(
+        "%% comment\n"
+        "bar(X) ->\n"
+        "    ok;\n"
+        "%% comment\n"
+        "bar(X) ->\n"
+        "    ok."
     ).
-
 
 attribute(Config) when is_list(Config) ->
     ?assertFormat("-else .", "-else."),

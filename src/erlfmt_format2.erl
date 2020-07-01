@@ -199,6 +199,8 @@ do_expr_to_algebra({spec, _Meta, Name, [SingleClause]}) ->
     single_clause_spec_to_algebra(Name, SingleClause);
 do_expr_to_algebra({spec, _Meta, Name, Clauses}) ->
     group(nest(line(expr_to_algebra(Name), clauses_to_algebra(Clauses)), ?INDENT));
+do_expr_to_algebra({Clause, _, _, _, _} = Expr) when Clause =:= clause; Clause =:= spec_clause ->
+    clause_to_algebra(Expr);
 do_expr_to_algebra({'...', _Meta}) ->
     <<"...">>;
 do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
@@ -478,7 +480,7 @@ fun_to_algebra({function, _Anno, Mod, Name, Arity}) ->
         expr_to_algebra(Arity)
     ]);
 fun_to_algebra({clauses, _Anno, [Clause]}) ->
-    ClauseD = maybe_force_unfit(clause_has_break(Clause), clause_to_algebra(Clause)),
+    ClauseD = maybe_force_unfit(clause_has_break(Clause), expr_to_algebra(Clause)),
     group(break(space(<<"fun">>, ClauseD), <<"end">>));
 fun_to_algebra({clauses, _Anno, Clauses}) ->
     ClausesD = clauses_to_algebra(Clauses),
@@ -498,11 +500,11 @@ clauses_to_algebra([Clause | _] = Clauses) ->
     group(maybe_force_unfit(HasBreak, ClausesD)).
 
 fold_clauses_to_algebra([Clause | [{comment, _, _} | _] = Comments]) ->
-    line(clause_to_algebra(Clause), comments_to_algebra(Comments));
+    line(expr_to_algebra(Clause), comments_to_algebra(Comments));
 fold_clauses_to_algebra([Clause]) ->
-    clause_to_algebra(Clause);
+    expr_to_algebra(Clause);
 fold_clauses_to_algebra([Clause | Clauses]) ->
-    line(concat(clause_to_algebra(Clause), <<";">>), fold_clauses_to_algebra(Clauses)).
+    line(concat(expr_to_algebra(Clause), <<";">>), fold_clauses_to_algebra(Clauses)).
 
 clause_has_break({clause, _Meta, empty, Guards, [Body | _]}) -> has_break_between(Guards, Body);
 clause_has_break({clause, _Meta, Head, _Guards, [Body | _]}) -> has_break_between(Head, Body);
@@ -528,9 +530,6 @@ clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
         group(concat(Nested(GuardsD), break(<<" ">>), <<"->">>)),
         Nested(BodyD)
     );
-clause_to_algebra({macro_call, _, _, _} = Expr) ->
-    %% It's possible the entire clause is defined inside of a macro call
-    expr_to_algebra(Expr);
 clause_to_algebra({spec_clause, Meta, Head, Body, empty}) ->
     clause_to_algebra({clause, Meta, Head, empty, Body});
 clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
