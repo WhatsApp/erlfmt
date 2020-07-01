@@ -505,12 +505,22 @@ clause_has_break({clause, Meta, _Head, _Guards, [Body | _]}) -> has_break_betwee
 clause_to_algebra({clause, Meta, Head, empty, Body}) ->
     HeadD = expr_to_algebra(Head),
     BodyD = block_to_algebra(Meta, Body),
-    concat([HeadD, <<" ">>, <<"->">>, break(<<" ">>), nest(BodyD, ?INDENT)]);
+    Nested = fun (Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
+    concat(
+        space(HeadD, <<"->">>),
+        Nested(BodyD)
+    );
 clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
     HeadD = expr_to_algebra(Head),
     GuardsD = expr_to_algebra(Guards),
     BodyD = block_to_algebra(Meta, Body),
-    concat([HeadD, <<" ">>, <<"when">>, <<" ">>, GuardsD, <<" ">>, <<"->">>, break(<<" ">>), nest(BodyD, ?INDENT)]).
+
+    Nested = fun (Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
+    concat([
+        space(HeadD, <<"when">>),
+        group(concat([Nested(GuardsD), break(<<" ">>), <<"->">>])),
+        Nested(BodyD)
+    ]).
 
 % clauses_to_algebra([{_, #{newline := true}, _, _, _} | _] = Clauses) ->
 %     {_Single, Multi} = clauses_to_algebra_pair(Clauses),
