@@ -11,7 +11,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
--module(erlfmt_format2_SUITE).
+-module(erlfmt_format_SUITE).
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -1870,6 +1870,6 @@ comment(Config) when is_list(Config) ->
 
 format(String, PageWidth) ->
     {ok, [Node], []} = erlfmt:read_nodes_string("nofile", String),
-    Doc = erlfmt_format2:to_algebra(Node),
-    Rendered = erlfmt_algebra2:format(Doc, PageWidth),
+    Doc = erlfmt_format:to_algebra(Node),
+    Rendered = erlfmt_algebra:format(Doc, PageWidth),
     unicode:characters_to_list(Rendered).

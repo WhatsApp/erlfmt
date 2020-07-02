@@ -11,7 +11,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
--module(erlfmt_algebra2_SUITE).
+-module(erlfmt_algebra_SUITE).
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -51,7 +51,7 @@
     test_group_string_concat/1
 ]).
 
--import(erlfmt_algebra2, [
+-import(erlfmt_algebra, [
     force_breaks/0,
     group/1,
     format/2,

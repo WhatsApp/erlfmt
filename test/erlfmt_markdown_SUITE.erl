@@ -157,9 +157,9 @@ check_fmt(Unformatted, Expected) ->
 
 format(String, PageWidth) ->
     Doc = format_doc(String),
-    Rendered = erlfmt_algebra2:format(Doc, PageWidth),
+    Rendered = erlfmt_algebra:format(Doc, PageWidth),
     unicode:characters_to_list(Rendered).
 
 format_doc(String) ->
     {ok, [Node], []} = erlfmt:read_nodes_string("nofile", String),
-    erlfmt_format2:to_algebra(Node).
+    erlfmt_format:to_algebra(Node).

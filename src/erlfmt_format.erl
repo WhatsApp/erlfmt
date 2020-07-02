@@ -11,13 +11,13 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
--module(erlfmt_format2).
+-module(erlfmt_format).
 
 -include("erlfmt.hrl").
 
 -export([to_algebra/1, comments/1]).
 
--import(erlfmt_algebra2, [
+-import(erlfmt_algebra, [
     force_breaks/0,
     group/1,
     format/2,
@@ -51,7 +51,7 @@
 
 -define(NEXT_BREAK_FITS_OPS, ['=', '::']).
 
--spec to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra2:doc().
+-spec to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:doc().
 to_algebra({function, Meta, Clauses}) ->
     Doc = concat(clauses_to_algebra(Clauses), string(".")),
     combine_comments(Meta, Doc);
@@ -95,7 +95,7 @@ to_algebra(Expr) ->
             combine_comments(Meta, Doc)
     end.
 
--spec expr_to_algebra(erlfmt_parse:abstract_expr()) -> erlfmt_algebra2:doc().
+-spec expr_to_algebra(erlfmt_parse:abstract_expr()) -> erlfmt_algebra:doc().
 expr_to_algebra(Expr) when is_tuple(Expr) ->
     Meta = element(2, Expr),
     Doc = do_expr_to_algebra(Expr),
@@ -239,9 +239,9 @@ concat_to_algebra([Value1, Value2 | _] = Values) ->
     ValuesD = lists:map(fun expr_to_algebra/1, Values),
     case has_break_between(Value1, Value2) of
         true ->
-            group(fold_doc(fun erlfmt_algebra2:line/2, ValuesD));
+            group(fold_doc(fun erlfmt_algebra:line/2, ValuesD));
         false ->
-            group(fold_doc(fun erlfmt_algebra2:break/2, ValuesD))
+            group(fold_doc(fun erlfmt_algebra:break/2, ValuesD))
     end.
 
 unary_op_to_algebra(Op, Expr) ->
@@ -526,7 +526,7 @@ try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
             [try_catch_to_algebra(CatchClauses) || CatchClauses =/= []] ++
             [try_after_to_algebra(After) || After =/= []] ++
             [<<"end">>],
-    concat(force_breaks(), (group(fold_doc(fun erlfmt_algebra2:line/2, Clauses)))).
+    concat(force_breaks(), (group(fold_doc(fun erlfmt_algebra:line/2, Clauses)))).
 
 try_catch_to_algebra(Clauses) ->
     group(nest(line(<<"catch">>, clauses_to_algebra(Clauses)), ?INDENT)).
@@ -591,8 +591,8 @@ comments_to_algebra(Comments) ->
     fold_doc(fun (C, Acc) -> concat(C, line(2), Acc) end, CommentsD).
 
 comment_to_algebra({comment, _Meta, Lines}) ->
-    LinesD = lists:map(fun erlfmt_algebra2:string/1, Lines),
-    fold_doc(fun erlfmt_algebra2:line/2, LinesD).
+    LinesD = lists:map(fun erlfmt_algebra:string/1, Lines),
+    fold_doc(fun erlfmt_algebra:line/2, LinesD).
 
 comments(Meta) ->
     {erlfmt_scan:get_anno(pre_comments, Meta, []),

@@ -102,7 +102,7 @@ read_pragma_nodes({ok, Tokens, Comments, Cont}, FileName, _Acc, Warnings0) ->
 read_pragma_nodes(_, _, _, _) -> false.
 
 contains_pragma_node({attribute, Meta, _AfAtom, _AbstractExprs}) ->
-    {PreComments, PostComments} = erlfmt_format2:comments(Meta),
+    {PreComments, PostComments} = erlfmt_format:comments(Meta),
     lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments);
 contains_pragma_node(_) -> false.
 
@@ -199,8 +199,8 @@ format_nodes([]) ->
 format_node({raw_string, _Anno, String}) ->
     [String, $\n];
 format_node(Node) ->
-    Doc = erlfmt_format2:to_algebra(Node),
-    [erlfmt_algebra2:format(Doc, ?PAGE_WIDTH), $\n].
+    Doc = erlfmt_format:to_algebra(Node),
+    [erlfmt_algebra:format(Doc, ?PAGE_WIDTH), $\n].
 
 verify_nodes(FileName, Nodes, Formatted) ->
     case read_nodes_string(FileName, unicode:characters_to_list(Formatted)) of

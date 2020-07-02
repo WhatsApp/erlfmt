@@ -31,7 +31,7 @@
 
 %     [0]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.34.2200
 
--module(erlfmt_algebra2).
+-module(erlfmt_algebra).
 
 -define(newline, <<"\n">>).
 
