@@ -74,16 +74,14 @@ to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Values} = 
     HeadD = concat(<<"-record(">>, expr_to_algebra(Name), <<",">>),
     case has_no_comments_or_parens(TMeta) of
         true ->
-            Prefix = concat(HeadD, string(" {")),
-            Doc = container(TMeta, Values, Prefix, <<"}).">>),
+            Doc = space(HeadD, container(TMeta, Values, <<"{">>, <<"}).">>)),
             combine_comments(Meta, Doc);
         false ->
             Doc = surround(HeadD, <<"">>, expr_to_algebra(Tuple), <<"">>, <<").">>),
             combine_comments(Meta, Doc)
     end;
 to_algebra({attribute, Meta, Name, Values}) ->
-    Prefix = concat(<<"-">>, expr_to_algebra(Name), <<"(">>),
-    Doc = call(Meta, Values, Prefix, <<").">>),
+    Doc = concat(<<"-">>, expr_to_algebra(Name), call(Meta, Values, <<"(">>, <<").">>)),
     combine_comments(Meta, Doc);
 to_algebra(Expr) ->
     Meta = element(2, Expr),
@@ -134,11 +132,9 @@ do_expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
 do_expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
     field_to_algebra(<<" :=">>, Key, Value);
 do_expr_to_algebra({record, Meta, Name, Values}) ->
-    Prefix = concat(record_name_to_algebra(Meta, Name), <<"{">>),
-    container(Meta, Values, Prefix, <<"}">>);
+    concat(record_name_to_algebra(Meta, Name), container(Meta, Values, <<"{">>, <<"}">>));
 do_expr_to_algebra({record, Meta, Expr, Name, Values}) ->
-    Prefix = concat(record_name_to_algebra(Meta, Name), <<"{">>),
-    concat(expr_to_algebra(Expr), container(Meta, Values, Prefix, <<"}">>));
+    concat(expr_to_algebra(Expr), record_name_to_algebra(Meta, Name), container(Meta, Values, <<"{">>, <<"}">>));
 do_expr_to_algebra({record_field, _Meta, Key, Value}) ->
     field_to_algebra(<<" =">>, Key, Value);
 do_expr_to_algebra({record_index, Meta, Name, Key}) ->
@@ -156,13 +152,11 @@ do_expr_to_algebra({generate, _Meta, Left, Right}) ->
 do_expr_to_algebra({b_generate, _Meta, Left, Right}) ->
     field_to_algebra(<<" <=">>, Left, Right);
 do_expr_to_algebra({call, Meta, Name, Args}) ->
-    Prefix = concat(expr_to_algebra(Name), <<"(">>),
-    call(Meta, Args, Prefix, <<")">>);
+    concat(expr_to_algebra(Name), call(Meta, Args, <<"(">>, <<")">>));
 do_expr_to_algebra({macro_call, _Meta, Name, none}) ->
     concat(<<"?">>, expr_to_algebra(Name));
 do_expr_to_algebra({macro_call, Meta, Name, Args}) ->
-    Prefix = concat(<<"?">>, expr_to_algebra(Name), <<"(">>),
-    call(Meta, Args, Prefix, <<")">>);
+    concat(<<"?">>, expr_to_algebra(Name), call(Meta, Args, <<"(">>, <<")">>));
 do_expr_to_algebra({macro_string, _Meta, Name}) ->
     concat(<<"??">>, expr_to_algebra(Name));
 do_expr_to_algebra({remote, _Meta, Left, Right}) ->
@@ -322,32 +316,37 @@ call(Meta, Values, Left, Right) ->
 container_common(_Meta, [], Left, Right, _Combine, _Last) ->
     concat(Left, Right);
 container_common(Meta, [Value | _] = Values, Left, Right, Combine, Last) ->
-    {HasTrailingComments, ValuesD} = container_exprs_to_algebra(Values, Last, []),
+    {HasTrailingComments, WasLastFits, ValuesD} = container_exprs_to_algebra(Values, Last, []),
     case HasTrailingComments orelse has_inner_break(Meta, Value) of
         true ->
             Doc = fold_doc(fun (D, Acc) -> line(concat(D, <<",">>), Acc) end, ValuesD),
             surround(Left, <<"">>, concat(force_breaks(), Doc), <<"">>, Right);
         false when Combine =:= break ->
             Doc = fold_doc(fun (D, Acc) -> break(concat(D, <<",">>), Acc) end, ValuesD),
-            surround(Left, <<"">>, Doc, <<"">>, Right);
+            Wrapped = surround(Left, <<"">>, Doc, <<"">>, Right),
+            case WasLastFits of
+                true -> next_break_fits(Wrapped, disabled);
+                false -> Wrapped
+            end;
         false when Combine =:= flex_break ->
             Doc = fold_doc(fun (D, Acc) -> flex_break(concat(D, <<",">>), Acc) end, ValuesD),
             group(concat(nest(concat(Left, Doc), ?INDENT), Right))
     end.
 
 container_exprs_to_algebra([{comment, _, _} | _] = Comments, _Last, Acc) ->
-    {true, lists:reverse(Acc, [concat(force_breaks(), comments_to_algebra(Comments))])};
+    {true, false, lists:reverse(Acc, [concat(force_breaks(), comments_to_algebra(Comments))])};
 container_exprs_to_algebra([Value | [{comment, _, _} | _] = Comments], _Last, Acc) ->
-    {true, lists:reverse(Acc, [concat(force_breaks(), line(expr_to_algebra(Value), comments_to_algebra(Comments)))])};
+    {true, false, lists:reverse(Acc, [concat(force_breaks(), line(expr_to_algebra(Value), comments_to_algebra(Comments)))])};
 container_exprs_to_algebra([Value], last_fits, Acc) ->
+    IsNextBreakFits = is_next_break_fits(Value),
     ValueD =
-        case is_next_break_fits(Value) of
+        case IsNextBreakFits of
             true -> next_break_fits(expr_to_algebra(Value), enabled);
             false -> expr_to_algebra(Value)
         end,
-    {false, lists:reverse(Acc, [ValueD])};
+    {false, IsNextBreakFits, lists:reverse(Acc, [ValueD])};
 container_exprs_to_algebra([Value], last_normal, Acc) ->
-    {false, lists:reverse(Acc, [expr_to_algebra(Value)])};
+    {false, false, lists:reverse(Acc, [expr_to_algebra(Value)])};
 container_exprs_to_algebra([Value | Values], Last, Acc) ->
     container_exprs_to_algebra(Values, Last, [expr_to_algebra(Value) | Acc]).
 
@@ -390,7 +389,7 @@ field_to_algebra(Op, Key, Value) ->
 
 comprehension_to_algebra(Expr, LcExprs, Left, Right) ->
     ExprD = expr_to_algebra(Expr),
-    {_HasTrailingComment, LcExprsD} = container_exprs_to_algebra(LcExprs, last_normal, []),
+    {_HasTrailingComment, _WasLastFits, LcExprsD} = container_exprs_to_algebra(LcExprs, last_normal, []),
     LcExprD = fold_doc(fun (D, Acc) -> break(concat(D, <<",">>), Acc) end, LcExprsD),
     Doc = concat([ExprD, break(<<" ">>), <<"||">>, <<" ">>, nest(group(LcExprD), 3)]),
     surround(Left, <<"">>, Doc, <<"">>, Right).

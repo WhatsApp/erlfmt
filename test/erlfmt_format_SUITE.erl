@@ -478,6 +478,16 @@ tuple(Config) when is_list(Config) ->
         "    foo\n"
         "    %% bar\n"
         "}"
+    ),
+    ?assertFormat(
+        "{true, lists:reverse(Acc, [concat(force_breaks(), line(expr_to_algebra(Value), comments_to_algebra(Comments)))])}",
+        "{true,\n"
+        "    lists:reverse(Acc, [\n"
+        "        concat(\n"
+        "            force_breaks(),\n"
+        "            line(expr_to_algebra(Value), comments_to_algebra(Comments))\n"
+        "        )\n"
+        "    ])}"
     ).
 
 list(Config) when is_list(Config) ->
@@ -1022,6 +1032,18 @@ call(Config) when is_list(Config) ->
         ")(\n"
         "    bar\n"
         ")."
+    ),
+    ?assertFormat(
+        "render(fold_doc(fun(D, Acc) -> concat([D,X,Acc]) end, [A,B,C]),80)",
+        "render(\n"
+        "    fold_doc(fun (D, Acc) -> concat([D, X, Acc]) end, [\n"
+        "        A,\n"
+        "        B,\n"
+        "        C\n"
+        "    ]),\n"
+        "    80\n"
+        ")",
+        60
     ).
 
 block(Config) when is_list(Config) ->
