@@ -23,16 +23,17 @@
 
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
-    Provider = providers:create([
-        {name, ?PROVIDER},
-        {module, ?MODULE},
-        {bare, true},
-        {deps, ?DEPS},
-        {example, "rebar3 fmt"},
-        {opts, erlfmt_cli:opts()},
-        {short_desc, "Erlang code formatter"},
-        {desc, "Erlang code formatter"}
-    ]),
+    Provider =
+        providers:create([
+            {name, ?PROVIDER},
+            {module, ?MODULE},
+            {bare, true},
+            {deps, ?DEPS},
+            {example, "rebar3 fmt"},
+            {opts, erlfmt_cli:opts()},
+            {short_desc, "Erlang code formatter"},
+            {desc, "Erlang code formatter"}
+        ]),
     {ok, rebar_state:add_provider(State, Provider)}.
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()}.

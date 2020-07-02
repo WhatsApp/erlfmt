@@ -1,385 +1,565 @@
-%% Copyright (c) Facebook, Inc. and its affiliates.
-%%
-%% Licensed under the Apache License, Version 2.0 (the "License");
-%% you may not use this file except in compliance with the License.
-%% You may obtain a copy of the License at
-%%
-%%     http://www.apache.org/licenses/LICENSE-2.0
-%%
-%% Unless required by applicable law or agreed to in writing, software
-%% distributed under the License is distributed on an "AS IS" BASIS,
-%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-%% See the License for the specific language governing permissions and
-%% limitations under the License.
+%   A set of functions for creating and manipulating algebra
+%   documents.
+
+%   This module implements the functionality described in
+%   ["Strictly Pretty" (2000) by Christian Lindig][0] with small
+%   additions, like support for binary nodes and a break mode that
+%   maximises use of horizontal space.
+
+%   The functions `nest/2`, `space/2` and `line/2` help you put the
+%   document together into a rigid structure. However, the document
+%   algebra gets interesting when using functions like `break/3` and
+%   `group/1`. A break inserts a break between two documents. A group
+%   indicates a document that must fit the current line, otherwise
+%   breaks are rendered as new lines.
+
+%   ## Implementation details
+
+%   The implementation of `Inspect.Algebra` is based on the Strictly Pretty
+%   paper by [Lindig][0] which builds on top of previous pretty printing
+%   algorithms but is tailored to strict languages, such as Erlang.
+%   The core idea in the paper is the use of explicit document groups which
+%   are rendered as flat (breaks as spaces) or as break (breaks as newlines).
+
+%   This implementation provides two types of breaks: `strict` and `flex`.
+%   When a group does not fit, all strict breaks are treated as newlines.
+%   Flex breaks however are re-evaluated on every occurrence and may still
+%   be rendered flat. See `break/1` and `flex_break/1` for more information.
+
+%   This implementation also adds `force_breaks/0` and `next_break_fits/2` which
+%   give more control over the document fitting.
+
+%     [0]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.34.2200
+
 -module(erlfmt_algebra).
 
--export([string_new/1, string_append/2, string_spaces/1, string_text/1, string_length/1]).
+-dialyzer(no_improper_lists).
 
--export([lines_new/1, lines_combine/2, lines_flush/1, lines_render/1]).
+-define(newline, <<"\n">>).
 
--export([
-    metric_new/1,
-    metric_combine/2,
-    metric_flush/1,
-    metric_render/1,
-    metric_dominates/2
-]).
+-export_type([doc/0]).
 
 -export([
-    document_text/1,
-    document_spaces/1,
-    document_combine/2,
-    document_flush/1,
-    document_choice/2,
-    document_single_line/1,
-    document_prepend/2,
-    document_render/2,
-    document_reduce/2,
-    document_fail/0
+    force_breaks/0,
+    empty/0,
+    string/1,
+    concat/1,
+    concat/2,
+    concat/3,
+    nest/2,
+    nest/3,
+    break/0,
+    break/1,
+    next_break_fits/1,
+    next_break_fits/2,
+    flex_break/0,
+    flex_break/1,
+    flex_break/2,
+    flex_break/3,
+    break/2,
+    break/3,
+    group/1,
+    space/2,
+    line/0,
+    line/1,
+    line/2,
+    fold_doc/2,
+    format/2,
+    format/3,
+    fits/4,
+    indent/1
 ]).
 
--export_type([text/0, str/0, lines/0, metric/0, document/0, option/0]).
+% Functional interface to "doc" records
 
--type text() :: unicode:chardata().
-
--record(string, {length :: non_neg_integer(), text :: text()}).
-
--opaque str() :: #string{}.
-
--record(lines_combine, {left :: lines(), right :: lines()}).
-
--record(lines_flush, {lines :: lines()}).
-
--opaque lines() :: #string{} | #lines_combine{} | #lines_flush{}.
-
-%% TODO: could we use a more efficient data structure here?
-%% We'd benefit from efficient operations at both ends, could a queue be the answer?
--record(doc_seq, {seq :: nonempty_list(document())}).
-
--record(doc_flush, {doc :: document()}).
-
--record(doc_choice, {choices :: nonempty_list(document())}).
-
--record(doc_fail, {}).
-
--opaque document() :: #string{} | #doc_seq{} | #doc_flush{} | #doc_choice{} | #doc_fail{}.
-
-%% Order of fields is important for comparisons!
--record(metric, {
-    height :: non_neg_integer(),
-    max_width :: non_neg_integer(),
-    last_width :: non_neg_integer()
+% doc_string represents Literal text, which is simply printed as is.
+-record(doc_string, {
+    string :: unicode:chardata(),
+    length :: non_neg_integer()
 }).
 
--opaque metric() :: #metric{}.
+-record(doc_line, {
+    count :: integer()
+}).
 
--type option() :: {page_width, pos_integer()}.
+-record(doc_cons, {
+    left :: doc(),
+    right :: doc()
+}).
 
--define(DEFAULT_PAGE_WIDTH, 80).
+% In doc_nest, all breaks inside the field `doc` that are printed as newlines are followed by `indent` spaces.
+% `always_or_break` was not part of the original paper.
+% `always` means nesting always happen,
+% `break` means nesting only happens inside a group that has been broken.
+-record(doc_nest, {
+    doc :: doc(),
+    indent :: non_neg_integer(),
+    always_or_break :: always | break
+}).
 
--spec string_new(text()) -> str().
-string_new(Text) -> #string{length = string:length(Text), text = Text}.
+% The decision for each group affects all the line breaks of a group at a whole but is made for subgroups individually.
+% 1. Print every optional line break of the current group and all its subgroups as spaces. If
+% the current group then fits completely into the remaining space of current line this is
+% the layout of the group.
+% 2. If the former fails every optional line break of the current group is printed as a newline.
+% Subgroups and their line breaks, however, are considered individually as they are reached
+% by the pretty printing process.
+-record(doc_group, {
+    group :: doc()
+}).
 
--spec string_spaces(integer()) -> str().
-string_spaces(Count) -> #string{length = Count, text = binary:copy(<<" ">>, Count)}.
+-record(doc_break, {
+    break :: binary(),
+    flex_or_strict :: flex | strict
+}).
 
--spec string_append(str(), str()) -> str().
-string_append(Left, Right) ->
-    #string{
-        length = Left#string.length + Right#string.length,
-        text = [Left#string.text | Right#string.text]
-    }.
+-record(doc_fits, {
+    group :: doc(),
+    enabled_or_disabled :: enabled | disabled
+}).
 
--spec string_text(str()) -> text().
-string_text(#string{text = Text}) -> Text.
+% The first six constructors are described in the original paper at "Figure 1: Six constructors for the doc data type".
+% doc_break is added as part of the implementation in section 3.
+% doc_fits and doc_force_breaks are newly added.
+-type doc() ::
+    binary() |
+    doc_force_breaks |
+    doc_nil |
+    #doc_string{} |
+    % doc_line should be thought of as a space character which may be replaced by a line break when necessary.
+    #doc_line{} |
+    #doc_cons{} |
+    #doc_nest{} |
+    #doc_group{} |
+    #doc_break{} |
+    #doc_fits{}.
 
--spec string_length(str()) -> non_neg_integer().
-string_length(#string{length = Length}) -> Length.
+-define(is_doc(Doc),
+    ((Doc == doc_force_breaks) orelse
+        (Doc == doc_nil) orelse
+        is_binary(Doc) orelse
+        is_record(Doc, doc_line) orelse
+        is_record(Doc, doc_break) orelse
+        is_record(Doc, doc_cons) orelse
+        is_record(Doc, doc_fits) orelse
+        is_record(Doc, doc_group) orelse
+        is_record(Doc, doc_nest) orelse
+        is_record(Doc, doc_string))
+).
 
-string_empty() -> #string{length = 0, text = ""}.
+% empty is not printed at all, but it is essential to implement optional output: if ... then "output" else empty;
+% empty is mapped to the empty string by the pretty printer.
+-spec empty() -> doc().
+empty() -> doc_nil.
 
--spec lines_new(str()) -> lines().
-lines_new(#string{} = String) -> String.
+% string documents are measured in terms of graphemes towards the document size.
+-spec string(unicode:chardata()) -> doc().
+string(String) ->
+    #doc_string{string = String, length = string:length(String)}.
 
--spec lines_combine(lines(), lines()) -> lines().
-lines_combine(#string{} = Left, #string{} = Right) ->
-    string_append(Left, Right);
-lines_combine(Left, Right) ->
-    #lines_combine{left = Left, right = Right}.
+% Concatenates two document entities returning a new document.
+-spec concat(doc(), doc()) -> doc().
+concat(Left, Right) when is_binary(Left), is_binary(Right) ->
+    #doc_string{string = [Left | Right], length = byte_size(Left) + byte_size(Right)};
+concat(#doc_string{string = String, length = Length}, Right) when is_binary(Right) ->
+    #doc_string{string = [String | Right], length = Length + byte_size(Right)};
+concat(Left, #doc_string{string = String, length = Length}) when is_binary(Left) ->
+    #doc_string{string = [Left | String], length = Length + byte_size(Left)};
+concat(#doc_string{} = Left, #doc_string{} = Right) ->
+    #doc_string{
+        string = [Left#doc_string.string | Right#doc_string.string],
+        length = Left#doc_string.length + Right#doc_string.length
+    };
+concat(Left, Right) when ?is_doc(Left), ?is_doc(Right) ->
+    #doc_cons{left = Left, right = Right}.
 
--spec lines_flush(lines()) -> lines().
-lines_flush(Lines) ->
-    #lines_flush{lines = Lines}.
+% Concatenates a list of documents returning a new document.
+-spec concat([doc()]) -> doc().
+concat(Docs) when is_list(Docs) ->
+    fold_doc(fun concat/2, Docs).
 
--spec lines_render(lines()) -> text().
-lines_render(Lines) ->
-    tl(strings_to_text(do_lines_render(Lines))).
+% Concatenates three document entities returning a new document.
+-spec concat(doc(), doc(), doc()) -> doc().
+concat(A, B, C) when ?is_doc(A), ?is_doc(B), ?is_doc(C) ->
+    concat(A, concat(B, C)).
 
-strings_to_text([#string{text = Text} | Rest]) ->
-    case string:trim(Text, leading, " ") of
-        [] -> [$\n | strings_to_text(Rest)];
-        _ -> [$\n, string:trim(Text, trailing, " ") | strings_to_text(Rest)]
+% Nests the given document at the given `level`.
+-spec nest(doc(), non_neg_integer()) -> doc().
+nest(Doc, Level) ->
+    nest(Doc, Level, always).
+
+-spec nest(doc(), non_neg_integer(), always | break) -> doc().
+nest(Doc, 0, _Mode) when ?is_doc(Doc) ->
+    Doc;
+nest(Doc, Indent, always) when ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0 ->
+    #doc_nest{doc = Doc, indent = Indent, always_or_break = always};
+nest(Doc, Indent, break) when ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0 ->
+    #doc_nest{doc = Doc, indent = Indent, always_or_break = break}.
+
+% This break can be rendered as a linebreak or as the given `string`, depending on the `mode` or line limit of the chosen layout.
+-spec break() -> doc().
+break() ->
+    break(<<" ">>).
+
+-spec break(binary()) -> doc().
+break(String) when is_binary(String) ->
+    #doc_break{break = String, flex_or_strict = strict}.
+
+%   Considers the next break as fit.
+
+%   `mode` can be `:enabled` or `:disabled`. When `:enabled`,
+%   it will consider the document as fit as soon as it finds
+%   the next break, effectively cancelling the break. It will
+%   also ignore any `force_breaks/0` in search of the next break.
+
+%   When disabled, it behaves as usual and it will ignore
+%   any further `next_break_fits/2` instruction.
+
+%   ## Examples
+
+%   This is used by Elixir's code formatter to avoid breaking
+%   code at some specific locations. For example, consider this
+%   code:
+
+%       some_function_call(%{..., key: value, ...})
+
+%   Now imagine that this code does not fit its line. The code
+%   formatter introduces breaks inside `(` and `)` and inside
+%   `%{` and `}`. Therefore the document would break as:
+
+%       some_function_call(
+%         %{
+%           ...,
+%           key: value,
+%           ...
+%         }
+%       )
+
+%   The formatter wraps the algebra document representing the
+%   map in `next_break_fits/1` so the code is formatted as:
+
+%       some_function_call(%{
+%         ...,
+%         key: value,
+%         ...
+%       })
+
+-spec next_break_fits(doc()) -> doc().
+next_break_fits(Doc) ->
+    next_break_fits(Doc, enabled).
+
+-spec next_break_fits(doc(), enabled | disabled) -> doc().
+next_break_fits(Doc, Mode) when ?is_doc(Doc), Mode == enabled orelse Mode == disabled ->
+    #doc_fits{group = Doc, enabled_or_disabled = Mode}.
+
+% Forces the parent group and its parent groups to break.
+-spec force_breaks() -> doc().
+force_breaks() ->
+    doc_force_breaks.
+
+%   Returns a flex break document based on the given `string`.
+
+%   A flex break still causes a group to break, like `break/1`,
+%   but it is re-evaluated when the documented is rendered.
+
+%   For example, take a group document represented as `[1, 2, 3]`
+%   where the space after every comma is a break. When the document
+%   above does not fit a single line, all breaks are enabled,
+%   causing the document to be rendered as:
+
+%       [1,
+%        2,
+%        3]
+
+%   However, if flex breaks are used, then each break is re-evaluated
+%   when rendered, so the document could be possible rendered as:
+
+%       [1, 2,
+%        3]
+
+%   Hence the name "flex". they are more flexible when it comes
+%   to the document fitting. On the other hand, they are more expensive
+%   since each break needs to be re-evaluated.
+
+-spec flex_break() -> doc().
+flex_break() -> flex_break(<<" ">>).
+
+-spec flex_break(binary()) -> doc().
+flex_break(String) when is_binary(String) ->
+    #doc_break{break = String, flex_or_strict = flex}.
+
+%   Breaks two documents (`doc1` and `doc2`) inserting a
+%   `flex_break/1` given by `break_string` between them.
+
+-spec flex_break(doc(), doc()) -> doc().
+flex_break(Doc1, Doc2) ->
+    flex_break(Doc1, <<" ">>, Doc2).
+
+-spec flex_break(doc(), binary(), doc()) -> doc().
+flex_break(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
+    concat(Doc1, flex_break(BreakString), Doc2).
+
+%   Breaks two documents (`doc1` and `doc2`) inserting the given
+%   break `break_string` between them.
+
+%   For more information on how the break is inserted, see `break/1`.
+
+%   ## Examples
+
+%       iex> doc = Inspect.Algebra.break("hello", "world")
+%       iex> Inspect.Algebra.format(doc, 80)
+%       ["hello", " ", "world"]
+
+%       iex> doc = Inspect.Algebra.break("hello", "\t", "world")
+%       iex> Inspect.Algebra.format(doc, 80)
+%       ["hello", "\t", "world"]
+
+-spec break(doc(), doc()) -> doc().
+break(Doc1, Doc2) ->
+    break(Doc1, <<" ">>, Doc2).
+
+-spec break(doc(), binary(), doc()) -> doc().
+break(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
+    concat(Doc1, break(BreakString), Doc2).
+
+%   Returns a group containing the specified document `doc`.
+
+%   Documents in a group are attempted to be rendered together
+%   to the best of the renderer ability.
+
+%   The group mode can also be set to `:inherit`, which means it
+%   automatically breaks if the parent group has broken too.
+
+%   ## Examples
+
+%       iex> doc =
+%       ...>   Inspect.Algebra.group(
+%       ...>     Inspect.Algebra.concat(
+%       ...>       Inspect.Algebra.group(
+%       ...>         Inspect.Algebra.concat(
+%       ...>           "Hello,",
+%       ...>           Inspect.Algebra.concat(
+%       ...>             Inspect.Algebra.break(),
+%       ...>             "A"
+%       ...>           )
+%       ...>         )
+%       ...>       ),
+%       ...>       Inspect.Algebra.concat(
+%       ...>         Inspect.Algebra.break(),
+%       ...>         "B"
+%       ...>       )
+%       ...>     )
+%       ...>   )
+%       iex> Inspect.Algebra.format(doc, 80)
+%       ["Hello,", " ", "A", " ", "B"]
+%       iex> Inspect.Algebra.format(doc, 6)
+%       ["Hello,", "\n", "A", "\n", "B"]
+
+-spec group(doc()) -> doc().
+group(Doc) ->
+    #doc_group{group = Doc}.
+
+%   Inserts a mandatory single space between two documents.
+
+%   ## Examples
+
+%       iex> doc = Inspect.Algebra.space("Hughes", "Wadler")
+%       iex> Inspect.Algebra.format(doc, 5)
+%       ["Hughes", " ", "Wadler"]
+
+-spec space(doc(), doc()) -> doc().
+space(Doc1, Doc2) ->
+    concat(Doc1, <<" ">>, Doc2).
+
+% A mandatory linebreak, but in the paper doc_line was described as optional? (is this mandatory or optional in this implementation)
+% A group with linebreaks will fit if all lines in the group fit.
+-spec line() -> doc().
+line() -> #doc_line{count = 1}.
+
+-spec line(pos_integer()) -> doc().
+line(Count) when is_integer(Count), Count > 0 -> #doc_line{count = Count}.
+
+% Inserts a mandatory linebreak between two documents.
+-spec line(doc(), doc()) -> doc().
+line(Doc1, Doc2) -> concat(Doc1, line(), Doc2).
+
+%   Folds a list of documents into a document using the given folder function.
+%   The list of documents is folded "from the right"; in that, this function is
+%   similar to `List.foldr/3`, except that it doesn't expect an initial
+%   accumulator and uses the last element of `docs` as the initial accumulator.
+%   Example:
+%   ```
+%   Docs = ["A", "B", "C"],
+%   FoldedDocs = fold_doc(fun(Doc, Acc) -> concat([Doc, "!", Acc]) end, Docs),
+%   io:format("~p", [FoldedDocs]).
+%   ```
+%   ["A", "!", "B", "!", "C"]
+-spec fold_doc(fun((doc(), doc()) -> doc()), [doc()]) -> doc().
+fold_doc(_Fun, []) ->
+    empty();
+fold_doc(_Fun, [Doc]) ->
+    Doc;
+fold_doc(Fun, [Doc | Docs]) ->
+    Fun(Doc, fold_doc(Fun, Docs)).
+
+% Formats a given document for a given width.
+% Takes the maximum width and a document to print as its arguments
+% and returns an string representation of the best layout for the
+% document to fit in the given width.
+% The document starts flat (without breaks) until a group is found.
+-spec format(doc(), non_neg_integer() | infinity) -> unicode:chardata().
+format(Doc, Width) when ?is_doc(Doc) andalso (Width == infinity orelse Width >= 0) ->
+    format(Width, 0, [{0, flat, Doc}]).
+
+%   Type representing the document mode to be rendered
+%
+%     * flat - represents a document with breaks as flats (a break may fit, as it may break)
+%     * break - represents a document with breaks as breaks (a break always fits, since it breaks)
+%
+%   The following modes are exclusive to fitting
+%
+%     * flat_no_break - represents a document with breaks as flat not allowed to enter in break mode
+%     * break_no_flat - represents a document with breaks as breaks not allowed to enter in flat mode
+
+-type mode() :: flat | flat_no_break | break | break_no_flat.
+
+-spec fits(Width :: integer(), Column :: integer(), HasBreaks :: boolean(), Entries) ->
+    boolean()
+when
+    Entries :: maybe_improper_list(
+        {integer(), mode(), doc()},
+        {tail, boolean(), Entries} | []
+    ).
+% We need at least a break to consider the document does not fit since a
+% large document without breaks has no option but fitting its current line.
+%
+% In case we have groups and the group fits, we need to consider the group
+% parent without the child breaks, hence {:tail, b?, t} below.
+
+fits(Width, K, B, _) when K > Width andalso B ->
+    false;
+fits(_, _, _, []) ->
+    true;
+fits(Width, K, _, {tail, B, Doc}) ->
+    fits(Width, K, B, Doc);
+%   ## Flat no break
+
+fits(Width, K, B, [{I, _, #doc_fits{group = X, enabled_or_disabled = disabled}} | T]) ->
+    fits(Width, K, B, [{I, flat_no_break, X} | T]);
+fits(Width, K, B, [{I, flat_no_break, #doc_fits{group = X}} | T]) ->
+    fits(Width, K, B, [{I, flat_no_break, X} | T]);
+%   ## Breaks no flat
+
+fits(Width, K, B, [{I, _, #doc_fits{group = X, enabled_or_disabled = enabled}} | T]) ->
+    fits(Width, K, B, [{I, break_no_flat, X} | T]);
+fits(Width, K, B, [{_I, break_no_flat, doc_force_breaks} | T]) ->
+    fits(Width, K, B, T);
+fits(_, _, _, [{_, break_no_flat, #doc_break{}} | _]) ->
+    true;
+fits(_, _, _, [{_, break_no_flat, #doc_line{}} | _]) ->
+    true;
+%   ## Breaks
+
+fits(_, _, _, [{_, break, #doc_break{}} | _]) ->
+    true;
+fits(_, _, _, [{_, break, #doc_line{}} | _]) ->
+    true;
+fits(Width, K, B, [{I, break, #doc_group{group = X}} | T]) ->
+    fits(Width, K, B, [{I, flat, X} | {tail, B, T}]);
+%   ## Catch all
+
+fits(Width, _, _, [{I, _, #doc_line{}} | T]) ->
+    fits(Width, I, false, T);
+fits(Width, K, B, [{_, _, doc_nil} | T]) ->
+    fits(Width, K, B, T);
+fits(Width, K, B, [{_, _, #doc_string{length = L}} | T]) ->
+    fits(Width, K + L, B, T);
+fits(Width, K, B, [{_, _, S} | T]) when is_binary(S) ->
+    fits(Width, K + byte_size(S), B, T);
+fits(_, _, _, [{_, _, doc_force_breaks} | _]) ->
+    false;
+fits(Width, K, _, [{_, _, #doc_break{break = S}} | T]) ->
+    fits(Width, K + byte_size(S), true, T);
+fits(Width, K, B, [{I, M, #doc_nest{doc = X, always_or_break = break}} | T]) ->
+    fits(Width, K, B, [{I, M, X} | T]);
+fits(Width, K, B, [{I, M, #doc_nest{doc = X, indent = J}} | T]) ->
+    fits(Width, K, B, [{I + J, M, X} | T]);
+fits(Width, K, B, [{I, M, #doc_cons{left = X, right = Y}} | T]) ->
+    fits(Width, K, B, [{I, M, X}, {I, M, Y} | T]);
+fits(Width, K, B, [{I, M, #doc_group{group = X}} | T]) ->
+    fits(Width, K, B, [{I, M, X} | {tail, B, T}]).
+
+-spec format(integer() | infinity, integer(), [{integer(), mode(), doc()}]) -> [binary()].
+format(_, _, []) ->
+    [];
+format(Width, K, [{_, _, doc_nil} | T]) ->
+    format(Width, K, T);
+format(Width, _, [{I, _, #doc_line{count = Count}} | T]) ->
+    NewLines = binary:copy(<<"\n">>, Count - 1),
+    [NewLines, indent(I) | format(Width, I, T)];
+format(Width, K, [{I, M, #doc_cons{left = X, right = Y}} | T]) ->
+    format(Width, K, [{I, M, X}, {I, M, Y} | T]);
+format(Width, K, [{_, _, #doc_string{string = S, length = L}} | T]) ->
+    [S | format(Width, K + L, T)];
+format(Width, K, [{_, _, S} | T]) when is_binary(S) ->
+    [S | format(Width, K + byte_size(S), T)];
+format(Width, K, [{_I, _M, doc_force_breaks} | T]) ->
+    format(Width, K, T);
+format(Width, K, [{I, M, #doc_fits{group = X}} | T]) ->
+    format(Width, K, [{I, M, X} | T]);
+%   # Flex breaks are not conditional to the mode
+format(Width, K0, [{I, M, #doc_break{break = S, flex_or_strict = flex}} | T]) ->
+    K = K0 + byte_size(S),
+    case Width == infinity orelse M == flat orelse fits(Width, K, true, T) of
+        true -> [S | format(Width, K, T)];
+        false -> [indent(I) | format(Width, I, T)]
     end;
-strings_to_text([]) ->
+%   # Strict breaks are conditional to the mode
+format(Width, K, [{I, M, #doc_break{break = S, flex_or_strict = strict}} | T]) ->
+    case M of
+        break -> [indent(I) | format(Width, I, T)];
+        _ -> [S | format(Width, K + byte_size(S), T)]
+    end;
+%   # Nesting is conditional to the mode.
+format(Width, K, [{I, M, #doc_nest{doc = X, indent = J, always_or_break = Nest}} | T]) ->
+    case Nest == always orelse (Nest == break andalso M == break) of
+        true -> format(Width, K, [{I + J, M, X} | T]);
+        false -> format(Width, K, [{I, M, X} | T])
+    end;
+%   # Groups must do the fitting decision.
+format(Width, K, [{I, _, #doc_group{group = X}} | T0]) ->
+    {StringLength, T1} = peek_next_string_length(T0),
+    case Width == infinity orelse fits(Width - StringLength, K, false, [{I, flat, X}]) of
+        true ->
+            format(Width, K, [{I, flat, X} | T1]);
+        false ->
+            T = force_next_flex_break(T1),
+            format(Width, K, [{I, break, X} | T])
+    end.
+
+peek_next_string_length([{I, M, #doc_cons{left = Left, right = Right}} | T]) ->
+    peek_next_string_length([{I, M, Left}, {I, M, Right} | T]);
+peek_next_string_length([{_, _, #doc_string{length = Length}} | _] = Stack) ->
+    {Length, Stack};
+peek_next_string_length([{_, _, Binary} | _] = Stack) when is_binary(Binary) ->
+    {byte_size(Binary), Stack};
+peek_next_string_length(Stack) ->
+    {0, Stack}.
+
+%% after a group breaks, we force next flex break to also break
+force_next_flex_break([{I, M, #doc_break{flex_or_strict = flex} = Break} | T]) ->
+    [{I, M, Break#doc_break{flex_or_strict = strict}} | T];
+force_next_flex_break([{_, _, #doc_break{flex_or_strict = strict}} | _] = Stack) ->
+    Stack;
+force_next_flex_break([{I, M, #doc_cons{left = Left, right = Right}} | T]) ->
+    force_next_flex_break([{I, M, Left}, {I, M, Right} | T]);
+force_next_flex_break([Other | T]) ->
+    [Other | force_next_flex_break(T)];
+force_next_flex_break([]) ->
     [].
 
-%% TODO: there's probably a more efficient way to do this, possibly
-%% by using a better data structure or making it tail-recursive
--spec do_lines_render(lines()) -> [str()].
-do_lines_render(#string{} = Line) ->
-    [Line];
-do_lines_render(#lines_combine{left = Left, right = Right}) ->
-    {LeftLast, LeftHeadRev} = split_last(do_lines_render(Left)),
-    {RightFirst, RightTail} = split_first(do_lines_render(Right)),
-    CombinedLine = string_append(LeftLast, RightFirst),
-    IndentedLines = indent_lines(LeftLast#string.length, RightTail),
-    lists:reverse(LeftHeadRev, [CombinedLine | IndentedLines]);
-do_lines_render(#lines_flush{lines = Lines}) ->
-    do_lines_render(Lines) ++ [string_empty()].
-
-split_first([First | Rest]) -> {First, Rest}.
-
-split_last([Line | Lines]) -> split_last(Lines, Line, []).
-
-split_last([Line | Rest], Last, LinesRev) -> split_last(Rest, Line, [Last | LinesRev]);
-split_last([], Last, LinesRev) -> {Last, LinesRev}.
-
-indent_lines(0, Lines) ->
-    Lines;
-indent_lines(N, Lines) ->
-    Offset = string_spaces(N),
-    [string_append(Offset, Line) || Line <- Lines].
-
--spec metric_new(str()) -> metric().
-metric_new(#string{length = Length}) ->
-    #metric{height = 0, max_width = Length, last_width = Length}.
-
--spec metric_combine(metric(), metric()) -> metric().
-metric_combine(Left, Right) ->
-    #metric{
-        height = Left#metric.height + Right#metric.height,
-        max_width =
-            max(Left#metric.max_width, Right#metric.max_width + Left#metric.last_width),
-        last_width = Left#metric.last_width + Right#metric.last_width
-    }.
-
--spec metric_flush(metric()) -> metric().
-metric_flush(Metric) ->
-    Metric#metric{height = Metric#metric.height + 1, last_width = 0}.
-
--spec metric_render(metric()) -> text().
-metric_render(Metric) ->
-    Line = lists:duplicate(Metric#metric.max_width, $x),
-    LastLine = lists:duplicate(Metric#metric.last_width, $x),
-    [lists:duplicate(Metric#metric.height, [Line, $\n]) | LastLine].
-
--spec metric_dominates(metric(), metric()) -> boolean().
-metric_dominates(Metric0, Metric1) ->
-    Metric0#metric.height =< Metric1#metric.height andalso
-        Metric0#metric.last_width =< Metric1#metric.last_width andalso
-        Metric0#metric.max_width =< Metric1#metric.max_width.
-
--spec document_text(text()) -> document().
-document_text(Text) -> string_new(Text).
-
--spec document_spaces(integer()) -> document().
-document_spaces(Count) -> string_spaces(Count).
-
--spec document_combine(document(), document()) -> document().
-document_combine(#doc_fail{}, _) ->
-    #doc_fail{};
-document_combine(_, #doc_fail{}) ->
-    #doc_fail{};
-document_combine(#string{} = Left, #string{} = Right) ->
-    string_append(Left, Right);
-document_combine(#doc_seq{seq = Seq1}, #doc_seq{seq = Seq2}) ->
-    #doc_seq{seq = Seq1 ++ Seq2};
-document_combine(#doc_seq{seq = Seq}, Document) ->
-    #doc_seq{seq = Seq ++ [Document]};
-document_combine(Document, #doc_seq{seq = Seq}) ->
-    #doc_seq{seq = [Document | Seq]};
-document_combine(Document1, Document2) ->
-    #doc_seq{seq = [Document1, Document2]}.
-
--spec document_flush(document()) -> document().
-document_flush(Document) -> #doc_flush{doc = Document}.
-
--spec document_fail() -> document().
-document_fail() -> #doc_fail{}.
-
--spec document_choice(document(), document()) -> document().
-%% TODO: try to reduce the number of choices if both alternatives have the same
-%% elements by folidng them together - e.g. same prefix/suffix for seq or both flush.
-document_choice(#doc_fail{}, Document) ->
-    Document;
-document_choice(Document, #doc_fail{}) ->
-    Document;
-document_choice(#doc_choice{choices = Choices1}, #doc_choice{choices = Choices2}) ->
-    #doc_choice{choices = Choices1 ++ Choices2};
-document_choice(#doc_choice{choices = Choices}, Document) ->
-    #doc_choice{choices = [Document | Choices]};
-document_choice(Document, #doc_choice{choices = Choices}) ->
-    #doc_choice{choices = [Document | Choices]};
-document_choice(Document1, Document2) ->
-    #doc_choice{choices = [Document1, Document2]}.
-
--spec document_single_line(document()) -> document().
-document_single_line(#doc_flush{}) -> #doc_fail{};
-document_single_line(#string{} = String) -> String;
-document_single_line(#doc_fail{} = Fail) -> Fail;
-document_single_line(#doc_choice{choices = Choices}) -> choice_single_line(Choices, []);
-document_single_line(#doc_seq{seq = Seq}) -> seq_single_line(Seq, []).
-
-choice_single_line([Choice | Choices], Acc) ->
-    case document_single_line(Choice) of
-        #doc_fail{} -> choice_single_line(Choices, Acc);
-        Document -> choice_single_line(Choices, [Document | Acc])
-    end;
-choice_single_line([], []) ->
-    #doc_fail{};
-choice_single_line([], [SingleChoice]) ->
-    SingleChoice;
-choice_single_line([], Choices) ->
-    #doc_choice{choices = Choices}.
-
-seq_single_line([Doc0 | Docs], Acc) ->
-    case document_single_line(Doc0) of
-        #doc_fail{} -> #doc_fail{};
-        Doc -> seq_single_line(Docs, [Doc | Acc])
-    end;
-seq_single_line([], Acc) ->
-    #doc_seq{seq = lists:reverse(Acc)}.
-
--spec document_prepend(document(), document()) -> document().
-document_prepend(#doc_fail{}, _) ->
-    #doc_fail{};
-document_prepend(_, #doc_fail{}) ->
-    #doc_fail{};
-document_prepend(#string{} = Left, #string{} = Right) ->
-    string_append(Left, Right);
-document_prepend(Document1, #string{} = Document2) ->
-    #doc_seq{seq = [Document1, Document2]};
-document_prepend(Document, #doc_seq{seq = [SeqHead | Seq]}) ->
-    #doc_seq{seq = [document_prepend(Document, SeqHead) | Seq]};
-document_prepend(Document, #doc_flush{doc = Inner}) ->
-    #doc_flush{doc = document_prepend(Document, Inner)};
-document_prepend(Document, #doc_choice{choices = Choices}) ->
-    #doc_choice{choices = [document_prepend(Document, Choice) || Choice <- Choices]}.
-
--spec document_render(document(), [option()]) -> text().
-document_render(Document, Options) ->
-    PageWidth = proplists:get_value(page_width, Options, ?DEFAULT_PAGE_WIDTH),
-    Layouts0 = document_interpret(Document, PageWidth),
-    case reject_invalid(Layouts0, PageWidth, Options) of
-        [] ->
-            error(no_viable_layout);
-        Layouts ->
-            [{_Metric, Lines} | _] = lists:keysort(1, Layouts),
-            lines_render(Lines)
-    end.
-
-%% Same as lists:foldr/3 except it doesn't need initial accumulator
-%%   and just uses the last element of the list for that purpose.
--spec document_reduce(Reducer, [document(), ...]) -> document()
-    when Reducer :: fun((document(), document()) -> document()).
-document_reduce(_Fun, [Doc]) -> Doc;
-document_reduce(Fun, [Doc | Rest]) -> Fun(Doc, document_reduce(Fun, Rest)).
-
--spec document_interpret(document(), non_neg_integer()) -> [{metric(), lines()}].
-document_interpret(#string{} = String, _PageWidth) ->
-    [{metric_new(String), lines_new(String)}];
-document_interpret(#doc_flush{doc = Document}, PageWidth) ->
-    Layouts0 = document_interpret(Document, PageWidth),
-    Layouts = [{metric_flush(Metric), lines_flush(Lines)} || {Metric, Lines} <- Layouts0],
-    lists:foldl(fun pareto_frontier_add/2, [], Layouts);
-document_interpret(#doc_fail{}, _PageWidth) ->
-    [];
-document_interpret(#doc_seq{seq = [Doc | Seq]}, PageWidth) ->
-    interpret_seq(Seq, document_interpret(Doc, PageWidth), PageWidth);
-document_interpret(#doc_choice{choices = [Choice | Choices]}, PageWidth) ->
-    interpret_choice(Choices, document_interpret(Choice, PageWidth), PageWidth).
-
-interpret_choice([Choice | Choices], Frontier0, PageWidth) ->
-    Layouts = document_interpret(Choice, PageWidth),
-    Frontier = lists:foldl(fun pareto_frontier_add/2, Frontier0, Layouts),
-    interpret_choice(Choices, Frontier, PageWidth);
-interpret_choice([], Frontier, _PageWidth) ->
-    Frontier.
-
-interpret_seq([Doc | Seq], Lefts, PageWidth) ->
-    case document_interpret(Doc, PageWidth) of
-        [] ->
-            [];
-        Rights ->
-            CombinedFrontier = layout_combine_many(Lefts, Rights, PageWidth, [], []),
-            interpret_seq(Seq, CombinedFrontier, PageWidth)
-    end;
-interpret_seq(_Seq, [], _PageWidth) ->
-    [];
-interpret_seq([], Acc, _PageWidth) ->
-    Acc.
-
-layout_combine_many([Left | Lefts], Rights, PageWidth, Frontier0, Unfit0) ->
-    {Frontier, Unfit} = layout_combine_many1(Left, Rights, PageWidth, Frontier0, Unfit0),
-    layout_combine_many(Lefts, Rights, PageWidth, Frontier, Unfit);
-layout_combine_many([], _Rights, _PageWidth, [], Unfit) ->
-    best_unfit(Unfit);
-layout_combine_many([], _Rights, _PageWidth, Frontier, _Unfit) ->
-    Frontier.
-
-layout_combine_many1(
-    {LMetric, LLines} = Left,
-    [{RMetric, RLines} | Rights],
-    PageWidth,
-    Frontier0,
-    Unfit0
-) ->
-    Metric = metric_combine(LMetric, RMetric),
-    Layout = {Metric, lines_combine(LLines, RLines)},
-    case Metric#metric.max_width =< PageWidth of
-        true ->
-            Frontier = pareto_frontier_add(Layout, Frontier0),
-            %% We can discard unfit, since we know there's at least one fitting layout
-            layout_combine_many1(Left, Rights, PageWidth, Frontier, []);
-        false ->
-            layout_combine_many1(Left, Rights, PageWidth, Frontier0, [Layout | Unfit0])
-    end;
-layout_combine_many1(_Left, [], _PageWidth, Frontier, Unfit) ->
-    {Frontier, Unfit}.
-
-%% TODO: if we kept some order in how we add new layouts, we could probably
-%% avoid this re-filtering step.
-pareto_frontier_add({Metric, _} = Layout, Layouts) ->
-    case any_dominates(Metric, Layouts) of
-        true -> Layouts;
-        false -> [Layout | filter_dominated(Metric, Layouts)]
-    end.
-
-any_dominates(Metric, [Layout | Layouts]) ->
-    metric_dominates(element(1, Layout), Metric) orelse any_dominates(Metric, Layouts);
-any_dominates(_Metric, []) ->
-    false.
-
-filter_dominated(Metric, Layouts) ->
-    [Layout || Layout <- Layouts, not metric_dominates(Metric, element(1, Layout))].
-
-reject_invalid(Layouts, MaxWidth, Options) ->
-    AllowUnfit = proplists:get_value(allow_unfit, Options, true),
-    case [Layout || {Metric, _} = Layout <- Layouts, Metric#metric.max_width =< MaxWidth] of
-        [] when AllowUnfit -> best_unfit(Layouts);
-        [] -> [];
-        Filtered -> Filtered
-    end.
-
-best_unfit([]) -> [];
-best_unfit([First | Rest]) -> [best_unfit(Rest, First)].
-
-best_unfit([{CandidateMetric, _} = Candidate | Rest], {BestMetric, _} = Best) ->
-    case (CandidateMetric#metric.max_width < BestMetric#metric.max_width) orelse
-             (CandidateMetric#metric.max_width =:= BestMetric#metric.max_width andalso
-                 CandidateMetric < BestMetric) of
-        true -> best_unfit(Rest, Candidate);
-        false -> best_unfit(Rest, Best)
-    end;
-best_unfit([], Best) ->
-    Best.
+indent(0) ->
+    ?newline;
+indent(I) when is_integer(I) ->
+    Spaces = binary:copy(<<" ">>, I),
+    <<?newline/binary, Spaces/binary>>.

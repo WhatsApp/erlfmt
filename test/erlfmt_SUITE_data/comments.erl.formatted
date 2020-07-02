@@ -3,6 +3,7 @@
 -export([has_fanciness/1, bar/1, baz/1]).
 
 %% Constants
+
 % Minimum interval between health checks
 -define(VERSION_CHECK_INTERVAL_MILLIS_DEFAULT, 10000).
 
@@ -11,9 +12,11 @@
 %% Cp stands for "codepoint"
 has_fanciness([Cp | Rest]) ->
     case wa_unicode:bidi_class(Cp) of
-        Class when Class =:= 'L';
-                   %% TODO maybe invalidate if there is too many NSM?
-                   Class =:= 'NSM' ->
+        Class when
+            Class =:= 'L';
+            %% TODO maybe invalidate if there is too many NSM?
+            Class =:= 'NSM'
+        ->
             has_fanciness(Rest);
         _ ->
             {true, Cp}
@@ -28,9 +31,10 @@ bar(X) when is_list(X) ->
 bar(X) when is_atom(X) ->
     ok.
 
-baz(Y)
-        %% comment
-        when is_list(Y);
-             %% other comment
-             is_binary(Y) ->
+baz(Y) when
+    %% comment
+    is_list(Y);
+    %% other comment
+    is_binary(Y)
+->
     ok.

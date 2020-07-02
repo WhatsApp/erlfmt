@@ -17,8 +17,6 @@
 
 -include_lib("stdlib/include/assert.hrl").
 
--include_lib("proper/include/proper.hrl").
-
 %% Test server callbacks
 -export([
     suite/0,
@@ -34,29 +32,58 @@
 
 %% Test cases
 -export([
-    string_append_case/1,
-    string_spaces_case/1,
-    lines_combine_case/1,
-    lines_unit/1,
-    metric_combine_case/1,
-    metric_unit/1,
-    document80_combine_case/1,
-    document20_combine_case/1,
-    document80_choice_case/1,
-    document20_choice_case/1,
-    document_unit/1,
-    document_fail/1,
-    document_prepend/1,
-    document_paper_example/1
+    test_empty/1,
+    test_binary/1,
+    test_string/1,
+    test_strict_break/1,
+    test_flex_break/1,
+    test_break/1,
+    test_space/1,
+    test_always_nest/1,
+    test_break_nest/1,
+    test_line/1,
+    test_group/1,
+    test_force_and_cancel/1,
+    test_groups_with_lines/1,
+    test_infinite_width/1,
+    test_concat/1,
+    test_docs/1,
+    test_group_string_concat/1
 ]).
 
--define(alg, erlfmt_algebra).
+-import(erlfmt_algebra, [
+    force_breaks/0,
+    group/1,
+    format/2,
+    string/1,
+    empty/0,
+    break/0,
+    break/1,
+    break/2,
+    break/3,
+    flex_break/1,
+    flex_break/0,
+    flex_break/2,
+    flex_break/3,
+    space/2,
+    nest/2,
+    nest/3,
+    line/0,
+    line/1,
+    line/2,
+    concat/1,
+    concat/2,
+    concat/3,
+    next_break_fits/1,
+    next_break_fits/2,
+    fold_doc/2
+]).
 
 suite() ->
     [{timetrap, {seconds, 10}}].
 
 init_per_suite(Config) ->
-    [{property_test_tool, proper} | Config].
+    Config.
 
 end_per_suite(_Config) ->
     ok.
@@ -74,421 +101,269 @@ end_per_testcase(_TestCase, _Config) ->
     ok.
 
 groups() ->
-    [
-        {string_api, [parallel], [string_append_case, string_spaces_case]},
-        {lines_api, [parallel], [lines_combine_case, lines_unit]},
-        {metric_api, [parallel], [metric_combine_case, metric_unit]},
-        {document_api, [parallel], [
-            document80_combine_case,
-            document20_combine_case,
-            document80_choice_case,
-            document20_choice_case,
-            document_unit,
-            document_fail,
-            document_prepend,
-            document_paper_example
-        ]}
-    ].
+    [].
 
 all() ->
-    [{group, string_api}, {group, lines_api}, {group, metric_api}, {group, document_api}].
+    [
+        test_empty,
+        test_binary,
+        test_string,
+        test_strict_break,
+        test_flex_break,
+        test_break,
+        test_flex_break,
+        test_space,
+        test_always_nest,
+        test_break_nest,
+        test_line,
+        test_group,
+        test_force_and_cancel,
+        test_groups_with_lines,
+        test_infinite_width,
+        test_concat,
+        test_docs,
+        test_group_string_concat
+    ].
 
-%%--------------------------------------------------------------------
-%% TEST CASESS
-string_append_equal_prop() ->
-    ?FORALL({Left, Right}, {str(), str()}, begin
-        Appended = ?alg:string_append(Left, Right),
-        string:equal(?alg:string_text(Appended), [
-            ?alg:string_text(Left) | ?alg:string_text(Right)
-        ])
-    end).
+% doctest Inspect.Algebra
 
-string_append_length_prop() ->
-    ?FORALL({Left, Right}, {str(), str()}, begin
-        Appended = ?alg:string_append(Left, Right),
-        ?alg:string_length(Appended) =:= string:length(?alg:string_text(Appended))
-    end).
+test_empty(Config) when is_list(Config) ->
+    ?assertEqual(doc_nil, empty()),
+    ?assertEqual(<<"">>, render(empty(), 80)).
 
-string_append_case(Config) when is_list(Config) ->
-    ct_property_test:quickcheck(string_append_equal_prop(), Config),
-    ct_property_test:quickcheck(string_append_length_prop(), Config).
+test_binary(Config) when is_list(Config) ->
+    ?assertEqual(<<"_">>, render(<<"_">>, 80)).
 
-string_spaces_prop() ->
-    ?FORALL(Count, non_neg_integer(), begin
-        string:length(?alg:string_text(?alg:string_spaces(Count))) =:= Count
-    end).
-
-string_spaces_case(Config) when is_list(Config) ->
-    ct_property_test:quickcheck(string_spaces_prop(), Config).
-
--record(layout, {new, flush, combine, render}).
-
-combine_assoc_prop(#layout{combine = Combine, render = Render} = Layout) ->
-    Gen = layout(Layout),
-    ?FORALL({L1, L2, L3}, {Gen, Gen, Gen}, begin
-        Combined1 = Combine(L1, Combine(L2, L3)),
-        Combined2 = Combine(Combine(L1, L2), L3),
-        string:equal(Render(Combined1), Render(Combined2))
-    end).
-
-combine_flush_prop(#layout{combine = Combine, render = Render, flush = Flush} = Layout) ->
-    Gen = layout(Layout),
-    ?FORALL({L1, L2}, {Gen, Gen}, begin
-        Combined1 = Combine(Flush(L1), Flush(L2)),
-        Combined2 = Flush(Combine(Flush(L1), L2)),
-        string:equal(Render(Combined1), Render(Combined2))
-    end).
-
-lines_combine_case(Config) when is_list(Config) ->
-    Lines = lines_layout(),
-    ct_property_test:quickcheck(combine_assoc_prop(Lines), Config),
-    ct_property_test:quickcheck(combine_flush_prop(Lines), Config).
-
-lines_unit(Config) when is_list(Config) ->
-    % xxxxxxxx      yyyyyyyy     xxxxxxxx
-    % xxx       <>  yyyy      =  xxx
-    % xxxxxxx                    xxxxxxx
-    % xxxxx                      xxxxxyyyyyyyy
-    %                                 yyyy
-    New = fun (Text) -> ?alg:lines_new(?alg:string_new(Text)) end,
-    #layout{flush = Flush, combine = Combine, render = Render} = lines_layout(),
-
-    Left = Combine(
-        Flush(New("xxxxxxxx")),
-        Combine(Flush(New("xxx")), Combine(Flush(New("xxxxxxx")), New("xxxxx")))
-    ),
+test_string(Config) when is_list(Config) ->
+    ?assertEqual({doc_string, <<"ólá"/utf8>>, 3}, string(<<"ólá"/utf8>>)),
     ?assertEqual(
-        "xxxxxxxx\n"
-        "xxx\n"
-        "xxxxxxx\n"
-        "xxxxx",
-        unicode:characters_to_list(Render(Left))
-    ),
-
-    Right = Combine(Flush(New("yyyyyyyy")), New("yyyy")),
-    ?assertEqual(
-        "yyyyyyyy\n"
-        "yyyy",
-        unicode:characters_to_list(Render(Right))
-    ),
-
-    Combined = Combine(Left, Right),
-    ?assertEqual(
-        "xxxxxxxx\n"
-        "xxx\n"
-        "xxxxxxx\n"
-        "xxxxxyyyyyyyy\n"
-        "     yyyy",
-        unicode:characters_to_list(Render(Combined))
+        <<"ólá mundo"/utf8>>,
+        render(break(string(<<"ólá"/utf8>>), <<" ">>, string(<<"mundo">>)), 80)
     ).
 
-metric_combine_case(Config) when is_list(Config) ->
-    Metric = metric_layout(),
-    ct_property_test:quickcheck(combine_assoc_prop(Metric), Config),
-    ct_property_test:quickcheck(combine_flush_prop(Metric), Config).
+test_strict_break(Config) when is_list(Config) ->
+    ?assertEqual({doc_break, <<"break">>, strict}, break(<<"break">>)),
+    ?assertEqual({doc_break, <<" ">>, strict}, break()),
 
-metric_unit(Config) when is_list(Config) ->
-    % xxxxxxxx      yyyyyyyy     xxxxxxxxxxxxx
-    % xxx       <>  yyyy      =  xxxxxxxxxxxxx
-    % xxxxxxx                    xxxxxxxxxxxxx
-    % xxxxx                      xxxxxxxxxxxxx
-    %                            xxxxxxxxx
-    New = fun (Text) -> ?alg:metric_new(?alg:string_new(Text)) end,
-    #layout{flush = Flush, combine = Combine, render = Render} = metric_layout(),
-
-    Left = Combine(
-        Flush(New("xxxxxxxx")),
-        Combine(Flush(New("xxx")), Combine(Flush(New("xxxxxxx")), New("xxxxx")))
-    ),
+    ?assertEqual(<<"_">>, render(break(<<"_">>), 80)),
     ?assertEqual(
-        "xxxxxxxx\n"
-        "xxxxxxxx\n"
-        "xxxxxxxx\n"
-        "xxxxx",
-        unicode:characters_to_list(Render(Left))
-    ),
-
-    Right = Combine(Flush(New("yyyyyyyy")), New("yyyy")),
-    ?assertEqual(
-        "xxxxxxxx\n"
-        "xxxx",
-        unicode:characters_to_list(Render(Right))
-    ),
-
-    Combined = Combine(Left, Right),
-    ?assertEqual(
-        "xxxxxxxxxxxxx\n"
-        "xxxxxxxxxxxxx\n"
-        "xxxxxxxxxxxxx\n"
-        "xxxxxxxxxxxxx\n"
-        "xxxxxxxxx",
-        unicode:characters_to_list(Render(Combined))
+        <<"foo\nbar\nbaz">>,
+        render(break(<<"foo">>, <<" ">>, break(<<"bar">>, <<" ">>, <<"baz">>)), 10)
     ).
 
-choice_assoc_prop(Choice, #layout{render = Render} = Layout) ->
-    Gen = layout(Layout),
-    ?FORALL({L1, L2, L3}, {Gen, Gen, Gen}, begin
-        Alternative1 = Choice(L1, Choice(L2, L3)),
-        Alternative2 = Choice(Choice(L1, L2), L3),
-        equal_height(Render(Alternative1), Render(Alternative2))
-    end).
+test_flex_break(Config) when is_list(Config) ->
+    ?assertEqual({doc_break, <<"break">>, flex}, flex_break(<<"break">>)),
+    ?assertEqual({doc_break, <<" ">>, flex}, flex_break()),
 
-choice_combine_left_distribute_prop(
-    Choice,
-    #layout{combine = Combine, render = Render} = Layout
-) ->
-    Gen = layout(Layout),
-    ?FORALL({L1, L2, L3}, {Gen, Gen, Gen}, begin
-        Combined1 = Combine(Choice(L1, L2), L3),
-        Combined2 = Choice(Combine(L1, L3), Combine(L2, L3)),
-        equal_height(Render(Combined1), Render(Combined2))
-    end).
-
-choice_combine_right_distribute_prop(
-    Choice,
-    #layout{combine = Combine, render = Render} = Layout
-) ->
-    Gen = layout(Layout),
-    ?FORALL({L1, L2, L3}, {Gen, Gen, Gen}, begin
-        Combined1 = Combine(L3, Choice(L1, L2)),
-        Combined2 = Choice(Combine(L3, L1), Combine(L3, L2)),
-        equal_height(Render(Combined1), Render(Combined2))
-    end).
-
-choice_flush_distribute_prop(Choice, #layout{flush = Flush, render = Render} = Layout) ->
-    Gen = layout(Layout),
-    ?FORALL({L1, L2}, {Gen, Gen}, begin
-        Combined1 = Flush(Choice(L1, L2)),
-        Combined2 = Choice(Flush(L1), Flush(L2)),
-        equal_height(Render(Combined1), Render(Combined2))
-    end).
-
-choice_commutative_prop(Choice, #layout{render = Render} = Layout) ->
-    Gen = layout(Layout),
-    ?FORALL({L1, L2}, {Gen, Gen}, begin
-        Combined1 = Choice(L1, L2),
-        Combined2 = Choice(L2, L1),
-        equal_height(Render(Combined1), Render(Combined2))
-    end).
-
-document80_combine_case(Config) when is_list(Config) ->
-    Document80 = document_layout(80),
-    true = ct_property_test:quickcheck(combine_assoc_prop(Document80), Config),
-    true = ct_property_test:quickcheck(combine_flush_prop(Document80), Config).
-
-document20_combine_case(Config) when is_list(Config) ->
-    Document20 = document_layout(20),
-    true = ct_property_test:quickcheck(combine_assoc_prop(Document20), Config),
-    true = ct_property_test:quickcheck(combine_flush_prop(Document20), Config).
-
-document80_choice_case(Config) when is_list(Config) ->
-    Document80 = document_layout(80),
-    Choice = fun ?alg:document_choice/2,
-    true = ct_property_test:quickcheck(choice_assoc_prop(Choice, Document80), Config),
-    true = ct_property_test:quickcheck(
-        choice_combine_left_distribute_prop(Choice, Document80),
-        Config
-    ),
-    true = ct_property_test:quickcheck(
-        choice_combine_right_distribute_prop(Choice, Document80),
-        Config
-    ),
-    true = ct_property_test:quickcheck(
-        choice_flush_distribute_prop(Choice, Document80),
-        Config
-    ),
-    true = ct_property_test:quickcheck(choice_commutative_prop(Choice, Document80), Config).
-
-document20_choice_case(Config) when is_list(Config) ->
-    Document20 = document_layout(20),
-    Choice = fun ?alg:document_choice/2,
-    true = ct_property_test:quickcheck(choice_assoc_prop(Choice, Document20), Config),
-    true = ct_property_test:quickcheck(
-        choice_combine_left_distribute_prop(Choice, Document20),
-        Config
-    ),
-    true = ct_property_test:quickcheck(
-        choice_combine_right_distribute_prop(Choice, Document20),
-        Config
-    ),
-    true = ct_property_test:quickcheck(
-        choice_flush_distribute_prop(Choice, Document20),
-        Config
-    ),
-    true = ct_property_test:quickcheck(choice_commutative_prop(Choice, Document20), Config).
-
-document_unit(Config) when is_list(Config) ->
-    % xxxxxxxx      yyyyyyyy     xxxxxxxx
-    % xxx       <>  yyyy      =  xxx
-    % xxxxxxx                    xxxxxxx
-    % xxxxx                      xxxxxyyyyyyyy
-    %                                 yyyy
-    New = fun (Text) -> ?alg:document_text(Text) end,
-    #layout{flush = Flush, combine = Combine, render = Render} = document_layout(20),
-
-    Left = Combine(
-        Flush(New("xxxxxxxx")),
-        Combine(Flush(New("xxx")), Combine(Flush(New("xxxxxxx")), New("xxxxx")))
-    ),
+    ?assertEqual(<<"_">>, render(flex_break(<<"_">>), 80)),
     ?assertEqual(
-        "xxxxxxxx\n"
-        "xxx\n"
-        "xxxxxxx\n"
-        "xxxxx",
-        unicode:characters_to_list(Render(Left))
+        <<"foo bar\nbaz">>,
+        render(
+            flex_break(<<"foo">>, <<" ">>, flex_break(<<"bar">>, <<" ">>, <<"baz">>)),
+            10
+        )
     ),
 
-    Right = Combine(Flush(New("yyyyyyyy")), New("yyyy")),
     ?assertEqual(
-        "yyyyyyyy\n"
-        "yyyy",
-        unicode:characters_to_list(Render(Right))
+        {doc_cons, <<"a">>, {doc_cons, {doc_break, <<"->">>, flex}, <<"b">>}},
+        flex_break(<<"a">>, <<"->">>, <<"b">>)
     ),
+    ?assertEqual(flex_break(<<"a">>, <<"b">>), flex_break(<<"a">>, <<" ">>, <<"b">>)).
 
-    Combined = Combine(Left, Right),
+test_break(Config) when is_list(Config) ->
     ?assertEqual(
-        "xxxxxxxx\n"
-        "xxx\n"
-        "xxxxxxx\n"
-        "xxxxxyyyyyyyy\n"
-        "     yyyy",
-        unicode:characters_to_list(Render(Combined))
+        {doc_cons, <<"a">>, {doc_cons, {doc_break, <<"->">>, strict}, <<"b">>}},
+        break(<<"a">>, <<"->">>, <<"b">>)
+    ),
+    ?assertEqual(break(<<"a">>, <<"b">>), break(<<"a">>, <<" ">>, <<"b">>)).
+
+test_space(Config) when is_list(Config) ->
+    ?assertEqual({doc_string, [<<"a">>, <<" ">> | <<"b">>], 3}, space(<<"a">>, <<"b">>)),
+
+    ?assertEqual(<<"a b">>, render(space(<<"a">>, <<"b">>), 80)).
+
+test_always_nest(Config) when is_list(Config) ->
+    ?assertEqual({doc_nest, empty(), 1, always}, nest(empty(), 1)),
+    ?assertEqual(empty(), nest(empty(), 0)),
+
+    ?assertEqual(<<"a">>, render(nest(<<"a">>, 1), 80)),
+    ?assertEqual(<<"a\n b">>, render(nest(break(<<"a">>, <<"b">>), 1), 2)),
+    ?assertEqual(<<"a\n b">>, render(nest(line(<<"a">>, <<"b">>), 1), 20)).
+
+test_break_nest(Config) when is_list(Config) ->
+    ?assertEqual({doc_nest, empty(), 1, break}, nest(empty(), 1, break)),
+    ?assertEqual(empty(), nest(empty(), 0, break)),
+
+    ?assertEqual(<<"a">>, render(nest(<<"a">>, 1, break), 80)),
+    ?assertEqual(<<"a\n b">>, render(nest(break(<<"a">>, <<"b">>), 1, break), 2)),
+    ?assertEqual(<<"a\nb">>, render(nest(line(<<"a">>, <<"b">>), 1, break), 20)).
+
+test_line(Config) when is_list(Config) ->
+    ?assertEqual(
+        {doc_cons, <<"a">>, {doc_cons, {doc_line, 1}, <<"b">>}},
+        line(<<"a">>, <<"b">>)
+    ),
+    ?assertEqual({doc_line, 2}, line(2)),
+
+    ?assertEqual(
+        <<"aaa bbb\nccc ddd">>,
+        render(line(break(<<"aaa">>, <<"bbb">>), break(<<"ccc">>, <<"ddd">>)), 10)
+    ),
+    ?assertEqual(<<"a\n\nb">>, render(concat([<<"a">>, line(2), <<"b">>]), 80)).
+
+test_group(Config) when is_list(Config) ->
+    ?assertEqual({doc_group, <<"ab">>}, group(<<"ab">>)),
+    ?assertEqual({doc_group, empty()}, group(empty())),
+
+    Doc = concat(break(break(break(<<"hello">>, <<"a">>), <<"b">>), <<"c">>), <<"d">>),
+    ?assertEqual(<<"hello\na\nb\ncd">>, render(group(Doc), 5)).
+
+test_force_and_cancel(Config) when is_list(Config) ->
+    ?assertEqual(doc_force_breaks, force_breaks()),
+
+    ?assertEqual({doc_fits, <<"ab">>, enabled}, next_break_fits(<<"ab">>)),
+    ?assertEqual({doc_fits, empty(), enabled}, next_break_fits(empty())),
+
+    ?assertEqual({doc_fits, <<"ab">>, disabled}, next_break_fits(<<"ab">>, disabled)),
+    ?assertEqual({doc_fits, empty(), disabled}, next_break_fits(empty(), disabled)),
+
+    Doc = concat(
+        force_breaks(),
+        break(break(break(<<"hello">>, <<"a">>), <<"b">>), <<"c">>),
+        <<"d">>
+    ),
+    ?assertEqual(<<"hello\na\nb\ncd">>, render(Doc, 20)),
+    ?assertEqual(<<"hello a b cd">>, render(next_break_fits(Doc, enabled), 20)),
+    ?assertEqual(
+        <<"hello\na\nb\ncd">>,
+        render(next_break_fits(next_break_fits(Doc, enabled), disabled), 20)
     ).
 
-document_fail(Config) when is_list(Config) ->
-    Doc = ?alg:document_fail(),
-    ?assertError(no_viable_layout, ?alg:document_render(Doc, [])).
+test_groups_with_lines(Config) when is_list(Config) ->
+    Doc = line(break(<<"a">>, <<"b">>), break(<<"hello">>, <<"world">>)),
+    ?assertEqual(<<"a\nb\nhello\nworld">>, render(group(Doc), 5)),
+    ?assertEqual(<<"a b\nhello world">>, render(group(Doc), 100)).
 
-document_prepend(Config) when is_list(Config) ->
-    New = fun (Text) -> ?alg:document_text(Text) end,
-    #layout{flush = Flush, combine = Combine, render = Render} = document_layout(20),
+test_infinite_width(Config) when is_list(Config) ->
+    Str = binary:copy(<<"x">>, 50),
 
-    Left = New("foo("),
-    Right = New(")"),
-    Doc = Combine(Flush(New("[")), Combine(Flush(New("    X,")), New("]"))),
-
-    Combined = ?alg:document_prepend(Left, Combine(Doc, Right)),
-
-    ?assertEqual(
-        "foo([\n"
-        "    X,\n"
-        "])",
-        unicode:characters_to_list(Render(Combined))
-    ).
-
-document_paper_example(Config) when is_list(Config) ->
-    Abcd = [a, b, c, d],
-    Abcd4 = [Abcd, Abcd, Abcd, Abcd],
-    Sexpr = pretty_sexpr([[abcde, Abcd4], [abcdefghi, Abcd4]]),
-
-    ?assertEqual(
-        "((abcde ((a b c d) (a b c d) (a b c d) (a b c d)))\n"
-        " (abcdefghi ((a b c d) (a b c d) (a b c d) (a b c d))))",
-        render_sexpr(Sexpr, 80)
+    Doc = group(
+        break(
+            break(break(break(Str, <<";">>, Str), <<";">>, Str), <<";">>, Str),
+            <<";">>,
+            Str
+        )
     ),
     ?assertEqual(
-        "((abcde ((a b c d) (a b c d) (a b c d) (a b c d)))\n"
-        " (abcdefghi\n"
-        "  ((a b c d) (a b c d) (a b c d) (a b c d))))",
-        render_sexpr(Sexpr, 50)
+        <<Str/binary, ";", Str/binary, ";", Str/binary, ";", Str/binary, ";", Str/binary>>,
+        render(Doc, infinity)
+    ).
+
+test_concat(Config) when is_list(Config) ->
+    ?assertEqual(<<"foo">>, render(concat(empty(), <<"foo">>), 80)).
+
+test_docs(Config) when is_list(Config) ->
+    ?assertEqual(<<"a b">>, render(group(break(<<"a">>, <<" ">>, <<"b">>)), 80)),
+
+    % A break inserts a break between two documents. A group
+    % indicates a document that must fit the current line, otherwise
+    % breaks are rendered as new lines. Let's break two docs together
+    % with a break, group it and then render it.
+    ?assertEqual(
+        <<"aaaaaaaaaaaaaaaaaaaa b">>,
+        render(group(break(binary:copy(<<"a">>, 20), <<" ">>, <<"b">>)), 80)
+    ),
+    % Notice the break was represented as is, because we haven't reached
+    % a line limit. Once we do, it is replaced by a newline:
+    ?assertEqual(
+        <<"aaaaaaaaaaaaaaaaaaaa\nb">>,
+        render(group(break(binary:copy(<<"a">>, 20), <<" ">>, <<"b">>)), 10)
+    ),
+
+    ?assertEqual(
+        <<"olá\nmundo"/utf8>>,
+        render(group(break(<<"olá"/utf8>>, <<" ">>, <<"mundo">>)), 9)
     ),
     ?assertEqual(
-        "((abcde ((a b c d)\n"
-        "         (a b c d)\n"
-        "         (a b c d)\n"
-        "         (a b c d)))\n"
-        " (abcdefghi\n"
-        "  ((a b c d)\n"
-        "   (a b c d)\n"
-        "   (a b c d)\n"
-        "   (a b c d))))",
-        render_sexpr(Sexpr, 20)
+        <<"olá mundo"/utf8>>,
+        render(group(break(string(<<"olá"/utf8>>), <<" ">>, <<"mundo">>)), 9)
+    ),
+
+    ?assertEqual(
+        <<"helloworld">>,
+        render(concat(<<"hello">>, <<"world">>), 80)
+    ),
+
+    ?assertEqual(
+        <<"abc">>,
+        render(concat([<<"a">>, <<"b">>, <<"c">>]), 80)
+    ),
+
+    ?assertEqual(
+        <<"hello\n     world">>,
+        render(group(nest(break(<<"hello">>, <<"world">>), 5)), 5)
+    ),
+
+    ?assertEqual(
+        <<"a\tb">>,
+        render(concat([<<"a">>, break(<<"\t">>), <<"b">>]), 80)
+    ),
+    ?assertEqual(
+        <<"aaaaaaaaaaaaaaaaaaaa\nb">>,
+        render(group(concat([binary:copy(<<"a">>, 20), break(<<"\t">>), <<"b">>])), 10)
+    ),
+
+    ?assertEqual(<<"hello world">>, render(break(<<"hello">>, <<"world">>), 80)),
+    ?assertEqual(<<"hello\tworld">>, render(break(<<"hello">>, <<"\t">>, <<"world">>), 80)),
+
+    Doc1 = group(
+        concat(
+            group(concat(<<"Hello,">>, concat(break(), <<"A">>))),
+            concat(break(), <<"B">>)
+        )
+    ),
+    ?assertEqual(<<"Hello, A B">>, render(Doc1, 80)),
+    ?assertEqual(<<"Hello,\nA\nB">>, render(Doc1, 6)),
+
+    ?assertEqual(<<"Hughes Wadler">>, render(space(<<"Hughes">>, <<"Wadler">>), 5)),
+    ?assertEqual(
+        <<"Hughes\nWadler">>,
+        render(concat(concat(<<"Hughes">>, line()), <<"Wadler">>), 80)
+    ),
+    ?assertEqual(<<"Hughes\nWadler">>, render(line(<<"Hughes">>, <<"Wadler">>), 80)),
+
+    ?assertEqual(
+        <<"A!B!C">>,
+        render(
+            fold_doc(fun (D, Acc) -> concat([D, <<"!">>, Acc]) end, [
+                <<"A">>,
+                <<"B">>,
+                <<"C">>
+            ]),
+            80
+        )
+    ),
+
+    Doc2 = group(break(<<"hello">>, <<" ">>, <<"world">>)),
+    ?assertEqual(<<"hello world">>, render(Doc2, 30)),
+    ?assertEqual(<<"hello\nworld">>, render(Doc2, 10)).
+
+test_group_string_concat(Config) when is_list(Config) ->
+    A20 = binary:copy(<<"a">>, 20),
+    Doc = concat(group(concat([A20, break(), <<"b">>])), <<"c">>),
+
+    ?assertEqual(
+        <<A20/binary, "\nbc">>,
+        render(Doc, 10)
+    ),
+    ?assertEqual(
+        <<A20/binary, "\nbc">>,
+        render(Doc, 22)
+    ),
+    ?assertEqual(
+        <<A20/binary, " bc">>,
+        render(Doc, 23)
     ).
 
-render_sexpr(Document, PageWidth) ->
-    Charlist = ?alg:document_render(Document, [{page_width, PageWidth}]),
-    unicode:characters_to_list(Charlist).
-
-pretty_sexpr(List) when is_list(List) ->
-    Lparen = ?alg:document_text("("),
-    Rparen = ?alg:document_text(")"),
-    Space = ?alg:document_text(" "),
-
-    HorizontalFold = fun (Elem, Acc) ->
-        ?alg:document_combine(Elem, ?alg:document_combine(Space, Acc))
-    end,
-    VerticalFold = fun (Elem, Acc) ->
-        ?alg:document_combine(?alg:document_flush(Elem), Acc)
-    end,
-
-    Rendered = lists:map(fun pretty_sexpr/1, List),
-    Horizontal = ?alg:document_reduce(HorizontalFold, Rendered),
-    Vertical = ?alg:document_reduce(VerticalFold, Rendered),
-    Elements = ?alg:document_choice(Horizontal, Vertical),
-
-    ?alg:document_combine(Lparen, ?alg:document_combine(Elements, Rparen));
-pretty_sexpr(Atom) when is_atom(Atom) ->
-    ?alg:document_text(atom_to_binary(Atom, utf8)).
-
-lines_layout() ->
-    #layout{
-        new = fun ?alg:lines_new/1,
-        flush = fun ?alg:lines_flush/1,
-        combine = fun ?alg:lines_combine/2,
-        render = fun ?alg:lines_render/1
-    }.
-
-metric_layout() ->
-    #layout{
-        new = fun ?alg:metric_new/1,
-        flush = fun ?alg:metric_flush/1,
-        combine = fun ?alg:metric_combine/2,
-        render = fun ?alg:metric_render/1
-    }.
-
-document_layout(PageWidth) ->
-    #layout{
-        new = fun (String) -> ?alg:document_text(?alg:string_text(String)) end,
-        flush = fun ?alg:document_flush/1,
-        combine = fun ?alg:document_combine/2,
-        render = fun (Document) -> document_render(Document, PageWidth) end
-    }.
-
-%% The properties don't hold if we start accepting too wide documents
-document_render(Document, PageWidth) ->
-    try ?alg:document_render(Document, [{page_width, PageWidth}, {allow_unfit, false}])
-    catch
-        error:no_viable_layout -> ""
-    end.
-
-equal_height(Text1, Text2) ->
-    Height1 = length(string:split(Text1, "\n", all)),
-    Height2 = length(string:split(Text2, "\n", all)),
-    Height1 =:= Height2.
-
-%% It's possible for the utf8 generator to produce strings that start or end with
-%% a decomposed accent or something else like this - this means that when appended
-%% it composes into one grapheme with the other string and lengths are off.
-str() ->
-    ClosedUTF8 = ?SUCHTHAT(Str, utf8(), begin
-        Length = string:length(Str),
-        string:length([" " | Str]) =/= Length andalso string:length([Str | " "]) =/= Length
-    end),
-    ?LET(
-        Str,
-        ClosedUTF8,
-        ?alg:string_new(binary:replace(Str, [<<" ">>, <<"\n">>, <<"\r">>], <<>>))
-    ).
-
-layout(Layout) ->
-    ?SIZED(Size, limited_layout(Size, Layout)).
-
-limited_layout(Size, #layout{new = New}) when Size =< 1 ->
-    ?LET(Str, str(), New(Str));
-limited_layout(Size, #layout{new = New, flush = Flush, combine = Combine} = Layout) ->
-    Self = ?LAZY(limited_layout(Size - 1, Layout)),
-    union([
-        ?LET(Str, str(), New(Str)),
-        ?LET(Lines, Self, Flush(Lines)),
-        ?LET({Left, Right}, {Self, Self}, Combine(Left, Right))
-    ]).
+render(Doc, Limit) ->
+    unicode:characters_to_binary(format(group(Doc), Limit)).

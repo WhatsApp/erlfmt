@@ -231,6 +231,15 @@ string_concat(Config) when is_list(Config) ->
     ?assertFormat(
         "\"foo\n\"",
         "\"foo\\n\""
+    ),
+
+    ?assertFormat(
+        "foo(\"foo\"\n"
+        "\"bar\")",
+        "foo(\n"
+        "    \"foo\"\n"
+        "    \"bar\"\n"
+        ")"
     ).
 
 unary_operator(Config) when is_list(Config) ->
@@ -340,20 +349,20 @@ binary_operator(Config) when is_list(Config) ->
         "Foo *\n"
         "    (B + C) *\n"
         "    D",
-        13
+        12
     ),
     ?assertFormat(
         "A * (B + C) * D",
         "A * (B + C) *\n"
         "    D",
-        13
+        12
     ),
     ?assertFormat(
         "One * (Two + Three + Four) * Five",
         "One *\n"
         "    (Two + Three +\n"
         "        Four) * Five",
-        25
+        20
     ),
 
     %% Next break fits
@@ -396,22 +405,22 @@ tuple(Config) when is_list(Config) ->
     ?assertFormat("{1,2}", "{1, 2}"),
     ?assertFormat("{1,{2,3}}", "{1, {2, 3}}"),
     ?assertFormat(
-        "{verylong,{2,3,4}}",
+        "{verylong,{22,33,44}}",
         "{verylong,\n"
-        "    {2, 3, 4}}",
+        "    {22, 33, 44}}",
         20
     ),
     ?assertFormat(
-        "{long,x,{2,3,4},y}",
+        "{long,x,{22,33,44},y}",
         "{long, x,\n"
-        "    {2, 3, 4}, y}",
+        "    {22, 33, 44}, y}",
         20
     ),
     ?assertFormat(
-        "{verylong,x,{2,3,4},y,{5,6,7},z}",
+        "{verylong,x,{22,33,44},y,{55,66,77},z}",
         "{verylong, x,\n"
-        "    {2, 3, 4}, y,\n"
-        "    {5, 6, 7}, z}",
+        "    {22, 33, 44}, y,\n"
+        "    {55, 66, 77}, z}",
         20
     ),
     ?assertFormat(
@@ -435,8 +444,7 @@ tuple(Config) when is_list(Config) ->
     ?assertFormat(
         "{{a,long,tuple},{another,tuple},[nested,1,long,list]}",
         "{{a, long, tuple},\n"
-        "    {another, tuple},\n"
-        "    [\n"
+        "    {another, tuple}, [\n"
         "        nested,\n"
         "        1,\n"
         "        long,\n"
@@ -445,17 +453,17 @@ tuple(Config) when is_list(Config) ->
         25
     ),
     ?assertFormat(
-        "{{a,long,tuple},the,atoms,[nested,long,list],other,bare,atoms,this_does_not_fit}",
+        "{{a,long,tuple},bare,atoms,[nested,long,list],bare,atoms,this_does_not_fit}",
         "{{a, long, tuple},\n"
-        "    the, atoms,\n"
+        "    bare, atoms,\n"
         "    [\n"
         "        nested,\n"
         "        long,\n"
         "        list\n"
         "    ],\n"
-        "    other, bare, atoms,\n"
+        "    bare, atoms,\n"
         "    this_does_not_fit}",
-        25
+        20
     ),
     ?assertFormat(
         "{short, {a,long,tuple}}",
@@ -463,6 +471,30 @@ tuple(Config) when is_list(Config) ->
         "    {a, long,\n"
         "        tuple}}",
         15
+    ),
+    ?assertSame(
+        "{\n"
+        "    foo\n"
+        "}"
+    ),
+    ?assertFormat(
+        "{foo\n"
+        " %% bar\n"
+        "}",
+        "{\n"
+        "    foo\n"
+        "    %% bar\n"
+        "}"
+    ),
+    ?assertFormat(
+        "{true, lists:reverse(Acc, [concat(force_breaks(), line(expr_to_algebra(Value), comments_to_algebra(Comments)))])}",
+        "{true,\n"
+        "    lists:reverse(Acc, [\n"
+        "        concat(\n"
+        "            force_breaks(),\n"
+        "            line(expr_to_algebra(Value), comments_to_algebra(Comments))\n"
+        "        )\n"
+        "    ])}"
     ).
 
 list(Config) when is_list(Config) ->
@@ -479,10 +511,20 @@ list(Config) when is_list(Config) ->
         15
     ),
     ?assertFormat(
+        "[\n"
+        "long,[2,3,4]]",
+        "[\n"
+        "    long,\n"
+        "    [2, 3, 4]\n"
+        "]",
+        15
+    ),
+    ?assertFormat(
         "[11,2|3]",
         "[\n"
         "    11,\n"
-        "    2 | 3\n"
+        "    2\n"
+        "    | 3\n"
         "]",
         10
     ),
@@ -497,11 +539,24 @@ list(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "[short, [long, word]]",
-        "[short, [\n"
-        "    long,\n"
-        "    word\n"
-        "]]",
+        "[\n"
+        "    short,\n"
+        "    [\n"
+        "        long,\n"
+        "        word\n"
+        "    ]\n"
+        "]",
         15
+    ),
+    ?assertFormat(
+        "[1, begin 2 end, 3]",
+        "[\n"
+        "    1,\n"
+        "    begin\n"
+        "        2\n"
+        "    end,\n"
+        "    3\n"
+        "]"
     ).
 
 binary(Config) when is_list(Config) ->
@@ -514,24 +569,24 @@ binary(Config) when is_list(Config) ->
     ?assertSame("<<\"żółć\"/utf8>>"),
     ?assertFormat("<<1/float,<<22,33>>/binary>>", "<<1/float, <<22, 33>>/binary>>"),
     ?assertFormat(
-        "<<1/float,<<22,33>>>>",
+        "<<1/float,<<222,333>>>>",
         "<<1/float,\n"
-        "    <<22,\n"
-        "        33>>>>",
+        "    <<222,\n"
+        "        333>>>>",
         15
     ),
     ?assertSame(
         "<<\n"
         "    1/float,\n"
-        "    <<22, 33>>\n"
+        "    <<222, 333>>\n"
         ">>"
     ),
     ?assertSame(
         "<<\n"
         "    1/float,\n"
         "    <<\n"
-        "        22,\n"
-        "        33\n"
+        "        222,\n"
+        "        333\n"
         "    >>\n"
         ">>"
     ).
@@ -556,6 +611,14 @@ map_create(Config) when is_list(Config) ->
         "        44\n"
         "}",
         10
+    ),
+    ?assertSame(
+        "#{\n"
+        "    1 => [\n"
+        "        2\n"
+        "    ],\n"
+        "    3 => 4\n"
+        "}"
     ).
 
 map_update(Config) when is_list(Config) ->
@@ -605,7 +668,7 @@ record_create(Config) when is_list(Config) ->
         "    a = 1,\n"
         "    b = 2 + 3\n"
         "}",
-        10
+        15
     ),
     ?assertFormat(
         "#foo{a=1,b=Foo+Bar}",
@@ -615,7 +678,7 @@ record_create(Config) when is_list(Config) ->
         "        Foo +\n"
         "            Bar\n"
         "}",
-        10
+        15
     ),
     ?assertSame("#?FOO{}"),
     ?assertSame("?FOO{}"),
@@ -628,8 +691,9 @@ record_create(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "#foo{\n"
-        "    long_key =\n"
-        "        [long_value]\n"
+        "    long_key = [\n"
+        "        long_value\n"
+        "    ]\n"
         "}",
         20
     ).
@@ -683,6 +747,17 @@ record_field(Config) when is_list(Config) ->
 force_break(Config) when is_list(Config) ->
     ?assertSame(
         "[\n"
+        "    %% foo\n"
+        "]"
+    ),
+
+    ?assertFormat(
+        "[1, 2\n"
+        "    %% foo\n"
+        "]",
+        "[\n"
+        "    1,\n"
+        "    2\n"
         "    %% foo\n"
         "]"
     ),
@@ -823,9 +898,21 @@ list_comprehension(Config) when is_list(Config) ->
         "        Very,\n"
         "        Long,\n"
         "        Expression\n"
-        "    ] || X <- Y, X < 10\n"
+        "    ]\n"
+        "    || X <- Y, X < 10\n"
         "]",
         25
+    ),
+    ?assertFormat(
+        "[X || X <- Y, X < 10\n"
+        " % trailing comment \n"
+        "]",
+        "[\n"
+        "    X\n"
+        "    || X <- Y,\n"
+        "       X < 10\n"
+        "       % trailing comment \n"
+        "]"
     ),
     ?assertFormat(
         "[{Very, Long, Expression} || X <- Y, X < 10]",
@@ -945,6 +1032,25 @@ call(Config) when is_list(Config) ->
         "        1\n"
         "    )\n"
         ")"
+    ),
+    ?assertSame(
+        "?MAKE_FUN(\n"
+        "    foo\n"
+        ")(\n"
+        "    bar\n"
+        ")."
+    ),
+    ?assertFormat(
+        "render(fold_doc(fun(D, Acc) -> concat([D,X,Acc]) end, [A,B,C]),80)",
+        "render(\n"
+        "    fold_doc(fun (D, Acc) -> concat([D, X, Acc]) end, [\n"
+        "        A,\n"
+        "        B,\n"
+        "        C\n"
+        "    ]),\n"
+        "    80\n"
+        ")",
+        60
     ).
 
 block(Config) when is_list(Config) ->
@@ -952,6 +1058,18 @@ block(Config) when is_list(Config) ->
         "begin 1 end",
         "begin\n"
         "    1\n"
+        "end"
+    ),
+    ?assertSame(
+        "begin\n"
+        "    1\n"
+        "end"
+    ),
+    ?assertFormat(
+        "begin 1, 2 end",
+        "begin\n"
+        "    1,\n"
+        "    2\n"
         "end"
     ),
     ?assertFormat(
@@ -1014,8 +1132,9 @@ fun_expression(Config) when is_list(Config) ->
     ?assertFormat(
         "fun (Even, Longer) when Guarded -> Expression; (ok) -> ok end",
         "fun\n"
-        "    (Even, Longer)\n"
-        "            when Guarded ->\n"
+        "    (Even, Longer) when\n"
+        "        Guarded\n"
+        "    ->\n"
         "        Expression;\n"
         "    (ok) ->\n"
         "        ok\n"
@@ -1037,11 +1156,12 @@ fun_expression(Config) when is_list(Config) ->
         25
     ),
     ?assertFormat(
-        "fun (Long, Pattern) when Guard; Is, Long -> Expression; (ok) -> ok end",
+        "fun (Long, Pattern) when VeryLongGuard; Is, Very, Long -> Expression; (ok) -> ok end",
         "fun\n"
-        "    (Long, Pattern)\n"
-        "            when Guard;\n"
-        "                 Is, Long ->\n"
+        "    (Long, Pattern) when\n"
+        "        VeryLongGuard;\n"
+        "        Is, Very, Long\n"
+        "    ->\n"
         "        Expression;\n"
         "    (ok) ->\n"
         "        ok\n"
@@ -1049,13 +1169,14 @@ fun_expression(Config) when is_list(Config) ->
         30
     ),
     ?assertFormat(
-        "fun (Long, Pattern) when Guard; Is, Even, Longer -> Expression; (ok) -> ok end",
+        "fun (Long, Pattern) when VeryLongGuard; Is, Even, Loooooooonger -> Expression; (ok) -> ok end",
         "fun\n"
-        "    (Long, Pattern)\n"
-        "            when Guard;\n"
-        "                 Is,\n"
-        "                 Even,\n"
-        "                 Longer ->\n"
+        "    (Long, Pattern) when\n"
+        "        VeryLongGuard;\n"
+        "        Is,\n"
+        "        Even,\n"
+        "        Loooooooonger\n"
+        "    ->\n"
         "        Expression;\n"
         "    (ok) ->\n"
         "        ok\n"
@@ -1078,8 +1199,9 @@ fun_expression(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "fun (Even, Longer) when Guarded -> Expression end",
-        "fun (Even, Longer)\n"
-        "        when Guarded ->\n"
+        "fun (Even, Longer) when\n"
+        "    Guarded\n"
+        "->\n"
         "    Expression\n"
         "end",
         25
@@ -1096,24 +1218,26 @@ fun_expression(Config) when is_list(Config) ->
         20
     ),
     ?assertFormat(
-        "fun (Long, Pattern) when Guard; Is, Long -> Expression end",
-        "fun (Long, Pattern)\n"
-        "        when Guard;\n"
-        "             Is, Long ->\n"
+        "fun (Long, Pattern) when LongerGuard; Is, Very, Long -> Expression end",
+        "fun (Long, Pattern) when\n"
+        "    LongerGuard;\n"
+        "    Is, Very, Long\n"
+        "->\n"
         "    Expression\n"
         "end",
         25
     ),
     ?assertFormat(
-        "fun (Long, Pattern) when Guard; Is, Even, Longer -> Expression end",
-        "fun (Long, Pattern)\n"
-        "        when Guard;\n"
-        "             Is,\n"
-        "             Even,\n"
-        "             Longer ->\n"
+        "fun (Long, Pattern) when VeryLongGuard; Is, Even, Loooooooonger -> Expression end",
+        "fun (Long, Pattern) when\n"
+        "    VeryLongGuard;\n"
+        "    Is,\n"
+        "    Even,\n"
+        "    Loooooooonger\n"
+        "->\n"
         "    Expression\n"
         "end",
-        30
+        25
     ).
 
 case_expression(Config) when is_list(Config) ->
@@ -1121,6 +1245,15 @@ case_expression(Config) when is_list(Config) ->
         "case 1 of 1 -> ok end",
         "case 1 of\n"
         "    1 -> ok\n"
+        "end",
+        100
+    ),
+    ?assertFormat(
+        "case 1 of 1 -> ok, ok end",
+        "case 1 of\n"
+        "    1 ->\n"
+        "        ok,\n"
+        "        ok\n"
         "end",
         100
     ),
@@ -1150,8 +1283,9 @@ case_expression(Config) when is_list(Config) ->
     ?assertFormat(
         "case 1 of {Even, Longer} when Guarded -> Expression end",
         "case 1 of\n"
-        "    {Even, Longer}\n"
-        "            when Guarded ->\n"
+        "    {Even, Longer} when\n"
+        "        Guarded\n"
+        "    ->\n"
         "        Expression\n"
         "end",
         30
@@ -1169,11 +1303,12 @@ case_expression(Config) when is_list(Config) ->
         25
     ),
     ?assertFormat(
-        "case 1 of {Long, Pattern} when Guard; Is, Long -> Expression end",
+        "case 1 of {Long, Pattern} when LongGuard; Is, Very, Very, Long -> Expression end",
         "case 1 of\n"
-        "    {Long, Pattern}\n"
-        "            when Guard;\n"
-        "                 Is, Long ->\n"
+        "    {Long, Pattern} when\n"
+        "        LongGuard;\n"
+        "        Is, Very, Very, Long\n"
+        "    ->\n"
         "        Expression\n"
         "end",
         30
@@ -1187,6 +1322,21 @@ case_expression(Config) when is_list(Config) ->
         "        Expression\n"
         "end",
         25
+    ),
+    ?assertSame(
+        "case 1 of\n"
+        "    1 -> ok\n"
+        "    %% comment\n"
+        "end"
+    ),
+    ?assertSame(
+        "case\n"
+        "    [\n"
+        "        value\n"
+        "    ]\n"
+        "of\n"
+        "    _ -> ok\n"
+        "end."
     ).
 
 receive_expression(Config) when is_list(Config) ->
@@ -1199,6 +1349,12 @@ receive_expression(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "receive\n"
+        "after 0 -> ok\n"
+        "end"
+    ),
+    ?assertSame(
+        "receive\n"
+        "%% comment\n"
         "after 0 -> ok\n"
         "end"
     ),
@@ -1241,8 +1397,9 @@ receive_expression(Config) when is_list(Config) ->
     ?assertFormat(
         "receive {Even, Longer} when Guarded -> Expression end",
         "receive\n"
-        "    {Even, Longer}\n"
-        "            when Guarded ->\n"
+        "    {Even, Longer} when\n"
+        "        Guarded\n"
+        "    ->\n"
         "        Expression\n"
         "end",
         30
@@ -1260,11 +1417,12 @@ receive_expression(Config) when is_list(Config) ->
         25
     ),
     ?assertFormat(
-        "receive {Long, Pattern} when Guard; Is, Long -> Expression end",
+        "receive {Long, Pattern} when VeryLongGuard; Is, Very, Long -> Expression end",
         "receive\n"
-        "    {Long, Pattern}\n"
-        "            when Guard;\n"
-        "                 Is, Long ->\n"
+        "    {Long, Pattern} when\n"
+        "        VeryLongGuard;\n"
+        "        Is, Very, Long\n"
+        "    ->\n"
         "        Expression\n"
         "end",
         30
@@ -1391,7 +1549,7 @@ if_expression(Config) when is_list(Config) ->
         "    Is, Long ->\n"
         "        Expression\n"
         "end",
-        25
+        20
     ),
     ?assertFormat(
         "if Short -> Expr; long(Guard, And) -> Expression end",
@@ -1446,18 +1604,44 @@ function(Config) when is_list(Config) ->
     ?assertSame(
         "?FOO(1) -> ok;\n"
         "?DEFAULT(?FOO)."
+    ),
+    ?assertSame(
+        "?DEFAULT(?FOO);\n"
+        "?FOO(1) -> ok."
+    ),
+    ?assertSame(
+        "?DEFAULT(\n"
+        "    ?FOO\n"
+        ");\n"
+        "?FOO(1) ->\n"
+        "    ok."
+    ),
+    ?assertSame(
+        "%% comment\n"
+        "bar(X) ->\n"
+        "    ok;\n"
+        "%% comment\n"
+        "bar(X) ->\n"
+        "    ok."
     ).
 
 attribute(Config) when is_list(Config) ->
     ?assertFormat("-else .", "-else."),
-    ?assertFormat("- foo (\n1).", "-foo(1)."),
+    ?assertFormat("- foo ( 1 ).", "-foo(1)."),
+    ?assertFormat(
+        "- foo (\n"
+        "1).",
+        "-foo(\n"
+        "    1\n"
+        ")."
+    ),
     ?assertSame("-compile([export_all, nowarn_export_all])."),
     ?assertSame("-import(foo, [bar/2, baz/0])."),
     ?assertSame("-export([bar/2, baz/3])."),
     ?assertFormat(
-        "-attribute([Long, Value]).",
+        "-attribute({Very, Long, Value}).",
         "-attribute(\n"
-        "    [Long, Value]\n"
+        "    {Very, Long, Value}\n"
         ").",
         25
     ),
@@ -1524,15 +1708,16 @@ spec(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "-spec foo(Int) -> atom() when Int :: integer().",
-        "-spec foo(Int) -> atom()\n"
-        "    when Int :: integer().",
+        "-spec foo(Int) -> atom() when\n"
+        "    Int :: integer().",
         40
     ),
     ?assertFormat(
         "-spec foo(Int) -> some_very:very(long, type) when Int :: integer().",
         "-spec foo(Int) ->\n"
         "    some_very:very(long, type)\n"
-        "    when Int :: integer().",
+        "when\n"
+        "    Int :: integer().",
         40
     ),
     ?assertSame(
@@ -1564,7 +1749,8 @@ spec(Config) when is_list(Config) ->
         "-spec foo\n"
         "    (Int) ->\n"
         "        some_very_very:very(long, type)\n"
-        "        when Int :: integer();\n"
+        "    when\n"
+        "        Int :: integer();\n"
         "    (1..2) ->\n"
         "        atom().",
         40
@@ -1604,8 +1790,10 @@ type(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "-type foobar() :: #foo{a :: integer(), b :: mod:type()}.",
-        "-type foobar() ::\n"
-        "    #foo{a :: integer(), b :: mod:type()}.",
+        "-type foobar() :: #foo{\n"
+        "    a :: integer(),\n"
+        "    b :: mod:type()\n"
+        "}.",
         50
     ),
     ?assertSame(
@@ -1624,6 +1812,54 @@ type(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "-type foo() :: {fun(), fun((...) -> mod:bar()), fun(() -> integer())}."
+    ),
+    ?assertSame(
+        "-type bar() ::\n"
+        "    fun((\n"
+        "            %% foo\n"
+        "            ...\n"
+        "        ) -> float()\n"
+        "    )."
+    ),
+    ?assertSame(
+        "-type bar() ::\n"
+        "    fun(() -> [\n"
+        "        atom()\n"
+        "    ])."
+    ),
+    ?assertSame(
+        "-type bar() ::\n"
+        "    fun((\n"
+        "            %% foo\n"
+        "            ...\n"
+        "        ) -> [\n"
+        "            atom()\n"
+        "        ]\n"
+        "    )."
+    ),
+    ?assertSame(
+        "-type bar() :: fun((\n"
+        "        %% foo\n"
+        "        ...\n"
+        "    ) -> float()\n"
+        ")."
+    ),
+    ?assertFormat(
+        "-type bar() :: fun((\n"
+        "        ...\n"
+        "    ) -> float()\n"
+        ").",
+        "-type bar() :: fun((...) -> float())."
+    ),
+    ?assertSame(
+        "-type foo() ::\n"
+        "    fun((\n"
+        "            %% comment\n"
+        "            ...\n"
+        "        ) ->\n"
+        "            %% comment\n"
+        "            bar()\n"
+        "    )."
     ).
 
 comment(Config) when is_list(Config) ->
@@ -1638,10 +1874,36 @@ comment(Config) when is_list(Config) ->
         "1 +\n"
         "    %% foo\n"
         "    2"
+    ),
+    ?assertFormat(
+        "[%% foo\n"
+        "]",
+        "%% foo\n"
+        "[]"
+    ),
+    ?assertFormat(
+        "[\n"
+        "    1 %% foo\n"
+        "]",
+        "[\n"
+        "    %% foo\n"
+        "    1\n"
+        "]"
+    ),
+    ?assertFormat(
+        "[1,2,3 %% foo\n"
+        "]",
+        "%% foo\n"
+        "[1, 2, 3]"
+    ),
+    ?assertSame(
+        "% foo\n"
+        "\n"
+        "1"
     ).
 
 format(String, PageWidth) ->
     {ok, [Node], []} = erlfmt:read_nodes_string("nofile", String),
     Doc = erlfmt_format:to_algebra(Node),
-    Rendered = erlfmt_algebra:document_render(Doc, [{page_width, PageWidth}]),
+    Rendered = erlfmt_algebra:format(Doc, PageWidth),
     unicode:characters_to_list(Rendered).

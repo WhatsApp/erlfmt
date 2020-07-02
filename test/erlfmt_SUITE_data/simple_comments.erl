@@ -30,7 +30,8 @@
             ...
         ) ->
             %% comment 3
-            bar()).
+            bar()
+    ).
 
 -spec foo() ->
     %% comment
@@ -44,9 +45,11 @@ foo() ->
     ].
 
 %% comment
-baz(Y) when is_list(Y);
-            %% other comment
-            is_binary(Y) ->
+baz(Y) when
+    is_list(Y);
+    %% other comment
+    is_binary(Y)
+->
     ok.
 
 foobar() ->
@@ -132,10 +135,12 @@ call() ->
 
 'case'() ->
     %% comment 1
-    case {
-             %% comment 2
-             value
-         } of
+    case
+        {
+            %% comment 2
+            value
+        }
+    of
         %% comment 3
         {_} ->
             %% comment 4
