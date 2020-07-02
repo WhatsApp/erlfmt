@@ -247,12 +247,12 @@ unary_operator(Config) when is_list(Config) ->
     ?assertFormat("+ 1", "+1"),
     ?assertFormat("- 1", "-1"),
 
-    % %% Formats word operators with space
+    %% Formats word operators with space
     ?assertSame("bnot 1"),
     ?assertSame("not true"),
     ?assertSame("catch 1"),
 
-    % %% Does not change parenthesis, only whitespace
+    %% Does not change parenthesis, only whitespace
     ?assertFormat("bnot+1", "bnot +1"),
     ?assertSame("+ +1"),
     ?assertSame("+(+1)"),
