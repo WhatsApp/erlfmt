@@ -233,7 +233,7 @@ concat_to_algebra([Value1, Value2 | _] = Values) ->
     ValuesD = lists:map(fun expr_to_algebra/1, Values),
     case has_break_between(Value1, Value2) of
         true ->
-            group(fold_doc(fun erlfmt_algebra:line/2, ValuesD));
+            concat(force_breaks(), group(fold_doc(fun erlfmt_algebra:line/2, ValuesD)));
         false ->
             group(fold_doc(fun erlfmt_algebra:break/2, ValuesD))
     end.
