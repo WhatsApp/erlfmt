@@ -52,6 +52,7 @@
 ]).
 
 -import(erlfmt_algebra2, [
+    force_breaks/0,
     group/1,
     format/2,
     string/1,
@@ -72,7 +73,7 @@
     line/2,
     concat/1,
     concat/2,
-    force_unfit/1,
+    concat/3,
     next_break_fits/1,
     next_break_fits/2,
     fold_doc/2
@@ -194,8 +195,7 @@ test_group(Config) when is_list(Config) ->
     ?assertEqual(<<"hello\na\nb\ncd">>, render(group(Doc), 5)).
 
 test_force_and_cancel(Config) when is_list(Config) ->
-    ?assertEqual({doc_force, <<"ab">>}, force_unfit(<<"ab">>)),
-    ?assertEqual({doc_force, empty()}, force_unfit(empty())),
+    ?assertEqual(doc_force_breaks, force_breaks()),
 
     ?assertEqual({doc_fits, <<"ab">>, enabled}, next_break_fits(<<"ab">>)),
     ?assertEqual({doc_fits, empty(), enabled}, next_break_fits(empty())),
@@ -203,7 +203,7 @@ test_force_and_cancel(Config) when is_list(Config) ->
     ?assertEqual({doc_fits, <<"ab">>, disabled}, next_break_fits(<<"ab">>, disabled)),
     ?assertEqual({doc_fits, empty(), disabled}, next_break_fits(empty(), disabled)),
 
-    Doc = force_unfit(concat(break(break(break(<<"hello">>, <<"a">>), <<"b">>), <<"c">>), <<"d">>)),
+    Doc = concat(force_breaks(), break(break(break(<<"hello">>, <<"a">>), <<"b">>), <<"c">>), <<"d">>),
     ?assertEqual(<<"hello\na\nb\ncd">>, render(Doc, 20)),
     ?assertEqual(<<"hello a b cd">>, render(next_break_fits(Doc, enabled), 20)),
     ?assertEqual(<<"hello\na\nb\ncd">>, render(next_break_fits(next_break_fits(Doc, enabled), disabled), 20)).

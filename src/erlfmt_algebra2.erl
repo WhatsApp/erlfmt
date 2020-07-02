@@ -26,7 +26,7 @@
 %   Flex breaks however are re-evaluated on every occurrence and may still
 %   be rendered flat. See `break/1` and `flex_break/1` for more information.
 
-%   This implementation also adds `force_unfit/1` and `next_break_fits/2` which
+%   This implementation also adds `force_breaks/0` and `next_break_fits/2` which
 %   give more control over the document fitting.
 
 %     [0]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.34.2200
@@ -38,13 +38,13 @@
 -export_type([doc/0]).
 
 -export([
+    force_breaks/0,
     empty/0,
     string/1,
     concat/1, concat/2, concat/3,
     nest/2, nest/3,
     break/0, break/1,
     next_break_fits/1, next_break_fits/2,
-    force_unfit/1,
     flex_break/0, flex_break/1,
     flex_break/2, flex_break/3,
     break/2, break/3,
@@ -105,14 +105,11 @@
     enabled_or_disabled :: enabled | disabled
 }).
 
--record(doc_force, {
-    group :: doc()
-}).
-
 % The first six constructors are described in the original paper at "Figure 1: Six constructors for the doc data type".
 % doc_break is added as part of the implementation in section 3.
-% doc_fits and doc_force are newly added.
+% doc_fits and doc_force_breaks are newly added.
 -opaque doc() :: binary()
+    | doc_force_breaks
     | doc_nil
     | #doc_string{}
     % doc_line should be thought of as a space character which may be replaced by a line break when necessary.
@@ -122,18 +119,17 @@
     | #doc_group{}
     | #doc_break{}
     | #doc_fits{}
-    | #doc_force{}
     .
 
 -define(is_doc(Doc),
     (
-        is_binary(Doc) orelse
+        (Doc == doc_force_breaks) orelse
         (Doc == doc_nil) orelse
+        is_binary(Doc) orelse
         is_record(Doc, doc_line) orelse
         is_record(Doc, doc_break) orelse
         is_record(Doc, doc_cons) orelse
         is_record(Doc, doc_fits) orelse
-        is_record(Doc, doc_force) orelse
         is_record(Doc, doc_group) orelse
         is_record(Doc, doc_nest) orelse
         is_record(Doc, doc_string)
@@ -203,7 +199,7 @@ break(String) when is_binary(String) ->
 %   `mode` can be `:enabled` or `:disabled`. When `:enabled`,
 %   it will consider the document as fit as soon as it finds
 %   the next break, effectively cancelling the break. It will
-%   also ignore any `force_unfit/1` in search of the next break.
+%   also ignore any `force_breaks/0` in search of the next break.
 
 %   When disabled, it behaves as usual and it will ignore
 %   any further `next_break_fits/2` instruction.
@@ -245,10 +241,10 @@ next_break_fits(Doc) ->
 next_break_fits(Doc, Mode) when ?is_doc(Doc), Mode == enabled orelse Mode == disabled ->
     #doc_fits{group = Doc, enabled_or_disabled = Mode}.
 
-% Forces the current group to be unfit.
--spec force_unfit(doc()) -> doc().
-force_unfit(Doc) when ?is_doc(Doc) ->
-    #doc_force{group = Doc}.
+% Forces the parent group and its parent groups to break.
+-spec force_breaks() -> doc().
+force_breaks() ->
+    doc_force_breaks.
 
 %   Returns a flex break document based on the given `string`.
 
@@ -440,8 +436,8 @@ fits(Width, K, B, [{I, flat_no_break, #doc_fits{group = X}} | T]) ->
 
 fits(Width, K, B, [{I, _, #doc_fits{group = X, enabled_or_disabled = enabled}} | T]) ->
     fits(Width, K, B, [{I, break_no_flat, X} | T]);
-fits(Width, K, B, [{I, break_no_flat, #doc_force{group = X}} | T]) ->
-    fits(Width, K, B, [{I, break_no_flat, X} | T]);
+fits(Width, K, B, [{_I, break_no_flat, doc_force_breaks} | T]) ->
+    fits(Width, K, B, T);
 fits(_, _, _, [{_, break_no_flat, #doc_break{}} | _]) ->
     true;
 fits(_, _, _, [{_, break_no_flat, #doc_line{}} | _]) ->
@@ -466,7 +462,7 @@ fits(Width, K, B, [{_, _, #doc_string{length = L}} | T]) ->
     fits(Width, K + L, B, T);
 fits(Width, K, B, [{_, _, S} | T]) when is_binary(S) ->
     fits(Width, K + byte_size(S), B, T);
-fits(_, _, _, [{_, _, #doc_force{}} | _]) ->
+fits(_, _, _, [{_, _, doc_force_breaks} | _]) ->
     false;
 fits(Width, K, _, [{_, _, #doc_break{break = S}} | T]) ->
     fits(Width, K + byte_size(S), true, T);
@@ -493,8 +489,8 @@ format(Width, K, [{_, _, #doc_string{string = S, length = L}} | T]) ->
     [S | format(Width, K + L, T)];
 format(Width, K, [{_, _, S} | T]) when is_binary(S) ->
     [S | format(Width, K + byte_size(S), T)];
-format(Width, K, [{I, M, #doc_force{group = X}} | T]) ->
-    format(Width, K, [{I, M, X} | T]);
+format(Width, K, [{_I, _M, doc_force_breaks} | T]) ->
+    format(Width, K, T);
 format(Width, K, [{I, M, #doc_fits{group = X}} | T]) ->
     format(Width, K, [{I, M, X} | T]);
 
