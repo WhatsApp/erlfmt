@@ -263,7 +263,7 @@ unary_operator(Config) when is_list(Config) ->
     ?assertFormat("(bnot 1)*1", "(bnot 1) * 1"),
     ?assertSame("(catch 1) + 1"),
 
-    % %% Unless it's nested not or bnot
+    %% Unless it's nested not or bnot
     ?assertSame("bnot bnot Var"),
     ?assertSame("not not true").
 
