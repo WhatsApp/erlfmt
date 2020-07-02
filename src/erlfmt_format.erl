@@ -330,7 +330,7 @@ container_common(Meta, [Value | _] = Values, Left, Right, Combine, Last) ->
             end;
         false when Combine =:= flex_break ->
             Doc = fold_doc(fun (D, Acc) -> flex_break(concat(D, <<",">>), Acc) end, ValuesD),
-            Wrapped = group(concat(nest(concat(Left, Doc), ?INDENT), Right)),
+            Wrapped = group(concat(nest(concat(Left, Doc), ?INDENT, break), Right)),
             case WasLastFits of
                 true -> next_break_fits(Wrapped, disabled);
                 false -> Wrapped

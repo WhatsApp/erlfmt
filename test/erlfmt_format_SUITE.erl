@@ -434,11 +434,11 @@ tuple(Config) when is_list(Config) ->
     ?assertFormat(
         "{{a,long,tuple},[nested,1,long,list]}",
         "{{a, long, tuple}, [\n"
-        "        nested,\n"
-        "        1,\n"
-        "        long,\n"
-        "        list\n"
-        "    ]}",
+        "    nested,\n"
+        "    1,\n"
+        "    long,\n"
+        "    list\n"
+        "]}",
         20
     ),
     ?assertFormat(
