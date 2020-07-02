@@ -43,7 +43,6 @@
     concat/1, concat/2, concat/3,
     nest/2, nest/3,
     break/0, break/1,
-    collapse_lines/1,
     next_break_fits/1, next_break_fits/2,
     force_unfit/1,
     flex_break/0, flex_break/1,
@@ -55,7 +54,6 @@
     fold_doc/2,
     format/2, format/3,
     fits/4,
-    collapse/4,
     apply_nesting/3,
     indent/1,
     container_doc/3, container_doc/4
@@ -124,13 +122,9 @@
     group :: doc()
 }).
 
--record(doc_collapse, {
-    count :: pos_integer()
-}).
-
 % The first six constructors are described in the original paper at "Figure 1: Six constructors for the doc data type".
 % doc_break is added as part of the implementation in section 3.
-% doc_collapse, doc_fits and doc_force are newly added.
+% doc_fits and doc_force are newly added.
 -opaque doc() :: binary()
     | doc_nil
     | #doc_string{}
@@ -140,22 +134,9 @@
     | #doc_nest{}
     | #doc_group{}
     | #doc_break{}
-    | #doc_collapse{}
     | #doc_fits{}
     | #doc_force{}
     .
-
--define(docs, [
-    doc_break,
-    doc_collapse,
-    doc_color,
-    doc_cons,
-    doc_fits,
-    doc_force,
-    doc_group,
-    doc_nest,
-    doc_string
-]).
 
 -define(is_doc(Doc),
     (
@@ -163,7 +144,6 @@
         (Doc == doc_nil) orelse
         is_record(Doc, doc_line) orelse
         is_record(Doc, doc_break) orelse
-        is_record(Doc, doc_collapse) orelse
         is_record(Doc, doc_cons) orelse
         is_record(Doc, doc_fits) orelse
         is_record(Doc, doc_force) orelse
@@ -230,11 +210,6 @@ break() ->
 -spec break(binary()) -> doc().
 break(String) when is_binary(String) ->
     #doc_break{break = String, flex_or_strict = strict}.
-
-% Collapse any new lines and whitespace following this node, emitting up to `max` new lines.
--spec collapse_lines(pos_integer()) -> doc().
-collapse_lines(Max) when is_integer(Max) andalso Max > 0 ->
-    #doc_collapse{count = Max}.
 
 %   Considers the next break as fit.
 
@@ -510,8 +485,6 @@ fits(Width, _, _, [{I, _, #doc_line{}} | T]) ->
     fits(Width, I, false, T);
 fits(Width, K, B, [{_, _, doc_nil} | T]) ->
     fits(Width, K, B, T);
-fits(Width, _, B, [{I, _, #doc_collapse{}} | T]) ->
-    fits(Width, I, B, T);
 fits(Width, K, B, [{_, _, #doc_string{length = L}} | T]) ->
     fits(Width, K + L, B, T);
 fits(Width, K, B, [{_, _, S} | T]) when is_binary(S) ->
@@ -547,8 +520,6 @@ format(Width, K, [{I, M, #doc_force{group = X}} | T]) ->
     format(Width, K, [{I, M, X} | T]);
 format(Width, K, [{I, M, #doc_fits{group = X}} | T]) ->
     format(Width, K, [{I, M, X} | T]);
-format(Width, _, [{I, _, #doc_collapse{count = Max}} | T]) ->
-    collapse(format(Width, I, T), Max, 0, I);
 
 %   # Flex breaks are not conditional to the mode
 format(Width, K0, [{I, M, #doc_break{break = S, flex_or_strict = flex}} | T]) ->
@@ -606,17 +577,6 @@ force_next_flex_break([Other | T]) ->
     [Other | force_next_flex_break(T)];
 force_next_flex_break([]) ->
     [].
-
-collapse([<<"\n", _/binary>> | T], Max, Count, I) ->
-    collapse(T, Max, Count + 1, I);
-
-collapse([<<"">> | T], Max, Count, I) ->
-    collapse(T, Max, Count, I);
-
-collapse(T, Max, Count, I) ->
-    NewLines = binary:copy(<<"\n">>, min(Max, Count)),
-    Spaces = binary:copy(<<" ">>, I),
-    [<<NewLines/binary, Spaces/binary>> | T].
 
 apply_nesting(_, K, cursor) -> K;
 apply_nesting(_, _, reset) -> 0;

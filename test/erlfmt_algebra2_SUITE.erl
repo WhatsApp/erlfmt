@@ -46,7 +46,6 @@
     test_line/1,
     test_self_group/1,
     test_inherit_group/1,
-    test_collapse/1,
     test_force_and_cancel/1,
     test_groups_with_lines/1,
     test_infinite_width/1,
@@ -78,7 +77,6 @@
     line/2,
     concat/1,
     concat/2,
-    collapse_lines/1,
     force_unfit/1,
     next_break_fits/1,
     next_break_fits/2,
@@ -128,7 +126,6 @@ all() ->
         test_line,
         test_self_group,
         test_inherit_group,
-        test_collapse,
         test_force_and_cancel,
         test_groups_with_lines,
         test_infinite_width,
@@ -230,29 +227,6 @@ test_inherit_group(Config) when is_list(Config) ->
 
     Doc2 = concat(break(break(group(break(<<"a">>, <<"b">>), inherit), <<"c">>), <<"d">>), <<"hello">>),
     ?assertEqual(<<"a\nb\nc\ndhello">>, render(group(Doc2), 5)).
-
-test_collapse(Config) when is_list(Config) ->
-    ?assertEqual({doc_collapse, 3}, collapse_lines(3)),
-
-    Doc1 = concat([collapse_lines(2), line(), line(), line()]),
-    ?assertEqual(<<"\n\n">>, render(Doc1, 10)),
-    ?assertEqual(<<"\n\n  ">>, render(nest(Doc1, 2), 10)),
-
-    Doc2 = concat([collapse_lines(2), line(), line()]),
-    ?assertEqual(<<"\n\n">>, render(Doc2, 10)),
-    ?assertEqual(<<"\n\n  ">>, render(nest(Doc2, 2), 10)),
-
-    Doc3 = concat([collapse_lines(2), line()]),
-    ?assertEqual(<<"\n">>, render(Doc3, 10)),
-    ?assertEqual(<<"\n  ">>, render(nest(Doc3, 2), 10)),
-
-    Doc4 = concat([collapse_lines(2), line(), <<"">>, line(), <<"">>, line()]),
-    ?assertEqual(<<"\n\n">>, render(Doc4, 10)),
-    ?assertEqual(<<"\n\n  ">>, render(nest(Doc4, 2), 10)),
-
-    Doc5 = concat([collapse_lines(2), line(), <<"foo">>, line(), <<"bar">>, line()]),
-    ?assertEqual(<<"\nfoo\nbar\n">>, render(Doc5, 10)),
-    ?assertEqual(<<"\n  foo\n  bar\n  ">>, render(nest(Doc5, 2), 10)).
 
 test_force_and_cancel(Config) when is_list(Config) ->
     ?assertEqual({doc_force, <<"ab">>}, force_unfit(<<"ab">>)),
