@@ -48,7 +48,7 @@
     flex_break/0, flex_break/1,
     flex_break/2, flex_break/3,
     break/2, break/3,
-    group/1, group/2,
+    group/1,
     space/2,
     line/0, line/1, line/2,
     fold_doc/2,
@@ -93,8 +93,7 @@
 % Subgroups and their line breaks, however, are considered individually as they are reached
 % by the pretty printing process.
 -record(doc_group, {
-    group :: doc(),
-    inherit_or_self :: inherit | self
+    group :: doc()
 }).
 
 -record(doc_break, {
@@ -358,11 +357,7 @@ break(Doc1, BreakString, Doc2) when is_binary(BreakString) ->
 
 -spec group(doc()) -> doc().
 group(Doc) ->
-    group(Doc, self).
-
--spec group(doc(), self | inherit) -> doc().
-group(Doc, Mode) when ?is_doc(Doc), Mode == self orelse Mode == inherit ->
-    #doc_group{group = Doc, inherit_or_self = Mode}.
+    #doc_group{group = Doc}.
 
 %   Inserts a mandatory single space between two documents.
 
@@ -533,9 +528,6 @@ format(Width, K, [{I, M, #doc_nest{doc = X, indent = J, always_or_break = Nest}}
     end;
 
 %   # Groups must do the fitting decision.
-format(Width, K, [{I, break, #doc_group{group = X, inherit_or_self = inherit}} | T]) ->
-    format(Width, K, [{I, break, X} | T]);
-
 format(Width, K, [{I, _, #doc_group{group = X}} | T0]) ->
     {StringLength, T1} = peek_next_string_length(T0),
     case Width == infinity orelse fits(Width - StringLength, K, false, [{I, flat, X}]) of

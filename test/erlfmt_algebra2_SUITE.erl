@@ -42,8 +42,7 @@
     test_always_nest/1,
     test_break_nest/1,
     test_line/1,
-    test_self_group/1,
-    test_inherit_group/1,
+    test_group/1,
     test_force_and_cancel/1,
     test_groups_with_lines/1,
     test_infinite_width/1,
@@ -55,7 +54,6 @@
 
 -import(erlfmt_algebra2, [
     group/1,
-    group/2,
     format/2,
     string/1,
     empty/0,
@@ -120,8 +118,7 @@ all() ->
         test_always_nest,
         test_break_nest,
         test_line,
-        test_self_group,
-        test_inherit_group,
+        test_group,
         test_force_and_cancel,
         test_groups_with_lines,
         test_infinite_width,
@@ -193,22 +190,12 @@ test_line(Config) when is_list(Config) ->
     ?assertEqual(<<"aaa bbb\nccc ddd">>, render(line(break(<<"aaa">>, <<"bbb">>), break(<<"ccc">>, <<"ddd">>)), 10)),
     ?assertEqual(<<"a\n\nb">>, render(concat([<<"a">>, line(2), <<"b">>]), 80)).
 
-test_self_group(Config) when is_list(Config) ->
-    ?assertEqual({doc_group, <<"ab">>, self}, group(<<"ab">>)),
-    ?assertEqual({doc_group, empty(), self}, group(empty())),
+test_group(Config) when is_list(Config) ->
+    ?assertEqual({doc_group, <<"ab">>}, group(<<"ab">>)),
+    ?assertEqual({doc_group, empty()}, group(empty())),
 
     Doc = concat(break(break(break(<<"hello">>, <<"a">>), <<"b">>), <<"c">>), <<"d">>),
     ?assertEqual(<<"hello\na\nb\ncd">>, render(group(Doc), 5)).
-
-test_inherit_group(Config) when is_list(Config) ->
-    ?assertEqual({doc_group, <<"ab">>, inherit}, group(<<"ab">>, inherit)),
-    ?assertEqual({doc_group, empty(), inherit}, group(empty(), inherit)),
-
-    Doc1 = concat(break(break(group(break(<<"a">>, <<"b">>), self), <<"c">>), <<"d">>), <<"hello">>),
-    ?assertEqual(<<"a b\nc\ndhello">>, render(group(Doc1), 5)),
-
-    Doc2 = concat(break(break(group(break(<<"a">>, <<"b">>), inherit), <<"c">>), <<"d">>), <<"hello">>),
-    ?assertEqual(<<"a\nb\nc\ndhello">>, render(group(Doc2), 5)).
 
 test_force_and_cancel(Config) when is_list(Config) ->
     ?assertEqual({doc_force, <<"ab">>}, force_unfit(<<"ab">>)),

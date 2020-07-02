@@ -19,7 +19,6 @@
 
 -import(erlfmt_algebra2, [
     group/1,
-    group/2,
     format/2,
     string/1,
     empty/0,
@@ -40,7 +39,6 @@
     concat/1,
     concat/2,
     concat/3,
-    collapse_lines/1,
     force_unfit/1,
     next_break_fits/1,
     next_break_fits/2,
