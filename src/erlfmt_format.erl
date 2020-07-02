@@ -308,7 +308,7 @@ container(Meta, Values, Left, Right) ->
     container_common(Meta, Values, Left, Right, break, last_normal).
 
 flex_container(Meta, Values, Left, Right) ->
-    container_common(Meta, Values, Left, Right, flex_break, last_normal).
+    container_common(Meta, Values, Left, Right, flex_break, last_fits).
 
 call(Meta, Values, Left, Right) ->
     container_common(Meta, Values, Left, Right, break, last_fits).
@@ -330,7 +330,11 @@ container_common(Meta, [Value | _] = Values, Left, Right, Combine, Last) ->
             end;
         false when Combine =:= flex_break ->
             Doc = fold_doc(fun (D, Acc) -> flex_break(concat(D, <<",">>), Acc) end, ValuesD),
-            group(concat(nest(concat(Left, Doc), ?INDENT), Right))
+            Wrapped = group(concat(nest(concat(Left, Doc), ?INDENT), Right)),
+            case WasLastFits of
+                true -> next_break_fits(Wrapped, disabled);
+                false -> Wrapped
+            end
     end.
 
 container_exprs_to_algebra([{comment, _, _} | _] = Comments, _Last, Acc) ->

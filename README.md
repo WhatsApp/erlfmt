@@ -53,8 +53,7 @@ This will provide a new `rebar3 fmt` task. All erlfmt command-line options
 can be configured with defaults in your `rebar.config`, for example:
 
 ```erl formatted rebarconfig2
-{erlfmt,
-    [
+{erlfmt, [
         write,
         {files, "{src,include,test}/*.{hrl,erl}"}
     ]}.
