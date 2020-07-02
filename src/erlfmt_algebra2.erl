@@ -54,7 +54,6 @@
     fold_doc/2,
     format/2, format/3,
     fits/4,
-    apply_nesting/3,
     indent/1,
     container_doc/3, container_doc/4
 ]).
@@ -76,23 +75,13 @@
     right :: doc()
 }).
 
-% If indent is an integer, that's the indentation appended to line breaks whenever they occur.
-% If the level is `cursor`, the current position of the "cursor" in the document becomes the nesting.
-% If the level is `reset`, it is set back to 0.
-% Only integer was mentioned in the original paper.
--define(is_indent(Indent), (
-    Indent == reset orelse
-    Indent == cursor orelse
-    (is_integer(Indent) andalso Indent >= 0)
-)).
-
 % In doc_nest, all breaks inside the field `doc` that are printed as newlines are followed by `indent` spaces.
 % `always_or_break` was not part of the original paper.
 % `always` means nesting always happen,
 % `break` means nesting only happens inside a group that has been broken.
 -record(doc_nest, {
     doc :: doc(),
-    indent :: cursor | reset | non_neg_integer(),
+    indent :: non_neg_integer(),
     always_or_break :: always | break
 }).
 
@@ -190,17 +179,17 @@ concat(A, B, C) when ?is_doc(A), ?is_doc(B), ?is_doc(C) ->
     concat(A, concat(B, C)).
 
 % Nests the given document at the given `level`.
--spec nest(doc(), non_neg_integer() | cursor | reset) -> doc().
+-spec nest(doc(), non_neg_integer()) -> doc().
 nest(Doc, Level) ->
     nest(Doc, Level, always).
 
--spec nest(doc(), non_neg_integer() | cursor | reset, always | break) -> doc().
+-spec nest(doc(), non_neg_integer(), always | break) -> doc().
 nest(Doc, 0, _Mode) when ?is_doc(Doc) ->
     Doc;
-nest(Doc, Level, always) when ?is_doc(Doc), ?is_indent(Level)  ->
-    #doc_nest{doc = Doc, indent = Level, always_or_break = always};
-nest(Doc, Level, break) when ?is_doc(Doc), ?is_indent(Level)  ->
-    #doc_nest{doc = Doc, indent = Level, always_or_break = break}.
+nest(Doc, Indent, always) when ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0  ->
+    #doc_nest{doc = Doc, indent = Indent, always_or_break = always};
+nest(Doc, Indent, break) when ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0  ->
+    #doc_nest{doc = Doc, indent = Indent, always_or_break = break}.
 
 % This break can be rendered as a linebreak or as the given `string`, depending on the `mode` or line limit of the chosen layout.
 -spec break() -> doc().
@@ -496,7 +485,7 @@ fits(Width, K, _, [{_, _, #doc_break{break = S}} | T]) ->
 fits(Width, K, B, [{I, M, #doc_nest{doc = X, always_or_break = break}} | T]) ->
     fits(Width, K, B, [{I, M, X} | T]);
 fits(Width, K, B, [{I, M, #doc_nest{doc = X, indent = J}} | T]) ->
-    fits(Width, K, B, [{apply_nesting(I, K, J), M, X} | T]);
+    fits(Width, K, B, [{I + J, M, X} | T]);
 fits(Width, K, B, [{I, M, #doc_cons{left = X, right = Y}} | T]) ->
     fits(Width, K, B, [{I, M, X}, {I, M, Y} | T]);
 fits(Width, K, B, [{I, M, #doc_group{group = X}} | T]) ->
@@ -539,7 +528,7 @@ format(Width, K, [{I, M, #doc_break{break = S, flex_or_strict = strict}} | T]) -
 %   # Nesting is conditional to the mode.
 format(Width, K, [{I, M, #doc_nest{doc = X, indent = J, always_or_break = Nest}} | T]) ->
     case Nest == always orelse (Nest == break andalso M == break) of
-        true -> format(Width, K, [{apply_nesting(I, K, J), M, X} | T]);
+        true -> format(Width, K, [{I + J, M, X} | T]);
         false -> format(Width, K, [{I, M, X} | T])
     end;
 
@@ -577,10 +566,6 @@ force_next_flex_break([Other | T]) ->
     [Other | force_next_flex_break(T)];
 force_next_flex_break([]) ->
     [].
-
-apply_nesting(_, K, cursor) -> K;
-apply_nesting(_, _, reset) -> 0;
-apply_nesting(I, _, J) -> I + J.
 
 indent(0) -> ?newline;
 indent(I) when is_integer(I) ->

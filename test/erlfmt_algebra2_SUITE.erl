@@ -41,8 +41,6 @@
     test_space/1,
     test_always_nest/1,
     test_break_nest/1,
-    test_cursor_nest/1,
-    test_reset_nest/1,
     test_line/1,
     test_self_group/1,
     test_inherit_group/1,
@@ -121,8 +119,6 @@ all() ->
         test_space,
         test_always_nest,
         test_break_nest,
-        test_cursor_nest,
-        test_reset_nest,
         test_line,
         test_self_group,
         test_inherit_group,
@@ -189,20 +185,6 @@ test_break_nest(Config) when is_list(Config) ->
     ?assertEqual(<<"a">>, render(nest(<<"a">>, 1, break), 80)),
     ?assertEqual(<<"a\n b">>, render(nest(break(<<"a">>, <<"b">>), 1, break), 2)),
     ?assertEqual(<<"a\nb">>, render(nest(line(<<"a">>, <<"b">>), 1, break), 20)).
-
-test_cursor_nest(Config) when is_list(Config) ->
-    ?assertEqual({doc_nest, empty(), cursor, always}, nest(empty(), cursor)),
-
-    ?assertEqual(<<"a">>, render(nest(<<"a">>, cursor), 80)),
-    ?assertEqual(<<"prefix a\n       b">>, render(concat(<<"prefix ">>, nest(break(<<"a">>, <<"b">>), cursor)), 2)),
-    ?assertEqual(<<"prefix a\n       b">>, render(concat(<<"prefix ">>, nest(line(<<"a">>, <<"b">>), cursor)), 2)).
-
-test_reset_nest(Config) when is_list(Config) ->
-    ?assertEqual({doc_nest, empty(), reset, always}, nest(empty(), reset)),
-
-    ?assertEqual(<<"a">>, render(nest(<<"a">>, reset), 80)),
-    ?assertEqual(<<"a\nb">>, render(nest(nest(break(<<"a">>, <<"b">>), reset), 10), 2)),
-    ?assertEqual(<<"a\nb">>, render(nest(nest(line(<<"a">>, <<"b">>), reset), 10), 2)).
 
 test_line(Config) when is_list(Config) ->
     ?assertEqual({doc_cons, <<"a">>, {doc_cons, {doc_line, 1}, <<"b">>}}, line(<<"a">>, <<"b">>)),
