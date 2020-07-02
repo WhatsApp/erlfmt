@@ -1897,6 +1897,11 @@ comment(Config) when is_list(Config) ->
         "]",
         "%% foo\n"
         "[1, 2, 3]"
+    ),
+    ?assertSame(
+        "% foo\n"
+        "\n"
+        "1"
     ).
 
 format(String, PageWidth) ->

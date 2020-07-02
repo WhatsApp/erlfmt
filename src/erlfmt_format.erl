@@ -412,7 +412,7 @@ block_to_algebra_each([Expr]) ->
 block_to_algebra_each([Expr | [Next | _] = Rest]) ->
     ExprD = expr_to_algebra(Expr),
     RestD = block_to_algebra_each(Rest),
-    case erlfmt_scan:get_end_line(Expr) + 1 < erlfmt_scan:get_line(Next) of
+    case has_empty_line_between(Expr, Next) of
         true -> concat([ExprD, <<",">>, line(2), RestD]);
         false -> concat([ExprD, <<",">>, line(), RestD])
     end.
@@ -511,13 +511,12 @@ single_clause_spec_to_algebra(Name, {spec_clause, CMeta, Head, Body, Guards}) ->
     clauses_to_algebra([{spec_clause, CMeta, {call, AMeta, Name, Args}, Body, Guards}]).
 
 receive_after_to_algebra(Expr, Body) ->
-    {Pre, []} = comments(element(2, Expr)),
     ExprD = do_expr_to_algebra(Expr),
     BodyD = block_to_algebra(Body),
 
     HeadD = concat([<<"after ">>, ExprD, <<" ->">>]),
     Doc = group(nest(break(HeadD, BodyD), ?INDENT)),
-    combine_pre_comments(Pre, Doc).
+    combine_comments(element(2, Expr), Doc).
 
 try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
     Clauses =
@@ -550,6 +549,9 @@ try_of_block(Exprs, OfClauses) ->
 has_break_between(Left, Right) ->
     erlfmt_scan:get_end_line(Left) < erlfmt_scan:get_line(Right).
 
+has_empty_line_between(Left, Right) ->
+    erlfmt_scan:get_end_line(Left) + 1 < erlfmt_scan:get_line(Right).
+
 has_inner_break(Outer, Inner) ->
     erlfmt_scan:get_inner_line(Outer) < erlfmt_scan:get_line(Inner).
 
@@ -575,11 +577,14 @@ maybe_wrap_in_parens(Meta, Doc) ->
 
 combine_comments(Meta, Doc) ->
     {Pre, Post} = comments(Meta),
-    combine_post_comments(Post, combine_pre_comments(Pre, Doc)).
+    combine_post_comments(Post, combine_pre_comments(Pre, Meta, Doc)).
 
-combine_pre_comments([], Doc) -> Doc;
-combine_pre_comments(Comments, Doc) ->
-    concat(force_breaks(), line(comments_to_algebra(Comments), Doc)).
+combine_pre_comments([], _Meta, Doc) -> Doc;
+combine_pre_comments(Comments, Meta, Doc) ->
+    case erlfmt_scan:get_end_line(lists:last(Comments)) + 1 < erlfmt_scan:get_inner_line(Meta) of
+        true -> concat([force_breaks(), comments_to_algebra(Comments), line(2), Doc]);
+        false -> concat([force_breaks(), comments_to_algebra(Comments), line(), Doc])
+    end.
 
 combine_post_comments([], Doc) -> Doc;
 combine_post_comments(Comments, Doc) ->
