@@ -39,7 +39,8 @@
 -type inner() :: term().
 
 -type scan() :: fun((inner(), erl_anno:location()) ->
-                        {erl_scan:tokens_result() | {error, term()}, inner()}).
+        {erl_scan:tokens_result() | {error, term()}, inner()}
+).
 
 -record(state, {
     scan :: scan(),
@@ -148,17 +149,17 @@ last_node_string(#state{original = Tokens}) ->
     stringify_tokens(Tokens).
 
 %% TODO: make smarter
-stringify_tokens([Token| _] = Tokens) ->
+stringify_tokens([Token | _] = Tokens) ->
     Anno = element(2, Token),
     stringify_tokens(Tokens, erl_anno:location(Anno), []).
 
 stringify_tokens([LastToken], Location, Acc) ->
-     Anno = element(2, LastToken),
-     String = lists:reverse([erl_anno:text(Anno) | Acc]),
-     {String, token_anno([{text, String}, {location, Location}], #{})};
-stringify_tokens([Token|Tokens], Location, Acc) ->
+    Anno = element(2, LastToken),
+    String = lists:reverse([erl_anno:text(Anno) | Acc]),
+    {String, token_anno([{text, String}, {location, Location}], #{})};
+stringify_tokens([Token | Tokens], Location, Acc) ->
     Anno = element(2, Token),
-    stringify_tokens(Tokens, Location, [erl_anno:text(Anno)|Acc]).
+    stringify_tokens(Tokens, Location, [erl_anno:text(Anno) | Acc]).
 
 -spec split_tokens([erl_scan:token()], [erl_scan:token()]) ->
     {[token()], [erl_scan:token()], [comment()], [token()]}.

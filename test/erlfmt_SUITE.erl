@@ -178,8 +178,9 @@ attributes(Config) when is_list(Config) ->
         parse_form("-ifdef(foo).")
     ),
     ?assertMatch(
-        {attribute, _, {atom, _, 'if'},
-            [{op, _, '==', {macro_call, _, {atom, _, foo}, none}, {integer, _, 2}}]},
+        {attribute, _, {atom, _, 'if'}, [
+            {op, _, '==', {macro_call, _, {atom, _, foo}, none}, {integer, _, 2}}
+        ]},
         parse_form("-if(?foo == 2).")
     ),
     ?assertMatch(
@@ -220,8 +221,9 @@ attributes(Config) when is_list(Config) ->
 specs(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, {atom, _, spec}, [
-            {spec, _, {remote, _, {atom, _, foo}, {atom, _, bar}},
-                [{spec_clause, _, {args, _, []}, [{atom, _, ok}], empty}]}
+            {spec, _, {remote, _, {atom, _, foo}, {atom, _, bar}}, [
+                {spec_clause, _, {args, _, []}, [{atom, _, ok}], empty}
+            ]}
         ]},
         parse_form("-spec foo:bar() -> ok.")
     ),
@@ -252,15 +254,17 @@ specs(Config) when is_list(Config) ->
     ),
     ?assertMatch(
         {attribute, _, {atom, _, spec}, [
-            {spec, _, {macro_call, _, {atom, _, foo}, none},
-                [{spec_clause, _, {args, _, []}, [{atom, _, ok}], empty}]}
+            {spec, _, {macro_call, _, {atom, _, foo}, none}, [
+                {spec_clause, _, {args, _, []}, [{atom, _, ok}], empty}
+            ]}
         ]},
         parse_form("-spec ?foo() -> ok.")
     ),
     ?assertMatch(
         {attribute, _, {atom, _, callback}, [
-            {spec, _, {macro_call, _, {var, _, 'FOO'}, none},
-                [{spec_clause, _, {args, _, []}, [{atom, _, ok}], empty}]}
+            {spec, _, {macro_call, _, {var, _, 'FOO'}, none}, [
+                {spec_clause, _, {args, _, []}, [{atom, _, ok}], empty}
+            ]}
         ]},
         parse_form("-callback ?FOO() -> ok.")
     ).
@@ -327,8 +331,8 @@ macro_call_exprs(Config) when is_list(Config) ->
         parse_expr("S?foo{}")
     ),
     ?assertMatch(
-        {record_field, _, {var, _, 'S'},
-            {macro_call, _, {atom, _, foo}, none}, {atom, _, bar}},
+        {record_field, _, {var, _, 'S'}, {macro_call, _, {atom, _, foo}, none},
+            {atom, _, bar}},
         parse_expr("S?foo.bar")
     ),
     ?assertMatch(
@@ -344,8 +348,8 @@ macro_call_exprs(Config) when is_list(Config) ->
         parse_expr("S#?foo{}")
     ),
     ?assertMatch(
-        {record_field, _, {var, _, 'S'},
-            {macro_call, _, {atom, _, foo}, none}, {atom, _, bar}},
+        {record_field, _, {var, _, 'S'}, {macro_call, _, {atom, _, foo}, none},
+            {atom, _, bar}},
         parse_expr("S#?foo.bar")
     ),
     ?assertMatch(
@@ -423,8 +427,10 @@ macro_definitions(Config) when is_list(Config) ->
         parse_form("-define(FOO(), foo).")
     ),
     ?assertMatch(
-        {attribute, _, {atom, _, define},
-            [{call, _, {var, _, 'FOO'}, [{var, _, 'X'}]}, {atom, _, foo}]},
+        {attribute, _, {atom, _, define}, [
+            {call, _, {var, _, 'FOO'}, [{var, _, 'X'}]},
+            {atom, _, foo}
+        ]},
         parse_form("-define(FOO(X), foo).")
     ),
     ?assertMatch(
@@ -442,8 +448,10 @@ macro_definitions(Config) when is_list(Config) ->
         parse_form("-define(is_nice(X), is_tuple(X), element(1, X) =:= nice).")
     ),
     ?assertMatch(
-        {attribute, _, {atom, _, define},
-            [{atom, _, foo}, {record_name, _, {atom, _, bar}}]},
+        {attribute, _, {atom, _, define}, [
+            {atom, _, foo},
+            {record_name, _, {atom, _, bar}}
+        ]},
         parse_form("-define(foo, #bar).")
     ),
     ?assertMatch(
@@ -472,8 +480,10 @@ macro_definitions(Config) when is_list(Config) ->
         parse_form("-define(FOO(Name), Name() -> ok).")
     ),
     ?assertMatch(
-        {attribute, _, {atom, _, define},
-            [{var, _, 'HASH_FUN'}, {remote, _, {atom, _, erlang}, {atom, _, phash}}]},
+        {attribute, _, {atom, _, define}, [
+            {var, _, 'HASH_FUN'},
+            {remote, _, {atom, _, erlang}, {atom, _, phash}}
+        ]},
         parse_form("-define(HASH_FUN, erlang:phash).")
     ).
 
@@ -496,14 +506,14 @@ functions_and_funs(Config) when is_list(Config) ->
     ),
     ?assertMatch(
         {'fun', _,
-            {function, _, {macro_call, _, {atom, _, 'foo'}, none},
-                {atom, _, foo}, {integer, _, 1}}},
+            {function, _, {macro_call, _, {atom, _, 'foo'}, none}, {atom, _, foo},
+                {integer, _, 1}}},
         parse_expr("fun ?foo:foo/1")
     ),
     ?assertMatch(
         {'fun', _,
-            {function, _, {atom, _, foo},
-                {macro_call, _, {atom, _, foo}, none}, {integer, _, 1}}},
+            {function, _, {atom, _, foo}, {macro_call, _, {atom, _, foo}, none},
+                {integer, _, 1}}},
         parse_expr("fun foo:?foo/1")
     ),
     ?assertMatch(
@@ -518,8 +528,9 @@ functions_and_funs(Config) when is_list(Config) ->
     ),
     ?assertMatch(
         {'fun', _,
-            {clauses, _,
-                [{clause, _, {call, _, {var, _, 'Foo'}, []}, empty, [{atom, _, ok}]}]}},
+            {clauses, _, [
+                {clause, _, {call, _, {var, _, 'Foo'}, []}, empty, [{atom, _, ok}]}
+            ]}},
         parse_expr("fun Foo() -> ok end")
     ),
     ?assertMatch(
@@ -528,8 +539,9 @@ functions_and_funs(Config) when is_list(Config) ->
     ),
     ?assertMatch(
         {function, _, [
-            {clause, _, {call, _, {macro_call, _, {var, _, 'FOO'}, none}, []},
-                empty, [{atom, _, ok}]}
+            {clause, _, {call, _, {macro_call, _, {var, _, 'FOO'}, none}, []}, empty, [
+                {atom, _, ok}
+            ]}
         ]},
         parse_form("?FOO() -> ok.")
     ),
@@ -597,8 +609,9 @@ binaries(Config) when is_list(Config) ->
     ),
     ?assertMatch(
         {bin, _, [
-            {bin_element, _, {integer, _, 1}, default,
-                [{remote, _, {atom, _, unit}, {integer, _, 8}}]}
+            {bin_element, _, {integer, _, 1}, default, [
+                {remote, _, {atom, _, unit}, {integer, _, 8}}
+            ]}
         ]},
         parse_expr("<<1/unit:8>>")
     ).
@@ -606,8 +619,9 @@ binaries(Config) when is_list(Config) ->
 clauses(Config) when is_list(Config) ->
     ?assertMatch(
         {'if', _, [
-            {clause, _, empty, {guard_or, _, [{guard_and, _, [{atom, _, true}]}]},
-                [{atom, _, ok}]}
+            {clause, _, empty, {guard_or, _, [{guard_and, _, [{atom, _, true}]}]}, [
+                {atom, _, ok}
+            ]}
         ]},
         parse_expr("if true -> ok end")
     ),
@@ -625,8 +639,9 @@ clauses(Config) when is_list(Config) ->
         {'try', _, [{atom, _, ok}], [{clause, _, {var, _, '_'}, empty, [{atom, _, ok}]}],
             [
                 {clause, _, {var, _, '_'}, empty, [{atom, _, ok}]},
-                {clause, _, {'catch', _, [{var, _, '_'}, {var, _, '_'}]},
-                    empty, [{atom, _, ok}]},
+                {clause, _, {'catch', _, [{var, _, '_'}, {var, _, '_'}]}, empty, [
+                    {atom, _, ok}
+                ]},
                 {clause, _, {'catch', _, [{var, _, '_'}, {var, _, '_'}, {var, _, '_'}]},
                     empty, [{atom, _, ok}]}
             ],
@@ -735,8 +750,10 @@ annos(Config) when is_list(Config) ->
         {atom,
             #{
                 pre_comments := [
-                    {comment, #{location := {2, 1}, end_location := {3, 6}},
-                        ["%foo", "%bar"]}
+                    {comment, #{location := {2, 1}, end_location := {3, 6}}, [
+                        "%foo",
+                        "%bar"
+                    ]}
                 ]
             },
             ok},
@@ -764,8 +781,9 @@ annos(Config) when is_list(Config) ->
     ),
     ?assertMatch(
         {attribute, #{location := {1, 1}, end_location := {1, 11}},
-            {atom, #{location := {1, 2}, end_location := {1, 7}, text := "'foo'"}, foo},
-            [_]},
+            {atom, #{location := {1, 2}, end_location := {1, 7}, text := "'foo'"}, foo}, [
+                _
+            ]},
         parse_form("-'foo'(1).")
     ),
     ?assertMatch(
@@ -881,7 +899,10 @@ snapshot_formatted(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     PrivDir = ?config(priv_dir, Config),
     {ok, Expected} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
-    {ok, _} = erlfmt:format_file(filename:join([DataDir, Module]), {ignore, {path, PrivDir}}),
+    {ok, _} = erlfmt:format_file(
+        filename:join([DataDir, Module]),
+        {ignore, {path, PrivDir}}
+    ),
     {ok, Formatted} = file:read_file(filename:join([PrivDir, Module])),
     ?assertEqual(Expected, Formatted),
     {ok, _} = erlfmt:format_file(
@@ -903,65 +924,96 @@ broken_range(Config) ->
 
 format_range(Config, File) ->
     DataDir = ?config(data_dir, Config),
-    Path = DataDir++File,
-    case erlfmt:format_range(Path, {3,45}, {47,1}) of
+    Path = DataDir ++ File,
+    case erlfmt:format_range(Path, {3, 45}, {47, 1}) of
         {ok, _Output, _} -> ok;
         {options, Options} -> range_format_exact(Options, Path)
     end.
 
-range_format_exact([], _Path) -> ok;
-range_format_exact([{Start,End}|Options], Path) ->
+range_format_exact([], _Path) ->
+    ok;
+range_format_exact([{Start, End} | Options], Path) ->
     {ok, _Output, _} = erlfmt:format_range(Path, Start, End),
     range_format_exact(Options, Path).
 
 contains_pragma(Config) when is_list(Config) ->
-    ?assertEqual(true, erlfmt:contains_pragma_string("file.erl", 
-    "% @format\n"
-    "\n"
-    "-module(pragma).\n"
-    "\n"
-    "-export([f/3]).\n"
-    "\n"
-    "f(_Arg1,_Arg2,   _Arg3) ->\n"
-    "ok.\n")),
-    ?assertEqual(true, erlfmt:contains_pragma_string("file.erl",
-    "\n"
-    "\n"
-    "% @format\n"
-    "\n"
-    "-module(pragma).\n")),
-    ?assertEqual(false, erlfmt:contains_pragma_string("file.erl",
-    "-module(pragma).\n"
-    "-export([f/3]).\n"
-    "\n"
-    "f(_Arg1,_Arg2,   _Arg3) ->\n"
-    "ok.\n")),
-    ?assertEqual(false, erlfmt:contains_pragma_string("file.erl", 
-    "% LICENSE\n"
-    "% LICENSE\n"
-    "% LICENSE\n"
-    "% LICENSE\n"
-    "\n"
-    "-module(pragma)\n."
-    "\n"
-    "-export([f/3]).\n"
-    "\n"
-    "f(_Arg1,_Arg2,   _Arg3) ->\n"
-    "ok.\n")),
-    ?assertEqual(true, erlfmt:contains_pragma_string("file.erl", 
-    "% LICENSE\n"
-    "% LICENSE\n"
-    "% LICENSE\n"
-    "% LICENSE\n"
-    "\n"
-    "% @format\n"
-    "\n"
-    "-module(pragma).\n"
-    "\n"
-    "-export([f/3]).\n"
-    "\n"
-    "f(_Arg1,_Arg2,   _Arg3) ->\n"
-    "ok.\n")),
-    ?assertEqual(true, erlfmt:contains_pragma_string("file.erl",
-    "% @format\n"
-    "-module(pragma).\n")).
+    ?assertEqual(
+        true,
+        erlfmt:contains_pragma_string(
+            "file.erl",
+            "% @format\n"
+            "\n"
+            "-module(pragma).\n"
+            "\n"
+            "-export([f/3]).\n"
+            "\n"
+            "f(_Arg1,_Arg2,   _Arg3) ->\n"
+            "ok.\n"
+        )
+    ),
+    ?assertEqual(
+        true,
+        erlfmt:contains_pragma_string(
+            "file.erl",
+            "\n"
+            "\n"
+            "% @format\n"
+            "\n"
+            "-module(pragma).\n"
+        )
+    ),
+    ?assertEqual(
+        false,
+        erlfmt:contains_pragma_string(
+            "file.erl",
+            "-module(pragma).\n"
+            "-export([f/3]).\n"
+            "\n"
+            "f(_Arg1,_Arg2,   _Arg3) ->\n"
+            "ok.\n"
+        )
+    ),
+    ?assertEqual(
+        false,
+        erlfmt:contains_pragma_string(
+            "file.erl",
+            "% LICENSE\n"
+            "% LICENSE\n"
+            "% LICENSE\n"
+            "% LICENSE\n"
+            "\n"
+            "-module(pragma)\n."
+            "\n"
+            "-export([f/3]).\n"
+            "\n"
+            "f(_Arg1,_Arg2,   _Arg3) ->\n"
+            "ok.\n"
+        )
+    ),
+    ?assertEqual(
+        true,
+        erlfmt:contains_pragma_string(
+            "file.erl",
+            "% LICENSE\n"
+            "% LICENSE\n"
+            "% LICENSE\n"
+            "% LICENSE\n"
+            "\n"
+            "% @format\n"
+            "\n"
+            "-module(pragma).\n"
+            "\n"
+            "-export([f/3]).\n"
+            "\n"
+            "f(_Arg1,_Arg2,   _Arg3) ->\n"
+            "ok.\n"
+        )
+    ),
+    ?assertEqual(
+        true,
+        erlfmt:contains_pragma_string(
+            "file.erl",
+            "% @format\n"
+            "-module(pragma).\n"
+        )
+    ).

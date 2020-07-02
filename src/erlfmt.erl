@@ -70,17 +70,20 @@ init(State) ->
     rebar3_fmt_prv:init(State).
 
 %% API entry point
--spec format_file(file:name_all(), config()) -> {ok, [error_info()]} | {error, error_info()}.
+-spec format_file(file:name_all(), config()) ->
+    {ok, [error_info()]} | {error, error_info()}.
 format_file(FileName, {Pragma, Out}) ->
     try
         ShouldFormat = (Pragma == ignore) orelse contains_pragma_file(FileName),
         case ShouldFormat of
-            true -> {ok, Nodes, Warnings} = file_read_nodes(FileName),
-                    [$\n | Formatted] = format_nodes(Nodes),
-                    verify_nodes(FileName, Nodes, Formatted),
-                    write_formatted(FileName, Formatted, Out),
-                    {ok, Warnings};
-            false -> {ok, []}
+            true ->
+                {ok, Nodes, Warnings} = file_read_nodes(FileName),
+                [$\n | Formatted] = format_nodes(Nodes),
+                verify_nodes(FileName, Nodes, Formatted),
+                write_formatted(FileName, Formatted, Out),
+                {ok, Warnings};
+            false ->
+                {ok, []}
         end
     catch
         {error, Error} -> {error, Error}
@@ -99,16 +102,19 @@ contains_pragma_string(FileName, String) ->
 read_pragma_nodes({ok, Tokens, Comments, Cont}, FileName, _Acc, Warnings0) ->
     {Node, _Warnings} = parse_nodes(Tokens, Comments, FileName, Cont, Warnings0),
     contains_pragma_node(Node);
-read_pragma_nodes(_, _, _, _) -> false.
+read_pragma_nodes(_, _, _, _) ->
+    false.
 
 contains_pragma_node({attribute, Meta, _AfAtom, _AbstractExprs}) ->
     {PreComments, PostComments} = erlfmt_format:comments(Meta),
     lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments);
-contains_pragma_node(_) -> false.
+contains_pragma_node(_) ->
+    false.
 
 contains_pragma_comment({comment, _Loc, Comments}) ->
     string:find(Comments, "@format") =/= nomatch;
-contains_pragma_comment(_) -> false.
+contains_pragma_comment(_) ->
+    false.
 
 -spec format_range(
     file:name_all(),
@@ -119,7 +125,7 @@ contains_pragma_comment(_) -> false.
     {error, error_info()} |
     {options, [{erlfmt_scan:location(), erlfmt_scan:location()}]}.
 format_range(FileName, StartLocation, EndLocation) ->
-   try
+    try
         {ok, Nodes, Warnings} = file_read_nodes(FileName),
         case verify_ranges(Nodes, StartLocation, EndLocation) of
             {ok, NodesInRange} ->
@@ -308,7 +314,12 @@ possible_ranges(Nodes, StartLocation, EndLocation) ->
         MultipleNodes ->
             combine(
                 get_possible_locations(MultipleNodes, StartLocation, fun get_location/1),
-                get_possible_locations(lists:reverse(MultipleNodes), EndLocation, fun get_end_location/1))
+                get_possible_locations(
+                    lists:reverse(MultipleNodes),
+                    EndLocation,
+                    fun get_end_location/1
+                )
+            )
     end.
 
 nodes_in_range(Nodes, StartLocation, EndLocation) ->
@@ -317,7 +328,7 @@ nodes_in_range(Nodes, StartLocation, EndLocation) ->
 node_intersects_range(Node, StartLocation, EndLocation) ->
     {Start, End} = get_location_range(Node),
     ((Start < StartLocation) and (End >= StartLocation)) or
-    ((Start >= StartLocation) and (Start =< EndLocation)).
+        ((Start >= StartLocation) and (Start =< EndLocation)).
 
 get_possible_locations([Option1, Option2 | _], Location, GetLoc) ->
     case GetLoc(Option1) of

@@ -41,18 +41,29 @@
     force_breaks/0,
     empty/0,
     string/1,
-    concat/1, concat/2, concat/3,
-    nest/2, nest/3,
-    break/0, break/1,
-    next_break_fits/1, next_break_fits/2,
-    flex_break/0, flex_break/1,
-    flex_break/2, flex_break/3,
-    break/2, break/3,
+    concat/1,
+    concat/2,
+    concat/3,
+    nest/2,
+    nest/3,
+    break/0,
+    break/1,
+    next_break_fits/1,
+    next_break_fits/2,
+    flex_break/0,
+    flex_break/1,
+    flex_break/2,
+    flex_break/3,
+    break/2,
+    break/3,
     group/1,
     space/2,
-    line/0, line/1, line/2,
+    line/0,
+    line/1,
+    line/2,
     fold_doc/2,
-    format/2, format/3,
+    format/2,
+    format/3,
     fits/4,
     indent/1
 ]).
@@ -108,22 +119,21 @@
 % The first six constructors are described in the original paper at "Figure 1: Six constructors for the doc data type".
 % doc_break is added as part of the implementation in section 3.
 % doc_fits and doc_force_breaks are newly added.
--opaque doc() :: binary()
-    | doc_force_breaks
-    | doc_nil
-    | #doc_string{}
+-opaque doc() ::
+    binary() |
+    doc_force_breaks |
+    doc_nil |
+    #doc_string{} |
     % doc_line should be thought of as a space character which may be replaced by a line break when necessary.
-    | #doc_line{}
-    | #doc_cons{}
-    | #doc_nest{}
-    | #doc_group{}
-    | #doc_break{}
-    | #doc_fits{}
-    .
+    #doc_line{} |
+    #doc_cons{} |
+    #doc_nest{} |
+    #doc_group{} |
+    #doc_break{} |
+    #doc_fits{}.
 
 -define(is_doc(Doc),
-    (
-        (Doc == doc_force_breaks) orelse
+    ((Doc == doc_force_breaks) orelse
         (Doc == doc_nil) orelse
         is_binary(Doc) orelse
         is_record(Doc, doc_line) orelse
@@ -132,8 +142,7 @@
         is_record(Doc, doc_fits) orelse
         is_record(Doc, doc_group) orelse
         is_record(Doc, doc_nest) orelse
-        is_record(Doc, doc_string)
-    )
+        is_record(Doc, doc_string))
 ).
 
 % empty is not printed at all, but it is essential to implement optional output: if ... then "output" else empty;
@@ -180,9 +189,9 @@ nest(Doc, Level) ->
 -spec nest(doc(), non_neg_integer(), always | break) -> doc().
 nest(Doc, 0, _Mode) when ?is_doc(Doc) ->
     Doc;
-nest(Doc, Indent, always) when ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0  ->
+nest(Doc, Indent, always) when ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0 ->
     #doc_nest{doc = Doc, indent = Indent, always_or_break = always};
-nest(Doc, Indent, break) when ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0  ->
+nest(Doc, Indent, break) when ?is_doc(Doc), is_integer(Indent) andalso Indent >= 0 ->
     #doc_nest{doc = Doc, indent = Indent, always_or_break = break}.
 
 % This break can be rendered as a linebreak or as the given `string`, depending on the `mode` or line limit of the chosen layout.
@@ -412,26 +421,31 @@ format(Doc, Width) when ?is_doc(Doc) andalso (Width == infinity orelse Width >= 
 
 -type mode() :: flat | flat_no_break | break | break_no_flat.
 
--spec fits(Width :: integer(), Column :: integer(), HasBreaks :: boolean(), Entries) -> boolean()
-    when Entries :: maybe_improper_list({integer(), mode(), doc()}, {tail, boolean(), Entries} | []).
-
+-spec fits(Width :: integer(), Column :: integer(), HasBreaks :: boolean(), Entries) ->
+    boolean()
+when
+    Entries :: maybe_improper_list(
+        {integer(), mode(), doc()},
+        {tail, boolean(), Entries} | []
+    ).
 % We need at least a break to consider the document does not fit since a
 % large document without breaks has no option but fitting its current line.
 %
 % In case we have groups and the group fits, we need to consider the group
 % parent without the child breaks, hence {:tail, b?, t} below.
 
-fits(Width, K, B, _) when K > Width andalso B -> false;
-fits(_, _, _, []) -> true;
-fits(Width, K, _, {tail, B, Doc}) -> fits(Width, K, B, Doc);
-
+fits(Width, K, B, _) when K > Width andalso B ->
+    false;
+fits(_, _, _, []) ->
+    true;
+fits(Width, K, _, {tail, B, Doc}) ->
+    fits(Width, K, B, Doc);
 %   ## Flat no break
 
 fits(Width, K, B, [{I, _, #doc_fits{group = X, enabled_or_disabled = disabled}} | T]) ->
     fits(Width, K, B, [{I, flat_no_break, X} | T]);
 fits(Width, K, B, [{I, flat_no_break, #doc_fits{group = X}} | T]) ->
     fits(Width, K, B, [{I, flat_no_break, X} | T]);
-
 %   ## Breaks no flat
 
 fits(Width, K, B, [{I, _, #doc_fits{group = X, enabled_or_disabled = enabled}} | T]) ->
@@ -442,7 +456,6 @@ fits(_, _, _, [{_, break_no_flat, #doc_break{}} | _]) ->
     true;
 fits(_, _, _, [{_, break_no_flat, #doc_line{}} | _]) ->
     true;
-
 %   ## Breaks
 
 fits(_, _, _, [{_, break, #doc_break{}} | _]) ->
@@ -451,7 +464,6 @@ fits(_, _, _, [{_, break, #doc_line{}} | _]) ->
     true;
 fits(Width, K, B, [{I, break, #doc_group{group = X}} | T]) ->
     fits(Width, K, B, [{I, flat, X} | {tail, B, T}]);
-
 %   ## Catch all
 
 fits(Width, _, _, [{I, _, #doc_line{}} | T]) ->
@@ -493,7 +505,6 @@ format(Width, K, [{_I, _M, doc_force_breaks} | T]) ->
     format(Width, K, T);
 format(Width, K, [{I, M, #doc_fits{group = X}} | T]) ->
     format(Width, K, [{I, M, X} | T]);
-
 %   # Flex breaks are not conditional to the mode
 format(Width, K0, [{I, M, #doc_break{break = S, flex_or_strict = flex}} | T]) ->
     K = K0 + byte_size(S),
@@ -501,21 +512,18 @@ format(Width, K0, [{I, M, #doc_break{break = S, flex_or_strict = flex}} | T]) ->
         true -> [S | format(Width, K, T)];
         false -> [indent(I) | format(Width, I, T)]
     end;
-
 %   # Strict breaks are conditional to the mode
 format(Width, K, [{I, M, #doc_break{break = S, flex_or_strict = strict}} | T]) ->
     case M of
         break -> [indent(I) | format(Width, I, T)];
         _ -> [S | format(Width, K + byte_size(S), T)]
     end;
-
 %   # Nesting is conditional to the mode.
 format(Width, K, [{I, M, #doc_nest{doc = X, indent = J, always_or_break = Nest}} | T]) ->
     case Nest == always orelse (Nest == break andalso M == break) of
         true -> format(Width, K, [{I + J, M, X} | T]);
         false -> format(Width, K, [{I, M, X} | T])
     end;
-
 %   # Groups must do the fitting decision.
 format(Width, K, [{I, _, #doc_group{group = X}} | T0]) ->
     {StringLength, T1} = peek_next_string_length(T0),
@@ -548,7 +556,8 @@ force_next_flex_break([Other | T]) ->
 force_next_flex_break([]) ->
     [].
 
-indent(0) -> ?newline;
+indent(0) ->
+    ?newline;
 indent(I) when is_integer(I) ->
     Spaces = binary:copy(<<" ">>, I),
-    <<?newline/binary,Spaces/binary>>.
+    <<?newline/binary, Spaces/binary>>.

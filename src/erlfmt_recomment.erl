@@ -37,7 +37,10 @@ insert_node({attribute, Meta0, Name, Values0}, Comments) ->
     Meta = put_post_comments(Meta1, PostCommennts),
     {attribute, Meta, Name, Values};
 insert_node(Expr0, Comments) ->
-    {PreComments, InnerComments, PostComments} = split_comments(element(2, Expr0), Comments),
+    {PreComments, InnerComments, PostComments} = split_comments(
+        element(2, Expr0),
+        Comments
+    ),
     {Expr1, RestComments} = insert_expr(Expr0, InnerComments),
     Expr = put_pre_comments(Expr1, PreComments),
     put_post_comments(Expr, RestComments ++ PostComments).
@@ -116,8 +119,9 @@ insert_nested({clause, Meta, Head0, Guards0, Body0}, Comments0) ->
     {Guards, Comments2} = insert_expr(Guards0, Comments1),
     {Body, Comments} = insert_expr_list(Body0, Comments2),
     {{clause, Meta, Head, Guards, Body}, Comments};
-insert_nested({Guard, Meta, Guards0}, Comments0)
-        when Guard =:= guard_or; Guard =:= guard_and ->
+insert_nested({Guard, Meta, Guards0}, Comments0) when
+    Guard =:= guard_or; Guard =:= guard_and
+->
     {Guards, Comments} = insert_expr_list(Guards0, Comments0),
     {{Guard, Meta, Guards}, Comments};
 insert_nested({Collection, Meta, Values0}, Comments0) when ?IS_COLLECTION(Collection) ->
@@ -134,16 +138,19 @@ insert_nested({record, Meta, Expr0, Name, Values0}, Comments0) ->
     {Expr, Comments1} = insert_expr(Expr0, Comments0),
     Values = insert_expr_container(Values0, Comments1),
     {{record, Meta, Expr, Name, Values}, []};
-insert_nested({Comprehension, Meta, Expr0, LcExprs0}, Comments0)
-        when Comprehension =:= lc; Comprehension =:= bc ->
+insert_nested({Comprehension, Meta, Expr0, LcExprs0}, Comments0) when
+    Comprehension =:= lc; Comprehension =:= bc
+->
     {Expr, Comments1} = insert_expr(Expr0, Comments0),
     LcExprs = insert_expr_container(LcExprs0, Comments1),
     {{Comprehension, Meta, Expr, LcExprs}, []};
-insert_nested({Field, Meta, Key0, Value0}, Comments0) when Field =:= map_field_assoc;
-                                                           Field =:= map_field_exact;
-                                                           Field =:= record_field;
-                                                           Field =:= generate;
-                                                           Field =:= b_generate ->
+insert_nested({Field, Meta, Key0, Value0}, Comments0) when
+    Field =:= map_field_assoc;
+    Field =:= map_field_exact;
+    Field =:= record_field;
+    Field =:= generate;
+    Field =:= b_generate
+->
     {Key, Comments1} = insert_expr(Key0, Comments0),
     {Value, Comments} = insert_expr(Value0, Comments1),
     {{Field, Meta, Key, Value}, Comments};
@@ -201,8 +208,9 @@ insert_nested({'try', Meta, Exprs0, OfClauses0, CatchClauses0, After0}, Comments
 insert_nested({spec, Meta, Name, Clauses0}, Comments0) ->
     Clauses = insert_expr_container(Clauses0, Comments0),
     {{spec, Meta, Name, Clauses}, []};
-insert_nested({'fun', _, Fun} = Node, Comments0)
-        when element(1, Fun) =:= 'function'; Fun =:= type ->
+insert_nested({'fun', _, Fun} = Node, Comments0) when
+    element(1, Fun) =:= 'function'; Fun =:= type
+->
     {put_pre_comments(Node, Comments0), []};
 insert_nested({'fun', Meta, {type, InnerMeta, Args0, Res0}}, Comments0) ->
     {Args, Comments1} = insert_expr_list(Args0, Comments0),
@@ -236,6 +244,10 @@ put_pre_comments(NodeOrMeta, Comments) ->
     Loc = erlfmt_scan:get_anno(location, NodeOrMeta),
     CommentLoc = erlfmt_scan:get_anno(location, hd(Comments)),
     erlfmt_scan:merge_anno(
-        #{location => min(Loc, CommentLoc), inner_location => Loc, pre_comments => Comments},
+        #{
+            location => min(Loc, CommentLoc),
+            inner_location => Loc,
+            pre_comments => Comments
+        },
         NodeOrMeta
     ).

@@ -29,7 +29,7 @@ opts() ->
         {write, $w, "write", undefined, "modify formatted files in place"},
         {out, $o, "out", binary, "output directory"},
         {verbose, undefined, "verbose", undefined, "include debug output"},
-        {require_pragma, undefined, "require-pragma", undefined, 
+        {require_pragma, undefined, "require-pragma", undefined,
             "Require a special comment @format, called a pragma, "
             "to be present in the file's first docblock comment in order for prettier to format it."},
         {files, undefined, undefined, string, "files to format"}
@@ -54,10 +54,11 @@ format_files([FileName | FileNames], Config, HadErrors) ->
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
         false -> ok
     end,
-    Pragma = case Config#config.require_pragma of
-        true -> require;
-        _ -> ignore
-    end,
+    Pragma =
+        case Config#config.require_pragma of
+            true -> require;
+            _ -> ignore
+        end,
     ErlfmtConfig = {Pragma, Config#config.out},
     case erlfmt:format_file(FileName, ErlfmtConfig) of
         {ok, Warnings} ->
