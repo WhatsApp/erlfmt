@@ -46,7 +46,6 @@
     test_force_and_cancel/1,
     test_groups_with_lines/1,
     test_infinite_width/1,
-    test_container/1,
     test_concat/1,
     test_docs/1,
     test_group_string_concat/1
@@ -76,8 +75,6 @@
     force_unfit/1,
     next_break_fits/1,
     next_break_fits/2,
-    container_doc/3,
-    container_doc/4,
     fold_doc/2
 ]).
 
@@ -122,7 +119,6 @@ all() ->
         test_force_and_cancel,
         test_groups_with_lines,
         test_infinite_width,
-        test_container,
         test_concat,
         test_docs,
         test_group_string_concat
@@ -226,23 +222,6 @@ test_infinite_width(Config) when is_list(Config) ->
         render(Doc, infinity)
     ).
 
-test_container(Config) when is_list(Config) ->
-    Render = fun (Docs) -> render(container_doc(<<"[">>, Docs, <<"]">>, #{separator => <<",">>}), 80) end,
-
-    ?assertEqual(<<"[]">>, Render([])),
-    ?assertEqual(<<"[]">>, Render([empty()])),
-    ?assertEqual(<<"[]">>, Render([empty(), empty()])),
-    ?assertEqual(<<"[a]">>, Render([<<"a">>])),
-    ?assertEqual(<<"[a]">>, Render([<<"a">>, empty()])),
-    ?assertEqual(<<"[a]">>, Render([empty(), <<"a">>])),
-    ?assertEqual(<<"[a, b]">>, Render([<<"a">>, empty(), <<"b">>])),
-    ?assertEqual(<<"[a, b]">>, Render([empty(), <<"a">>, <<"b">>])),
-    ?assertEqual(<<"[a, b]">>, Render([<<"a">>, <<"b">>, empty()])),
-    ?assertEqual(<<"[a, b | c]">>, Render([<<"a">>, <<"b">> | <<"c">>])),
-    ?assertEqual(<<"[a | b]">>, Render([<<"a">> | <<"b">>])),
-    ?assertEqual(<<"[a]">>, Render([<<"a">> | empty()])),
-    ?assertEqual(<<"[b]">>, Render([empty() | <<"b">>])).
-
 test_concat(Config) when is_list(Config) ->
     ?assertEqual(<<"foo">>, render(concat(empty(), <<"foo">>), 80)).
 
@@ -258,14 +237,6 @@ test_docs(Config) when is_list(Config) ->
     % a line limit. Once we do, it is replaced by a newline:
     ?assertEqual(<<"aaaaaaaaaaaaaaaaaaaa\nb">>, render(group(break(binary:copy(<<"a">>, 20), <<" ">>, <<"b">>)), 10)),
 
-    ?assertEqual(
-        <<"[1,\n 2,\n 3,\n 4,\n 5]">>,
-        render(container_doc(<<"[">>, [integer_to_binary(I) || I <- lists:seq(1, 5)], <<"]">>), 5)
-    ),
-    ?assertEqual(
-        <<"[a! b]">>,
-        render(container_doc(<<"[">>, [<<"a">>, <<"b">>], <<"]">>, #{separator => <<"!">>}), 20)
-    ),
 
     ?assertEqual(
         <<"olá\nmundo"/utf8>>,

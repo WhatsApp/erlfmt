@@ -42,8 +42,6 @@
     force_unfit/1,
     next_break_fits/1,
     next_break_fits/2,
-    container_doc/3,
-    container_doc/4,
     fold_doc/2
 ]).
 
