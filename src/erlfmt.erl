@@ -102,7 +102,7 @@ read_pragma_nodes({ok, Tokens, Comments, Cont}, FileName, _Acc, Warnings0) ->
 read_pragma_nodes(_, _, _, _) -> false.
 
 contains_pragma_node({attribute, Meta, _AfAtom, _AbstractExprs}) ->
-    {PreComments, PostComments} = erlfmt_format:comments(Meta),
+    {PreComments, PostComments} = erlfmt_format2:comments(Meta),
     lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments);
 contains_pragma_node(_) -> false.
 

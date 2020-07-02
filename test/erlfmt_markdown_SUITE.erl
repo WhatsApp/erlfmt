@@ -152,14 +152,14 @@ split_code_into_maps(Text, {code, Formatted, Unformatted}) ->
     end.
 
 check_fmt(Unformatted, Expected) ->
-    NewlyFormatted = format(Unformatted, 80),
-    ?assertEqual(string:trim(NewlyFormatted), string:trim(Expected)).
+    Got = format(Unformatted, 80),
+    ?assertEqual(string:trim(Expected), string:trim(Got)).
 
 format(String, PageWidth) ->
     Doc = format_doc(String),
-    Rendered = erlfmt_algebra:document_render(Doc, [{page_width, PageWidth}]),
+    Rendered = erlfmt_algebra2:format(Doc, PageWidth),
     unicode:characters_to_list(Rendered).
 
 format_doc(String) ->
     {ok, [Node], []} = erlfmt:read_nodes_string("nofile", String),
-    erlfmt_format:to_algebra(Node).
+    erlfmt_format2:to_algebra(Node).
