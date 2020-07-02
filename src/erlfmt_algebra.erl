@@ -33,6 +33,8 @@
 
 -module(erlfmt_algebra).
 
+-dialyzer(no_improper_lists).
+
 -define(newline, <<"\n">>).
 
 -export_type([doc/0]).
@@ -72,7 +74,7 @@
 
 % doc_string represents Literal text, which is simply printed as is.
 -record(doc_string, {
-    string :: doc(),
+    string :: unicode:chardata(),
     length :: non_neg_integer()
 }).
 
@@ -119,7 +121,7 @@
 % The first six constructors are described in the original paper at "Figure 1: Six constructors for the doc data type".
 % doc_break is added as part of the implementation in section 3.
 % doc_fits and doc_force_breaks are newly added.
--opaque doc() ::
+-type doc() ::
     binary() |
     doc_force_breaks |
     doc_nil |
