@@ -199,8 +199,8 @@ format_nodes([]) ->
 format_node({raw_string, _Anno, String}) ->
     [String, $\n];
 format_node(Node) ->
-    Doc = erlfmt_format:to_algebra(Node),
-    [erlfmt_algebra:document_render(Doc, [{page_width, ?PAGE_WIDTH}]), $\n].
+    Doc = erlfmt_format2:to_algebra(Node),
+    [erlfmt_algebra2:format(Doc, ?PAGE_WIDTH), $\n].
 
 verify_nodes(FileName, Nodes, Formatted) ->
     case read_nodes_string(FileName, unicode:characters_to_list(Formatted)) of
