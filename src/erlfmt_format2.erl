@@ -212,49 +212,8 @@ do_expr_to_algebra({guard_and, _Meta, Guards}) ->
 do_expr_to_algebra(Other) ->
     error(unsupported, [Other]).
 
-comma_space(D1, D2) -> concat(D1, <<", ">>, D2).
-
-semi_space(D1, D2) -> concat(D1, <<"; ">>, D2).
-
-colon(D1, D2) -> concat(D1, <<":">>, D2).
-
-comma_newline(D1, D2) ->
-    line(concat(D1, <<",">>), D2).
-
-% combine_comma_double_newline(D1, D2) ->
-%     Left = document_flush(document_flush(concat(D1, string(",")))),
-%     concat(Left, D2).
-
-% combine_semi_newline(D1, D2) ->
-%     concat(document_flush(concat(D1, string(";"))), D2).
-
-% combine_nested(Head, Doc) -> combine_nested(Head, Doc, ?INDENT).
-
-% combine_nested(Head, Doc, Indent) ->
-%     line(Head, concat(document_spaces(Indent), Doc)).
-
-% prepend_space(D1, D2) ->
-%     wrap_prepend(D1, string(" "), D2).
-
-% prepend_comma_space(D1, D2) ->
-%     wrap_prepend(D1, string(", "), D2).
-
-wrap(Left, Doc, Right) ->
-    concat(Left, Doc, Right).
-
-% wrap_prepend(Left, Doc, Right) ->
-%     document_prepend(Left, document_prepend(Doc, Right)).
-
-wrap_in_parens(Doc) ->
-    concat(<<"(">>, Doc, <<")">>).
-
-% wrap_nested(Left, Doc, Right) ->
-%     Nested = concat(document_spaces(?INDENT), Doc),
-%     line(Left, line(Nested, Right)).
-
 surround(Left, LeftSpace, Doc, RightSpace, Right) ->
     group(break(concat(Left, nest(concat(break(LeftSpace), Doc), ?INDENT, break)), RightSpace, Right)).
-
 
 surround_block(Left, Doc, Right) ->
     force_unfit(group(line(concat(Left, nest(concat(line(), Doc), ?INDENT)), Right))).
@@ -544,108 +503,6 @@ clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
         Nested(GuardsD)
     ).
 
-% clauses_to_algebra([{_, #{newline := true}, _, _, _} | _] = Clauses) ->
-%     {_Single, Multi} = clauses_to_algebra_pair(Clauses),
-%     Multi;
-% clauses_to_algebra(Clauses) ->
-%     {Single, Multi} = clauses_to_algebra_pair(Clauses),
-%     document_choice(Single, Multi).
-
-% %% standalone comments are always trailing other expressions
-% clauses_to_algebra_pair([Clause | [{comment, _, _} | _] = Comments]) ->
-%     CommentsD = comments_to_algebra(Comments),
-%     {SingleClauseD, MultiClauseD} = clause_to_algebra_pair(Clause),
-%     {line(SingleClauseD, CommentsD), line(MultiClauseD, CommentsD)};
-% clauses_to_algebra_pair([Clause]) ->
-%     clause_to_algebra_pair(Clause);
-% clauses_to_algebra_pair([Clause | Rest]) ->
-%     {SingleClauseD, MultiClauseD} = clause_to_algebra_pair(Clause),
-%     {RestSingle, RestMulti} = clauses_to_algebra_pair(Rest),
-%     Single = combine_semi_newline(SingleClauseD, RestSingle),
-%     Multi = combine_semi_newline(MultiClauseD, RestMulti),
-%     {Single, Multi}.
-
-% clause_to_algebra_pair({Clause, Meta, _, _, _} = Node)
-%         when Clause =:= clause; Clause =:= spec_clause ->
-%     %% clause nodes only have precomments
-%     {Pre, []} = comments(Meta),
-%     {Single, Multi} = do_clause_to_algebra_pair(Node),
-%     {combine_pre_comments(Pre, Single), combine_pre_comments(Pre, Multi)};
-% clause_to_algebra_pair({macro_call, _, _, _} = Expr) ->
-%     %% It's possible the entire clause is defined inside of a macro call
-%     ExprD = expr_to_algebra(Expr),
-%     {document_single_line(ExprD), ExprD}.
-
-% do_clause_to_algebra_pair({clause, _Meta, empty, Guards, Body}) ->
-%     BodyD = block_to_algebra(Body),
-%     SingleBodyD = document_single_line(BodyD),
-%     {SingleGuardsD, _InlineGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards, ""),
-
-%     SingleD = wrap(SingleGuardsD, string(" -> "), SingleBodyD),
-%     MultiD = combine_nested(concat(GuardsD, string(" ->")), BodyD),
-
-%     {SingleD, MultiD};
-% %% If there are no guards, spec is the same as regular clauses
-% do_clause_to_algebra_pair({spec_clause, Meta, Head, Body, empty}) ->
-%     do_clause_to_algebra_pair({clause, Meta, Head, empty, Body});
-% do_clause_to_algebra_pair({spec_clause, _Meta, Head, [Body], Guards}) ->
-%     {SingleHeadD, HeadD} = clause_head_to_algebra(Head),
-%     {SingleGuardsD, _InlineGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards, "when "),
-%     BodyD = expr_to_algebra(Body),
-%     SingleBodyD = document_single_line(BodyD),
-
-%     SingleD =
-%         wrap(SingleHeadD, string(" -> "), space(SingleBodyD, SingleGuardsD)),
-%     MultiPrefix = document_choice(
-%         wrap(SingleHeadD, string(" -> "), SingleBodyD),
-%         document_choice(
-%             combine_nested(concat(SingleHeadD, string(" ->")), BodyD),
-%             wrap(HeadD, string(" -> "), BodyD)
-%         )
-%     ),
-%     MultiD = combine_nested(MultiPrefix, GuardsD),
-
-%     {SingleD, MultiD};
-% do_clause_to_algebra_pair({clause, _Meta, Head, empty, Body}) ->
-%     {SingleHeadD, HeadD} = clause_head_to_algebra(Head),
-%     BodyD = block_to_algebra(Body),
-%     SingleBodyD = document_single_line(BodyD),
-
-%     SingleD = wrap(SingleHeadD, string(" -> "), SingleBodyD),
-%     MultiPrefix =
-%         concat(document_choice(SingleHeadD, HeadD), string(" ->")),
-%     MultiD = combine_nested(MultiPrefix, BodyD),
-
-%     {SingleD, MultiD};
-% do_clause_to_algebra_pair({clause, _Meta, Head, Guards, Body}) ->
-%     {SingleHeadD, HeadD} = clause_head_to_algebra(Head),
-%     {SingleGuardsD, InlineGuardsD, GuardsD} = guard_or_to_algebra_pair(Guards, "when "),
-%     BodyD = block_to_algebra(Body),
-%     SingleBodyD = document_single_line(BodyD),
-
-%     SingleD =
-%         space(SingleHeadD, wrap(SingleGuardsD, string(" -> "), SingleBodyD)),
-%     MultiPrefix = document_choice(
-%         space(document_choice(SingleHeadD, HeadD), InlineGuardsD),
-%         combine_nested(SingleHeadD, GuardsD, ?INDENT * 2)
-%     ),
-%     MultiD = combine_nested(concat(MultiPrefix, string(" ->")), BodyD),
-
-%     {SingleD, MultiD}.
-
-% clause_head_to_algebra({args, Meta, Args}) ->
-%     container_to_algebra_pair(Meta, Args, string("("), string(")"));
-% clause_head_to_algebra({'catch', _, Args}) ->
-%     ArgsD = lists:map(fun expr_to_algebra/1, Args),
-%     Doc = document_reduce(fun colon/2, ArgsD),
-%     {document_single_line(Doc), Doc};
-% clause_head_to_algebra({call, Meta, Name, Args}) ->
-%     Prefix = concat(expr_to_algebra(Name), string("(")),
-%     container_to_algebra_pair(Meta, Args, Prefix, string(")"));
-% clause_head_to_algebra(Expr) ->
-%     ExprD = expr_to_algebra(Expr),
-%     {document_single_line(ExprD), ExprD}.
-
 guard_to_algebra(Guards, Separator) ->
     GuardsD = lists:map(fun expr_to_algebra/1, Guards),
     Doc = fold_doc(fun (GuardD, Acc) -> break(concat(GuardD, Separator), Acc) end, GuardsD),
@@ -717,7 +574,7 @@ has_no_comments_or_parens(Meta) ->
 
 maybe_wrap_in_parens(Meta, Doc) ->
     case erlfmt_scan:get_anno(parens, Meta, false) of
-        true -> wrap_in_parens(Doc);
+        true -> concat(<<"(">>, Doc, <<")">>);
         false -> Doc
     end.
 
