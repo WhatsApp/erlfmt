@@ -49,6 +49,7 @@
     annos/1,
     smoke_test_cli/1,
     snapshot_simple_comments/1,
+    snapshot_big_binary/1,
     snapshot_comments/1,
     snapshot_broken/1,
     snapshot_overlong/1,
@@ -103,6 +104,7 @@ groups() ->
         ]},
         {snapshot_tests, [parallel], [
             snapshot_simple_comments,
+            snapshot_big_binary,
             snapshot_comments,
             snapshot_broken,
             snapshot_overlong
@@ -880,6 +882,8 @@ smoke_test_cli(Config) when is_list(Config) ->
     ?assertMatch("Usage: erlfmt " ++ _, os:cmd(Escript ++ " -h")).
 
 snapshot_simple_comments(Config) -> snapshot_same("simple_comments.erl", Config).
+
+snapshot_big_binary(Config) -> snapshot_same("big_binary.erl", Config).
 
 snapshot_comments(Config) -> snapshot_formatted("comments.erl", Config).
 
