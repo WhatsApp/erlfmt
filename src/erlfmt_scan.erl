@@ -16,7 +16,6 @@
 -include("erlfmt.hrl").
 
 -export([io_node/1, string_node/1, continue/1, last_node_string/1]).
-
 -export([
     put_anno/3,
     merge_anno/2,
@@ -33,11 +32,9 @@
 -export_type([state/0, anno/0, token/0, comment/0]).
 
 -define(ERL_SCAN_OPTS, [text, return_white_spaces, return_comments]).
-
 -define(START_LOCATION, {1, 1}).
 
 -type inner() :: term().
-
 -type scan() :: fun((inner(), erl_anno:location()) ->
         {erl_scan:tokens_result() | {error, term()}, inner()}
 ).
@@ -51,7 +48,6 @@
 }).
 
 -type comment() :: {comment, anno(), [string()]}.
-
 -type anno() :: #{
     location := location(),
     end_location := location(),
@@ -62,9 +58,7 @@
 }.
 
 -type location() :: {pos_integer(), pos_integer()}.
-
 -type token() :: {atom(), anno(), term()} | {atom(), anno()}.
-
 -type node_ret() ::
     {ok, [token()], [comment()], state()} |
     {error, {erl_anno:location(), module(), term()}, erl_anno:location()} |

@@ -46,9 +46,7 @@
 ]).
 
 -define(INDENT, 4).
-
 -define(NEXT_BREAK_FITS, [map, list, record, block, 'fun', lc, bc]).
-
 -define(NEXT_BREAK_FITS_OPS, ['=', '::']).
 
 -spec to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:doc().

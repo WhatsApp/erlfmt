@@ -30,23 +30,15 @@
 -export_type([error_info/0, out/0, config/0]).
 
 -type error_info() :: {file:name_all(), erl_anno:location(), module(), Reason :: any()}.
-
 -type out() :: standard_out | {path, file:name_all()} | replace.
-
 -type pragma() :: require | ignore.
-
 -type config() :: {Pragma :: pragma(), Out :: out()}.
 
 -define(PAGE_WIDTH, 92).
-
 -define(FIRST_LINE, 1).
-
 -define(FIRST_COLUMN, 1).
-
 -define(SCAN_START, {?FIRST_LINE, ?FIRST_COLUMN}).
-
 -define(SCAN_OPTS, [text, return_comments]).
-
 -define(COMMAND_NAME, "erlfmt").
 
 %% escript entry point
@@ -197,7 +189,7 @@ node_string(Cont) ->
 
 format_nodes([{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest]) ->
     [$\n, format_node(Attr), $\n, format_node(Fun), $\n | format_nodes(Rest)];
-format_nodes([{attribute, _, {atom, _, Name}, _} | _ ] = Nodes) ->
+format_nodes([{attribute, _, {atom, _, Name}, _} | _] = Nodes) ->
     {Attrs, Rest} = split_attrs(Name, Nodes),
     format_attrs(Attrs) ++ [$\n | format_nodes(Rest)];
 format_nodes([Node | Rest]) ->
@@ -212,12 +204,16 @@ format_node(Node) ->
     erlfmt_algebra:format(Doc, ?PAGE_WIDTH).
 
 split_attrs(PredName, Nodes) ->
-    lists:splitwith(fun
-        ({attribute, _, {atom, _, Name}, _}) -> PredName =:= Name;
-        (_) -> false
-    end, Nodes).
+    lists:splitwith(
+        fun
+            ({attribute, _, {atom, _, Name}, _}) -> PredName =:= Name;
+            (_) -> false
+        end,
+        Nodes
+    ).
 
-format_attrs([Attr]) -> [$\n, format_node(Attr)];
+format_attrs([Attr]) ->
+    [$\n, format_node(Attr)];
 format_attrs([Attr | Rest]) ->
     FAttr = format_node(Attr),
     case has_non_comment_newline(FAttr) of
