@@ -494,6 +494,13 @@ macro_definitions(Config) when is_list(Config) ->
             {remote, _, {atom, _, erlang}, {atom, _, phash}}
         ]},
         parse_form("-define(HASH_FUN, erlang:phash).")
+    ),
+    ?assertMatch(
+        {attribute, _, {atom, _, define}, [
+            {call, _, {atom, _, record}, [{var, _, 'N'}]},
+            {record, _, {var, _, 'N'}, []}
+        ]},
+        parse_form("-define(record(N), #N{}).")
     ).
 
 functions_and_funs(Config) when is_list(Config) ->

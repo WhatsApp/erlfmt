@@ -377,8 +377,7 @@ record_fields -> record_field ',' record_fields : ['$1' | '$3'].
 
 record_field -> record_field_name '=' expr : {record_field,?range_anno('$1', '$3'),'$1','$3'}.
 
-record_name -> atom : '$1'.
-record_name -> macro_call_none : '$1'.
+record_name -> atom_or_var_or_macro : '$1'.
 
 record_field_name -> atom_or_var_or_macro : '$1'.
 
