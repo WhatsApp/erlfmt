@@ -1341,6 +1341,13 @@ case_expression(Config) when is_list(Config) ->
         "end"
     ),
     ?assertSame(
+        "case 1 of\n"
+        "    1 -> ok\n"
+        "\n"
+        "    %% comment\n"
+        "end"
+    ),
+    ?assertSame(
         "case\n"
         "    [\n"
         "        value\n"
@@ -1924,6 +1931,18 @@ comment(Config) when is_list(Config) ->
         "% foo\n"
         "\n"
         "1"
+    ),
+    ?assertSame(
+        "1\n"
+        "\n"
+        "% foo"
+    ),
+    ?assertSame(
+        "[\n"
+        "    1\n"
+        "\n"
+        "    %% foo\n"
+        "]"
     ).
 
 format(String, PageWidth) ->

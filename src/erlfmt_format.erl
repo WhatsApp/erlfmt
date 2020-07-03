@@ -359,14 +359,14 @@ container_common(Meta, [Value | _] = Values, Left, Right, Combine, Last) ->
 container_exprs_to_algebra([{comment, _, _} | _] = Comments, _Last, Acc) ->
     {true, false,
         lists:reverse(Acc, [concat(force_breaks(), comments_to_algebra(Comments))])};
-container_exprs_to_algebra([Value | [{comment, _, _} | _] = Comments], _Last, Acc) ->
-    {true, false,
-        lists:reverse(Acc, [
-            concat(
-                force_breaks(),
-                line(expr_to_algebra(Value), comments_to_algebra(Comments))
-            )
-        ])};
+container_exprs_to_algebra([Value, {comment, _, _} = FirstComment | Rest], _Last, Acc) ->
+    Comments = [FirstComment | Rest],
+    Doc =
+        case has_empty_line_between(Value, FirstComment) of
+            true -> concat(expr_to_algebra(Value), line(2), comments_to_algebra(Comments));
+            false -> concat(expr_to_algebra(Value), line(), comments_to_algebra(Comments))
+        end,
+    {true, false, lists:reverse(Acc, [concat(force_breaks(), Doc)])};
 container_exprs_to_algebra([Value], last_fits, Acc) ->
     IsNextBreakFits = is_next_break_fits(Value),
     ValueD =
@@ -484,8 +484,11 @@ clauses_to_algebra([Clause | _] = Clauses) ->
     HasBreak = clause_has_break(Clause),
     group(concat(maybe_force_breaks(HasBreak), ClausesD)).
 
-fold_clauses_to_algebra([Clause | [{comment, _, _} | _] = Comments]) ->
-    line(expr_to_algebra(Clause), comments_to_algebra(Comments));
+fold_clauses_to_algebra([Clause | [{comment, _, _} = FirstComment | _] = Comments]) ->
+    case has_empty_line_between(Clause, FirstComment) of
+        true -> concat(expr_to_algebra(Clause), line(2), comments_to_algebra(Comments));
+        false -> concat(expr_to_algebra(Clause), line(), comments_to_algebra(Comments))
+    end;
 fold_clauses_to_algebra([Clause]) ->
     expr_to_algebra(Clause);
 fold_clauses_to_algebra([Clause | Clauses]) ->
@@ -612,7 +615,7 @@ maybe_wrap_in_parens(Meta, Doc) ->
 
 combine_comments(Meta, Doc) ->
     {Pre, Post} = comments(Meta),
-    combine_post_comments(Post, combine_pre_comments(Pre, Meta, Doc)).
+    combine_post_comments(Post, Meta, combine_pre_comments(Pre, Meta, Doc)).
 
 combine_pre_comments([], _Meta, Doc) ->
     Doc;
@@ -625,10 +628,13 @@ combine_pre_comments(Comments, Meta, Doc) ->
         false -> concat([force_breaks(), comments_to_algebra(Comments), line(), Doc])
     end.
 
-combine_post_comments([], Doc) ->
+combine_post_comments([], _Meta, Doc) ->
     Doc;
-combine_post_comments(Comments, Doc) ->
-    concat(force_breaks(), line(Doc, comments_to_algebra(Comments))).
+combine_post_comments([Comment | _] = Comments, Meta, Doc) ->
+    case erlfmt_scan:get_inner_end_line(Meta) + 1 < erlfmt_scan:get_line(Comment) of
+        true -> concat([force_breaks(), Doc, line(2), comments_to_algebra(Comments)]);
+        false -> concat([force_breaks(), Doc, line(), comments_to_algebra(Comments)])
+    end.
 
 comments_to_algebra(Comments) ->
     CommentsD = lists:map(fun comment_to_algebra/1, Comments),

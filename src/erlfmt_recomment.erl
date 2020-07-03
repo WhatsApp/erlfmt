@@ -234,7 +234,11 @@ put_post_comments(NodeOrMeta, Comments) ->
     Loc = erlfmt_scan:get_anno(end_location, NodeOrMeta),
     CommentLoc = erlfmt_scan:get_anno(end_location, lists:last(Comments)),
     erlfmt_scan:merge_anno(
-        #{end_location => max(Loc, CommentLoc), post_comments => Comments},
+        #{
+            end_location => max(Loc, CommentLoc),
+            inner_end_location => Loc,
+            post_comments => Comments
+        },
         NodeOrMeta
     ).
 
