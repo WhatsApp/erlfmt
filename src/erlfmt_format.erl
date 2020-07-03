@@ -149,6 +149,8 @@ do_expr_to_algebra({record_field, _Meta, Name}) ->
     expr_to_algebra(Name);
 do_expr_to_algebra({record_field, Meta, Expr, Name, Key}) ->
     concat(expr_to_algebra(Expr), record_access_to_algebra(Meta, Name, Key));
+do_expr_to_algebra({record_name, Meta, Name}) ->
+    record_name_to_algebra(Meta, Name);
 do_expr_to_algebra({lc, _Meta, Expr, LcExprs}) ->
     comprehension_to_algebra(Expr, LcExprs, <<"[">>, <<"]">>);
 do_expr_to_algebra({bc, _Meta, Expr, LcExprs}) ->
