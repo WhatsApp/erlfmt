@@ -1814,7 +1814,11 @@ define(Config) when is_list(Config) ->
         "    3\n"
         "])."
     ),
-    ?assertSame("-define(Foo,).").
+    ?assertSame("-define(Foo,)."),
+    ?assertSame(
+        "%comment\n"
+        "-define(Foo,)."
+    ).
 
 type(Config) when is_list(Config) ->
     ?assertSame(

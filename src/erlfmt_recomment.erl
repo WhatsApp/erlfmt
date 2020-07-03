@@ -54,12 +54,16 @@ insert_expr(Node0, Comments) ->
 
 insert_expr_list(Exprs, Comments) -> insert_expr_list(Exprs, Comments, []).
 
+insert_expr_list(Exprs, [], Acc) ->
+    {lists:reverse(Acc, Exprs), []};
 insert_expr_list([Expr0 | Exprs], Comments0, Acc) when is_tuple(Expr0) ->
     {Expr, Comments} = insert_expr(Expr0, Comments0),
     insert_expr_list(Exprs, Comments, [Expr | Acc]);
 insert_expr_list([], Comments, Acc) ->
     {lists:reverse(Acc), Comments}.
 
+insert_expr_container(Exprs, []) -> 
+    Exprs;
 insert_expr_container([Expr0 | Exprs], Comments0) when is_tuple(Expr0) ->
     {Expr, Comments} = insert_expr(Expr0, Comments0),
     [Expr | insert_expr_container(Exprs, Comments)];
