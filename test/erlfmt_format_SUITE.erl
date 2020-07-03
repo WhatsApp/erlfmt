@@ -1765,6 +1765,19 @@ spec(Config) when is_list(Config) ->
         "    (1..2) ->\n"
         "        atom().",
         40
+    ),
+    ?assertFormat(
+        "-spec compute_rates(Secs, L1, L1) -> L2\n"
+        "    when Secs :: pos_integer(),\n"
+        "    L1 :: [{K, non_neg_integer()}],\n"
+        "    L2 :: [{K, number()}], % also non-negative, but may be float\n"
+        "    K :: wa_stats:key().",
+        "-spec compute_rates(Secs, L1, L1) -> L2 when\n"
+        "    Secs :: pos_integer(),\n"
+        "    L1 :: [{K, non_neg_integer()}],\n"
+        "    % also non-negative, but may be float\n"
+        "    L2 :: [{K, number()}],\n"
+        "    K :: wa_stats:key()."
     ).
 
 define(Config) when is_list(Config) ->

@@ -545,7 +545,7 @@ pat_exprs -> pat_expr : ['$1'].
 pat_exprs -> pat_expr ',' pat_exprs : ['$1' | '$3'].
 
 anno_types -> type : {['$1'], ?anno('$1')}.
-anno_types -> type ',' anno_types : {['$1' | ?val('$3')], ?anno('$3')}.
+anno_types -> type ',' anno_types : {['$1' | ?val('$3')], ?range_anno('$1', '$3')}.
 
 types -> type : ['$1'].
 types -> type ',' types : ['$1' | '$3'].
