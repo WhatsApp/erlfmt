@@ -56,6 +56,8 @@ to_algebra({function, Meta, Clauses}) ->
 to_algebra({attribute, Meta, Name, []}) ->
     Doc = concat(<<"-">>, expr_to_algebra(Name), <<".">>),
     combine_comments(Meta, Doc);
+to_algebra({attribute, _Meta, {atom, _, define}, [Define, empty]}) ->
+    concat(<<"-define(">>, expr_to_algebra(Define), <<",).">>);
 to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
     HeadD = concat(<<"-define(">>, expr_to_algebra(Define), <<",">>),
     NextBreakFits = length(Body) =:= 1 andalso is_next_break_fits(hd(Body)),

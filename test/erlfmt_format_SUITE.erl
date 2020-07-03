@@ -1813,7 +1813,8 @@ define(Config) when is_list(Config) ->
         "    2,\n"
         "    3\n"
         "])."
-    ).
+    ),
+    ?assertSame("-define(Foo,).").
 
 type(Config) when is_list(Config) ->
     ?assertSame(
