@@ -10,7 +10,6 @@
 }).
 
 -define(CONST, const).
-
 -define(STR(X),
     %% comment 1
     ??X

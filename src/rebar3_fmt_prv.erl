@@ -18,7 +18,6 @@
 -export([init/1, do/1, format_error/1]).
 
 -define(PROVIDER, fmt).
-
 -define(DEPS, []).
 
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.

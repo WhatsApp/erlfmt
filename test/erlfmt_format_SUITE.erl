@@ -14,7 +14,6 @@
 -module(erlfmt_format_SUITE).
 
 -include_lib("common_test/include/ct.hrl").
-
 -include_lib("stdlib/include/assert.hrl").
 
 %% Test server callbacks
@@ -146,13 +145,11 @@ all() ->
 %%--------------------------------------------------------------------
 %% TEST CASES
 -define(assertSame(String), ?assertSame(String, 80)).
-
 -define(assertSame(String, PageWidth),
     ?assertEqual(String, format(String, PageWidth))
 ).
 
 -define(assertFormat(Bad, Good), ?assertFormat(Bad, Good, 80)).
-
 -define(assertFormat(Bad, Good, PageWidth), begin
     ?assertEqual(Good, format(Good, PageWidth)),
     ?assertEqual(Good, format(Bad, PageWidth))

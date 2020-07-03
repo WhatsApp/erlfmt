@@ -30,23 +30,15 @@
 -export_type([error_info/0, out/0, config/0]).
 
 -type error_info() :: {file:name_all(), erl_anno:location(), module(), Reason :: any()}.
-
 -type out() :: standard_out | {path, file:name_all()} | replace.
-
 -type pragma() :: require | ignore.
-
 -type config() :: {Pragma :: pragma(), Out :: out()}.
 
 -define(PAGE_WIDTH, 92).
-
 -define(FIRST_LINE, 1).
-
 -define(FIRST_COLUMN, 1).
-
 -define(SCAN_START, {?FIRST_LINE, ?FIRST_COLUMN}).
-
 -define(SCAN_OPTS, [text, return_comments]).
-
 -define(COMMAND_NAME, "erlfmt").
 
 %% escript entry point
@@ -196,17 +188,44 @@ node_string(Cont) ->
     {raw_string, Anno, string:trim(String, both, "\n")}.
 
 format_nodes([{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest]) ->
-    [$\n, format_node(Attr), format_node(Fun) | format_nodes(Rest)];
+    [$\n, format_node(Attr), $\n, format_node(Fun), $\n | format_nodes(Rest)];
+format_nodes([{attribute, _, {atom, _, Name}, _} | _] = Nodes) ->
+    {Attrs, Rest} = split_attrs(Name, Nodes),
+    format_attrs(Attrs) ++ [$\n | format_nodes(Rest)];
 format_nodes([Node | Rest]) ->
-    [$\n, format_node(Node) | format_nodes(Rest)];
+    [$\n, format_node(Node), $\n | format_nodes(Rest)];
 format_nodes([]) ->
     [].
 
 format_node({raw_string, _Anno, String}) ->
-    [String, $\n];
+    String;
 format_node(Node) ->
     Doc = erlfmt_format:to_algebra(Node),
-    [erlfmt_algebra:format(Doc, ?PAGE_WIDTH), $\n].
+    erlfmt_algebra:format(Doc, ?PAGE_WIDTH).
+
+split_attrs(PredName, Nodes) ->
+    lists:splitwith(
+        fun
+            ({attribute, _, {atom, _, Name}, _}) -> PredName =:= Name;
+            (_) -> false
+        end,
+        Nodes
+    ).
+
+format_attrs([Attr]) ->
+    [$\n, format_node(Attr)];
+format_attrs([Attr | Rest]) ->
+    FAttr = format_node(Attr),
+    case has_non_comment_newline(FAttr) of
+        true -> [$\n, FAttr, $\n | format_attrs(Rest)];
+        false -> [$\n, FAttr | format_attrs(Rest)]
+    end.
+
+has_non_comment_newline(String) ->
+    length(lists:filter(fun is_not_comment/1, string:split(String, "\n", all))) >= 2.
+
+is_not_comment(String) ->
+    not (string:is_empty(String) orelse string:equal(string:slice(String, 0, 1), "%")).
 
 verify_nodes(FileName, Nodes, Formatted) ->
     case read_nodes_string(FileName, unicode:characters_to_list(Formatted)) of

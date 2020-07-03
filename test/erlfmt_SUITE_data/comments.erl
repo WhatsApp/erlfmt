@@ -1,6 +1,12 @@
 -module(comments).
 
--export([has_fanciness/1, bar/1, baz/1]).
+-export([
+    has_fanciness/1
+]).
+
+-export([
+    bar/1, baz/1
+]).
 
 %% Constants
 -define(VERSION_CHECK_INTERVAL_MILLIS_DEFAULT, 10000). % Minimum interval between health checks
