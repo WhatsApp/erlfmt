@@ -1,0 +1,4 @@
+on_load(Status) ->
+    "A\n"
+    "B"
+    "C".

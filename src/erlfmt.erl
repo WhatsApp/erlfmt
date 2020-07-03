@@ -249,6 +249,8 @@ equivalent({raw_string, _AnnoL, RawL}, {raw_string, _AnnoR, RawR}) ->
     string:equal(RawL, RawR) orelse throw({not_equivalent, RawL, RawR});
 equivalent({Type, _}, {Type, _}) ->
     true;
+equivalent({concat, _, Left} = L, {concat, _, Right} = R) ->
+    concat_equivalent(Left, Right) orelse throw({not_equivalent, L, R});
 equivalent({string, _, String} = L, {concat, _, Values} = R) ->
     string_concat_equivalent(String, Values) orelse throw({not_equivalent, L, R});
 equivalent({Type, _, L}, {Type, _, R}) ->
@@ -267,6 +269,9 @@ equivalent(L, R) ->
 
 string_concat_equivalent(String, Values) ->
     string:equal(String, [Value || {string, _, Value} <- Values]).
+
+concat_equivalent(ValuesL, ValuesR) ->
+    string:equal([Value || {string, _, Value} <- ValuesL], [Value || {string, _, Value} <- ValuesR]).
 
 equivalent_list([L | Ls], [R | Rs]) ->
     equivalent(L, R) andalso equivalent_list(Ls, Rs);

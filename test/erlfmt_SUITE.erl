@@ -55,6 +55,7 @@
     snapshot_comments/1,
     snapshot_broken/1,
     snapshot_overlong/1,
+    snapshot_otp_examples/1,
     simple_comments_range/1,
     comments_range/1,
     broken_range/1,
@@ -112,7 +113,8 @@ groups() ->
             snapshot_escript,
             snapshot_comments,
             snapshot_broken,
-            snapshot_overlong
+            snapshot_overlong,
+            snapshot_otp_examples
         ]},
         {range_tests, [parallel], [
             simple_comments_range,
@@ -911,6 +913,8 @@ snapshot_comments(Config) -> snapshot_formatted("comments.erl", Config).
 snapshot_broken(Config) -> snapshot_formatted("broken.erl", Config).
 
 snapshot_overlong(Config) -> snapshot_formatted("overlong.erl", Config).
+
+snapshot_otp_examples(Config) -> snapshot_formatted("otp_examples.erl", Config).
 
 snapshot_same(Module, Config) ->
     DataDir = ?config(data_dir, Config),
