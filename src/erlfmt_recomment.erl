@@ -62,7 +62,7 @@ insert_expr_list([Expr0 | Exprs], Comments0, Acc) when is_tuple(Expr0) ->
 insert_expr_list([], Comments, Acc) ->
     {lists:reverse(Acc), Comments}.
 
-insert_expr_container(Exprs, []) -> 
+insert_expr_container(Exprs, []) ->
     Exprs;
 insert_expr_container([Expr0 | Exprs], Comments0) when is_tuple(Expr0) ->
     {Expr, Comments} = insert_expr(Expr0, Comments0),
