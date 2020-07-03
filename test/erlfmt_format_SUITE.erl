@@ -941,6 +941,13 @@ list_comprehension(Config) when is_list(Config) ->
         "       X < 10\n"
         "]",
         25
+    ),
+    ?assertFormat(
+        "lists:unzip([{ALong, B}|| ALong = {_, _, _, {B, _}} <- All, lists:member(B, Keep)])",
+        "lists:unzip([\n"
+        "    {ALong, B}\n"
+        "    || ALong = {_, _, _, {B, _}} <- All, lists:member(B, Keep)\n"
+        "])"
     ).
 
 binary_comprehension(Config) when is_list(Config) ->
@@ -972,6 +979,13 @@ binary_comprehension(Config) when is_list(Config) ->
         "       X < 10\n"
         ">>",
         25
+    ),
+    ?assertFormat(
+        "lists:unzip(<<<<ALong, B>>|| ALong = {_, _, _, {B, _}} <- All, lists:member(B, Keep)>>)",
+        "lists:unzip(<<\n"
+        "    <<ALong, B>>\n"
+        "    || ALong = {_, _, _, {B, _}} <- All, lists:member(B, Keep)\n"
+        ">>)"
     ).
 
 call(Config) when is_list(Config) ->
