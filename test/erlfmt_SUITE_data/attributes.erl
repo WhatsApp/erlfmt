@@ -15,14 +15,13 @@
 
 -define(XXX, "xxx").
 
--record(abc, {
-    a,
-    b
+% doc_string represents Literal text, which is simply printed as is.
+-record(doc_string, {
+    string :: unicode:chardata()
 }).
 
--record(def, {
-    a,
-    b
+-record(doc_line, {
+    count :: integer()
 }).
 
 -type ghi() ::

@@ -226,7 +226,7 @@ format_attrs([Attr | Rest]) ->
     end.
 
 has_non_comment_newline(String) ->
-    length(lists:filter(fun is_not_comment/1, string:split(String, "\n"))) >= 2.
+    length(lists:filter(fun is_not_comment/1, string:split(String, "\n", all))) >= 2.
 
 is_not_comment(String) ->
     not (string:is_empty(String) orelse string:equal(string:slice(String, 0, 1), "%")).
