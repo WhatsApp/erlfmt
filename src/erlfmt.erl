@@ -174,6 +174,8 @@ read_nodes({error, {ErrLoc, Mod, Reason}, _Loc}, FileName, _Acc, _Warnings) ->
 
 parse_nodes([], _Comments, _FileName, Cont, Warnings) ->
     {node_string(Cont), Warnings};
+parse_nodes([{shebang, Meta, String}], [], _FileName, _Cont, Warnings) ->
+    {{raw_string, Meta, String}, Warnings};
 parse_nodes(Tokens, Comments, FileName, Cont, Warnings) ->
     case erlfmt_parse:parse_node(Tokens) of
         {ok, Node} ->

@@ -75,12 +75,40 @@
 ).
 
 -spec io_node(file:io_device()) -> node_ret().
-io_node(IO) -> node(fun io_scan_erl_node/2, IO).
+io_node(IO) -> node(fun read_shebang_io/1, fun io_scan_erl_node/2, IO).
 
 -spec string_node(string()) -> node_ret().
-string_node(String) -> node(fun erl_scan_tokens/2, String).
+string_node(String) -> node(fun read_shebang_string/1, fun erl_scan_tokens/2, String).
 
-node(Scan, Inner) -> continue(Scan, Inner, ?START_LOCATION, []).
+read_shebang_io(IO) ->
+    case file:read_line(IO) of
+        {ok, Line} ->
+            case read_shebang_string(Line) of
+                {ok, Token, "", Loc} ->
+                    {ok, Token, IO, Loc};
+                error ->
+                    {ok, _} = file:position(IO, bof),
+                    error
+            end;
+        _ ->
+            error
+    end.
+
+read_shebang_string("#!" ++ _ = String) ->
+    [Shebang, Rest] = string:split(String, "\n"),
+    Anno = [{text, Shebang}, {location, ?START_LOCATION}],
+    Token = {shebang, Anno, Shebang},
+    {ok, Token, Rest, {2, 1}};
+read_shebang_string(_) ->
+    error.
+
+node(ReadShebang, Scan, Inner0) ->
+    case ReadShebang(Inner0) of
+        {ok, Shebang, Inner, Loc} ->
+            continue(Scan, Inner, Loc, [Shebang]);
+        error ->
+            continue(Scan, Inner0, ?START_LOCATION, [])
+    end.
 
 -spec continue(state()) -> node_ret().
 continue(#state{scan = Scan, inner = Inner, loc = Loc, buffer = Buffer}) ->

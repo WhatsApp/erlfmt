@@ -46,10 +46,12 @@
     clauses/1,
     types/1,
     annos/1,
+    shebang/1,
     smoke_test_cli/1,
     snapshot_simple_comments/1,
     snapshot_big_binary/1,
     snapshot_attributes/1,
+    snapshot_escript/1,
     snapshot_comments/1,
     snapshot_broken/1,
     snapshot_overlong/1,
@@ -96,7 +98,8 @@ groups() ->
             binaries,
             clauses,
             types,
-            annos
+            annos,
+            shebang
         ]},
         {smoke_tests, [parallel], [
             {group, snapshot_tests},
@@ -106,6 +109,7 @@ groups() ->
             snapshot_simple_comments,
             snapshot_big_binary,
             snapshot_attributes,
+            snapshot_escript,
             snapshot_comments,
             snapshot_broken,
             snapshot_overlong
@@ -831,6 +835,18 @@ annos(Config) when is_list(Config) ->
         )
     ).
 
+shebang(Config) when is_list(Config) ->
+    ?assertMatch(
+        [
+            {raw_string, _, "#! /usr/bin/env escript"},
+            {function, #{location := {2, 1}}, _}
+        ],
+        parse_forms(
+            "#! /usr/bin/env escript\n"
+            "main(_) -> ok."
+        )
+    ).
+
 parse_expr(String) ->
     {function, _, [{clause, _, _, empty, [Expr]}]} = parse_form("f() -> " ++ String ++ "."),
     Expr.
@@ -887,6 +903,8 @@ snapshot_simple_comments(Config) -> snapshot_same("simple_comments.erl", Config)
 snapshot_big_binary(Config) -> snapshot_same("big_binary.erl", Config).
 
 snapshot_attributes(Config) -> snapshot_same("attributes.erl", Config).
+
+snapshot_escript(Config) -> snapshot_same("escript.erl", Config).
 
 snapshot_comments(Config) -> snapshot_formatted("comments.erl", Config).
 
