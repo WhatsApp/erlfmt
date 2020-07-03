@@ -1829,7 +1829,9 @@ define(Config) when is_list(Config) ->
         "%comment\n"
         "-define(Foo,)."
     ),
-    ?assertSame("-define(FOO, #foo).").
+    ?assertSame("-define(FOO, #foo)."),
+    ?assertSame("-define(parens, ())."),
+    ?assertSame("-define(record(N), #N{}).").
 
 type(Config) when is_list(Config) ->
     ?assertSame(

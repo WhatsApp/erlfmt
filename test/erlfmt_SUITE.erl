@@ -501,6 +501,13 @@ macro_definitions(Config) when is_list(Config) ->
             {record, _, {var, _, 'N'}, []}
         ]},
         parse_form("-define(record(N), #N{}).")
+    ),
+    ?assertMatch(
+        {attribute, _, {atom, _, define}, [
+            {atom, _, parens},
+            {args, _, []}
+        ]},
+        parse_form("-define(parens, ()).")
     ).
 
 functions_and_funs(Config) when is_list(Config) ->
