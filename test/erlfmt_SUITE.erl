@@ -508,6 +508,14 @@ macro_definitions(Config) when is_list(Config) ->
             {args, _, []}
         ]},
         parse_form("-define(parens, ()).")
+    ),
+    ?assertMatch(
+        {attribute, _, {atom, _, define}, [
+            {var, _, 'TIMEOUT_TYPE'},
+            {op, _, '|', {op, _, '..', {integer, _, 0}, {integer, _, 100}},
+                {atom, _, infinity}}
+        ]},
+        parse_form("-define(TIMEOUT_TYPE, 0..100 | 'infinity').")
     ).
 
 functions_and_funs(Config) when is_list(Config) ->

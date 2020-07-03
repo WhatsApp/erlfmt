@@ -1831,7 +1831,8 @@ define(Config) when is_list(Config) ->
     ),
     ?assertSame("-define(FOO, #foo)."),
     ?assertSame("-define(parens, ())."),
-    ?assertSame("-define(record(N), #N{}).").
+    ?assertSame("-define(record(N), #N{})."),
+    ?assertSame("-define(TIMEOUT_TYPE, 0..?MAX_INT_TIMEOUT | 'infinity').").
 
 type(Config) when is_list(Config) ->
     ?assertSame(

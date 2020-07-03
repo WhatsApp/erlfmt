@@ -43,7 +43,7 @@ type_sig type_sigs fun_type binary_type bin_element_type type_map_fields type_ma
 type_spec spec_fun
 macro_call_expr macro_string macro_call_pat macro_call_type macro_call_none
 macro_expr macro_exprs
-macro_name macro_def_expr macro_def_expr_body macro_def_clause.
+macro_name macro_def_expr macro_def_expr_body macro_def_type macro_def_clause.
 
 Terminals
 char integer float atom string var
@@ -58,7 +58,7 @@ char integer float atom string var
 '==' '/=' '=<' '<' '>=' '>' '=:=' '=/=' '<=' '=>' ':='
 '<<' '>>'
 '?' '!' '=' '::' '..' '...'
-spec callback define_expr define_clause standalone_expr % helper
+spec callback define_expr define_type define_clause standalone_expr % helper
 dot.
 
 %% Conflict comes from optional parens on macro calls.
@@ -99,6 +99,7 @@ attribute -> '-' atom attr_val               : build_attribute('$1', '$2', '$3')
 attribute -> '-' spec type_spec              : build_attribute('$1', '$2', ['$3']).
 attribute -> '-' callback type_spec          : build_attribute('$1', '$2', ['$3']).
 attribute -> '-' define_expr macro_def_expr  : build_macro_def('$1', '$2', '$3').
+attribute -> '-' define_type macro_def_type  : build_macro_def('$1', '$2', '$3').
 attribute -> '-' define_clause macro_def_clause : build_macro_def('$1', '$2', '$3').
 
 type_spec -> spec_fun type_sigs : {spec, ?range_anno('$1', '$2'), '$1', ?val('$2')}.
@@ -469,6 +470,8 @@ try_clause -> atom_or_var ':' pat_expr ':' var clause_guard clause_body :
     {clause, ?range_anno('$1', '$7', '$7'), Head, '$6', ?val('$7')}.
 
 macro_def_expr -> '(' macro_name ',' macro_def_expr_body ')' : {'$2', '$4'}.
+
+macro_def_type -> '(' macro_name ',' type ')' : {'$2', '$4'}.
 
 macro_def_clause -> '(' macro_name ',' function_clause ')' : {'$2', '$4'}.
 
@@ -1012,8 +1015,14 @@ parse_node([{'-',A1},{atom,A2,define}|Tokens]) ->
         {ok, _} = Res ->
             Res;
         _ ->
-            NewTokens3 = [{'-',A1},{define_clause,A2}|Tokens],
-            parse(NewTokens3)
+            NewTokens2 = [{'-',A1},{define_type,A2}|Tokens],
+            case parse(NewTokens2) of
+                {ok, _} = Res ->
+                    Res;
+                _ ->
+                    NewTokens3 = [{'-',A1},{define_clause,A2}|Tokens],
+                    parse(NewTokens3)
+            end
     end;
 parse_node(Tokens) ->
     case parse(Tokens) of
