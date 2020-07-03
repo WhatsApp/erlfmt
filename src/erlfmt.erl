@@ -271,7 +271,10 @@ string_concat_equivalent(String, Values) ->
     string:equal(String, [Value || {string, _, Value} <- Values]).
 
 concat_equivalent(ValuesL, ValuesR) ->
-    string:equal([Value || {string, _, Value} <- ValuesL], [Value || {string, _, Value} <- ValuesR]).
+    string:equal([Value || {string, _, Value} <- ValuesL], [
+        Value
+        || {string, _, Value} <- ValuesR
+    ]).
 
 equivalent_list([L | Ls], [R | Rs]) ->
     equivalent(L, R) andalso equivalent_list(Ls, Rs);
