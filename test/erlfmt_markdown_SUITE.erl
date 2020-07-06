@@ -136,19 +136,21 @@ check_markdown(Content) ->
 split_code_into_maps(_Text, {text, Formatted, Unformatted}) ->
     {code, Formatted, Unformatted};
 split_code_into_maps(Text, {code, Formatted, Unformatted}) ->
-    [FirstLine, Code] = string:split(Text, "\n"),
+    [FirstLine, Code0] = string:split(Text, "\n"),
+    Code = strip_good_bad(Code0),
     Spec = string:split(FirstLine, " ", all),
     case Spec of
-        ["erl" ++ _, ToFormat | Key] ->
-            case ToFormat of
-                "formatted" ->
-                    {text, maps:put(Key, Code, Formatted), Unformatted};
-                "unformatted" ->
-                    {text, Formatted, maps:put(Key, Code, Unformatted)}
-            end;
+        ["erl" ++ _, "formatted" | Key] ->
+            {text, maps:put(Key, Code, Formatted), Unformatted};
+        ["erl" ++ _, "unformatted" | Key] ->
+            {text, Formatted, maps:put(Key, Code, Unformatted)};
         _ ->
             {text, Formatted, Unformatted}
     end.
+
+strip_good_bad("%% Good\n" ++ Rest) -> Rest;
+strip_good_bad("%% Bad\n" ++ Rest) -> Rest;
+strip_good_bad(Rest) -> Rest.
 
 check_fmt(Unformatted, Expected) ->
     {ok, Got, []} = erlfmt:format_string(Unformatted, 80, ignore),
