@@ -1,29 +1,45 @@
 # erlfmt
 
 erlfmt is an opinionated Erlang code formatter. By automating the process of
-formatting the code, it frees your team up to focus on what the code does
+formatting the code, it frees your team up to focus on what the code does,
 instead of how it looks like.
 
-erlfmt enforces a consistent style by parsing your code and re-printing it with
-it's own rules. When re-printing the code, erlfmt runs an optimisation
-algorithm to find the best layout possible. It will traverse all the possible
-layouts to find the shortest one (in terms of lines of code) where each line
-fits within the selected maximum line-length.
+## Before
 
-For example, the following snippet:
+Remember reading code before erlfmt and having arguments with co workers :(
 
-```erl formatted hello
-hello(mike, joe, robert)
+```erl
+what_is(erlang) ->
+case erlang of movie->[hello(mike,joe,robert),credits]; language->formatting_arguments end
+.
 ```
 
-will be kept as-is, since it fits in a single line. However, this one:
+## After
+
+Now, with the new erlfmt, code is readable and you get along with your co workers :D
+
+```erl formatted demo2
+what_is(erlang) ->
+    case erlang of
+        movie -> [hello(mike, joe, robert), credits];
+        language -> no_more_formatting_arguments
+    end.
+```
+
+*Disclaimer: erlfmt is just a code formatter, not a solution to all life's problems.*
+
+## Line length
+
+erlfmt enforces a consistent style by parsing your code and re-printing it,
+while enforcing a selected maximum line-length.
+
+For example, this line that exceeds the length limit:
 
 ```erl unformatted scenario
-scenario(dial_phone_number(), ring(), hello(mike), hello(joe), system_working(), seems_to_be())
+scenario(dial_phone_number(),  ring(), hello(mike),hello(joe), system_working(), seems_to_be())
 ```
 
-Since it contains a line that exceeds the length limit will be re-printed
-automatically in a vertical style:
+will be re-printed automatically in a vertical style:
 
 ```erl formatted scenario
 scenario(
@@ -36,11 +52,17 @@ scenario(
 )
 ```
 
-## Requirements
+But this snippet:
 
-erlfmt requires Erlang/OTP 21+ and works on all platforms.
+```erl formatted hello
+hello(mike, joe, robert)
+```
 
-## Installation
+will be kept as-is, since it fits in a single line.
+
+## Usage
+
+### Rebar3
 
 The easiest way to use erlfmt is as a rebar plugin, by adding to your
 `rebar.config`:
@@ -59,8 +81,11 @@ can be configured with defaults in your `rebar.config`, for example:
 ]}.
 ```
 
-Now, when you run `rebar3 fmt` all the files in your project will be formatted
-in place.
+Now you can format all the files in your project by running:
+
+```
+$ rebar3 fmt
+```
 
 ### Escript
 
@@ -71,6 +96,16 @@ without rebar (it still requires Erlang to be installed on the target system).
 $ rebar3 as release escriptize
 $ _build/release/bin/erlfmt -h
 ```
+
+You can then run it from the command line:
+
+```sh
+$ erlfmt -w './otp/lib/*/{src,include}/*.{erl,hrl}'
+```
+
+## Requirements
+
+erlfmt requires Erlang/OTP 21+ and works on all platforms.
 
 ## Design principles
 
@@ -97,21 +132,6 @@ similar, all follow the same "container" rules.
 
 Finally, the formatter should be idempotent. Formatting the code once should
 produce the same output as formatting it multiple times.
-
-## Usage
-
-Both the rebar3 plugin and the escript expose the same CLI:
-
-```
-Usage: rebar3 fmt [-h] [-v] [-w] [-o <out>] [--verbose] [<files>]
-
-  -h, --help     print this message
-  -v, --version  print version
-  -w, --write    modify formatted files in place
-  -o, --out      output directory
-  --verbose      include debug output
-  <files>        files to format
-```
 
 ### Manual interventions
 
