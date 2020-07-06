@@ -236,7 +236,7 @@ string_to_algebra(Text) ->
         [First | Lines] ->
             FirstD = string([First | "\\n\""]),
             LinesD = string_lines_to_algebra(Lines),
-            line(FirstD, LinesD)
+            concat([force_breaks(), FirstD, line(), LinesD])
     end.
 
 string_lines_to_algebra([LastLine]) ->
