@@ -1,7 +1,7 @@
 # erlfmt
 
 erlfmt is an opinionated Erlang code formatter. By automating the process of
-formatting the code, it frees-up your team to focus on what the code does
+formatting the code, it frees your team up to focus on what the code does
 instead of how it looks like.
 
 erlfmt enforces a consistent style by parsing your code and re-printing it with
