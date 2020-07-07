@@ -9,8 +9,8 @@ instead of how it looks like.
 Remember reading code before erlfmt and having arguments with co workers :(
 
 ```erl
-what_is(erlang) ->
-case erlang of movie->[hello(mike,joe,robert),credits]; language->formatting_arguments end
+what_is(Erlang) ->
+case Erlang of movie->[hello(mike,joe,robert),credits]; language->formatting_arguments end
 .
 ```
 
@@ -19,8 +19,8 @@ case erlang of movie->[hello(mike,joe,robert),credits]; language->formatting_arg
 Now, with the new erlfmt, code is readable and you get along with your co workers :D
 
 ```erl formatted demo2
-what_is(erlang) ->
-    case erlang of
+what_is(Erlang) ->
+    case Erlang of
         movie -> [hello(mike, joe, robert), credits];
         language -> no_more_formatting_arguments
     end.
