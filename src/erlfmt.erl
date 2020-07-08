@@ -62,10 +62,11 @@ init(State) ->
     rebar3_fmt_prv:init(State).
 
 %% API entry point
--spec format_file(file:name_all(), config()) ->
+-spec format_file(file:name_all() | stdin, config()) ->
     {ok, [error_info()]} | {error, error_info()}.
 format_file(FileName, {Pragma, Out}) ->
     try
+        %% TODO: fix for stdin
         ShouldFormat = (Pragma == ignore) orelse contains_pragma_file(FileName),
         case ShouldFormat of
             true ->
@@ -145,6 +146,8 @@ file_read_nodes(FileName) ->
         read_nodes(erlfmt_scan:io_node(File), FileName, [], [])
     end).
 
+read_file(stdin, Action) ->
+    Action(standard_io);
 read_file(FileName, Action) ->
     case file:open(FileName, [read, {encoding, utf8}]) of
         {ok, File} ->
