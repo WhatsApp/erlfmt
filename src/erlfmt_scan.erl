@@ -226,7 +226,8 @@ split_tokens([{Type, Meta} | Rest], Acc, CAcc) ->
 split_tokens([], Acc, CAcc) ->
     {lists:reverse(Acc), lists:reverse(CAcc)}.
 
-split_extra([{comment, Meta, Text} = Token | Rest], Line, Acc, CAcc) ->
+split_extra([{comment, Meta, Text0} = Token | Rest], Line, Acc, CAcc) ->
+    Text = string:trim(Text0, trailing),
     case erl_anno:line(Meta) of
         Line ->
             MetaTerm = erl_anno:to_term(Meta),
@@ -249,7 +250,8 @@ has_newline([{comment, _, _} | _]) ->
 has_newline(_) ->
     false.
 
-collect_comments(Tokens, {comment, Meta, Text}) ->
+collect_comments(Tokens, {comment, Meta, Text0}) ->
+    Text = string:trim(Text0, trailing),
     Line = erl_anno:line(Meta),
     {Texts, LastMeta, Rest} = collect_comments(Tokens, Line, Meta, [Text]),
     Anno = comment_anno(erl_anno:to_term(Meta), erl_anno:to_term(LastMeta)),
@@ -257,7 +259,8 @@ collect_comments(Tokens, {comment, Meta, Text}) ->
 
 collect_comments([{white_space, _, _} | Rest], Line, LastMeta, Acc) ->
     collect_comments(Rest, Line, LastMeta, Acc);
-collect_comments([{comment, Meta, Text} = Comment | Rest], Line, LastMeta, Acc) ->
+collect_comments([{comment, Meta, Text0} = Comment | Rest], Line, LastMeta, Acc) ->
+    Text = string:trim(Text0, trailing),
     case erl_anno:line(Meta) of
         NextLine when NextLine =:= Line + 1 ->
             collect_comments(Rest, NextLine, Meta, [Text | Acc]);

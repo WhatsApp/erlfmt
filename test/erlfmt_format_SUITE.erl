@@ -919,13 +919,13 @@ list_comprehension(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "[X || X <- Y, X < 10\n"
-        " % trailing comment \n"
+        " % trailing comment\n"
         "]",
         "[\n"
         "    X\n"
         "    || X <- Y,\n"
         "       X < 10\n"
-        "       % trailing comment \n"
+        "       % trailing comment\n"
         "]"
     ),
     ?assertFormat(
@@ -1969,6 +1969,12 @@ comment(Config) when is_list(Config) ->
         "\n"
         "    %% foo\n"
         "]"
+    ),
+    ?assertFormat(
+        "% foo     \n"
+        "1",
+        "% foo\n"
+        "1"
     ).
 
 format(String, PageWidth) ->
