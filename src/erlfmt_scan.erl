@@ -76,40 +76,13 @@
 ).
 
 -spec io_node(file:io_device()) -> node_ret().
-io_node(IO) -> node(fun read_shebang_io/1, fun io_scan_erl_node/2, IO).
+io_node(IO) -> node(fun io_scan_erl_node/2, IO).
 
 -spec string_node(string()) -> node_ret().
-string_node(String) -> node(fun read_shebang_string/1, fun erl_scan_tokens/2, String).
+string_node(String) -> node(fun erl_scan_tokens/2, String).
 
-read_shebang_io(IO) ->
-    case file:read_line(IO) of
-        {ok, Line} ->
-            case read_shebang_string(Line) of
-                {ok, Token, "", Loc} ->
-                    {ok, Token, IO, Loc};
-                error ->
-                    {ok, _} = file:position(IO, bof),
-                    error
-            end;
-        _ ->
-            error
-    end.
-
-read_shebang_string("#!" ++ _ = String) ->
-    [Shebang, Rest] = string:split(String, "\n"),
-    Anno = [{text, Shebang}, {location, ?START_LOCATION}],
-    Token = {shebang, Anno, Shebang},
-    {ok, Token, Rest, {2, 1}};
-read_shebang_string(_) ->
-    error.
-
-node(ReadShebang, Scan, Inner0) ->
-    case ReadShebang(Inner0) of
-        {ok, Shebang, Inner, Loc} ->
-            continue(Scan, Inner, Loc, [Shebang]);
-        error ->
-            continue(Scan, Inner0, ?START_LOCATION, [])
-    end.
+node(Scan, Inner0) ->
+    continue(Scan, Inner0, ?START_LOCATION, []).
 
 -spec continue(state()) -> node_ret().
 continue(#state{scan = Scan, inner = Inner, loc = Loc, buffer = Buffer}) ->
@@ -117,6 +90,17 @@ continue(#state{scan = Scan, inner = Inner, loc = Loc, buffer = Buffer}) ->
 
 continue(Scan, Inner0, Loc0, []) ->
     case Scan(Inner0, Loc0) of
+        {{ok, [{'#', _}, {'!', _} | _] = Tokens0, Loc}, Inner} ->
+            {Shebang, Buffer} = split_shebang(Tokens0),
+            Anno = [{text, Shebang}, {location, Loc0}],
+            State = #state{
+                scan = Scan,
+                inner = Inner,
+                loc = Loc,
+                original = [],
+                buffer = Buffer
+            },
+            {ok, [{shebang, Anno, Shebang}], [], State};
         {{ok, Tokens, Loc}, Inner} ->
             continue(Scan, Inner, Loc, Tokens);
         {{error, Reason}, _Inner} ->
@@ -136,12 +120,12 @@ continue(Scan, Inner0, Loc0, Buffer0) ->
                 buffer = Buffer
             },
             {ok, Tokens, Comments, State};
-        {{eof, Loc}, _Inner} ->
+        {Eof, _Inner} when Eof =:= eof; element(1, Eof) =:= eof ->
             {Tokens, NodeTokens, Comments, []} = split_tokens(Buffer0, []),
             State = #state{
                 scan = fun eof/2,
                 inner = undefined,
-                loc = Loc,
+                loc = Loc0,
                 original = NodeTokens,
                 buffer = []
             },
@@ -170,6 +154,17 @@ eof(undefined, Loc) ->
 -spec last_node_string(state()) -> {unicode:chardata(), anno()}.
 last_node_string(#state{original = Tokens}) ->
     stringify_tokens(Tokens).
+
+split_shebang(Tokens) ->
+    {ShebangTokens, Rest} = lists:splitwith(
+        fun
+            ({white_space, _, [$\n | _]}) -> false;
+            (_) -> true
+        end,
+        Tokens
+    ),
+    {Shebang, _Anno} = stringify_tokens(ShebangTokens),
+    {unicode:characters_to_list(Shebang), Rest}.
 
 %% TODO: make smarter
 stringify_tokens([Token | _] = Tokens) ->
