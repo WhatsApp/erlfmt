@@ -64,6 +64,11 @@ format_files([FileName | FileNames], Config, HadErrors) ->
         {ok, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
             format_files(FileNames, Config, HadErrors);
+        skip when Config#config.verbose ->
+            io:format(standard_error, "Skipping ~s because of missing @format pragma\n", [FileName]),
+            format_files(FileNames, Config, HadErrors);
+        skip ->
+            format_files(FileNames, Config, HadErrors);
         {error, Error} ->
             print_error_info(Error),
             format_files(FileNames, Config, true)
@@ -88,6 +93,8 @@ parse_opts([require_pragma | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{require_pragma = true});
 parse_opts([{files, NewFiles} | Rest], Name, Files0, Config) ->
     parse_opts(Rest, Name, expand_files(NewFiles, Files0), Config);
+parse_opts([], _Name, [stdin], #config{out = Out}) when Out =/= standard_out ->
+    {error, "stdin mode can't be combined with out or write options"};
 parse_opts([], _Name, [stdin], Config) ->
     {format, [stdin], Config};
 parse_opts([], _Name, [], _Config) ->

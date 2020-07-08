@@ -48,6 +48,10 @@
     annos/1,
     shebang/1,
     smoke_test_cli/1,
+    smoke_test_stdio_escript/1,
+    smoke_test_stdio_regular/1,
+    smoke_test_stdio_without_pragma/1,
+    smoke_test_stdio_with_pragma/1,
     snapshot_simple_comments/1,
     snapshot_big_binary/1,
     snapshot_attributes/1,
@@ -104,7 +108,11 @@ groups() ->
         ]},
         {smoke_tests, [parallel], [
             {group, snapshot_tests},
-            smoke_test_cli
+            smoke_test_cli,
+            smoke_test_stdio_escript,
+            smoke_test_stdio_regular,
+            smoke_test_stdio_without_pragma,
+            smoke_test_stdio_with_pragma
         ]},
         {snapshot_tests, [parallel], [
             snapshot_simple_comments,
@@ -918,9 +926,38 @@ parse_forms(String) ->
     end.
 
 smoke_test_cli(Config) when is_list(Config) ->
+    ?assertMatch("Usage: erlfmt " ++ _, os:cmd(escript() ++ " -h")).
+
+smoke_test_stdio_escript(Config) when is_list(Config) ->
+    DataDir = ?config(data_dir, Config),
+    Path = filename:join(DataDir, "escript.erl"),
+    Formatted = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " -"),
+    {ok, Expected} = file:read_file(Path),
+    ?assertEqual(Expected, unicode:characters_to_binary(Formatted)).
+
+smoke_test_stdio_regular(Config) when is_list(Config) ->
+    DataDir = ?config(data_dir, Config),
+    Path = filename:join(DataDir, "attributes.erl"),
+    Formatted = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " -"),
+    {ok, Expected} = file:read_file(Path),
+    ?assertEqual(Expected, unicode:characters_to_binary(Formatted)).
+
+smoke_test_stdio_without_pragma(Config) when is_list(Config) ->
+    DataDir = ?config(data_dir, Config),
+    Path = filename:join(DataDir, "big_binary.erl"),
+    Formatted = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - --require-pragma"),
+    ?assertEqual("", Formatted).
+
+smoke_test_stdio_with_pragma(Config) when is_list(Config) ->
+    DataDir = ?config(data_dir, Config),
+    Path = filename:join(DataDir, "pragma.erl"),
+    Formatted= os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - --require-pragma"),
+    {ok, Expected} = file:read_file(Path),
+    ?assertEqual(Expected, unicode:characters_to_binary(Formatted)).
+
+escript() ->
     %% this relies on the _build structure rebar3 uses
-    Escript = filename:join(code:lib_dir(erlfmt), "../../bin/erlfmt"),
-    ?assertMatch("Usage: erlfmt " ++ _, os:cmd(Escript ++ " -h")).
+    filename:join(code:lib_dir(erlfmt), "../../bin/erlfmt").
 
 snapshot_simple_comments(Config) -> snapshot_same("simple_comments.erl", Config).
 
