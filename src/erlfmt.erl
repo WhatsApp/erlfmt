@@ -63,20 +63,17 @@ init(State) ->
 
 %% API entry point
 -spec format_file(file:name_all() | stdin, config()) ->
-    {ok, [error_info()]} | {error, error_info()}.
+    {ok, [error_info()]} | skip | {error, error_info()}.
 format_file(FileName, {Pragma, Out}) ->
     try
-        %% TODO: fix for stdin
-        ShouldFormat = (Pragma == ignore) orelse contains_pragma_file(FileName),
-        case ShouldFormat of
-            true ->
-                {ok, Nodes, Warnings} = file_read_nodes(FileName),
+        case file_read_nodes(FileName, Pragma) of
+            {ok, Nodes, Warnings} ->
                 [$\n | Formatted] = format_nodes(Nodes),
                 verify_nodes(FileName, Nodes, Formatted),
                 write_formatted(FileName, Formatted, Out),
                 {ok, Warnings};
-            false ->
-                {ok, []}
+            skip ->
+                skip
         end
     catch
         {error, Error} -> {error, Error}
@@ -119,7 +116,7 @@ contains_pragma_comment(_) ->
     {options, [{erlfmt_scan:location(), erlfmt_scan:location()}]}.
 format_range(FileName, StartLocation, EndLocation) ->
     try
-        {ok, Nodes, Warnings} = file_read_nodes(FileName),
+        {ok, Nodes, Warnings} = file_read_nodes(FileName, ignore),
         case verify_ranges(Nodes, StartLocation, EndLocation) of
             {ok, NodesInRange} ->
                 [$\n | Result] = format_nodes(NodesInRange),
@@ -136,14 +133,14 @@ format_range(FileName, StartLocation, EndLocation) ->
 -spec read_nodes(file:name_all()) ->
     {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
 read_nodes(FileName) ->
-    try file_read_nodes(FileName)
+    try file_read_nodes(FileName, ignore)
     catch
         {error, Error} -> {error, Error}
     end.
 
-file_read_nodes(FileName) ->
+file_read_nodes(FileName, Pragma) ->
     read_file(FileName, fun (File) ->
-        read_nodes(erlfmt_scan:io_node(File), FileName, [], [])
+        read_nodes(erlfmt_scan:io_node(File), FileName, Pragma)
     end).
 
 read_file(stdin, Action) ->
@@ -162,17 +159,28 @@ read_file(FileName, Action) ->
 -spec read_nodes_string(file:name_all(), string()) ->
     {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
 read_nodes_string(FileName, String) ->
-    try read_nodes(erlfmt_scan:string_node(String), FileName, [], [])
+    try read_nodes(erlfmt_scan:string_node(String), FileName, ignore)
     catch
         {error, Error} -> {error, Error}
     end.
 
-read_nodes({ok, Tokens, Comments, Cont}, FileName, Acc, Warnings0) ->
+read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma) ->
+    {Node, Warnings} = parse_nodes(Tokens, Comments, FileName, Cont, []),
+    case contains_pragma_node(Node) of
+        false when Pragma =:= require ->
+            skip;
+        _ ->
+            read_nodes_loop(erlfmt_scan:continue(Cont), FileName, [Node], Warnings)
+    end;
+read_nodes(Other, FileName, _Pragma) ->
+    read_nodes_loop(Other, FileName, [], []).
+
+read_nodes_loop({ok, Tokens, Comments, Cont}, FileName, Acc, Warnings0) ->
     {Node, Warnings} = parse_nodes(Tokens, Comments, FileName, Cont, Warnings0),
-    read_nodes(erlfmt_scan:continue(Cont), FileName, [Node | Acc], Warnings);
-read_nodes({eof, _Loc}, _FileName, Acc, Warnings) ->
+    read_nodes_loop(erlfmt_scan:continue(Cont), FileName, [Node | Acc], Warnings);
+read_nodes_loop({eof, _Loc}, _FileName, Acc, Warnings) ->
     {ok, lists:reverse(Acc), lists:reverse(Warnings)};
-read_nodes({error, {ErrLoc, Mod, Reason}, _Loc}, FileName, _Acc, _Warnings) ->
+read_nodes_loop({error, {ErrLoc, Mod, Reason}, _Loc}, FileName, _Acc, _Warnings) ->
     throw({error, {FileName, ErrLoc, Mod, Reason}}).
 
 parse_nodes([], _Comments, _FileName, Cont, Warnings) ->
