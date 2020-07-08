@@ -32,21 +32,21 @@ opts() ->
         {require_pragma, undefined, "require-pragma", undefined,
             "Require a special comment @format, called a pragma, "
             "to be present in the file's first docblock comment in order for prettier to format it."},
-        {files, undefined, undefined, string, "files to format"}
+        {files, undefined, undefined, string, "files to format, - for stdin"}
     ].
 
 -spec do(list(), string()) -> ok.
 do(Opts, Name) ->
     case parse_opts(Opts, Name, [], #config{}) of
-        {format, [], _Config} ->
-            io:put_chars(standard_error, "no files to format provided\n\n"),
-            getopt:usage(opts(), Name),
-            erlang:halt(1);
         {format, Files, Config} ->
-            case format_files(Files, Config, false) of
+            case format_files(Files, Config, _HadErrors = false) of
                 true -> erlang:halt(4);
                 false -> ok
-            end
+            end;
+        {error, Message} ->
+            io:put_chars(standard_error, [Message, "\n\n"]),
+            getopt:usage(opts(), Name),
+            erlang:halt(1)
     end.
 
 format_files([FileName | FileNames], Config, HadErrors) ->
@@ -88,9 +88,18 @@ parse_opts([require_pragma | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{require_pragma = true});
 parse_opts([{files, NewFiles} | Rest], Name, Files0, Config) ->
     parse_opts(Rest, Name, expand_files(NewFiles, Files0), Config);
+parse_opts([], _Name, [stdin], Config) ->
+    {format, [stdin], Config};
+parse_opts([], _Name, [], _Config) ->
+    {error, "no files provided to format"};
 parse_opts([], _Name, Files, Config) ->
-    {format, lists:reverse(Files), Config}.
+    case lists:member(stdin, Files) of
+        true -> {error, "stdin mode can't be combined with other files"};
+        false -> {format, lists:reverse(Files), Config}
+    end.
 
+expand_files("-", Files) ->
+    [stdin | Files];
 expand_files(NewFile, Files) when is_integer(hd(NewFile)) ->
     case filelib:is_regular(NewFile) of
         true ->
