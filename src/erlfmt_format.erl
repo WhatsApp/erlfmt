@@ -527,8 +527,13 @@ clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
         group(concat(Nested(GuardsD), break(<<" ">>), <<"->">>)),
         Nested(BodyD)
     );
-clause_to_algebra({spec_clause, Meta, Head, Body, empty}) ->
-    clause_to_algebra({clause, Meta, Head, empty, Body});
+clause_to_algebra({spec_clause, _Meta, Head, [Body], empty}) ->
+    HeadD = expr_to_algebra(Head),
+    BodyD = expr_to_algebra(Body),
+    concat(
+        space(HeadD, <<"->">>),
+        group(nest(concat(break(<<" ">>), BodyD), ?INDENT))
+    );
 clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
     HeadD = expr_to_algebra(Head),
     GuardsD = expr_to_algebra(Guards),

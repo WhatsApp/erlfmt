@@ -1775,8 +1775,7 @@ spec(Config) when is_list(Config) ->
         "-spec foo\n"
         "    (integer()) ->\n"
         "        some_very:very(long, type);\n"
-        "    (1..2) ->\n"
-        "        atom().",
+        "    (1..2) -> atom().",
         40
     ),
     ?assertFormat(
@@ -1786,8 +1785,7 @@ spec(Config) when is_list(Config) ->
         "        some_very_very:very(long, type)\n"
         "    when\n"
         "        Int :: integer();\n"
-        "    (1..2) ->\n"
-        "        atom().",
+        "    (1..2) -> atom().",
         40
     ),
     ?assertFormat(
@@ -1802,6 +1800,29 @@ spec(Config) when is_list(Config) ->
         "    % also non-negative, but may be float\n"
         "    L2 :: [{K, number()}],\n"
         "    K :: wa_stats:key()."
+    ),
+    ?assertFormat(
+        "-spec foo(Int) -> some_very:very(long, type) when Int :: integer().",
+        "-spec foo(Int) -> some_very:very(long, type) when\n"
+        "    Int :: integer().",
+        50
+    ),
+    ?assertFormat(
+        "-spec foo(very_long_type(), another_long_type()) -> some_very:very(long, type) when Int :: integer().",
+        "-spec foo(\n"
+        "    very_long_type(),\n"
+        "    another_long_type()\n"
+        ") -> some_very:very(long, type) when\n"
+        "    Int :: integer().",
+        50
+    ),
+    ?assertFormat(
+        "-spec foo(very_long_type(), another_long_type()) -> some_very:very(long, type).",
+        "-spec foo(\n"
+        "    very_long_type(),\n"
+        "    another_long_type()\n"
+        ") -> some_very:very(long, type).",
+        50
     ).
 
 define(Config) when is_list(Config) ->
