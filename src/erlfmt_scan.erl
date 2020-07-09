@@ -105,6 +105,8 @@ continue(Scan, Inner0, Loc0, []) ->
             continue(Scan, Inner, Loc, Tokens);
         {{error, Reason}, _Inner} ->
             {error, {Loc0, file, Reason}};
+        {eof, _Inner} ->
+            {eof, Loc0};
         {Other, _Inner} ->
             Other
     end;
