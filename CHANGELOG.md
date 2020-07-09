@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.3.0 (09.07.2020)
+
+### Enhancements
+  - Allow reading from stdin with command `$ erlfmt -` #46
+  - Support Erlang version 23.0
+
+### Bug Fixes
+  - Remove trailing spaces from comments #48
+  - Make position of return type in specs consistent #47
+  - Fix some parser failures in OTP #39
+  - Concat converted from a string also forces breaks #43
+
 ## v0.2.0 (03.06.2020)
 
 ### New formatting algebra
