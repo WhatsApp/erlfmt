@@ -291,6 +291,7 @@ which after re-formatting will result in the original layout again.
 ## Integrations
 
  - Visual Studio Code's [Erlang Formatter](https://marketplace.visualstudio.com/items?itemName=szTheory.erlang-formatter) extension.
+ - How to integrate with [doom emacs](https://github.com/WhatsApp/erlfmt/issues/46#issuecomment-655996639)
 
 Add your integration here, by making a pull request.
 
