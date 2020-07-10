@@ -944,9 +944,10 @@ smoke_test_stdio_regular(Config) when is_list(Config) ->
 
 smoke_test_stdio_without_pragma(Config) when is_list(Config) ->
     DataDir = ?config(data_dir, Config),
-    Path = filename:join(DataDir, "big_binary.erl"),
-    Formatted = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - --require-pragma"),
-    ?assertEqual("", Formatted).
+    Path = filename:join(DataDir, "comments.erl"),
+    UnFormatted = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - --require-pragma"),
+    {ok, Expected} = file:read_file(Path),
+    ?assertEqual(Expected, unicode:characters_to_binary(UnFormatted)).
 
 smoke_test_stdio_with_pragma(Config) when is_list(Config) ->
     DataDir = ?config(data_dir, Config),

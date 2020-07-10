@@ -72,7 +72,8 @@ format_file(FileName, {Pragma, Out}) ->
                 verify_nodes(FileName, Nodes, Formatted),
                 write_formatted(FileName, Formatted, Out),
                 {ok, Warnings};
-            skip ->
+            {skip, RawString} ->
+                write_formatted(FileName, RawString, Out),
                 skip
         end
     catch
@@ -168,7 +169,11 @@ read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma) ->
     {Node, Warnings} = parse_nodes(Tokens, Comments, FileName, Cont, []),
     case contains_pragma_node(Node) of
         false when Pragma =:= require ->
-            skip;
+            {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
+            case erlfmt_scan:read_rest(Cont) of
+                {ok, Rest} -> {skip, [LastString | Rest]};
+                {error, {ErrLoc, Mod, Reason}} -> throw({error, {FileName, ErrLoc, Mod, Reason}})
+            end;
         _ ->
             read_nodes_loop(erlfmt_scan:continue(Cont), FileName, [Node], Warnings)
     end;
