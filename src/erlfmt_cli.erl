@@ -37,6 +37,15 @@ opts() ->
 
 -spec do(list(), string()) -> ok.
 do(Opts, Name) ->
+    try do_unprotected(Opts, Name)
+    catch
+        Kind:Reason:Stack ->
+            io:format(standard_error, "~s Internal Error~n~s:~p~n~p~n", [Name, Kind, Reason, Stack]),
+            erlang:halt(127)
+    end.
+
+-spec do_unprotected(list(), string()) -> ok.
+do_unprotected(Opts, Name) ->
     case parse_opts(Opts, Name, [], #config{}) of
         {format, Files, Config} ->
             case format_files(Files, Config, _HadErrors = false) of
@@ -46,7 +55,7 @@ do(Opts, Name) ->
         {error, Message} ->
             io:put_chars(standard_error, [Message, "\n\n"]),
             getopt:usage(opts(), Name),
-            erlang:halt(1)
+            erlang:halt(2)
     end.
 
 format_files([FileName | FileNames], Config, HadErrors) ->
