@@ -139,7 +139,7 @@ continue(Scan, Inner0, Loc0, Buffer0) ->
             Other
     end.
 
--spec read_rest(state()) -> {ok, string()} | {error, string()}.
+-spec read_rest(state()) -> {ok, string()} | {error, {erl_anno:location(), module(), term()}}.
 read_rest(#state{scan = _Scan, inner = IO, loc = _Loc, buffer = Buffer}) ->
     {String, _Anno} = stringify_tokens(Buffer),
     try {ok, read_rest(IO, String)}
