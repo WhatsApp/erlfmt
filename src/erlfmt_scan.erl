@@ -27,7 +27,8 @@
     get_end_line/1,
     get_inner_line/1,
     get_inner_end_line/1,
-    update_anno/3
+    update_anno/3,
+    read_rest/1
 ]).
 
 -export_type([state/0, anno/0, token/0, comment/0]).
@@ -136,6 +137,21 @@ continue(Scan, Inner0, Loc0, Buffer0) ->
             {error, {Loc0, file, Reason}};
         {Other, _Rest} ->
             Other
+    end.
+
+-spec read_rest(state()) -> {ok, string()} | {error, string()}.
+read_rest(#state{scan = _Scan, inner = IO, loc = _Loc, buffer = Buffer}) ->
+    {String, _Anno} = stringify_tokens(Buffer),
+    try {ok, read_rest(IO, String)}
+    catch
+        {error, Reason} -> {error, {0, file, Reason}}
+    end.
+
+read_rest(IO, Data) ->
+    case file:read(IO, 4096) of
+        {ok, MoreData} -> read_rest(IO, [Data | MoreData]);
+        eof -> Data;
+        {error, Reason} -> throw({error, Reason})
     end.
 
 io_scan_erl_node(IO, Loc) ->
