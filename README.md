@@ -197,6 +197,8 @@ The formatter keeps the original decisions in two key places
 
   * when choosing between a "collapsed" and an "expanded" layout for containers
   * when choosing between single-line and multi-line clauses.
+  
+#### In containers
 
 For containers like lists, tuples, maps, records, function calls, macro calls,
 etc, there are two possible layouts - "collapsed" where the entire collection
@@ -237,6 +239,8 @@ Foo, Bar]
 ```
 
 and re-running the formatter, will produce the initial format again.
+
+#### In clauses
 
 A similar approach is followed, when laying our clause sequences in functions,
 case expressions, receives, etc. The main choice there is simple - should
