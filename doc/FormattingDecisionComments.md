@@ -15,15 +15,13 @@ This is a document explaining our reasoning behind the formatting decision for c
 ### Erlang in Action (Book)
 Page 43, Section COMMENTS
 
-```
-Style-wise, comments that follow code on the same line are usually written with only a single % character, whereas comments that are on lines of their own are typically written starting with two % characters ...
-
-(Some people even like to start with three % characters on comment lines that describe things on a whole-file level, such as comments at the top of the source file.)
-
-One good reason to stick to these conventions is that syntax-aware editors such as Emacs and erlIDE can be made to know about them, so that they will indent comments automatically according to how many % characters they begin with.
-
-Now that you have a source file that defines a module, you need to compile it.
-```
+> Style-wise, comments that follow code on the same line are usually written with only a single % character, whereas comments that are on lines of their own are typically written starting with two % characters ...
+>
+> (Some people even like to start with three % characters on comment lines that describe things on a whole-file level, such as comments at the top of the source file.)
+>
+> One good reason to stick to these conventions is that syntax-aware editors such as Emacs and erlIDE can be made to know about them, so that they will indent comments automatically according to how many % characters they begin with.
+>
+> Now that you have a source file that defines a module, you need to compile it.
 
 ### Conventions in Practice
 
