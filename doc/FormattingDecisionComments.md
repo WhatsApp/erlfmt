@@ -8,11 +8,9 @@ This is a document explaining our reasoning behind the formatting decision for c
 
 [Programming Rules and Conventions, Section 8.5 Comments](http://www.erlang.se/doc/programming_rules.shtml#HDR36)
 
-```
-  1. Comments within Erlang code shall start with one percent character (%). If a line only contains a comment, it shall be indented as Erlang code. This kind of comment shall be placed above the statement it refers to. If the comment can be placed at the same line as the statement, this is preferred.
-  2. Comments about a function shall be without indentation and start with two percent characters (%%)
-  3. Comments about the module shall be without indentation and start with three percent characters (%%%)
-```
+> 1. Comments within Erlang code shall start with one percent character (%). If a line only contains a comment, it shall be indented as Erlang code. This kind of comment shall be placed above the statement it refers to. If the comment can be placed at the same line as the statement, this is preferred.
+> 2. Comments about a function shall be without indentation and start with two percent characters (%%)
+> 3. Comments about the module shall be without indentation and start with three percent characters (%%%)
 
 ### Erlang in Action (Book)
 Page 43, Section COMMENTS
