@@ -35,6 +35,7 @@ Now that you have a source file that defines a module, you need to compile it.
    * https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_server.erl#L562
    * https://github.com/erlang/otp/blob/master/lib/stdlib/src/erl_tar.hrl#L32-L39
    * https://github.com/rabbitmq/rabbitmq-server/blob/master/src/rabbit_memory_monitor.erl#L26-L32
+   * https://github.com/rabbitmq/rabbitmq-server/blob/master/src/rabbit_mirror_queue_misc.erl#L492
  - Elixir, in the erlang code, single percentage comments are used as double percentage comments:
    * https://github.com/elixir-lang/elixir/blob/master/lib/elixir/src/elixir.erl#L309-L323
 
