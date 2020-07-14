@@ -847,10 +847,10 @@ annos(Config) when is_list(Config) ->
         )
     ),
     ?assertMatch(
-        {call, #{newline := true}, _, [
-            {list, #{newline := true}, [
-                {tuple, #{newline := true}, [
-                    {bin, #{newline := true}, [_]}
+        {call, #{location := {1, _}}, _, [
+            {list, #{location := {2, _}}, [
+                {tuple, #{location := {3, _}}, [
+                    {bin, #{location := {4, _}}, [_]}
                 ]}
             ]}
         ]},
