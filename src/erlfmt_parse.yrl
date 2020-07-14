@@ -113,11 +113,11 @@ type_sigs -> type_sig ';' type_sigs : {['$1' | ?val('$3')], ?anno('$3')}.
 
 type_sig -> type_argument_list '->' type :
     Head = {args, ?anno('$1'), ?val('$1')},
-    {spec_clause, ?range_anno('$1', '$3', '$2'), Head, ['$3'], empty}.
+    {spec_clause, ?range_anno('$1', '$3'), Head, ['$3'], empty}.
 type_sig -> type_argument_list '->' type 'when' anno_types :
     Head = {args, ?anno('$1'), ?val('$1')},
     Guard = {guard_or, ?anno('$5'), [{guard_and, ?anno('$5'), ?val('$5')}]},
-    {spec_clause, ?range_anno('$1', '$5', '$2'), Head, ['$3'], Guard}.
+    {spec_clause, ?range_anno('$1', '$5'), Head, ['$3'], Guard}.
 
 type -> type '::' type : ?mkop2('$1', '$2', '$3').
 type -> type '|' type : ?mkop2('$1', '$2', '$3').
@@ -131,34 +131,34 @@ type -> var : '$1'.
 type -> atom : '$1'.
 type -> type_call : '$1'.
 type -> '[' ']' : {list, ?range_anno('$1', '$2'), []}.
-type -> '[' type ']' : {list, ?range_anno('$1', '$3', '$1'), ['$2']}.
-type -> '[' type ',' '...' ']' : {list, ?range_anno('$1', '$5', '$1'), ['$2', '$4']}.
+type -> '[' type ']' : {list, ?range_anno('$1', '$3'), ['$2']}.
+type -> '[' type ',' '...' ']' : {list, ?range_anno('$1', '$5'), ['$2', '$4']}.
 type -> '#' '{' '}' : {map, ?range_anno('$1', '$3'), []}.
-type -> '#' '{' type_map_fields '}' : {map, ?range_anno('$1', '$4', '$2'), '$3'}.
+type -> '#' '{' type_map_fields '}' : {map, ?range_anno('$1', '$4'), '$3'}.
 type -> '{' '}' : {tuple, ?range_anno('$1', '$2'), []}.
-type -> '{' types '}' : {tuple, ?range_anno('$1', '$3', '$1'), '$2'}.
+type -> '{' types '}' : {tuple, ?range_anno('$1', '$3'), '$2'}.
 type -> '#' record_name '{' '}' : {record, ?range_anno('$1', '$4'), '$2', []}.
-type -> '#' record_name '{' types '}' : {record, ?range_anno('$1', '$5', '$3'), '$2', '$4'}.
+type -> '#' record_name '{' types '}' : {record, ?range_anno('$1', '$5'), '$2', '$4'}.
 type -> macro_call_none '{' '}' :
     {record, (?range_anno('$1', '$3'))#{macro_record => true}, '$1', []}.
 type -> macro_call_none '{' types '}' :
-    {record, (?range_anno('$1', '$4', '$2'))#{macro_record => true}, '$1', '$3'}.
+    {record, (?range_anno('$1', '$4'))#{macro_record => true}, '$1', '$3'}.
 type -> binary_type : '$1'.
 type -> integer : '$1'.
 type -> char : '$1'.
 type -> fun_type : '$1'.
 
 type_call -> atom type_argument_list :
-    {call, ?range_anno('$1', '$2', '$2'), '$1', ?val('$2')}.
+    {call, ?range_anno('$1', '$2'), '$1', ?val('$2')}.
 type -> atom ':' atom type_argument_list :
-    {call, ?range_anno('$1', '$4', '$4'), {remote, ?range_anno('$1', '$3'), '$1', '$3'}, ?val('$4')}.
+    {call, ?range_anno('$1', '$4'), {remote, ?range_anno('$1', '$3'), '$1', '$3'}, ?val('$4')}.
 
 fun_type -> 'fun' '(' ')' :
     {'fun', ?range_anno('$1', '$3'), type}.
 fun_type -> 'fun' '(' '(' '...' ')' '->' type ')' :
-    {'fun', ?range_anno('$1', '$8'), {type, ?range_anno('$4', '$7', '$3'), ['$4'], '$7'}}.
+    {'fun', ?range_anno('$1', '$8'), {type, ?range_anno('$4', '$7'), ['$4'], '$7'}}.
 fun_type -> 'fun' '(' type_argument_list '->' type ')' :
-    {'fun', ?range_anno('$1', '$6'), {type, ?range_anno('$3', '$5', '$3'), ?val('$3'), '$5'}}.
+    {'fun', ?range_anno('$1', '$6'), {type, ?range_anno('$3', '$5'), ?val('$3'), '$5'}}.
 
 type_map_fields -> type_map_field : ['$1'].
 type_map_fields -> type_map_field ',' type_map_fields : ['$1' | '$3'].
@@ -171,9 +171,9 @@ type_map_field -> type ':=' type :
 binary_type -> '<<' '>>' :
     {bin, ?range_anno('$1', '$2'), []}.
 binary_type -> '<<' bin_element_type '>>' :
-    {bin, ?range_anno('$1', '$3', '$1'), ['$2']}.
+    {bin, ?range_anno('$1', '$3'), ['$2']}.
 binary_type -> '<<' bin_element_type ',' bin_element_type '>>' :
-    {bin, ?range_anno('$1', '$5', '$1'), ['$2', '$4']}.
+    {bin, ?range_anno('$1', '$5'), ['$2', '$4']}.
 
 bin_element_type -> var ':' type :
     {bin_element, ?range_anno('$1', '$3'), '$1', '$3', default}.
@@ -194,20 +194,20 @@ function_clauses -> function_clause : ['$1'].
 function_clauses -> function_clause ';' function_clauses : ['$1' | '$3'].
 
 function_clause -> atom_or_var pat_argument_list clause_guard clause_body :
-    Head = {call, ?range_anno('$1', '$2', '$2'), '$1', ?val('$2')},
-    {clause, ?range_anno('$1', '$4', '$4'), Head, '$3', ?val('$4')}.
+    Head = {call, ?range_anno('$1', '$2'), '$1', ?val('$2')},
+    {clause, ?range_anno('$1', '$4'), Head, '$3', ?val('$4')}.
 function_clause -> macro_call_expr clause_guard clause_body :
     {macro_call, A, Name, Args} = '$1',
     %% we reduce the anno range for the inner macro to end of Name
     Head = {call, A, {macro_call, ?range_anno('$1', Name), Name, none}, Args},
-    {clause, ?range_anno('$1', '$3', '$3'), Head, '$2', ?val('$3')}.
+    {clause, ?range_anno('$1', '$3'), Head, '$2', ?val('$3')}.
 function_clause -> macro_call_expr :
     '$1'.
 
 clause_guard -> 'when' guard : '$2'.
 clause_guard -> '$empty' : empty.
 
-clause_body -> '->' anno_exprs: {?val('$2'), ?anno('$2', '$1')}.
+clause_body -> '->' anno_exprs: {?val('$2'), ?anno('$2')}.
 
 expr -> 'catch' expr : ?mkop1('$1', '$2').
 expr -> expr '=' expr : ?mkop2('$1', '$2', '$3').
@@ -264,26 +264,26 @@ pat_expr_max -> tuple : '$1'.
 pat_expr_max -> '(' pat_expr ')' : set_parens('$2').
 
 map_pat_expr -> '#' map_tuple :
-        {map, ?range_anno('$1', '$2', '$2'), ?val('$2')}.
+        {map, ?range_anno('$1', '$2'), ?val('$2')}.
 map_pat_expr -> pat_expr_max '#' map_tuple :
-        {map, ?range_anno('$1', '$3', '$3'), '$1', ?val('$3')}.
+        {map, ?range_anno('$1', '$3'), '$1', ?val('$3')}.
 map_pat_expr -> map_pat_expr '#' map_tuple :
-        {map, ?range_anno('$1', '$3', '$3'), '$1', ?val('$3')}.
+        {map, ?range_anno('$1', '$3'), '$1', ?val('$3')}.
 
 record_pat_expr -> '#' record_name '.' record_field_name :
         {record_index, ?range_anno('$1', '$4'), '$2', '$4'}.
 record_pat_expr -> '#' record_name record_tuple :
-        {record, ?range_anno('$1', '$3', '$3'), '$2', ?val('$3')}.
+        {record, ?range_anno('$1', '$3'), '$2', ?val('$3')}.
 
 list -> '[' ']' : {list, ?range_anno('$1', '$2'), []}.
-list -> '[' list_exprs ']' : {list, ?range_anno('$1', '$3', '$1'), '$2'}.
+list -> '[' list_exprs ']' : {list, ?range_anno('$1', '$3'), '$2'}.
 
 list_exprs -> expr : ['$1'].
 list_exprs -> expr '|' expr : [{cons, ?range_anno('$1', '$3'), '$1', '$3'}].
 list_exprs -> expr ',' list_exprs : ['$1' | '$3'].
 
 binary -> '<<' '>>' : {bin,?range_anno('$1', '$2'),[]}.
-binary -> '<<' bin_elements '>>' : {bin,?range_anno('$1', '$3', '$1'),'$2'}.
+binary -> '<<' bin_elements '>>' : {bin,?range_anno('$1', '$3'),'$2'}.
 
 bin_elements -> bin_element : ['$1'].
 bin_elements -> bin_element ',' bin_elements : ['$1'|'$3'].
@@ -322,17 +322,17 @@ lc_expr -> expr '<-' expr : {generate,?range_anno('$1', '$3'),'$1','$3'}.
 lc_expr -> binary '<=' expr : {b_generate,?range_anno('$1', '$3'),'$1','$3'}.
 
 tuple -> '{' '}' : {tuple,?range_anno('$1', '$2'),[]}.
-tuple -> '{' exprs '}' : {tuple,?range_anno('$1', '$3', '$1'),'$2'}.
+tuple -> '{' exprs '}' : {tuple,?range_anno('$1', '$3'),'$2'}.
 
 map_expr -> '#' map_tuple :
-    {map, ?range_anno('$1', '$2', '$2'), ?val('$2')}.
+    {map, ?range_anno('$1', '$2'), ?val('$2')}.
 map_expr -> expr_max '#' map_tuple :
-    {map, ?range_anno('$1', '$3', '$3'), '$1', ?val('$3')}.
+    {map, ?range_anno('$1', '$3'), '$1', ?val('$3')}.
 map_expr -> map_expr '#' map_tuple :
-    {map, ?range_anno('$1', '$3', '$3'), '$1', ?val('$3')}.
+    {map, ?range_anno('$1', '$3'), '$1', ?val('$3')}.
 
 map_tuple -> '{' '}' : {[], ?anno('$2')}.
-map_tuple -> '{' map_fields '}' : {'$2', ?anno('$3', '$1')}.
+map_tuple -> '{' map_fields '}' : {'$2', ?anno('$3')}.
 
 map_fields -> map_field : ['$1'].
 map_fields -> map_field ',' map_fields : ['$1' | '$3'].
@@ -351,27 +351,27 @@ map_key -> expr : '$1'.
 record_expr -> '#' record_name '.' record_field_name :
     {record_index, ?range_anno('$1', '$4'), '$2', '$4'}.
 record_expr -> '#' record_name record_tuple :
-    {record, ?range_anno('$1', '$3', '$3'), '$2', ?val('$3')}.
+    {record, ?range_anno('$1', '$3'), '$2', ?val('$3')}.
 record_expr -> expr_max '#' record_name '.' record_field_name :
     {record_field, ?range_anno('$1', '$5'), '$1', '$3', '$5'}.
 record_expr -> expr_max '#' record_name record_tuple :
-    {record, ?range_anno('$1', '$4', '$4'), '$1', '$3', ?val('$4')}.
+    {record, ?range_anno('$1', '$4'), '$1', '$3', ?val('$4')}.
 record_expr -> record_expr '#' record_name '.' record_field_name :
     {record_field, ?range_anno('$1', '$5'), '$1', '$3', '$5'}.
 record_expr -> record_expr '#' record_name record_tuple :
-    {record, ?range_anno('$1', '$4', '$4'), '$1', '$3', ?val('$4')}.
+    {record, ?range_anno('$1', '$4'), '$1', '$3', ?val('$4')}.
 
 macro_record_or_concatable -> var macro_call_none '.' record_field_name :
     Anno = (?range_anno('$1', '$4'))#{macro_record => true},
     {record_field, Anno, '$1', '$2', '$4'}.
 macro_record_or_concatable -> var macro_call_none record_tuple :
-    Anno = (?range_anno('$1', '$3', '$3'))#{macro_record => true},
+    Anno = (?range_anno('$1', '$3'))#{macro_record => true},
     {record, Anno, '$1', '$2', ?val('$3')}.
 macro_record_or_concatable -> var concatables :
     {concat, ?range_anno('$1', '$2'), ['$1' | ?val('$2')]}.
 
 record_tuple -> '{' '}' : {[], ?anno('$2')}.
-record_tuple -> '{' record_fields '}' : {'$2', ?anno('$3', '$1')}.
+record_tuple -> '{' record_fields '}' : {'$2', ?anno('$3')}.
 
 record_fields -> record_field : ['$1'].
 record_fields -> record_field ',' record_fields : ['$1' | '$3'].
@@ -383,7 +383,7 @@ record_name -> atom_or_var_or_macro : '$1'.
 record_field_name -> atom_or_var_or_macro : '$1'.
 
 function_call -> expr_max_remote argument_list :
-    {call, ?range_anno('$1', '$2', '$2'), '$1', ?val('$2')}.
+    {call, ?range_anno('$1', '$2'), '$1', ?val('$2')}.
 
 if_expr -> 'if' if_clauses 'end' : {'if',?range_anno('$1', '$3'),'$2'}.
 
@@ -391,7 +391,7 @@ if_clauses -> if_clause : ['$1'].
 if_clauses -> if_clause ';' if_clauses : ['$1' | '$3'].
 
 if_clause -> guard clause_body :
-    {clause, ?range_anno('$1', '$2', '$2'), empty, '$1', ?val('$2')}.
+    {clause, ?range_anno('$1', '$2'), empty, '$1', ?val('$2')}.
 
 case_expr -> 'case' expr 'of' cr_clauses 'end' :
     {'case', ?range_anno('$1', '$5'), '$2', '$4'}.
@@ -404,7 +404,7 @@ cr_clauses -> cr_clause ';' cr_clauses : ['$1' | '$3'].
 %% should be a better way.
 
 cr_clause -> expr clause_guard clause_body :
-    {clause, ?range_anno('$1', '$3', '$3'), '$1', '$2', ?val('$3')}.
+    {clause, ?range_anno('$1', '$3'), '$1', '$2', ?val('$3')}.
 
 receive_expr -> 'receive' cr_clauses 'end' :
         {'receive',?range_anno('$1', '$3'),'$2'}.
@@ -438,10 +438,10 @@ fun_clauses -> fun_clause ';' fun_clauses : ['$1' | '$3'].
 
 fun_clause -> pat_argument_list clause_guard clause_body :
     Head = {args, ?anno('$1'), ?val('$1')},
-    {clause, ?range_anno('$1', '$3', '$3'), Head, '$2', ?val('$3')}.
+    {clause, ?range_anno('$1', '$3'), Head, '$2', ?val('$3')}.
 fun_clause -> var pat_argument_list clause_guard clause_body :
-    Head = {call, ?range_anno('$1', '$2', '$2'), '$1', ?val('$2')},
-    {clause, ?range_anno('$1', '$4', '$4'), Head, '$3', ?val('$4')}.
+    Head = {call, ?range_anno('$1', '$2'), '$1', ?val('$2')},
+    {clause, ?range_anno('$1', '$4'), Head, '$3', ?val('$4')}.
 
 try_expr -> 'try' exprs 'of' cr_clauses try_catch :
     {TryClauses, _, After} = '$5',
@@ -461,13 +461,13 @@ try_clauses -> try_clause : ['$1'].
 try_clauses -> try_clause ';' try_clauses : ['$1' | '$3'].
 
 try_clause -> pat_expr clause_guard clause_body :
-    {clause, ?range_anno('$1', '$3', '$3'), '$1', '$2', ?val('$3')}.
+    {clause, ?range_anno('$1', '$3'), '$1', '$2', ?val('$3')}.
 try_clause -> atom_or_var ':' pat_expr clause_guard clause_body :
     Head = {'catch', ?range_anno('$1', '$3'), ['$1', '$3']},
-    {clause, ?range_anno('$1', '$5', '$5'), Head, '$4', ?val('$5')}.
+    {clause, ?range_anno('$1', '$5'), Head, '$4', ?val('$5')}.
 try_clause -> atom_or_var ':' pat_expr ':' var clause_guard clause_body :
     Head = {'catch', ?range_anno('$1', '$5'), ['$1', '$3', '$5']},
-    {clause, ?range_anno('$1', '$7', '$7'), Head, '$6', ?val('$7')}.
+    {clause, ?range_anno('$1', '$7'), Head, '$6', ?val('$7')}.
 
 macro_def_expr -> '(' macro_name ',' macro_def_expr_body ')' : {'$2', '$4'}.
 
@@ -483,7 +483,7 @@ macro_def_expr_body -> expr 'when' expr : ?mkop2('$1', '$2', '$3').
 
 macro_name -> atom_or_var : '$1'.
 macro_name -> atom_or_var '(' ')' : {call, ?range_anno('$1', '$3'), '$1', []}.
-macro_name -> atom_or_var '(' vars ')' : {call, ?range_anno('$1', '$4', '$2'), '$1', '$3'}.
+macro_name -> atom_or_var '(' vars ')' : {call, ?range_anno('$1', '$4'), '$1', '$3'}.
 
 macro_call_expr -> macro_string :
     '$1'.
@@ -492,9 +492,9 @@ macro_call_expr -> macro_call_none :
 macro_call_expr -> '?' atom_or_var '(' ')' :
     {macro_call, ?range_anno('$1', '$4'), '$2', []}.
 macro_call_expr -> '?' atom_or_var '(' macro_exprs ')' :
-    {macro_call, ?range_anno('$1', '$5', '$3'), '$2', '$4'}.
+    {macro_call, ?range_anno('$1', '$5'), '$2', '$4'}.
 macro_call_expr -> '?' atom_or_var record_tuple :
-    Anno = (?range_anno('$1', '$3', '$3'))#{macro_record => true},
+    Anno = (?range_anno('$1', '$3'))#{macro_record => true},
     {record, Anno, {macro_call, ?anno('$1'), '$2', none}, ?val('$3')}.
 macro_call_expr -> '?' atom_or_var '.' atom :
     Anno = (?range_anno('$1', '$4'))#{macro_record => true},
@@ -505,9 +505,9 @@ macro_call_pat -> macro_call_none :
 macro_call_pat -> '?' atom_or_var '(' ')' :
     {macro_call, ?range_anno('$1', '$4'), '$2', []}.
 macro_call_pat -> '?' atom_or_var '(' pat_exprs ')' :
-    {macro_call, ?range_anno('$1', '$5', '$3'), '$2', '$4'}.
+    {macro_call, ?range_anno('$1', '$5'), '$2', '$4'}.
 macro_call_pat -> '?' atom_or_var record_tuple :
-    Anno = (?range_anno('$1', '$3', '$3'))#{macro_record => true},
+    Anno = (?range_anno('$1', '$3'))#{macro_record => true},
     {record, Anno, {macro_call, ?anno('$1'), '$2', none}, ?val('$3')}.
 macro_call_pat -> '?' atom_or_var '.' atom :
     Anno = (?range_anno('$1', '$4'))#{macro_record => true},
@@ -518,7 +518,7 @@ macro_call_type -> macro_call_none :
 macro_call_type -> '?' atom_or_var '(' ')' :
     {macro_call, ?range_anno('$1', '$4'), '$2', []}.
 macro_call_type -> '?' atom_or_var '(' types ')' :
-    {macro_call, ?range_anno('$1', '$5', '$3'), '$2', '$4'}.
+    {macro_call, ?range_anno('$1', '$5'), '$2', '$4'}.
 
 macro_call_none -> '?' atom_or_var :
     {macro_call, ?range_anno('$1', '$2'), '$2', none}.
@@ -530,13 +530,13 @@ macro_expr -> expr : '$1'.
 macro_expr -> expr 'when' expr : ?mkop2('$1', '$2', '$3').
 
 argument_list -> '(' ')' : {[], ?range_anno('$1', '$2')}.
-argument_list -> '(' exprs ')' : {'$2', ?range_anno('$1', '$3', '$1')}.
+argument_list -> '(' exprs ')' : {'$2', ?range_anno('$1', '$3')}.
 
 pat_argument_list -> '(' ')' : {[], ?range_anno('$1', '$2')}.
-pat_argument_list -> '(' pat_exprs ')' : {'$2', ?range_anno('$1', '$3', '$1')}.
+pat_argument_list -> '(' pat_exprs ')' : {'$2', ?range_anno('$1', '$3')}.
 
 type_argument_list -> '(' ')' : {[], ?range_anno('$1', '$2')}.
-type_argument_list -> '(' types ')' : {'$2', ?range_anno('$1', '$3', '$1')}.
+type_argument_list -> '(' types ')' : {'$2', ?range_anno('$1', '$3')}.
 
 anno_exprs -> expr : {['$1'], ?anno('$1')}.
 anno_exprs -> expr ',' anno_exprs : {['$1' | ?val('$3')], ?anno('$3')}.
@@ -977,25 +977,12 @@ Erlang code.
 
 -define(anno(Tok), element(2, Tok)).
 
--define(anno_extra(Tok), maps:with([newline], ?anno(Tok))).
-
 -define(val(Tok), element(1, Tok)).
-
--define(anno(Tok, TokExtra),
-    maps:merge(?anno_extra(TokExtra), ?anno(Tok))
-).
 
 -define(range_anno(Tok1, Tok2), #{
     location => map_get(location, ?anno(Tok1)),
     end_location => map_get(end_location, ?anno(Tok2))
 }).
-
--define(range_anno(Tok1, Tok2, TokExtra),
-    maps:merge(?anno_extra(TokExtra), #{
-        location => map_get(location, ?anno(Tok1)),
-        end_location => map_get(end_location, ?anno(Tok2))
-    })
-).
 
 %% Entry points compatible to old erl_parse.
 
