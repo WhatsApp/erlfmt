@@ -52,6 +52,9 @@
     smoke_test_stdio_regular/1,
     smoke_test_stdio_without_pragma/1,
     smoke_test_stdio_with_pragma/1,
+    smoke_test_stdio_insert_pragma_without/1,
+    smoke_test_stdio_insert_pragma_with/1,
+    smoke_test_stdio_insert_and_require_pragma/1,
     snapshot_simple_comments/1,
     snapshot_big_binary/1,
     snapshot_attributes/1,
@@ -63,7 +66,8 @@
     simple_comments_range/1,
     comments_range/1,
     broken_range/1,
-    contains_pragma/1
+    contains_pragma/1,
+    insert_pragma/1
 ]).
 
 suite() ->
@@ -112,7 +116,10 @@ groups() ->
             smoke_test_stdio_escript,
             smoke_test_stdio_regular,
             smoke_test_stdio_without_pragma,
-            smoke_test_stdio_with_pragma
+            smoke_test_stdio_with_pragma,
+            smoke_test_stdio_insert_pragma_without,
+            smoke_test_stdio_insert_pragma_with,
+            smoke_test_stdio_insert_and_require_pragma
         ]},
         {snapshot_tests, [parallel], [
             snapshot_simple_comments,
@@ -130,7 +137,8 @@ groups() ->
             broken_range
         ]},
         {pragma_tests, [parallel], [
-            contains_pragma
+            contains_pragma,
+            insert_pragma
         ]}
     ].
 
@@ -956,6 +964,27 @@ smoke_test_stdio_with_pragma(Config) when is_list(Config) ->
     {ok, Expected} = file:read_file(Path),
     ?assertEqual(Expected, unicode:characters_to_binary(Formatted)).
 
+smoke_test_stdio_insert_pragma_without(Config) when is_list(Config) ->
+    Formatted = os:cmd("echo '-module(nopragma).' | " ++ escript() ++ " - --insert-pragma"),
+    Expected =
+        "%% @format\n"
+        "\n"
+        "-module(nopragma).\n",
+    ?assertEqual(Expected, Formatted).
+
+smoke_test_stdio_insert_pragma_with(Config) when is_list(Config) ->
+    DataDir = ?config(data_dir, Config),
+    Path = filename:join(DataDir, "pragma.erl"),
+    Formatted = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - --insert-pragma"),
+    {ok, Expected} = file:read_file(Path),
+    ?assertEqual(Expected, unicode:characters_to_binary(Formatted)).
+
+smoke_test_stdio_insert_and_require_pragma(Config) when is_list(Config) ->
+    DataDir = ?config(data_dir, Config),
+    Path = filename:join(DataDir, "pragma.erl"),
+    ErrorString = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - --insert-pragma --require-pragma"),
+    ?assert(string:find(ErrorString, "Cannot use both --insert-pragma and --require-pragma") =/= nomatch).
+
 escript() ->
     %% this relies on the _build structure rebar3 uses
     filename:join(code:lib_dir(erlfmt), "../../bin/erlfmt").
@@ -1030,7 +1059,7 @@ contains_pragma(Config) when is_list(Config) ->
         true,
         erlfmt:contains_pragma_string(
             "file.erl",
-            "% @format\n"
+            "%% @format\n"
             "\n"
             "-module(pragma).\n"
             "\n"
@@ -1046,7 +1075,7 @@ contains_pragma(Config) when is_list(Config) ->
             "file.erl",
             "\n"
             "\n"
-            "% @format\n"
+            "%% @format\n"
             "\n"
             "-module(pragma).\n"
         )
@@ -1066,10 +1095,10 @@ contains_pragma(Config) when is_list(Config) ->
         false,
         erlfmt:contains_pragma_string(
             "file.erl",
-            "% LICENSE\n"
-            "% LICENSE\n"
-            "% LICENSE\n"
-            "% LICENSE\n"
+            "%%% LICENSE\n"
+            "%%% LICENSE\n"
+            "%%% LICENSE\n"
+            "%%% LICENSE\n"
             "\n"
             "-module(pragma)\n."
             "\n"
@@ -1083,12 +1112,12 @@ contains_pragma(Config) when is_list(Config) ->
         true,
         erlfmt:contains_pragma_string(
             "file.erl",
-            "% LICENSE\n"
-            "% LICENSE\n"
-            "% LICENSE\n"
-            "% LICENSE\n"
+            "%% LICENSE\n"
+            "%% LICENSE\n"
+            "%% LICENSE\n"
+            "%% LICENSE\n"
             "\n"
-            "% @format\n"
+            "%% @format\n"
             "\n"
             "-module(pragma).\n"
             "\n"
@@ -1106,3 +1135,95 @@ contains_pragma(Config) when is_list(Config) ->
             "-module(pragma).\n"
         )
     ).
+
+insert_pragma(Config) when is_list(Config) ->
+    ?assertEqual(
+            "%% @format\n"
+            "\n"
+            "-module(pragma).\n",
+        insert_pragma_string(
+            "-module(pragma).\n"
+        )
+    ),
+    ?assertEqual(
+            "%% @format\n"
+            "\n"
+            "-module(pragma).\n"
+            "\n"
+            "-export([f/3]).\n"
+            "\n"
+            "f(_Arg1, _Arg2, _Arg3) ->\n"
+            "    ok.\n",
+        insert_pragma_string(
+            "-module(pragma).\n"
+            "\n"
+            "-export([f/3]).\n"
+            "\n"
+            "f(_Arg1,_Arg2,   _Arg3) ->\n"
+            "ok.\n"
+        )
+    ),
+    ?assertEqual(
+            "%% attached comment\n"
+            "%% @format\n"
+            "-module(pragma).\n"
+            "\n"
+            "-export([f/3]).\n",
+        insert_pragma_string(
+            "%% attached comment\n"
+            "-module(pragma)\n."
+            "\n"
+            "-export([f/3]).\n"
+        )
+    ),
+    ?assertEqual(
+            "%% single comment\n"
+            "%% @format\n"
+            "\n"
+            "-module(pragma).\n"
+            "\n"
+            "-export([f/3]).\n",
+        insert_pragma_string(
+            "%% single comment\n"
+            "\n"
+            "-module(pragma)\n."
+            "\n"
+            "-export([f/3]).\n"
+        )
+    ),
+    ?assertEqual(
+            "%% LICENSE\n"
+            "%% LICENSE\n"
+            "%% LICENSE\n"
+            "%% LICENSE\n"
+            "%% @format\n"
+            "\n"
+            "-module(pragma).\n"
+            "\n"
+            "-export([f/3]).\n",
+        insert_pragma_string(
+            "%% LICENSE\n"
+            "%% LICENSE\n"
+            "%% LICENSE\n"
+            "%% LICENSE\n"
+            "\n"
+            "-module(pragma)\n."
+            "\n"
+            "-export([f/3]).\n"
+        )
+    ).
+
+insert_pragma_string(String) ->
+    StringWithPragma = format_string(String, insert),
+    %% check that insert_pragma_nodes doesn't insert a pragma, when one has already been inserted.
+    ?assertEqual(StringWithPragma, format_string(StringWithPragma, insert)),
+    StringWithPragma.
+
+format_string(String, Pragma) ->
+    {ok, Nodes, []} = erlfmt:read_nodes_string("nofile", String),
+    NodesWithPragma = case Pragma of
+        insert -> erlfmt:insert_pragma_nodes(Nodes);
+        _ -> Nodes
+    end,
+    [$\n | Formatted] = erlfmt:format_nodes(NodesWithPragma),
+    unicode:characters_to_list(Formatted).

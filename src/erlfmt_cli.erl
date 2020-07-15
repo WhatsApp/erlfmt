@@ -18,6 +18,7 @@
 -record(config, {
     verbose = false :: boolean(),
     require_pragma = false :: boolean(),
+    insert_pragma = false :: boolean(),
     out = standard_out :: erlfmt:out()
 }).
 
@@ -32,6 +33,10 @@ opts() ->
         {require_pragma, undefined, "require-pragma", undefined,
             "Require a special comment @format, called a pragma, "
             "to be present in the file's first docblock comment in order for prettier to format it."},
+        {insert_pragma, undefined, "insert-pragma", undefined,
+            "Insert a @format pragma to the top of formatted files when pragma is absent."
+            "Works well when used in tandem with --require-pragma, but"
+            "it is not allowed to use require-pragma and insert-pragma at the same time."},
         {files, undefined, undefined, string, "files to format, - for stdin"}
     ].
 
@@ -64,8 +69,9 @@ format_files([FileName | FileNames], Config, HadErrors) ->
         false -> ok
     end,
     Pragma =
-        case Config#config.require_pragma of
-            true -> require;
+        case {Config#config.require_pragma, Config#config.insert_pragma} of
+            {true, _} -> require;
+            {_, true} -> insert;
             _ -> ignore
         end,
     ErlfmtConfig = {Pragma, Config#config.out},
@@ -98,8 +104,14 @@ parse_opts([{out, Path} | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{out = {path, Path}});
 parse_opts([verbose | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{verbose = true});
+parse_opts([require_pragma | _Rest], _Name, _Files, #config{insert_pragma = true}) ->
+    {error, "Cannot use both --insert-pragma and --require-pragma options together."};
 parse_opts([require_pragma | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{require_pragma = true});
+parse_opts([insert_pragma | _Rest], _Name, _Files, #config{require_pragma = true}) ->
+    {error, "Cannot use both --insert-pragma and --require-pragma options together."};
+parse_opts([insert_pragma | Rest], Name, Files, Config) ->
+    parse_opts(Rest, Name, Files, Config#config{insert_pragma = true});
 parse_opts([{files, NewFiles} | Rest], Name, Files0, Config) ->
     parse_opts(Rest, Name, expand_files(NewFiles, Files0), Config);
 parse_opts([], _Name, [stdin], #config{out = Out}) when Out =/= standard_out ->

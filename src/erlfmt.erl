@@ -23,15 +23,17 @@
     read_nodes_string/2,
     format_error/1,
     format_error_info/1,
+    format_nodes/1,
     contains_pragma_file/1,
-    contains_pragma_string/2
+    contains_pragma_string/2,
+    insert_pragma_nodes/1
 ]).
 
 -export_type([error_info/0, out/0, config/0]).
 
 -type error_info() :: {file:name_all(), erl_anno:location(), module(), Reason :: any()}.
 -type out() :: standard_out | {path, file:name_all()} | replace.
--type pragma() :: require | ignore.
+-type pragma() :: require | insert | ignore.
 -type config() :: {Pragma :: pragma(), Out :: out()}.
 
 -define(PAGE_WIDTH, 92).
@@ -68,8 +70,12 @@ format_file(FileName, {Pragma, Out}) ->
     try
         case file_read_nodes(FileName, Pragma) of
             {ok, Nodes, Warnings} ->
-                [$\n | Formatted] = format_nodes(Nodes),
-                verify_nodes(FileName, Nodes, Formatted),
+                NodesWithPragma = case Pragma of
+                    insert -> insert_pragma_nodes(Nodes);
+                    _ -> Nodes
+                end,
+                [$\n | Formatted] = format_nodes(NodesWithPragma),
+                verify_nodes(FileName, NodesWithPragma, Formatted),
                 write_formatted(FileName, Formatted, Out),
                 {ok, Warnings};
             {skip, RawString} ->
@@ -101,6 +107,31 @@ contains_pragma_node({attribute, Meta, _AfAtom, _AbstractExprs}) ->
     lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments);
 contains_pragma_node(_) ->
     false.
+
+%% insert_pragma_nodes only inserts an @format comment,
+%% if one has not already been inserted.
+insert_pragma_nodes([]) -> [];
+insert_pragma_nodes([Node | Nodes]) ->
+    case contains_pragma_node(Node) of
+        true -> [Node | Nodes];
+        false -> [insert_pragma_node(Node) | Nodes]
+    end.
+
+insert_pragma_node({attribute, Meta, AfAtom, AbstractExprs}) ->
+    {attribute, insert_pragma_meta(Meta), AfAtom, AbstractExprs};
+insert_pragma_node(Node) ->
+    Node.
+
+insert_pragma_meta(Meta) ->
+    PreComments = erlfmt_scan:get_anno(pre_comments, Meta, []),
+    NewPreComments =
+        case PreComments of
+            [] -> [{comment, #{end_location => {2,1},location => {1,1}}, ["%% @format", ""]}];
+            _ ->
+                {comment, Loc, LastComments} = lists:last(PreComments),
+                lists:droplast(PreComments) ++ [{comment, Loc, LastComments ++ ["%% @format"]}]
+        end,
+    erlfmt_scan:put_anno(pre_comments, NewPreComments, Meta).
 
 contains_pragma_comment({comment, _Loc, Comments}) ->
     string:find(Comments, "@format") =/= nomatch;
