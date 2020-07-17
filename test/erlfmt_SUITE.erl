@@ -960,7 +960,7 @@ smoke_test_stdio_without_pragma(Config) when is_list(Config) ->
 smoke_test_stdio_with_pragma(Config) when is_list(Config) ->
     DataDir = ?config(data_dir, Config),
     Path = filename:join(DataDir, "pragma.erl"),
-    Formatted= os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - --require-pragma"),
+    Formatted = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - --require-pragma"),
     {ok, Expected} = file:read_file(Path),
     ?assertEqual(Expected, unicode:characters_to_binary(Formatted)).
 
@@ -982,8 +982,13 @@ smoke_test_stdio_insert_pragma_with(Config) when is_list(Config) ->
 smoke_test_stdio_insert_and_require_pragma(Config) when is_list(Config) ->
     DataDir = ?config(data_dir, Config),
     Path = filename:join(DataDir, "pragma.erl"),
-    ErrorString = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - --insert-pragma --require-pragma"),
-    ?assert(string:find(ErrorString, "Cannot use both --insert-pragma and --require-pragma") =/= nomatch).
+    ErrorString = os:cmd(
+        "cat " ++ Path ++ " | " ++ escript() ++ " - --insert-pragma --require-pragma"
+    ),
+    ?assert(
+        string:find(ErrorString, "Cannot use both --insert-pragma and --require-pragma") =/=
+            nomatch
+    ).
 
 escript() ->
     %% this relies on the _build structure rebar3 uses
@@ -1174,22 +1179,22 @@ contains_pragma(Config) when is_list(Config) ->
 
 insert_pragma(Config) when is_list(Config) ->
     ?assertEqual(
-            "%% @format\n"
-            "\n"
-            "-module(pragma).\n",
+        "%% @format\n"
+        "\n"
+        "-module(pragma).\n",
         insert_pragma_string(
             "-module(pragma).\n"
         )
     ),
     ?assertEqual(
-            "%% @format\n"
-            "\n"
-            "-module(pragma).\n"
-            "\n"
-            "-export([f/3]).\n"
-            "\n"
-            "f(_Arg1, _Arg2, _Arg3) ->\n"
-            "    ok.\n",
+        "%% @format\n"
+        "\n"
+        "-module(pragma).\n"
+        "\n"
+        "-export([f/3]).\n"
+        "\n"
+        "f(_Arg1, _Arg2, _Arg3) ->\n"
+        "    ok.\n",
         insert_pragma_string(
             "-module(pragma).\n"
             "\n"
@@ -1200,11 +1205,11 @@ insert_pragma(Config) when is_list(Config) ->
         )
     ),
     ?assertEqual(
-            "%% attached comment\n"
-            "%% @format\n"
-            "-module(pragma).\n"
-            "\n"
-            "-export([f/3]).\n",
+        "%% attached comment\n"
+        "%% @format\n"
+        "-module(pragma).\n"
+        "\n"
+        "-export([f/3]).\n",
         insert_pragma_string(
             "%% attached comment\n"
             "-module(pragma)\n."
@@ -1213,12 +1218,12 @@ insert_pragma(Config) when is_list(Config) ->
         )
     ),
     ?assertEqual(
-            "%% single comment\n"
-            "%% @format\n"
-            "\n"
-            "-module(pragma).\n"
-            "\n"
-            "-export([f/3]).\n",
+        "%% single comment\n"
+        "%% @format\n"
+        "\n"
+        "-module(pragma).\n"
+        "\n"
+        "-export([f/3]).\n",
         insert_pragma_string(
             "%% single comment\n"
             "\n"
@@ -1228,15 +1233,15 @@ insert_pragma(Config) when is_list(Config) ->
         )
     ),
     ?assertEqual(
-            "%% LICENSE\n"
-            "%% LICENSE\n"
-            "%% LICENSE\n"
-            "%% LICENSE\n"
-            "%% @format\n"
-            "\n"
-            "-module(pragma).\n"
-            "\n"
-            "-export([f/3]).\n",
+        "%% LICENSE\n"
+        "%% LICENSE\n"
+        "%% LICENSE\n"
+        "%% LICENSE\n"
+        "%% @format\n"
+        "\n"
+        "-module(pragma).\n"
+        "\n"
+        "-export([f/3]).\n",
         insert_pragma_string(
             "%% LICENSE\n"
             "%% LICENSE\n"
@@ -1249,19 +1254,19 @@ insert_pragma(Config) when is_list(Config) ->
         )
     ),
     ?assertEqual(
-            "%% @format\n"
-            "\n"
-            "{erl_opts, [debug_info]}\n",
+        "%% @format\n"
+        "\n"
+        "{erl_opts, [debug_info]}\n",
         insert_pragma_string(
             "{erl_opts, [debug_info]}\n"
         )
     ),
     ?assertEqual(
-            "#! /usr/bin/env escript\n"
-            "\n"
-            "%% @format\n"
-            "\n"
-            "main(_) -> ok.\n",
+        "#! /usr/bin/env escript\n"
+        "\n"
+        "%% @format\n"
+        "\n"
+        "main(_) -> ok.\n",
         insert_pragma_string(
             "#! /usr/bin/env escript\n"
             "\n"
