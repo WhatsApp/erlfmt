@@ -147,6 +147,10 @@ read_rest(#state{scan = _Scan, inner = IO, loc = _Loc, buffer = Buffer}) ->
         {error, Reason} -> {error, {0, file, Reason}}
     end.
 
+read_rest(undefined, Data) ->
+    Data;
+read_rest(IO, Data) when is_list(IO) ->
+    [Data | IO];
 read_rest(IO, Data) ->
     case file:read(IO, 4096) of
         {ok, MoreData} -> read_rest(IO, [Data | MoreData]);
@@ -170,6 +174,8 @@ eof(undefined, Loc) ->
     {{eof, Loc}, undefined}.
 
 -spec last_node_string(state()) -> {unicode:chardata(), anno()}.
+last_node_string(#state{original = [{'#', _}, {'!', _} | _] = Tokens}) ->
+    split_shebang(Tokens);
 last_node_string(#state{original = Tokens}) ->
     stringify_tokens(Tokens).
 
@@ -185,6 +191,8 @@ split_shebang(Tokens) ->
     {unicode:characters_to_list(Shebang), Rest}.
 
 %% TODO: make smarter
+stringify_tokens([]) ->
+    {"", undefined};
 stringify_tokens([Token | _] = Tokens) ->
     Anno = element(2, Token),
     stringify_tokens(Tokens, erl_anno:location(Anno), []).

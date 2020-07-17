@@ -24,7 +24,6 @@
     format_error/1,
     format_error_info/1,
     format_nodes/1,
-    contains_pragma_file/1,
     contains_pragma_string/2,
     insert_pragma_nodes/1
 ]).
@@ -86,44 +85,36 @@ format_file(FileName, {Pragma, Out}) ->
         {error, Error} -> {error, Error}
     end.
 
--spec contains_pragma_file(file:name_all()) -> boolean().
-contains_pragma_file(FileName) ->
-    read_file(FileName, fun (File) ->
-        read_pragma_nodes(erlfmt_scan:io_node(File), FileName, [], [])
-    end).
-
--spec contains_pragma_string(file:name_all(), string()) -> boolean().
+-spec contains_pragma_string(file:name_all(), string()) -> boolean() | {error, error_info()}.
 contains_pragma_string(FileName, String) ->
-    read_pragma_nodes(erlfmt_scan:string_node(String), FileName, [], []).
+    try read_nodes(erlfmt_scan:string_node(String), FileName, require, [], [], []) of
+        {skip, _} -> false;
+        _ -> true
+    catch
+        {error, Error} -> {error, Error}
+    end.
 
-read_pragma_nodes({ok, Tokens, Comments, Cont}, FileName, _Acc, Warnings0) ->
-    {Node, _Warnings} = parse_nodes(Tokens, Comments, FileName, Cont, Warnings0),
-    contains_pragma_node(Node);
-read_pragma_nodes(_, _, _, _) ->
-    false.
+is_shebang_node({raw_string, _, "#!" ++ _}) -> true;
+is_shebang_node(_) -> false.
 
-contains_pragma_node({attribute, Meta, _AfAtom, _AbstractExprs}) ->
-    {PreComments, PostComments} = erlfmt_format:comments(Meta),
-    lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments);
-contains_pragma_node(_) ->
-    false.
+contains_pragma_node(Node) ->
+    {PreComments, PostComments} = erlfmt_format:comments(Node),
+    lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments).
 
 %% insert_pragma_nodes only inserts an @format comment,
 %% if one has not already been inserted.
 insert_pragma_nodes([]) -> [];
 insert_pragma_nodes([Node | Nodes]) ->
-    case contains_pragma_node(Node) of
-        true -> [Node | Nodes];
-        false -> [insert_pragma_node(Node) | Nodes]
+    case is_shebang_node(Node) of
+        true -> [Node | insert_pragma_nodes(Nodes)];
+        false -> case contains_pragma_node(Node) of
+            true -> [Node | Nodes];
+            false -> [insert_pragma_node(Node) | Nodes]
+        end
     end.
 
-insert_pragma_node({attribute, Meta, AfAtom, AbstractExprs}) ->
-    {attribute, insert_pragma_meta(Meta), AfAtom, AbstractExprs};
 insert_pragma_node(Node) ->
-    Node.
-
-insert_pragma_meta(Meta) ->
-    PreComments = erlfmt_scan:get_anno(pre_comments, Meta, []),
+    PreComments = erlfmt_scan:get_anno(pre_comments, Node, []),
     NewPreComments =
         case PreComments of
             [] -> [{comment, #{end_location => {2,1},location => {1,1}}, ["%% @format", ""]}];
@@ -131,7 +122,7 @@ insert_pragma_meta(Meta) ->
                 {comment, Loc, LastComments} = lists:last(PreComments),
                 lists:droplast(PreComments) ++ [{comment, Loc, LastComments ++ ["%% @format"]}]
         end,
-    erlfmt_scan:put_anno(pre_comments, NewPreComments, Meta).
+    erlfmt_scan:put_anno(pre_comments, NewPreComments, Node).
 
 contains_pragma_comment({comment, _Loc, Comments}) ->
     string:find(Comments, "@format") =/= nomatch;
@@ -172,7 +163,7 @@ read_nodes(FileName) ->
 
 file_read_nodes(FileName, Pragma) ->
     read_file(FileName, fun (File) ->
-        read_nodes(erlfmt_scan:io_node(File), FileName, Pragma)
+        read_nodes(erlfmt_scan:io_node(File), FileName, Pragma, [], [], [])
     end).
 
 read_file(stdin, Action) ->
@@ -191,25 +182,30 @@ read_file(FileName, Action) ->
 -spec read_nodes_string(file:name_all(), string()) ->
     {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
 read_nodes_string(FileName, String) ->
-    try read_nodes(erlfmt_scan:string_node(String), FileName, ignore)
+    try read_nodes(erlfmt_scan:string_node(String), FileName, ignore, [], [], [])
     catch
         {error, Error} -> {error, Error}
     end.
 
-read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma) ->
-    {Node, Warnings} = parse_nodes(Tokens, Comments, FileName, Cont, []),
-    case contains_pragma_node(Node) of
-        false when Pragma =:= require ->
+read_nodes({ok, Tokens, Comments, Cont}, FileName, require, NodeAcc, Warnings0, TextAcc) ->
+    {Node, Warnings} = parse_nodes(Tokens, Comments, FileName, Cont, Warnings0),
+    case is_shebang_node(Node) of
+        true ->
             {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
-            case erlfmt_scan:read_rest(Cont) of
-                {ok, Rest} -> {skip, [LastString | Rest]};
-                {error, {ErrLoc, Mod, Reason}} -> throw({error, {FileName, ErrLoc, Mod, Reason}})
-            end;
-        _ ->
-            read_nodes_loop(erlfmt_scan:continue(Cont), FileName, [Node], Warnings)
+            read_nodes(erlfmt_scan:continue(Cont), FileName, require, [Node | NodeAcc], Warnings, TextAcc ++ LastString);
+        _ -> case contains_pragma_node(Node) of
+            false ->
+                {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
+                case erlfmt_scan:read_rest(Cont) of
+                    {ok, Rest} -> {skip, [TextAcc, LastString | Rest]};
+                    {error, {ErrLoc, Mod, Reason}} -> throw({error, {FileName, ErrLoc, Mod, Reason}})
+                end;
+            _ ->
+                read_nodes_loop(erlfmt_scan:continue(Cont), FileName, [Node | NodeAcc], Warnings)
+            end
     end;
-read_nodes(Other, FileName, _Pragma) ->
-    read_nodes_loop(Other, FileName, [], []).
+read_nodes(Other, FileName, _Pragma, NodeAcc, Warnings, _TextAcc) ->
+    read_nodes_loop(Other, FileName, NodeAcc, Warnings).
 
 read_nodes_loop({ok, Tokens, Comments, Cont}, FileName, Acc, Warnings0) ->
     {Node, Warnings} = parse_nodes(Tokens, Comments, FileName, Cont, Warnings0),

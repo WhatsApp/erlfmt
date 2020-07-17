@@ -1058,7 +1058,7 @@ contains_pragma(Config) when is_list(Config) ->
     ?assertEqual(
         true,
         erlfmt:contains_pragma_string(
-            "file.erl",
+            "normalpragma.erl",
             "%% @format\n"
             "\n"
             "-module(pragma).\n"
@@ -1072,7 +1072,7 @@ contains_pragma(Config) when is_list(Config) ->
     ?assertEqual(
         true,
         erlfmt:contains_pragma_string(
-            "file.erl",
+            "doublelinepragma.erl",
             "\n"
             "\n"
             "%% @format\n"
@@ -1083,7 +1083,7 @@ contains_pragma(Config) when is_list(Config) ->
     ?assertEqual(
         false,
         erlfmt:contains_pragma_string(
-            "file.erl",
+            "nolinepragma.erl",
             "-module(pragma).\n"
             "-export([f/3]).\n"
             "\n"
@@ -1094,7 +1094,7 @@ contains_pragma(Config) when is_list(Config) ->
     ?assertEqual(
         false,
         erlfmt:contains_pragma_string(
-            "file.erl",
+            "licensenopragma.erl",
             "%%% LICENSE\n"
             "%%% LICENSE\n"
             "%%% LICENSE\n"
@@ -1111,7 +1111,7 @@ contains_pragma(Config) when is_list(Config) ->
     ?assertEqual(
         true,
         erlfmt:contains_pragma_string(
-            "file.erl",
+            "licensepragma.erl",
             "%% LICENSE\n"
             "%% LICENSE\n"
             "%% LICENSE\n"
@@ -1130,9 +1130,45 @@ contains_pragma(Config) when is_list(Config) ->
     ?assertEqual(
         true,
         erlfmt:contains_pragma_string(
-            "file.erl",
+            "shortpragma.erl",
             "% @format\n"
             "-module(pragma).\n"
+        )
+    ),
+    ?assertEqual(
+        false,
+        erlfmt:contains_pragma_string(
+            "rebar.config",
+            "{erl_opts, [debug_info]}\n"
+        )
+    ),
+    ?assertEqual(
+        true,
+        erlfmt:contains_pragma_string(
+            "rebar.config",
+            "%% @format\n"
+            "\n"
+            "{erl_opts, [debug_info]}\n"
+        )
+    ),
+    ?assertEqual(
+        true,
+        erlfmt:contains_pragma_string(
+            "file.escript",
+            "#! /usr/bin/env escript\n"
+            "\n"
+            "%% @format\n"
+            "\n"
+            "main(_) -> ok.\n"
+        )
+    ),
+    ?assertEqual(
+        false,
+        erlfmt:contains_pragma_string(
+            "file.escript",
+            "#! /usr/bin/env escript\n"
+            "\n"
+            "main(_) -> ok.\n"
         )
     ).
 
@@ -1210,6 +1246,26 @@ insert_pragma(Config) when is_list(Config) ->
             "-module(pragma)\n."
             "\n"
             "-export([f/3]).\n"
+        )
+    ),
+    ?assertEqual(
+            "%% @format\n"
+            "\n"
+            "{erl_opts, [debug_info]}\n",
+        insert_pragma_string(
+            "{erl_opts, [debug_info]}\n"
+        )
+    ),
+    ?assertEqual(
+            "#! /usr/bin/env escript\n"
+            "\n"
+            "%% @format\n"
+            "\n"
+            "main(_) -> ok.\n",
+        insert_pragma_string(
+            "#! /usr/bin/env escript\n"
+            "\n"
+            "main(_) -> ok.\n"
         )
     ).
 
