@@ -1270,16 +1270,7 @@ insert_pragma(Config) when is_list(Config) ->
     ).
 
 insert_pragma_string(String) ->
-    StringWithPragma = format_string(String, insert),
+    StringWithPragma = erlfmt:format_string(String, insert),
     %% check that insert_pragma_nodes doesn't insert a pragma, when one has already been inserted.
-    ?assertEqual(StringWithPragma, format_string(StringWithPragma, insert)),
+    ?assertEqual(StringWithPragma, erlfmt:format_string(StringWithPragma, insert)),
     StringWithPragma.
-
-format_string(String, Pragma) ->
-    {ok, Nodes, []} = erlfmt:read_nodes_string("nofile", String),
-    NodesWithPragma = case Pragma of
-        insert -> erlfmt:insert_pragma_nodes(Nodes);
-        _ -> Nodes
-    end,
-    [$\n | Formatted] = erlfmt:format_nodes(NodesWithPragma),
-    unicode:characters_to_list(Formatted).

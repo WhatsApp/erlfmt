@@ -18,14 +18,13 @@
     main/1,
     init/1,
     format_file/2,
+    format_string/2,
     format_range/3,
     read_nodes/1,
     read_nodes_string/2,
     format_error/1,
     format_error_info/1,
-    format_nodes/1,
-    contains_pragma_string/2,
-    insert_pragma_nodes/1
+    contains_pragma_string/2
 ]).
 
 -export_type([error_info/0, out/0, config/0]).
@@ -84,6 +83,16 @@ format_file(FileName, {Pragma, Out}) ->
     catch
         {error, Error} -> {error, Error}
     end.
+
+-spec format_string(string(), pragma()) -> string().
+format_string(String, Pragma) ->
+    {ok, Nodes, []} = read_nodes_string("nofile", String),
+    NodesWithPragma = case Pragma of
+        insert -> insert_pragma_nodes(Nodes);
+        _ -> Nodes
+    end,
+    [$\n | Formatted] = format_nodes(NodesWithPragma),
+    unicode:characters_to_list(Formatted).
 
 -spec contains_pragma_string(file:name_all(), string()) -> boolean() | {error, error_info()}.
 contains_pragma_string(FileName, String) ->
