@@ -17,8 +17,7 @@
 
 -record(config, {
     verbose = false :: boolean(),
-    require_pragma = false :: boolean(),
-    insert_pragma = false :: boolean(),
+    pragma = ignore :: erlfmt:pragma(),
     out = standard_out :: erlfmt:out()
 }).
 
@@ -68,13 +67,7 @@ format_files([FileName | FileNames], Config, HadErrors) ->
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
         false -> ok
     end,
-    Pragma =
-        case {Config#config.require_pragma, Config#config.insert_pragma} of
-            {true, _} -> require;
-            {_, true} -> insert;
-            _ -> ignore
-        end,
-    ErlfmtConfig = {Pragma, Config#config.out},
+    ErlfmtConfig = {Config#config.pragma, Config#config.out},
     case erlfmt:format_file(FileName, ErlfmtConfig) of
         {ok, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
@@ -104,14 +97,14 @@ parse_opts([{out, Path} | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{out = {path, Path}});
 parse_opts([verbose | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{verbose = true});
-parse_opts([require_pragma | _Rest], _Name, _Files, #config{insert_pragma = true}) ->
+parse_opts([require_pragma | _Rest], _Name, _Files, #config{pragma = insert}) ->
     {error, "Cannot use both --insert-pragma and --require-pragma options together."};
 parse_opts([require_pragma | Rest], Name, Files, Config) ->
-    parse_opts(Rest, Name, Files, Config#config{require_pragma = true});
-parse_opts([insert_pragma | _Rest], _Name, _Files, #config{require_pragma = true}) ->
+    parse_opts(Rest, Name, Files, Config#config{pragma = require});
+parse_opts([insert_pragma | _Rest], _Name, _Files, #config{pragma = require}) ->
     {error, "Cannot use both --insert-pragma and --require-pragma options together."};
 parse_opts([insert_pragma | Rest], Name, Files, Config) ->
-    parse_opts(Rest, Name, Files, Config#config{insert_pragma = true});
+    parse_opts(Rest, Name, Files, Config#config{pragma = insert});
 parse_opts([{files, NewFiles} | Rest], Name, Files0, Config) ->
     parse_opts(Rest, Name, expand_files(NewFiles, Files0), Config);
 parse_opts([], _Name, [stdin], #config{out = Out}) when Out =/= standard_out ->
