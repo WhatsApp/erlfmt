@@ -56,6 +56,7 @@
     macro/1,
     function/1,
     attribute/1,
+    exportimport/1,
     record_definition/1,
     spec/1,
     define/1,
@@ -105,6 +106,7 @@ groups() ->
         {forms, [parallel], [
             function,
             attribute,
+            exportimport,
             spec,
             record_definition,
             define,
@@ -1672,7 +1674,6 @@ attribute(Config) when is_list(Config) ->
     ),
     ?assertSame("-compile([export_all, nowarn_export_all])."),
     ?assertSame("-import(foo, [bar/2, baz/0])."),
-    ?assertSame("-export([bar/2, baz/3])."),
     ?assertFormat(
         "-attribute({Very, Long, Value}).",
         "-attribute(\n"
@@ -1700,6 +1701,50 @@ attribute(Config) when is_list(Config) ->
         "    ]\n"
         ").",
         25
+    ).
+
+exportimport(Config) when is_list(Config) ->
+    ?assertSame("-export([bar/2, baz/3])."),
+    ?assertSame(
+        "-export([\n"
+        "    bar/2, bar/3\n"
+        "])."
+    ),
+    ?assertSame(
+        "-export([\n"
+        "    %% comment\n"
+        "    bar/2, bar/3\n"
+        "])."
+    ),
+    ?assertSame(
+        "-export([\n"
+        "    % comment\n"
+        "    bar/2,\n"
+        "    baz/3\n"
+        "])."
+    ),
+    ?assertSame(
+        "-import(modulename, [\n"
+        "    foo/1,\n"
+        "    bar/2,\n"
+        "    foo/2, foo/3\n"
+        "])."
+    ),
+    ?assertSame(
+        "-export([\n"
+        "    baz/1,\n"
+        "    foo/2, foo/3,\n"
+        "    bar/2\n"
+        "])."
+    ),
+    ?assertSame(
+        "-export([\n"
+        "    baz/1,\n"
+        "    % comment foo\n"
+        "    foo/2, foo/3,\n"
+        "    % comment bar\n"
+        "    bar/2\n"
+        "])."
     ).
 
 record_definition(Config) when is_list(Config) ->
