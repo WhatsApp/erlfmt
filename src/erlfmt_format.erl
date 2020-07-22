@@ -66,6 +66,14 @@ to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
         Doc = surround(HeadD, <<" ">>, BodyD, <<"">>, <<").">>),
         combine_comments(Meta, Doc)
     end);
+to_algebra({attribute, Meta, {atom, _, export}, [{list, Anno, Exports}]}) ->
+    GroupedExports = {list, Anno, fa_groups(Exports)},
+    Doc = call(Meta, [GroupedExports], <<"-export(">>, <<").">>),
+    combine_comments(Meta, Doc);
+to_algebra({attribute, Meta, {atom, _, import}, [Name, {list, Anno, Imports}]}) ->
+    GroupedImports = {list, Anno, fa_groups(Imports)},
+    Doc = call(Meta, [Name, GroupedImports], <<"-import(">>, <<").">>),
+    combine_comments(Meta, Doc);
 to_algebra({attribute, Meta, {atom, _, RawName} = Name, [Value]}) when
     RawName =:= type; RawName =:= opaque; RawName =:= spec; RawName =:= callback
 ->
@@ -209,6 +217,8 @@ do_expr_to_algebra({guard_or, _Meta, Guards}) ->
     guard_to_algebra(Guards, <<";">>);
 do_expr_to_algebra({guard_and, _Meta, Guards}) ->
     guard_to_algebra(Guards, <<",">>);
+do_expr_to_algebra({fa_group, _Meta, GroupedExports}) ->
+    fa_group_to_algebra(GroupedExports);
 do_expr_to_algebra(Other) ->
     error(unsupported, [Other]).
 
@@ -384,6 +394,31 @@ container_exprs_to_algebra([Value], last_normal, Acc) ->
     {false, false, lists:reverse(Acc, [expr_to_algebra(Value)])};
 container_exprs_to_algebra([Value | Values], Last, Acc) ->
     container_exprs_to_algebra(Values, Last, [expr_to_algebra(Value) | Acc]).
+
+% fa_group_to_algebra, see fa_groups/1 that creates function/arity groups.
+fa_group_to_algebra([Value1, Value2 | _] = Values) ->
+    ValuesD = lists:map(fun expr_to_algebra/1, Values),
+    {MaybeForceBreaks, BreakType} =
+        case has_break_between(Value1, Value2) of
+            true -> {force_breaks(), line()};
+            false -> {empty(), break()}
+        end,
+    Folder = fun(Value, Acc) -> concat([Value, <<",">>, BreakType, Acc]) end,
+    concat(MaybeForceBreaks, group(fold_doc(Folder, ValuesD))).
+
+% fa_groups groups together function/arity for functions with the same name
+% for example: -export([a/1, a/2, b/1]) => -export([{fa_group, _, [a/1, a/2]}, b/1])
+fa_groups([]) ->
+    [];
+fa_groups([{op, Meta, '/', {atom, _, HeadFunction}, _} = Head0 | Tail]) ->
+    Splitter = fun({op, _, '/', {atom, _, Function}, _}) -> Function =:= HeadFunction end,
+    case lists:splitwith(Splitter, Tail) of
+        {[], Rest} ->
+            [Head0 | fa_groups(Rest)];
+        {Group, Rest} ->
+            Head = erlfmt_scan:delete_annos([pre_comments, post_comments], Head0),
+            [{fa_group, Meta, [Head | Group]} | fa_groups(Rest)]
+    end.
 
 cons_to_algebra(Head, Tail) ->
     HeadD = expr_to_algebra(Head),
