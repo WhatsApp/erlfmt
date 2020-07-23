@@ -410,14 +410,19 @@ fa_group_to_algebra([Value1, Value2 | _] = Values) ->
 fa_groups([]) ->
     [];
 fa_groups([{op, Meta, '/', {atom, _, HeadFunction}, _} = Head0 | Tail]) ->
-    Splitter = fun({op, _, '/', {atom, _, Function}, _}) -> Function =:= HeadFunction end,
+    Splitter = fun
+        ({op, _, '/', {atom, _, Function}, _}) -> Function =:= HeadFunction;
+        (_) -> false
+    end,
     case lists:splitwith(Splitter, Tail) of
         {[], Rest} ->
             [Head0 | fa_groups(Rest)];
         {Group, Rest} ->
             Head = erlfmt_scan:delete_annos([pre_comments, post_comments], Head0),
             [{fa_group, Meta, [Head | Group]} | fa_groups(Rest)]
-    end.
+    end;
+fa_groups([Other | Tail]) ->
+    [Other | fa_groups(Tail)].
 
 cons_to_algebra(Head, Tail) ->
     HeadD = expr_to_algebra(Head),
