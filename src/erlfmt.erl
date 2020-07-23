@@ -239,12 +239,15 @@ split_attrs(PredName, Nodes) ->
 
 format_attrs([Attr], PageWidth) ->
     [$\n, format_node(Attr, PageWidth)];
-format_attrs([Attr | Rest], PageWidth) ->
+format_attrs([Attr | [Attr2 | _ ] = Rest ], PageWidth) ->
     FAttr = format_node(Attr, PageWidth),
-    case has_non_comment_newline(FAttr) of
+    case has_empty_line_between(Attr, Attr2) orelse has_non_comment_newline(FAttr) of
         true -> [$\n, FAttr, $\n | format_attrs(Rest, PageWidth)];
         false -> [$\n, FAttr | format_attrs(Rest, PageWidth)]
     end.
+
+has_empty_line_between(Left, Right) ->
+    erlfmt_scan:get_end_line(Left) + 1 < erlfmt_scan:get_line(Right).
 
 has_non_comment_newline(String) ->
     length(lists:filter(fun is_not_comment/1, string:split(String, "\n", all))) >= 2.

@@ -1745,6 +1745,34 @@ exportimport(Config) when is_list(Config) ->
         "    % comment bar\n"
         "    bar/2\n"
         "]).\n"
+    ),
+    ?assertFormat(
+        "-export([ drop/4 %% comment\n"
+        "]).\n"
+        "%% Another comment\n"
+        "-export([ a/1,\n"
+        "        b/1\n"
+        "]).",
+        "%% comment\n"
+        "-export([drop/4]).\n"
+        "%% Another comment\n"
+        "-export([a/1, b/1]).\n",
+        80
+    ),
+    ?assertFormat(
+        "-export([ drop/4 %% comment\n"
+        "]).\n"
+        "\n"
+        "%% Another comment\n"
+        "-export([ a/1,\n"
+        "        b/1\n"
+        "]).",
+        "%% comment\n"
+        "-export([drop/4]).\n"
+        "\n"
+        "%% Another comment\n"
+        "-export([a/1, b/1]).\n",
+        80
     ).
 
 record_definition(Config) when is_list(Config) ->
