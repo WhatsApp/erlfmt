@@ -18,6 +18,7 @@
     main/1,
     init/1,
     format_file/2,
+    format_string/2,
     format_range/3,
     read_nodes/1,
     read_nodes_string/2,
@@ -68,7 +69,7 @@ format_file(FileName, {Pragma, Out}) ->
     try
         case file_read_nodes(FileName, Pragma) of
             {ok, Nodes, Warnings} ->
-                [$\n | Formatted] = format_nodes(Nodes),
+                [$\n | Formatted] = format_nodes(Nodes, ?PAGE_WIDTH),
                 verify_nodes(FileName, Nodes, Formatted),
                 write_formatted(FileName, Formatted, Out),
                 {ok, Warnings};
@@ -79,6 +80,12 @@ format_file(FileName, {Pragma, Out}) ->
     catch
         {error, Error} -> {error, Error}
     end.
+
+-spec format_string(string(), integer()) -> string().
+format_string(String, PageWidth) ->
+    {ok, Nodes, []} = read_nodes_string("nofile", String),
+    [$\n | Formatted] = format_nodes(Nodes, PageWidth),
+    unicode:characters_to_list(Formatted).
 
 -spec contains_pragma_file(file:name_all()) -> boolean().
 contains_pragma_file(FileName) ->
@@ -120,7 +127,7 @@ format_range(FileName, StartLocation, EndLocation) ->
         {ok, Nodes, Warnings} = file_read_nodes(FileName, ignore),
         case verify_ranges(Nodes, StartLocation, EndLocation) of
             {ok, NodesInRange} ->
-                [$\n | Result] = format_nodes(NodesInRange),
+                [$\n | Result] = format_nodes(NodesInRange, ?PAGE_WIDTH),
                 verify_nodes(FileName, NodesInRange, Result),
                 {ok, unicode:characters_to_binary(Result), Warnings};
             {options, Options} ->
@@ -205,21 +212,21 @@ node_string(Cont) ->
     {String, Anno} = erlfmt_scan:last_node_string(Cont),
     {raw_string, Anno, string:trim(String, both, "\n")}.
 
-format_nodes([{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest]) ->
-    [$\n, format_node(Attr), $\n, format_node(Fun), $\n | format_nodes(Rest)];
-format_nodes([{attribute, _, {atom, _, Name}, _} | _] = Nodes) ->
+format_nodes([{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest], PageWidth) ->
+    [$\n, format_node(Attr, PageWidth), $\n, format_node(Fun, PageWidth), $\n | format_nodes(Rest, PageWidth)];
+format_nodes([{attribute, _, {atom, _, Name}, _} | _] = Nodes, PageWidth) ->
     {Attrs, Rest} = split_attrs(Name, Nodes),
-    format_attrs(Attrs) ++ [$\n | format_nodes(Rest)];
-format_nodes([Node | Rest]) ->
-    [$\n, format_node(Node), $\n | format_nodes(Rest)];
-format_nodes([]) ->
+    format_attrs(Attrs, PageWidth) ++ [$\n | format_nodes(Rest, PageWidth)];
+format_nodes([Node | Rest], PageWidth) ->
+    [$\n, format_node(Node, PageWidth), $\n | format_nodes(Rest, PageWidth)];
+format_nodes([], _PageWidth) ->
     [].
 
-format_node({raw_string, _Anno, String}) ->
+format_node({raw_string, _Anno, String}, _PageWidth) ->
     String;
-format_node(Node) ->
+format_node(Node, PageWidth) ->
     Doc = erlfmt_format:to_algebra(Node),
-    erlfmt_algebra:format(Doc, ?PAGE_WIDTH).
+    erlfmt_algebra:format(Doc, PageWidth).
 
 split_attrs(PredName, Nodes) ->
     lists:splitwith(
@@ -230,13 +237,13 @@ split_attrs(PredName, Nodes) ->
         Nodes
     ).
 
-format_attrs([Attr]) ->
-    [$\n, format_node(Attr)];
-format_attrs([Attr | Rest]) ->
-    FAttr = format_node(Attr),
+format_attrs([Attr], PageWidth) ->
+    [$\n, format_node(Attr, PageWidth)];
+format_attrs([Attr | Rest], PageWidth) ->
+    FAttr = format_node(Attr, PageWidth),
     case has_non_comment_newline(FAttr) of
-        true -> [$\n, FAttr, $\n | format_attrs(Rest)];
-        false -> [$\n, FAttr | format_attrs(Rest)]
+        true -> [$\n, FAttr, $\n | format_attrs(Rest, PageWidth)];
+        false -> [$\n, FAttr | format_attrs(Rest, PageWidth)]
     end.
 
 has_non_comment_newline(String) ->
