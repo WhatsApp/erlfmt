@@ -640,7 +640,7 @@ Erlang code.
 %% of the generated .erl file by the HiPE compiler.  Please do not remove.
 -compile([{hipe,[{regalloc,linear_scan}]}]).
 
--export_type([abstract_clause/0, abstract_expr/0, abstract_node/0,
+-export_type([abstract_expr/0, abstract_node/0,
               abstract_type/0, form_info/0, error_info/0]).
 
 %% Start of Abstract Format
@@ -674,6 +674,7 @@ Erlang code.
                        | af_map_update(abstract_expr())
                        | af_local_call()
                        | af_remote_call()
+                       | af_args(abstract_expr())
                        | af_list_comprehension()
                        | af_binary_comprehension()
                        | af_block()
@@ -694,14 +695,14 @@ Erlang code.
                               af_record_name(),
                               [af_record_field(T)]}.
 
--type af_local_call() :: {'call', anno(), af_local_function(), af_args()}.
+-type af_local_call() :: {'call', anno(), af_local_function(), [abstract_expr()]}.
 
--type af_remote_call() :: {'call', anno(), af_remote_function(abstract_expr()), af_args()}.
+-type af_remote_call() :: {'call', anno(), af_remote_function(abstract_expr()), [abstract_expr()]}  .
 
 -type af_macro_call() ::
     {'macro_call', anno(), af_atom() | af_variable(), [abstract_expr()]}.
 
--type af_args() :: [abstract_expr()].
+-type af_args(Expr) :: {args, anno(), [Expr]}.
 
 -type af_local_function() :: abstract_expr().
 
@@ -748,13 +749,9 @@ Erlang code.
     {'fun', anno(), {function, abstract_expr(), abstract_expr()}} |
     {'fun', anno(), {function, abstract_expr(), abstract_expr(), abstract_expr()}}.
 
--type abstract_clause() :: af_clause().
-
 -type af_clause() ::
-        {'clause', anno(), af_clause_name(), [af_pattern()], af_guard_seq(), af_body()} |
+        {clause, anno(), af_pattern(), af_guard_seq(), af_body()} |
         af_macro_call().
-
--type af_clause_name() :: af_atom() | af_variable() | af_macro_call() | 'fun' | 'case' | 'catch'.
 
 -type af_body() :: [abstract_expr(), ...].
 
@@ -805,6 +802,7 @@ Erlang code.
                     | af_unary_op(af_pattern())
                     | af_record_creation(af_pattern())
                     | af_record_index()
+                    | af_args(af_pattern())
                     | af_map_pattern().
 
 -type af_record_index() ::
@@ -866,10 +864,10 @@ Erlang code.
 -type af_type_variable() :: {'var', anno(), atom()}. % except '_'
 
 -type af_function_type() ::
-    {spec, anno(), af_atom() | {remote, anno(), af_atom(), af_atom()}, [af_function_clause_type()]}.
+    {spec, anno(), [af_spec_clause()]}.
 
--type af_function_clause_type() ::
-    {clause, anno(), spec, [abstract_type()], [[af_annotated_type()]], abstract_type()}.
+-type af_spec_clause() ::
+    {spec_clause, anno(), abstract_type(), af_guard_seq(), [abstract_type(), ...]}.
 
 -type af_singleton_integer_type() :: af_integer()
                                    | af_character()

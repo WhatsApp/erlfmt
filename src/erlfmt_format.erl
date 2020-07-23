@@ -103,7 +103,6 @@ to_algebra(Expr) ->
             combine_comments(Meta, Doc)
     end.
 
--spec expr_to_algebra(erlfmt_parse:abstract_expr()) -> erlfmt_algebra:doc().
 expr_to_algebra(Expr) when is_tuple(Expr) ->
     Meta = element(2, Expr),
     Doc = do_expr_to_algebra(Expr),
@@ -507,7 +506,7 @@ fun_to_algebra({function, _Anno, Mod, Name, Arity}) ->
 fun_to_algebra({clauses, _Anno, [Clause]}) ->
     ClauseD = concat(maybe_force_breaks(clause_has_break(Clause)), expr_to_algebra(Clause)),
     case Clause of
-        {clause, _Meta, {args, _, _}, _, _Body} -> group(break(concat(<<"fun">>, ClauseD), <<"end">>));
+        {clause, _, {args, _, _}, _, _} -> group(break(concat(<<"fun">>, ClauseD), <<"end">>));
         _ -> group(break(space(<<"fun">>, ClauseD), <<"end">>))
     end;
 fun_to_algebra({clauses, _Anno, Clauses}) ->
