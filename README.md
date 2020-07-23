@@ -197,7 +197,7 @@ The formatter keeps the original decisions in two key places
 
   * when choosing between a "collapsed" and an "expanded" layout for containers
   * when choosing between single-line and multi-line clauses.
-  
+
 #### In containers
 
 For containers like lists, tuples, maps, records, function calls, macro calls,
@@ -312,8 +312,12 @@ $ rebar3 dialyzer
 
 ## Local use
 
-You can use erlfmt as a rebar plugin on itself thanks to the symlink in
-`_checkouts` and recursive plugin override in `rebar.config`.
+To format erlfmt itself:
+
+```sh
+$ rebar3 as release escriptize
+$ _build/release/bin/erlfmt -w "{src,include,test}/*.{hrl,erl}" "rebar.config"
+```
 
 ## Join the erlfmt community
 See the [CONTRIBUTING](.github/CONTRIBUTING.md) file for how to help out.
