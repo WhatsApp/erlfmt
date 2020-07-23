@@ -36,11 +36,6 @@
 -type config() :: {Pragma :: pragma(), Out :: out()}.
 
 -define(PAGE_WIDTH, 92).
--define(FIRST_LINE, 1).
--define(FIRST_COLUMN, 1).
--define(SCAN_START, {?FIRST_LINE, ?FIRST_COLUMN}).
--define(SCAN_OPTS, [text, return_comments]).
--define(COMMAND_NAME, "erlfmt").
 
 %% escript entry point
 -spec main([string()]) -> no_return().
