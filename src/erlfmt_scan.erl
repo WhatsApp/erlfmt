@@ -131,8 +131,12 @@ continue(Scan, Inner0, Loc0, Buffer0) ->
     end.
 
 -spec read_rest(state()) -> {ok, string()} | {error, {erl_anno:location(), module(), term()}}.
+read_rest(#state{inner = undefined}) ->
+    %% reached EOF, no further nodes
+    {ok, ""};
 read_rest(#state{scan = _Scan, inner = IO, loc = _Loc, buffer = Buffer}) ->
-    {String, _Anno} = stringify_tokens(Buffer),
+    String = stringify_tokens(Buffer),
+    io:setopts(IO, [binary, latin1]),
     try {ok, read_rest(IO, String)}
     catch
         {error, Reason} -> {error, {0, file, Reason}}
@@ -161,8 +165,10 @@ eof(undefined, Loc) ->
     {{eof, Loc}, undefined}.
 
 -spec last_node_string(state()) -> {unicode:chardata(), anno()}.
-last_node_string(#state{original = Tokens}) ->
-    stringify_tokens(Tokens).
+last_node_string(#state{original = [First | _] = Tokens}) ->
+    String = stringify_tokens(Tokens),
+    Location = erl_scan:location(First),
+    {String, token_anno([{text, String}, {location, Location}])}.
 
 split_shebang(Tokens) ->
     {ShebangTokens, Rest} = lists:splitwith(
@@ -172,21 +178,11 @@ split_shebang(Tokens) ->
         end,
         Tokens
     ),
-    {Shebang, _Anno} = stringify_tokens(ShebangTokens),
+    Shebang = stringify_tokens(ShebangTokens),
     {unicode:characters_to_list(Shebang), Rest}.
 
-%% TODO: make smarter
-stringify_tokens([Token | _] = Tokens) ->
-    Anno = element(2, Token),
-    stringify_tokens(Tokens, erl_anno:location(Anno), []).
-
-stringify_tokens([LastToken], Location, Acc) ->
-    Anno = element(2, LastToken),
-    String = lists:reverse([erl_anno:text(Anno) | Acc]),
-    {String, token_anno([{text, String}, {location, Location}])};
-stringify_tokens([Token | Tokens], Location, Acc) ->
-    Anno = element(2, Token),
-    stringify_tokens(Tokens, Location, [erl_anno:text(Anno) | Acc]).
+stringify_tokens(Tokens) ->
+    lists:map(fun erl_scan:text/1, Tokens).
 
 -spec split_tokens([erl_scan:token()], [erl_scan:token()]) ->
     {[token()], [erl_scan:token()], [comment()], [token()]}.
@@ -227,7 +223,7 @@ split_extra([{comment, Meta, Text0} = Token | Rest], Line, Acc, CAcc) ->
         Line ->
             MetaTerm = erl_anno:to_term(Meta),
             Comment = {comment, comment_anno(MetaTerm, MetaTerm), [Text]},
-            split_extra(Rest, Line, Acc, [Comment | CAcc]);
+            split_extra(Rest, Line, [Token | Acc], [Comment | CAcc]);
         _ ->
             {lists:reverse(CAcc), lists:reverse(Acc), [Token | Rest]}
     end;

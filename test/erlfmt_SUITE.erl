@@ -56,6 +56,8 @@
     snapshot_big_binary/1,
     snapshot_attributes/1,
     snapshot_escript/1,
+    snapshot_pragma/1,
+    snapshot_no_pragma/1,
     snapshot_comments/1,
     snapshot_broken/1,
     snapshot_overlong/1,
@@ -119,6 +121,8 @@ groups() ->
             snapshot_big_binary,
             snapshot_attributes,
             snapshot_escript,
+            snapshot_pragma,
+            snapshot_no_pragma,
             snapshot_comments,
             snapshot_broken,
             snapshot_overlong,
@@ -968,6 +972,10 @@ snapshot_attributes(Config) -> snapshot_same("attributes.erl", Config).
 
 snapshot_escript(Config) -> snapshot_same("escript.erl", Config).
 
+snapshot_pragma(Config) -> snapshot_same("pragma.erl", [{pragma, require} | Config]).
+
+snapshot_no_pragma(Config) -> snapshot_same("no_pragma.erl", [{pragma, require} | Config]).
+
 snapshot_comments(Config) -> snapshot_formatted("comments.erl", Config).
 
 snapshot_broken(Config) -> snapshot_formatted("broken.erl", Config).
@@ -979,7 +987,8 @@ snapshot_otp_examples(Config) -> snapshot_formatted("otp_examples.erl", Config).
 snapshot_same(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     PrivDir = ?config(priv_dir, Config),
-    {ok, _} = erlfmt:format_file(filename:join(DataDir, Module), {ignore, {path, PrivDir}}),
+    Pragma = proplists:get_value(pragma, Config, ignore),
+    _ = erlfmt:format_file(filename:join(DataDir, Module), {Pragma, {path, PrivDir}}),
     {ok, Original} = file:read_file(filename:join(DataDir, Module)),
     {ok, Formatted} = file:read_file(filename:join(PrivDir, Module)),
     ?assertEqual(Original, Formatted).

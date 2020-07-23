@@ -1,0 +1,1 @@
+-module(no_pragma). % "’" non-unicode trailing comment
