@@ -398,7 +398,7 @@ binary_operator(Config) when is_list(Config) ->
         ")\n"
     ),
     ?assertSame(
-        "Foo = fun () ->\n"
+        "Foo = fun() ->\n"
         "    ok\n"
         "end\n",
         15
@@ -1073,7 +1073,7 @@ call(Config) when is_list(Config) ->
     ?assertFormat(
         "render(fold_doc(fun(D, Acc) -> concat([D,X,Acc]) end, [A,B,C]),80)",
         "render(\n"
-        "    fold_doc(fun (D, Acc) -> concat([D, X, Acc]) end, [\n"
+        "    fold_doc(fun(D, Acc) -> concat([D, X, Acc]) end, [\n"
         "        A,\n"
         "        B,\n"
         "        C\n"
@@ -1123,13 +1123,13 @@ block(Config) when is_list(Config) ->
 fun_expression(Config) when is_list(Config) ->
     ?assertSame("fun foo/1\n"),
     ?assertSame("fun Mod:Name/Arity\n"),
-    ?assertSame("fun () -> ok end\n"),
-    ?assertSame("fun (X) when is_integer(X) -> X end\n"),
+    ?assertSame("fun() -> ok end\n"),
+    ?assertSame("fun(X) when is_integer(X) -> X end\n"),
     ?assertSame("fun Foo() -> Foo() end\n"),
     ?assertFormat(
         "fun()->\n"
         "ok end",
-        "fun () ->\n"
+        "fun() ->\n"
         "    ok\n"
         "end\n"
     ),
@@ -1215,21 +1215,21 @@ fun_expression(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "fun (Long) -> Expression end",
-        "fun (Long) ->\n"
+        "fun(Long) ->\n"
         "    Expression\n"
         "end\n",
         20
     ),
     ?assertFormat(
         "fun (Even, Longer) -> Expression end",
-        "fun (Even, Longer) ->\n"
+        "fun(Even, Longer) ->\n"
         "    Expression\n"
         "end\n",
         25
     ),
     ?assertFormat(
         "fun (Even, Longer) when Guarded -> Expression end",
-        "fun (Even, Longer) when\n"
+        "fun(Even, Longer) when\n"
         "    Guarded\n"
         "->\n"
         "    Expression\n"
@@ -1238,7 +1238,7 @@ fun_expression(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "fun (The, Longest, Pattern) when Guarded -> Expression end",
-        "fun (\n"
+        "fun(\n"
         "    The,\n"
         "    Longest,\n"
         "    Pattern\n"
@@ -1249,7 +1249,7 @@ fun_expression(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "fun (Long, Pattern) when LongerGuard; Is, Very, Long -> Expression end",
-        "fun (Long, Pattern) when\n"
+        "fun(Long, Pattern) when\n"
         "    LongerGuard;\n"
         "    Is, Very, Long\n"
         "->\n"
@@ -1259,7 +1259,7 @@ fun_expression(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "fun (Long, Pattern) when VeryLongGuard; Is, Even, Loooooooonger -> Expression end",
-        "fun (Long, Pattern) when\n"
+        "fun(Long, Pattern) when\n"
         "    VeryLongGuard;\n"
         "    Is,\n"
         "    Even,\n"

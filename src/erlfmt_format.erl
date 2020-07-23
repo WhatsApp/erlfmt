@@ -506,7 +506,10 @@ fun_to_algebra({function, _Anno, Mod, Name, Arity}) ->
     ]);
 fun_to_algebra({clauses, _Anno, [Clause]}) ->
     ClauseD = concat(maybe_force_breaks(clause_has_break(Clause)), expr_to_algebra(Clause)),
-    group(break(space(<<"fun">>, ClauseD), <<"end">>));
+    case Clause of
+        {clause, _Meta, {args, _, _}, _, _Body} -> group(break(concat(<<"fun">>, ClauseD), <<"end">>));
+        _ -> group(break(space(<<"fun">>, ClauseD), <<"end">>))
+    end;
 fun_to_algebra({clauses, _Anno, Clauses}) ->
     ClausesD = clauses_to_algebra(Clauses),
     surround_block(<<"fun">>, ClausesD, <<"end">>);
