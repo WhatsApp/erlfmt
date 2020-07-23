@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.4.1 (23.07.2020)
+
+### Bug Fixes
+  - Fix dialyzer
+  - `--require-pragma` for single-form and non-unicode files
+  - Compiles with rebar3 3.14
+
 ## v0.4.0 (23.07.2020)
 
 ### Enhancements
