@@ -136,7 +136,7 @@ read_rest(#state{inner = undefined}) ->
     {ok, ""};
 read_rest(#state{scan = _Scan, inner = IO, loc = _Loc, buffer = Buffer}) ->
     String = stringify_tokens(Buffer),
-    io:setopts(IO, [binary, latin1]),
+    io:setopts(IO, [binary, {encoding, latin1}]),
     try {ok, read_rest(IO, String)}
     catch
         {error, Reason} -> {error, {0, file, Reason}}
