@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.4.0 (23.07.2020)
+
+### Enhancements
+  - require-pragma prints out original file instead of formatting if no pragma is found.
+    This makes it easier to integrate into a CI pipeline. #57
+  - Better exceptions #58
+  - Group imports and exports with similar names on the same line. #65
+  - Add format_string as a library call. #66
+
+### Bug Fixes
+  - Preserve empty lines between attributes #67
+  - Remove space between single clause fun and parens #68
+
 ## v0.3.0 (09.07.2020)
 
 ### Enhancements
