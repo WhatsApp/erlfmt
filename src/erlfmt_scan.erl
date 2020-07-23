@@ -141,6 +141,8 @@ read_rest(#state{scan = _Scan, inner = IO, loc = _Loc, buffer = Buffer}) ->
         {error, Reason} -> {error, {0, file, Reason}}
     end.
 
+-dialyzer({no_improper_lists, [read_rest/2]}).
+
 read_rest(IO, Data) ->
     case io:get_chars(IO, "", 4096) of
         MoreData when is_binary(MoreData) -> read_rest(IO, [Data | MoreData]);
