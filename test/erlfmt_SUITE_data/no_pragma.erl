@@ -1,1 +1,1 @@
--module(no_pragma). % "’" non-unicode trailing comment
+-module(no_pragma). % "שלום עולם" non-unicode trailing comment

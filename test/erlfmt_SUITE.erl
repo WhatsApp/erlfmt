@@ -52,6 +52,7 @@
     smoke_test_stdio_regular/1,
     smoke_test_stdio_without_pragma/1,
     smoke_test_stdio_with_pragma/1,
+    smoke_test_stdio_unicode/1,
     snapshot_simple_comments/1,
     snapshot_big_binary/1,
     snapshot_attributes/1,
@@ -114,7 +115,8 @@ groups() ->
             smoke_test_stdio_escript,
             smoke_test_stdio_regular,
             smoke_test_stdio_without_pragma,
-            smoke_test_stdio_with_pragma
+            smoke_test_stdio_with_pragma,
+            smoke_test_stdio_unicode
         ]},
         {snapshot_tests, [parallel], [
             snapshot_simple_comments,
@@ -933,30 +935,25 @@ smoke_test_cli(Config) when is_list(Config) ->
     ?assertMatch("Usage: erlfmt " ++ _, os:cmd(escript() ++ " -h")).
 
 smoke_test_stdio_escript(Config) when is_list(Config) ->
-    DataDir = ?config(data_dir, Config),
-    Path = filename:join(DataDir, "escript.erl"),
-    Formatted = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " -"),
-    {ok, Expected} = file:read_file(Path),
-    ?assertEqual(Expected, unicode:characters_to_binary(Formatted)).
+    stdio_test("escript.erl", "", Config).
 
 smoke_test_stdio_regular(Config) when is_list(Config) ->
-    DataDir = ?config(data_dir, Config),
-    Path = filename:join(DataDir, "attributes.erl"),
-    Formatted = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " -"),
-    {ok, Expected} = file:read_file(Path),
-    ?assertEqual(Expected, unicode:characters_to_binary(Formatted)).
+    stdio_test("attributes.erl", "", Config).
 
 smoke_test_stdio_without_pragma(Config) when is_list(Config) ->
-    DataDir = ?config(data_dir, Config),
-    Path = filename:join(DataDir, "comments.erl"),
-    UnFormatted = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - --require-pragma"),
-    {ok, Expected} = file:read_file(Path),
-    ?assertEqual(Expected, unicode:characters_to_binary(UnFormatted)).
+    stdio_test("no_pragma.erl", "--require-pragma", Config).
 
-smoke_test_stdio_with_pragma(Config) when is_list(Config) ->
+smoke_test_stdio_with_pragma(Config) ->
+    stdio_test("pragma.erl", "--require-pragma", Config).
+
+smoke_test_stdio_unicode(Config) ->
+    stdio_test("unicode.erl", "", Config),
+    stdio_test("unicode.erl", "--require-pragma", Config).
+
+stdio_test(FileName, Options, Config) ->
     DataDir = ?config(data_dir, Config),
-    Path = filename:join(DataDir, "pragma.erl"),
-    Formatted= os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - --require-pragma"),
+    Path = filename:join(DataDir, FileName),
+    Formatted = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - " ++ Options),
     {ok, Expected} = file:read_file(Path),
     ?assertEqual(Expected, unicode:characters_to_binary(Formatted)).
 
@@ -988,7 +985,11 @@ snapshot_same(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     PrivDir = ?config(priv_dir, Config),
     Pragma = proplists:get_value(pragma, Config, ignore),
-    _ = erlfmt:format_file(filename:join(DataDir, Module), {Pragma, {path, PrivDir}}),
+    case erlfmt:format_file(filename:join(DataDir, Module), {Pragma, {path, PrivDir}}) of
+        {ok, _} -> ok;
+        skip -> ok;
+        Other -> ct:fail("unexpected: ~p~n", [Other])
+    end,
     {ok, Original} = file:read_file(filename:join(DataDir, Module)),
     {ok, Formatted} = file:read_file(filename:join(PrivDir, Module)),
     ?assertEqual(Original, Formatted).

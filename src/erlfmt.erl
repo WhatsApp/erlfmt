@@ -41,6 +41,8 @@
 -spec main([string()]) -> no_return().
 main(Argv) ->
     application:ensure_all_started(erlfmt),
+    %% operate stdio in purely unicode mode
+    io:setopts([binary, {encoding, unicode}]),
     Opts = erlfmt_cli:opts(),
     case getopt:parse(Opts, Argv) of
         {ok, {ArgOpts, []}} ->
@@ -149,7 +151,7 @@ file_read_nodes(FileName, Pragma) ->
 read_file(stdin, Action) ->
     Action(standard_io);
 read_file(FileName, Action) ->
-    case file:open(FileName, [read, {encoding, utf8}]) of
+    case file:open(FileName, [read, binary, {encoding, unicode}]) of
         {ok, File} ->
             try Action(File)
             after file:close(File)

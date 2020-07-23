@@ -136,15 +136,14 @@ read_rest(#state{inner = undefined}) ->
     {ok, ""};
 read_rest(#state{scan = _Scan, inner = IO, loc = _Loc, buffer = Buffer}) ->
     String = stringify_tokens(Buffer),
-    io:setopts(IO, [binary, {encoding, latin1}]),
     try {ok, read_rest(IO, String)}
     catch
         {error, Reason} -> {error, {0, file, Reason}}
     end.
 
 read_rest(IO, Data) ->
-    case file:read(IO, 4096) of
-        {ok, MoreData} -> read_rest(IO, [Data | MoreData]);
+    case io:get_chars(IO, "", 4096) of
+        MoreData when is_binary(MoreData) -> read_rest(IO, [Data | MoreData]);
         eof -> Data;
         {error, Reason} -> throw({error, Reason})
     end.
