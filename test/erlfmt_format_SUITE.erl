@@ -61,6 +61,7 @@
     spec/1,
     define/1,
     type/1,
+    exprs/1,
     comment/1,
     force_break/1
 ]).
@@ -110,7 +111,8 @@ groups() ->
             spec,
             record_definition,
             define,
-            type
+            type,
+            exprs
         ]},
         {operators, [parallel], [
             unary_operator,
@@ -2011,6 +2013,18 @@ type(Config) when is_list(Config) ->
         "            %% comment\n"
         "            bar()\n"
         "    ).\n"
+    ).
+
+exprs(Config) when is_list(Config) ->
+    ?assertSame(
+        "1,\n"
+        "2,\n"
+        "3.\n"
+    ),
+    ?assertSame(
+        "1,\n"
+        "2,\n"
+        "3\n"
     ).
 
 comment(Config) when is_list(Config) ->

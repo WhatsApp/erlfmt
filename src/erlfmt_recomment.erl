@@ -229,6 +229,9 @@ insert_nested({'catch', Meta, Args0}, Comments0) ->
 insert_nested({args, Meta, Args0}, Comments0) ->
     Args = insert_expr_container(Args0, Comments0),
     {{args, Meta, Args}, []};
+insert_nested({exprs, Meta, Exprs0}, Comments0) ->
+    Exprs = insert_expr_container(Exprs0, Comments0),
+    {{exprs, Meta, Exprs}, []};
 insert_nested({Name, Meta}, Comments) ->
     {{Name, Meta}, Comments}.
 

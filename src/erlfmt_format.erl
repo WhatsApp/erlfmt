@@ -218,6 +218,8 @@ do_expr_to_algebra({guard_and, _Meta, Guards}) ->
     guard_to_algebra(Guards, <<",">>);
 do_expr_to_algebra({fa_group, _Meta, GroupedExports}) ->
     fa_group_to_algebra(GroupedExports);
+do_expr_to_algebra({exprs, _Meta, Exprs}) ->
+    block_to_algebra(Exprs);
 do_expr_to_algebra(Other) ->
     error(unsupported, [Other]).
 

@@ -66,6 +66,7 @@
     snapshot_overlong/1,
     snapshot_otp_examples/1,
     snapshot_insert_pragma_with/1,
+    snapshot_script/1,
     simple_comments_range/1,
     comments_range/1,
     broken_range/1,
@@ -135,7 +136,8 @@ groups() ->
             snapshot_broken,
             snapshot_overlong,
             snapshot_otp_examples,
-            snapshot_insert_pragma_with
+            snapshot_insert_pragma_with,
+            snapshot_script
         ]},
         {range_tests, [parallel], [
             simple_comments_range,
@@ -999,6 +1001,8 @@ snapshot_escript(Config) -> snapshot_same("escript.erl", Config).
 snapshot_pragma(Config) -> snapshot_same("pragma.erl", [{pragma, require} | Config]).
 
 snapshot_no_pragma(Config) -> snapshot_same("no_pragma.erl", [{pragma, require} | Config]).
+
+snapshot_script(Config) -> snapshot_same("rebar.config.script", Config).
 
 snapshot_comments(Config) -> snapshot_formatted("comments.erl", Config).
 
