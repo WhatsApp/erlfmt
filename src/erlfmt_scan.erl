@@ -143,6 +143,8 @@ read_rest(#state{scan = _Scan, inner = IO, loc = _Loc, buffer = Buffer}) ->
 
 -dialyzer({no_improper_lists, [read_rest/2]}).
 
+read_rest(IO, Data) when is_list(IO) ->
+    [Data | IO];
 read_rest(IO, Data) ->
     case io:get_chars(IO, "", 4096) of
         MoreData when is_binary(MoreData) -> read_rest(IO, [Data | MoreData]);
@@ -166,10 +168,14 @@ eof(undefined, Loc) ->
     {{eof, Loc}, undefined}.
 
 -spec last_node_string(state()) -> {unicode:chardata(), anno()}.
+last_node_string(#state{original = [{'#', _}, {'!', _} | _] = Tokens}) ->
+    split_shebang(Tokens);
 last_node_string(#state{original = [First | _] = Tokens}) ->
     String = stringify_tokens(Tokens),
     Location = erl_scan:location(First),
-    {String, token_anno([{text, String}, {location, Location}])}.
+    {String, token_anno([{text, String}, {location, Location}])};
+last_node_string(#state{original = []}) ->
+    {"", undefined}.
 
 split_shebang(Tokens) ->
     {ShebangTokens, Rest} = lists:splitwith(
