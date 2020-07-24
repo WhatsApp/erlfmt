@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.2 (24.07.2020)
+
+### Bug Fixes
+  - `--require-pragma` combined with stdio for files with high-codepoint unicode
+
 ## v0.4.1 (23.07.2020)
 
 ### Bug Fixes
