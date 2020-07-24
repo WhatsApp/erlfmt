@@ -90,6 +90,7 @@
     length :: non_neg_integer()
 }).
 
+% doc_line should be thought of as a space character which may be replaced by a line break when necessary.
 -record(doc_line, {
     count :: integer()
 }).
@@ -133,12 +134,14 @@
 % The first six constructors are described in the original paper at "Figure 1: Six constructors for the doc data type".
 % doc_break is added as part of the implementation in section 3.
 % doc_fits and doc_force_breaks are newly added.
+% doc_force_breaks is used:
+%  - to preserve the users' intention of a newline by breaking up the group or
+%  - to break things when a comment is present and they have to be broken up
 -type doc() ::
     binary() |
     doc_force_breaks |
     doc_nil |
     #doc_string{} |
-    % doc_line should be thought of as a space character which may be replaced by a line break when necessary.
     #doc_line{} |
     #doc_cons{} |
     #doc_nest{} |
