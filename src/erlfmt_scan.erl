@@ -168,8 +168,6 @@ eof(undefined, Loc) ->
     {{eof, Loc}, undefined}.
 
 -spec last_node_string(state()) -> {unicode:chardata(), anno()}.
-last_node_string(#state{original = [{'#', _}, {'!', _} | _] = Tokens}) ->
-    split_shebang(Tokens);
 last_node_string(#state{original = [First | _] = Tokens}) ->
     String = stringify_tokens(Tokens),
     Location = erl_scan:location(First),
