@@ -58,7 +58,7 @@ char integer float atom string var
 '==' '/=' '=<' '<' '>=' '>' '=:=' '=/=' '<=' '=>' ':='
 '<<' '>>'
 '?' '!' '=' '::' '..' '...'
-spec callback define_expr define_type define_clause standalone_expr % helper
+spec callback define_expr define_type define_clause standalone_exprs % helper
 dot.
 
 %% Conflict comes from optional parens on macro calls.
@@ -89,8 +89,8 @@ Nonassoc 200 '*'. % for binary expressions
 
 node -> attribute dot : setelement(2, '$1', ?range_anno('$1', '$2')).
 node -> function dot : setelement(2, '$1', ?range_anno('$1', '$2')).
-node -> standalone_expr expr dot : set_dot('$2').
-node -> standalone_expr expr : '$2'.
+node -> standalone_exprs exprs dot : {exprs, (?range_anno('$1', '$3'))#{dot => true}, '$2'}.
+node -> standalone_exprs anno_exprs : {exprs, ?range_anno('$1', '$2'), ?val('$2')}.
 
 %% Anno is wrong here, we'll adjust it at the top level using the dot token.
 attribute -> '-' 'if' attr_val               : build_attribute('$1', '$2', '$3').
@@ -1014,7 +1014,7 @@ parse_node(Tokens) ->
         {ok, _} = Res ->
             Res;
         Error ->
-            case parse([{standalone_expr, #{}} | Tokens]) of
+            case parse([{standalone_exprs, element(2, hd(Tokens))} | Tokens]) of
                 {ok, _} = Res -> Res;
                 _ -> Error
             end
@@ -1052,8 +1052,6 @@ record_fields([]) -> [].
 -spec ret_err(_, _) -> no_return().
 ret_err(Anno, S) ->
     return_error(erl_anno:location(Anno), S).
-
-set_dot(Expr) -> erlfmt_scan:put_anno(dot, true, Expr).
 
 set_parens(Expr) -> erlfmt_scan:put_anno(parens, true, Expr).
 

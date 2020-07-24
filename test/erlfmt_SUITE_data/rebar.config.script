@@ -1,0 +1,14 @@
+%% Example from https://github.com/benoitc/unicode_util_compat/blob/c39aed13801374aa577b5d75a93384276f49e8aa/rebar.config.script
+_ = code:ensure_loaded(unicode_util),
+case erlang:function_exported(unicode_util, gc, 1) of
+    true ->
+        CONFIG;
+    false ->
+        [
+            {pre_hooks, [
+                {"(linux|darwin|solaris)", compile, "make -C uc_spec all"},
+                {"(freebsd|openbsd)", compile, "gmake -C uc_spec all"}
+            ]}
+            | CONFIG
+        ]
+end.
