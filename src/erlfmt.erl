@@ -18,7 +18,7 @@
     main/1,
     init/1,
     format_file/2,
-    format_string/2, format_string/3,
+    format_string/3,
     format_range/3,
     read_nodes/1,
     read_nodes_string/2,
@@ -81,10 +81,6 @@ format_file(FileName, {Pragma, Out}) ->
     catch
         {error, Error} -> {error, Error}
     end.
-
--spec format_string(string(), integer()) -> string().
-format_string(String, PageWidth) ->
-    format_string(String, PageWidth, ignore).
 
 -spec format_string(string(), integer(), pragma()) -> string().
 format_string(String, PageWidth, Pragma) ->
