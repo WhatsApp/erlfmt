@@ -151,6 +151,5 @@ split_code_into_maps(Text, {code, Formatted, Unformatted}) ->
     end.
 
 check_fmt(Unformatted, Expected) ->
-    Got = erlfmt:format_string(Unformatted, 80, ignore),
+    {ok, Got, []} = erlfmt:format_string(Unformatted, 80, ignore),
     ?assertEqual(string:trim(Expected), string:trim(Got)).
-
