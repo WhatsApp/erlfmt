@@ -884,7 +884,7 @@ annos(Config) when is_list(Config) ->
 shebang(Config) when is_list(Config) ->
     ?assertMatch(
         [
-            {raw_string, _, "#! /usr/bin/env escript"},
+            {shebang, _, "#! /usr/bin/env escript"},
             {function, #{location := {2, 1}}, _}
         ],
         parse_forms(
