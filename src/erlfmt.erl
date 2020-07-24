@@ -102,9 +102,6 @@ contains_pragma_string(FileName, String) ->
         {error, Error} -> {error, Error}
     end.
 
-is_shebang_node({raw_string, _, "#!" ++ _}) -> true;
-is_shebang_node(_) -> false.
-
 contains_pragma_node(Node) ->
     {PreComments, PostComments} = erlfmt_format:comments(Node),
     lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments).
@@ -118,15 +115,12 @@ contains_pragma_comment(_) ->
 %% if one has not already been inserted.
 insert_pragma_nodes([]) ->
     [];
+insert_pragma_nodes([{shebang, _, _} = Node | Nodes]) ->
+    [Node | insert_pragma_nodes(Nodes)];
 insert_pragma_nodes([Node | Nodes]) ->
-    case is_shebang_node(Node) of
-        true ->
-            [Node | insert_pragma_nodes(Nodes)];
-        false ->
-            case contains_pragma_node(Node) of
-                true -> [Node | Nodes];
-                false -> [insert_pragma_node(Node) | Nodes]
-            end
+    case contains_pragma_node(Node) of
+        true -> [Node | Nodes];
+        false -> [insert_pragma_node(Node) | Nodes]
     end.
 
 insert_pragma_node(Node) ->
@@ -209,8 +203,8 @@ read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma) ->
     read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma, [], [], []).
 read_nodes({ok, Tokens, Comments, Cont}, FileName, require, NodeAcc, Warnings0, TextAcc) ->
     {Node, Warnings} = parse_nodes(Tokens, Comments, FileName, Cont, Warnings0),
-    case is_shebang_node(Node) of
-        true ->
+    case Node of
+        {shebang, _, _} ->
             {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
             read_nodes(
                 erlfmt_scan:continue(Cont),
@@ -253,7 +247,7 @@ read_nodes_loop({error, {ErrLoc, Mod, Reason}, _Loc}, FileName, _Acc, _Warnings)
 parse_nodes([], _Comments, _FileName, Cont, Warnings) ->
     {node_string(Cont), Warnings};
 parse_nodes([{shebang, Meta, String}], [], _FileName, _Cont, Warnings) ->
-    {{raw_string, Meta, String}, Warnings};
+    {{shebang, Meta, String}, Warnings};
 parse_nodes(Tokens, Comments, FileName, Cont, Warnings) ->
     case erlfmt_parse:parse_node(Tokens) of
         {ok, Node} ->
@@ -278,6 +272,8 @@ format_nodes([], _PageWidth) ->
     [].
 
 format_node({raw_string, _Anno, String}, _PageWidth) ->
+    String;
+format_node({shebang, _Anno, String}, _PageWidth) ->
     String;
 format_node(Node, PageWidth) ->
     Doc = erlfmt_format:to_algebra(Node),
