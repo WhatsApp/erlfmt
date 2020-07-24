@@ -148,13 +148,13 @@ all() ->
 %% TEST CASES
 -define(assertSame(String), ?assertSame(String, 80)).
 -define(assertSame(String, PageWidth),
-    ?assertEqual(String, erlfmt:format_string(String, PageWidth, ignore))
+    ?assertEqual(String, format_string(String, PageWidth))
 ).
 
 -define(assertFormat(Bad, Good), ?assertFormat(Bad, Good, 80)).
 -define(assertFormat(Bad, Good, PageWidth), begin
-    ?assertEqual(Good, erlfmt:format_string(Good, PageWidth, ignore)),
-    ?assertEqual(Good, erlfmt:format_string(Bad, PageWidth, ignore))
+    ?assertEqual(Good, format_string(Good, PageWidth)),
+    ?assertEqual(Good, format_string(Bad, PageWidth))
 end).
 
 literals(Config) when is_list(Config) ->
@@ -2070,3 +2070,7 @@ comment(Config) when is_list(Config) ->
         "% foo\n"
         "1\n"
     ).
+
+format_string(String, PageWidth) ->
+    {ok, Formatted, []} = erlfmt:format_string(String, PageWidth, ignore),
+    Formatted.

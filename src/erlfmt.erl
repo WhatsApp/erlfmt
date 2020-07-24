@@ -23,8 +23,7 @@
     read_nodes/1,
     read_nodes_string/2,
     format_error/1,
-    format_error_info/1,
-    contains_pragma_string/2
+    format_error_info/1
 ]).
 
 -export_type([error_info/0, out/0, config/0]).
@@ -82,22 +81,23 @@ format_file(FileName, {Pragma, Out}) ->
         {error, Error} -> {error, Error}
     end.
 
--spec format_string(string(), integer(), pragma()) -> string().
+-spec format_string(string(), integer(), pragma()) ->
+    {ok, string(), [error_info()]} | skip | {error, error_info()}.
 format_string(String, PageWidth, Pragma) ->
-    {ok, Nodes, []} = read_nodes_string("nofile", String),
-    NodesWithPragma =
-        case Pragma of
-            insert -> insert_pragma_nodes(Nodes);
-            _ -> Nodes
-        end,
-    [$\n | Formatted] = format_nodes(NodesWithPragma, PageWidth),
-    unicode:characters_to_list(Formatted).
-
--spec contains_pragma_string(file:name_all(), string()) -> boolean() | {error, error_info()}.
-contains_pragma_string(FileName, String) ->
-    try read_nodes(erlfmt_scan:string_node(String), FileName, require) of
-        {skip, _} -> false;
-        _ -> true
+    try
+        case read_nodes_string("nofile", String, Pragma) of
+            {ok, Nodes, Warnings} ->
+                NodesWithPragma =
+                    case Pragma of
+                        insert -> insert_pragma_nodes(Nodes);
+                        _ -> Nodes
+                    end,
+                [$\n | Formatted] = format_nodes(NodesWithPragma, PageWidth),
+                verify_nodes("nofile", NodesWithPragma, Formatted),
+                {ok, unicode:characters_to_list(Formatted), Warnings};
+            {skip, _} ->
+                skip
+        end
     catch
         {error, Error} -> {error, Error}
     end.
@@ -194,10 +194,13 @@ read_file(FileName, Action) ->
 -spec read_nodes_string(file:name_all(), string()) ->
     {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
 read_nodes_string(FileName, String) ->
-    try read_nodes(erlfmt_scan:string_node(String), FileName, ignore)
+    try read_nodes_string(FileName, String, ignore)
     catch
         {error, Error} -> {error, Error}
     end.
+
+read_nodes_string(FileName, String, Pragma) ->
+    read_nodes(erlfmt_scan:string_node(String), FileName, Pragma).
 
 read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma) ->
     read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma, [], [], []).

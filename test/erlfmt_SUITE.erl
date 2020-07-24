@@ -1066,10 +1066,8 @@ range_format_exact([{Start, End} | Options], Path) ->
     range_format_exact(Options, Path).
 
 contains_pragma(Config) when is_list(Config) ->
-    ?assertEqual(
-        true,
-        erlfmt:contains_pragma_string(
-            "normalpragma.erl",
+    ?assert(
+        contains_pragma_string(
             "%% @format\n"
             "\n"
             "-module(pragma).\n"
@@ -1080,10 +1078,8 @@ contains_pragma(Config) when is_list(Config) ->
             "ok.\n"
         )
     ),
-    ?assertEqual(
-        true,
-        erlfmt:contains_pragma_string(
-            "doublelinepragma.erl",
+    ?assert(
+        contains_pragma_string(
             "\n"
             "\n"
             "%% @format\n"
@@ -1091,10 +1087,8 @@ contains_pragma(Config) when is_list(Config) ->
             "-module(pragma).\n"
         )
     ),
-    ?assertEqual(
-        false,
-        erlfmt:contains_pragma_string(
-            "nolinepragma.erl",
+    ?assertNot(
+        contains_pragma_string(
             "-module(pragma).\n"
             "-export([f/3]).\n"
             "\n"
@@ -1102,10 +1096,8 @@ contains_pragma(Config) when is_list(Config) ->
             "ok.\n"
         )
     ),
-    ?assertEqual(
-        false,
-        erlfmt:contains_pragma_string(
-            "licensenopragma.erl",
+    ?assertNot(
+        contains_pragma_string(
             "%%% LICENSE\n"
             "%%% LICENSE\n"
             "%%% LICENSE\n"
@@ -1119,10 +1111,8 @@ contains_pragma(Config) when is_list(Config) ->
             "ok.\n"
         )
     ),
-    ?assertEqual(
-        true,
-        erlfmt:contains_pragma_string(
-            "licensepragma.erl",
+    ?assert(
+        contains_pragma_string(
             "%% LICENSE\n"
             "%% LICENSE\n"
             "%% LICENSE\n"
@@ -1138,34 +1128,26 @@ contains_pragma(Config) when is_list(Config) ->
             "ok.\n"
         )
     ),
-    ?assertEqual(
-        true,
-        erlfmt:contains_pragma_string(
-            "shortpragma.erl",
+    ?assert(
+        contains_pragma_string(
             "% @format\n"
             "-module(pragma).\n"
         )
     ),
-    ?assertEqual(
-        false,
-        erlfmt:contains_pragma_string(
-            "rebar.config",
+    ?assertNot(
+        contains_pragma_string(
             "{erl_opts, [debug_info]}\n"
         )
     ),
-    ?assertEqual(
-        true,
-        erlfmt:contains_pragma_string(
-            "rebar.config",
+    ?assert(
+        contains_pragma_string(
             "%% @format\n"
             "\n"
             "{erl_opts, [debug_info]}\n"
         )
     ),
-    ?assertEqual(
-        true,
-        erlfmt:contains_pragma_string(
-            "file.escript",
+    ?assert(
+        contains_pragma_string(
             "#! /usr/bin/env escript\n"
             "\n"
             "%% @format\n"
@@ -1173,10 +1155,8 @@ contains_pragma(Config) when is_list(Config) ->
             "main(_) -> ok.\n"
         )
     ),
-    ?assertEqual(
-        false,
-        erlfmt:contains_pragma_string(
-            "file.escript",
+    ?assertNot(
+        contains_pragma_string(
             "#! /usr/bin/env escript\n"
             "\n"
             "main(_) -> ok.\n"
@@ -1280,8 +1260,11 @@ insert_pragma(Config) when is_list(Config) ->
         )
     ).
 
+contains_pragma_string(String) ->
+    skip =/= erlfmt:format_string(String, 80, require).
+
 insert_pragma_string(String) ->
-    StringWithPragma = erlfmt:format_string(String, 80, insert),
+    {ok, StringWithPragma, []} = erlfmt:format_string(String, 80, insert),
     %% check that insert_pragma_nodes doesn't insert a pragma, when one has already been inserted.
-    ?assertEqual(StringWithPragma, erlfmt:format_string(StringWithPragma, 80, insert)),
+    ?assertEqual({ok, StringWithPragma, []}, erlfmt:format_string(StringWithPragma, 80, insert)),
     StringWithPragma.
