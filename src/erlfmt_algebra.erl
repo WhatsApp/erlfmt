@@ -79,10 +79,7 @@
     line/1,
     line/2,
     fold_doc/2,
-    format/2,
-    format/3,
-    fits/4,
-    indent/1
+    format/2
 ]).
 
 % Functional interface to "doc" records
