@@ -235,7 +235,7 @@ surround(Left, LeftSpace, Doc, RightSpace, Right) ->
 surround_block(Left, Doc, Right) ->
     concat(
         force_breaks(),
-        (group(line(concat(Left, nest(concat(line(), Doc), ?INDENT)), Right)))
+        group(line(concat(Left, nest(concat(line(), Doc), ?INDENT)), Right))
     ).
 
 string_to_algebra(Text) ->
@@ -528,7 +528,24 @@ fun_to_algebra({type, Meta, Args, Result}) ->
         group(break(nest(Body, ?INDENT, break), <<"">>, <<")">>))
     end).
 
-clauses_to_algebra([Clause | _] = Clauses) ->
+clauses_to_algebra([Clause]) when is_tuple(Clause) ->
+    HasBreak = clause_has_break(Clause),
+    case HasBreak of
+        true -> clauses_to_algebra_([Clause]);
+        false ->
+            %% This is a special case for a single clause,
+            %% with none of its own breaks.
+            %% We want to keep it in a single line,
+            %% even if it has comments that would usually force breaks using:
+            %% `group(Doc)`
+            Meta = element(2, Clause),
+            Doc = do_expr_to_algebra(Clause),
+            combine_comments(Meta, maybe_wrap_in_parens(Meta, group(Doc)))
+    end;
+clauses_to_algebra(Clauses) ->
+    clauses_to_algebra_(Clauses).
+
+clauses_to_algebra_([Clause | _] = Clauses) ->
     ClausesD = fold_clauses_to_algebra(Clauses),
     HasBreak = clause_has_break(Clause),
     group(concat(maybe_force_breaks(HasBreak), ClausesD)).
