@@ -714,6 +714,26 @@ record_create(Config) when is_list(Config) ->
         "    ]\n"
         "}\n",
         20
+    ),
+    ?assertSame(
+        "#foo{\n"
+        "    a = 1,\n"
+        "    b = 1,\n"
+        "\n"
+        "    c = 2\n"
+        "}\n",
+        15
+    ),
+    ?assertSame(
+        "#foo{\n"
+        "    a = 1,\n"
+        "\n"
+        "    % comment\n"
+        "    b = 2,\n"
+        "    % a non splitting comment\n"
+        "    c = 3\n"
+        "}\n",
+        15
     ).
 
 record_update(Config) when is_list(Config) ->
@@ -1775,6 +1795,28 @@ exportimport(Config) when is_list(Config) ->
         "%% Another comment\n"
         "-export([a/1, b/1]).\n",
         80
+    ),
+    ?assertSame(
+        "-export([\n"
+        "    % comment\n"
+        "    a/2,\n"
+        "\n"
+        "    % another group\n"
+        "    b/1\n"
+        "]).\n"
+    ),
+    ?assertSame(
+        "-export([\n"
+        "    a/2,\n"
+        "    c/2,\n"
+        "\n"
+        "    a/1,\n"
+        "    c/1,\n"
+        "\n"
+        "    b/1,\n"
+        "    d/2\n"
+        "    % trailing comment\n"
+        "]).\n"
     ).
 
 record_definition(Config) when is_list(Config) ->
