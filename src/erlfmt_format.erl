@@ -353,57 +353,95 @@ flex_container(Meta, Values, Left, Right) ->
 call(Meta, Values, Left, Right) ->
     container_common(Meta, Values, Left, Right, break, last_fits).
 
-container_common(_Meta, [], Left, Right, _Combine, _Last) ->
-    concat(Left, Right);
-container_common(Meta, [Value | _] = Values, Left, Right, Combine, Last) ->
-    {HasTrailingComments, WasLastFits, ValuesD} =
-        container_exprs_to_algebra(Values, Last, []),
-    case HasTrailingComments orelse has_inner_break(Meta, Value) of
-        true ->
-            Doc = fold_doc(fun (D, Acc) -> line(concat(D, <<",">>), Acc) end, ValuesD),
-            surround(Left, <<"">>, concat(force_breaks(), Doc), <<"">>, Right);
-        false when Combine =:= break ->
-            Doc = fold_doc(fun (D, Acc) -> break(concat(D, <<",">>), Acc) end, ValuesD),
-            Wrapped = surround(Left, <<"">>, Doc, <<"">>, Right),
-            case WasLastFits of
-                true -> next_break_fits(Wrapped, disabled);
-                false -> Wrapped
-            end;
-        false when Combine =:= flex_break ->
-            Doc = fold_doc(
-                fun (D, Acc) -> flex_break(concat(D, <<",">>), Acc) end,
-                ValuesD
-            ),
-            Wrapped = group(concat(nest(concat(Left, Doc), ?INDENT, break), Right)),
-            case WasLastFits of
-                true -> next_break_fits(Wrapped, disabled);
-                false -> Wrapped
-            end
+container_common(_Meta, [], Left, Right, _, _) -> concat(Left, Right);
+container_common(Meta, Values, Left, Right, Break, LastFits0) ->
+    SplitValues = init_last_and_comments(Values),
+    LastFits = last_fits(LastFits0, SplitValues),
+    HasLineBreak = has_line_break(Meta, SplitValues),
+    BreakFun = break_fun(Break, HasLineBreak),
+    Doc = container_inner_values(SplitValues, BreakFun, LastFits),
+    surround_container_values(Left, Doc, Right, HasLineBreak, Break, LastFits).
+
+%% last_fits checks whether last_fits is wanted, given the last value is next break fits and there are no trailing comments.
+last_fits(last_normal, _) -> last_normal;
+last_fits(last_fits, {_, undefined, _}) -> last_normal;
+last_fits(last_fits, {_, LastValue, []}) ->
+    case is_next_break_fits(LastValue) of
+        true -> last_fits;
+        false -> last_normal
+    end;
+last_fits(last_fits, _) -> last_normal.
+
+%% has_line_break is true if there is an inner break or the values have a trailing comment.
+has_line_break(_Meta, {_, _, [_Comment | _]}) -> true;
+has_line_break(_Meta, {[], undefined, []}) -> false;
+has_line_break(Meta, {[HeadValue | _], _, []}) -> has_inner_break(Meta, HeadValue);
+has_line_break(Meta, {[], OnlyValue, []}) -> has_inner_break(Meta, OnlyValue).
+
+%% break_to_fun returns a break function/2.
+break_fun(Break, HasLineBreak) ->
+    case {Break, HasLineBreak} of
+        {_, true} ->
+            fun erlfmt_algebra:line/2;
+        {break, _} ->
+            fun erlfmt_algebra:break/2;
+        {flex_break, _} ->
+            fun erlfmt_algebra:flex_break/2
     end.
 
-container_exprs_to_algebra([{comment, _, _} | _] = Comments, _Last, Acc) ->
-    {true, false,
-        lists:reverse(Acc, [concat(force_breaks(), comments_to_algebra(Comments))])};
-container_exprs_to_algebra([Value, {comment, _, _} = FirstComment | Rest], _Last, Acc) ->
-    Comments = [FirstComment | Rest],
-    Doc =
-        case has_empty_line_between(Value, FirstComment) of
-            true -> concat(expr_to_algebra(Value), line(2), comments_to_algebra(Comments));
-            false -> concat(expr_to_algebra(Value), line(), comments_to_algebra(Comments))
-        end,
-    {true, false, lists:reverse(Acc, [concat(force_breaks(), Doc)])};
-container_exprs_to_algebra([Value], last_fits, Acc) ->
-    IsNextBreakFits = is_next_break_fits(Value),
-    ValueD =
-        case IsNextBreakFits of
-            true -> next_break_fits(expr_to_algebra(Value), enabled);
-            false -> expr_to_algebra(Value)
-        end,
-    {false, IsNextBreakFits, lists:reverse(Acc, [ValueD])};
-container_exprs_to_algebra([Value], last_normal, Acc) ->
-    {false, false, lists:reverse(Acc, [expr_to_algebra(Value)])};
-container_exprs_to_algebra([Value | Values], Last, Acc) ->
-    container_exprs_to_algebra(Values, Last, [expr_to_algebra(Value) | Acc]).
+%% surround_container_values surrounds the doc created from container inner values.
+surround_container_values(Left, Doc, Right, true, _Combine, _Last) ->
+    surround(Left, <<"">>, concat(force_breaks(), Doc), <<"">>, Right);
+surround_container_values(Left, Doc, Right, _, Combine, Last) ->
+    Wrapped = case Combine of
+        break -> surround(Left, <<"">>, Doc, <<"">>, Right);
+        flex_break -> group(concat(nest(concat(Left, Doc), ?INDENT, break), Right))
+    end,
+    case Last of
+        last_fits -> next_break_fits(Wrapped, disabled);
+        last_normal -> Wrapped
+    end.
+
+%% container_inner_values combines the splitted values of a container into a single doc.
+container_inner_values({InitValues, LastValue, Comments}, BreakFun, Last) ->
+    LastValueD = case Last of
+        last_fits -> next_break_fits(combine_last_and_comments(LastValue, Comments), enabled);
+        last_normal -> combine_last_and_comments(LastValue, Comments)
+    end,
+    InitValuesVD = lists:map(fun(V) -> {V, expr_to_algebra(V)} end, InitValues),
+    ValuesVD = InitValuesVD ++ [{LastValue, LastValueD}],
+    fold_inner_values(BreakFun, ValuesVD).
+
+%% fold_inner_values combines pairs of values and their document representation into one document.
+%% It preserves empty lines and adds commas between documents.
+fold_inner_values(_BreakFun, []) -> empty();
+fold_inner_values(_BreakFun, [{_Value, ValueD}]) ->
+    ValueD;
+fold_inner_values(BreakFun, [{Value, ValueD} | [{Value2, _Value2D} | _] = ValuesVD]) ->
+    case has_empty_line_between(Value, Value2) of
+        true -> concat([ValueD, <<",">>, line(2), fold_inner_values(BreakFun, ValuesVD)]);
+        false -> BreakFun(concat(ValueD, <<",">>), fold_inner_values(BreakFun, ValuesVD))
+    end.
+
+%% combine_last_and_comments combines the possible last value and trailing comments of a container and returns a document.
+combine_last_and_comments(undefined, [_FirstComment | _ ] = Comments) ->
+    concat(force_breaks(), comments_to_algebra(Comments));
+combine_last_and_comments(Value, [FirstComment | _ ] = Comments) ->
+    Doc = case has_empty_line_between(Value, FirstComment) of
+        true -> concat(expr_to_algebra(Value), line(2), comments_to_algebra(Comments));
+        false -> concat(expr_to_algebra(Value),line(), comments_to_algebra(Comments))
+    end,
+    concat(force_breaks(), Doc);
+combine_last_and_comments(Value, []) ->
+    expr_to_algebra(Value).
+
+%% init_last_and_comments splits the list of container values into the initial values, the possible last value and the trailing comments.
+init_last_and_comments(Values) -> init_last_and_comments(Values, []).
+init_last_and_comments([], []) -> {[], undefined, []};
+init_last_and_comments([{comment, _, _} | _] = Comments, Acc) -> {lists:reverse(Acc), undefined, Comments};
+init_last_and_comments([Last | [{comment, _, _} | _] = Comments], Acc) -> {lists:reverse(Acc), Last, Comments};
+init_last_and_comments([Last], Acc) -> {lists:reverse(Acc), Last, []};
+init_last_and_comments([H | T], Acc) -> init_last_and_comments(T, [H | Acc]).
 
 % fa_group_to_algebra, see fa_groups/1 that creates function/arity groups.
 fa_group_to_algebra([Value1, Value2 | _] = Values) ->
@@ -474,9 +512,11 @@ field_to_algebra(Op, Key, Value) ->
 
 comprehension_to_algebra(Expr, LcExprs, Left, Right) ->
     ExprD = expr_to_algebra(Expr),
-    {_HasTrailingComment, _WasLastFits, LcExprsD} =
-        container_exprs_to_algebra(LcExprs, last_normal, []),
-    LcExprD = fold_doc(fun (D, Acc) -> break(concat(D, <<",">>), Acc) end, LcExprsD),
+    Values = LcExprs,
+    {InitValues, LastValue, TrailingComments} = init_last_and_comments(Values),
+    LastValueD = combine_last_and_comments(LastValue, TrailingComments),
+    LcExprsD = lists:map(fun expr_to_algebra/1, InitValues) ++ [LastValueD],
+    LcExprD = fold_doc(fun(D, Acc) -> break(concat(D, <<",">>), Acc) end, LcExprsD),
     Doc = concat([ExprD, break(<<" ">>), <<"||">>, <<" ">>, nest(group(LcExprD), 3)]),
     surround(Left, <<"">>, Doc, <<"">>, Right).
 
