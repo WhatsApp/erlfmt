@@ -1465,6 +1465,15 @@ receive_expression(Config) when is_list(Config) ->
         "        Expression\n"
         "end\n",
         30
+    ),
+    ?assertFormat(
+        "receive\n"
+        "    _ -> ok % foo\n"
+        "end\n",
+        "receive\n"
+        "    % foo\n"
+        "    _ -> ok\n"
+        "end\n"
     ).
 
 try_expression(Config) when is_list(Config) ->
@@ -1662,6 +1671,11 @@ function(Config) when is_list(Config) ->
         "%% comment\n"
         "bar(X) ->\n"
         "    ok.\n"
+    ),
+    ?assertFormat(
+        "bar(X) -> ok. % comment\n",
+        "% comment\n"
+        "bar(X) -> ok.\n"
     ).
 
 attribute(Config) when is_list(Config) ->
