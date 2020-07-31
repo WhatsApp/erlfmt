@@ -432,15 +432,9 @@ has_line_break(Meta, #split_values{init_values = [], last_value = OnlyValue}) ->
 
 %% break_to_fun returns a break function/2.
 -spec break_fun(break | flex_break, boolean()) -> doc_combo_fun().
-break_fun(Break, HasLineBreak) ->
-    case {Break, HasLineBreak} of
-        {_, true} ->
-            fun erlfmt_algebra:line/2;
-        {break, _} ->
-            fun erlfmt_algebra:break/2;
-        {flex_break, _} ->
-            fun erlfmt_algebra:flex_break/2
-    end.
+break_fun(_, true) -> fun erlfmt_algebra:line/2;
+break_fun(break, _) -> fun erlfmt_algebra:break/2;
+break_fun(flex_break, _) -> fun erlfmt_algebra:flex_break/2.
 
 %% container_inner_values combines the splitted values of a container into a single doc.
 -spec container_inner_values(#split_values{}, doc_combo_fun(), last_normal | last_fits) ->
