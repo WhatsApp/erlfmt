@@ -515,7 +515,7 @@ fa_group_to_algebra([Value1, Value2 | _] = Values) ->
 % for example: -export([a/1, a/2, b/1]) => -export([{fa_group, _, [a/1, a/2]}, b/1])
 fa_groups([]) ->
     [];
-fa_groups([{op, Meta, '/', {atom, _, HeadFunction}, _} = Head0 | Tail]) ->
+fa_groups([{op, Meta0, '/', {atom, _, HeadFunction}, _} = Head0 | Tail]) ->
     Splitter = fun
         ({op, _, '/', {atom, _, Function}, _}) -> Function =:= HeadFunction;
         (_) -> false
@@ -525,6 +525,8 @@ fa_groups([{op, Meta, '/', {atom, _, HeadFunction}, _} = Head0 | Tail]) ->
             [Head0 | fa_groups(Rest)];
         {Group, Rest} ->
             Head = erlfmt_scan:delete_annos([pre_comments, post_comments], Head0),
+            EndLoc = erlfmt_scan:get_end_location(lists:last(Group)),
+            Meta = erlfmt_scan:set_end_location(EndLoc, Meta0),
             [{fa_group, Meta, [Head | Group]} | fa_groups(Rest)]
     end;
 fa_groups([Other | Tail]) ->

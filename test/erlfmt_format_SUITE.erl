@@ -1817,6 +1817,16 @@ exportimport(Config) when is_list(Config) ->
         "    d/2\n"
         "    % trailing comment\n"
         "]).\n"
+    ),
+    ?assertSame(
+        "-import(erlfmt_algebra, [\n"
+        "    a/1,\n"
+        "    a/2,\n"
+        "    b/1,\n"
+        "    b/2,\n"
+        "    c/1,\n"
+        "    c/2\n"
+        "]).\n"
     ).
 
 record_definition(Config) when is_list(Config) ->

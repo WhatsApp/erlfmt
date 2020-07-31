@@ -28,6 +28,8 @@
     get_inner_line/1,
     get_inner_end_line/1,
     update_anno/3,
+    get_end_location/1,
+    set_end_location/2,
     read_rest/1
 ]).
 
@@ -291,6 +293,10 @@ delete_annos(Keys, Node) when is_tuple(Node) ->
 get_line(Anno) -> element(1, get_anno(location, Anno)).
 
 get_end_line(Anno) -> element(1, get_anno(end_location, Anno)).
+
+get_end_location(Anno) -> get_anno(end_location, Anno).
+
+set_end_location(EndLine, Anno) -> put_anno(end_location, EndLine, Anno).
 
 get_inner_line(Anno) ->
     element(1, get_anno(inner_location, Anno, get_anno(location, Anno))).
