@@ -311,10 +311,18 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     IsNextBreakFits = is_next_break_fits_op(Op, Right) andalso not HasBreak,
 
     Doc =
-        with_next_break_fits(IsNextBreakFits, RightD, fun (R) ->
-            RightOpD = nest(break(concat(<<" ">>, OpD), group(R)), Indent, break),
-            concat(group(LeftD), group(concat(maybe_force_breaks(HasBreak), RightOpD)))
-        end),
+        case Op of
+            '|' ->
+                 with_next_break_fits(IsNextBreakFits, RightD, fun (R) ->
+                    RightOpD = nest(break(concat(<<" ">>, OpD), R), Indent, break),
+                    concat(LeftD, concat(maybe_force_breaks(HasBreak), RightOpD))
+                end);
+            _ ->
+                with_next_break_fits(IsNextBreakFits, RightD, fun (R) ->
+                    RightOpD = nest(break(concat(<<" ">>, OpD), group(R)), Indent, break),
+                    concat(group(LeftD), group(concat(maybe_force_breaks(HasBreak), RightOpD)))
+                end)
+        end,
 
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
 

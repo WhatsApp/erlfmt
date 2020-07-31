@@ -1898,6 +1898,16 @@ spec(Config) when is_list(Config) ->
         "    another_long_type()\n"
         ") -> some_very:very(long, type).\n",
         50
+    ),
+    ?assertFormat(
+        "-spec encode(#a{} | #blonglonglong{} | #c{} | #d{}) -> binary().",
+        "-spec encode(\n"
+        "    #a{} |\n"
+        "    #blonglonglong{} |\n"
+        "    #c{} |\n"
+        "    #d{}\n"
+        ") -> binary().\n",
+        30
     ).
 
 define(Config) when is_list(Config) ->
