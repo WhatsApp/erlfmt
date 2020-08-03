@@ -228,7 +228,10 @@ sequence to have:
 and re-running the formatter, will produce:
 
 ```erl formatted foobar1
-[Foo, Bar]
+[
+    Foo,
+    Bar
+]
 ```
 
 Similarly, adding the single newline back:

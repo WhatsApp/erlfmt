@@ -349,11 +349,17 @@ container_common(_Meta, [], Left, Right, _, _) ->
 container_common(Meta, Values, Left, Right, Break, LastFits0) ->
     SplitValues = init_last_and_comments(Values),
     LastFits = last_fits(LastFits0, SplitValues),
-    HasLineBreak = has_line_break(Meta, SplitValues),
-    BreakFun = break_fun(Break, HasLineBreak),
-    SurroundFun = surround_fun(HasLineBreak, Break, LastFits),
+    {BreakFun, SurroundFun} = surround_and_break_fun(Meta, SplitValues, Break, LastFits),
     Doc = container_inner_values(SplitValues, BreakFun, LastFits),
     SurroundFun(Left, Doc, Right).
+
+surround_and_break_fun(Meta, SplitValues, Break, LastFits) ->
+    HasMetaLineBreak = has_meta_line_break(Meta, SplitValues),
+    HasAnyLineBreak = has_line_break(SplitValues),
+    {
+        break_fun(Break, HasMetaLineBreak),
+        surround_fun(HasMetaLineBreak, HasAnyLineBreak, Break, LastFits)
+    }.
 
 -record(split_values, {
     init_values :: [erlfmt_parse:abstract_form()],
@@ -407,16 +413,28 @@ last_fits(last_fits, #split_values{last_value = LastValue, trailing_comments = [
 last_fits(last_fits, _) ->
     last_normal.
 
-%% has_line_break is true if there is an inner break or the values have a trailing comment.
--spec has_line_break(erlfmt_parse:abstract_form(), #split_values{}) -> boolean().
-has_line_break(_Meta, #split_values{trailing_comments = [_Comment | _]}) ->
+%% has_meta_line_break is true if there is an inner break or the values have a trailing comment.
+-spec has_meta_line_break(erlfmt_parse:abstract_form(), #split_values{}) -> boolean().
+has_meta_line_break(_Meta, #split_values{trailing_comments = [_Comment | _]}) ->
     true;
-has_line_break(_Meta, #split_values{init_values = [], last_value = undefined}) ->
+has_meta_line_break(_Meta, #split_values{init_values = [], last_value = undefined}) ->
     false;
-has_line_break(Meta, #split_values{init_values = [HeadValue | _]}) ->
+has_meta_line_break(Meta, #split_values{init_values = [HeadValue | _]}) ->
     has_inner_break(Meta, HeadValue);
-has_line_break(Meta, #split_values{init_values = [], last_value = OnlyValue}) ->
+has_meta_line_break(Meta, #split_values{init_values = [], last_value = OnlyValue}) ->
     has_inner_break(Meta, OnlyValue).
+
+%% has_line_break is true if there is a break between values.
+has_line_break(#split_values{init_values = Values, last_value = undefined}) ->
+    has_line_break(Values);
+has_line_break(#split_values{init_values = Values, last_value = LastValue}) ->
+    has_line_break(Values ++ [LastValue]);
+has_line_break([]) ->
+    false;
+has_line_break([_]) ->
+    false;
+has_line_break([Head | [ Head2 | _ ] = Tail]) ->
+    has_break_between(Head, Head2) orelse has_line_break(Tail).
 
 -type doc_combo_fun() :: fun((erlfmt_algebra:doc(), erlfmt_algebra:doc()) ->
         erlfmt_algebra:doc()
@@ -482,13 +500,19 @@ fold_inner_values(BreakFun, [{Value, ValueD} | [{Value2, _ValueD2} | _] = Values
     end.
 
 %% surround_fun returns a function that surrounds the doc created from container inner values.
-surround_fun(true, _Combine, _Last) ->
-    fun(Left, Doc, Right) -> surround(Left, <<"">>, concat(force_breaks(), Doc), <<"">>, Right) end;
-surround_fun(_HasLineBreak, Combine, Last) ->
+surround_fun(true, _HasAnyLineBreak, _Combine, _Last) ->
     fun(Left, Doc, Right) ->
+        surround(Left, <<"">>, concat(force_breaks(), Doc), <<"">>, Right)
+    end;
+surround_fun(false, HasAnyLineBreak, Combine, Last) ->
+    fun(Left, Doc, Right) ->
+        Breaks = case HasAnyLineBreak of
+            true -> force_breaks();
+            false -> empty()
+        end,
         Wrapped =
         case Combine of
-            break -> surround(Left, <<"">>, Doc, <<"">>, Right);
+            break -> surround(Left, <<"">>, concat(Breaks, Doc), <<"">>, Right);
             flex_break -> group(concat(nest(concat(Left, Doc), ?INDENT, break), Right))
         end,
         case Last of

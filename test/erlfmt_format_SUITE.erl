@@ -575,6 +575,19 @@ list(Config) when is_list(Config) ->
         "    end,\n"
         "    3\n"
         "]\n"
+    ),
+    ?assertFormat(
+        "[ 1\n"
+        ", 2\n"
+        "\n"
+        ", 3\n"
+        "]\n",
+        "[\n"
+        "    1,\n"
+        "    2,\n"
+        "\n"
+        "    3\n"
+        "]\n"
     ).
 
 binary(Config) when is_list(Config) ->
@@ -1778,7 +1791,10 @@ exportimport(Config) when is_list(Config) ->
         "%% comment\n"
         "-export([drop/4]).\n"
         "%% Another comment\n"
-        "-export([a/1, b/1]).\n",
+        "-export([\n"
+        "    a/1,\n"
+        "    b/1\n"
+        "]).\n",
         80
     ),
     ?assertFormat(
@@ -1793,7 +1809,10 @@ exportimport(Config) when is_list(Config) ->
         "-export([drop/4]).\n"
         "\n"
         "%% Another comment\n"
-        "-export([a/1, b/1]).\n",
+        "-export([\n"
+        "    a/1,\n"
+        "    b/1\n"
+        "]).\n",
         80
     ),
     ?assertSame(
