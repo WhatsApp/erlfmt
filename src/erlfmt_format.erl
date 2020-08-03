@@ -528,8 +528,7 @@ fa_groups([{op, Meta0, '/', {atom, _, HeadFunction}, _} = Head0 | Tail]) ->
             [Head0 | fa_groups(Rest)];
         {Group, Rest} ->
             Head = erlfmt_scan:delete_annos([pre_comments, post_comments], Head0),
-            EndLoc = erlfmt_scan:get_end_location(lists:last(Group)),
-            Meta = erlfmt_scan:set_end_location(EndLoc, Meta0),
+            Meta = erlfmt_scan:range_anno(Meta0, lists:last(Group)),
             [{fa_group, Meta, [Head | Group]} | fa_groups(Rest)]
     end;
 fa_groups([Other | Tail]) ->
