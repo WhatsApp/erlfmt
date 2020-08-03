@@ -214,24 +214,18 @@ the collection will be always printed "expanded", for example:
 ]
 ```
 
-will be preserved, even though it could fit on a single line. The fact that
-this is controlled by a single newline, allows you to easily convert between
-those layouts, for example, merely deleting the first newline from the above
-sequence to have:
+will be preserved, even though it could fit on a single line.
+This is controlled by whether the user has included a newline in the original version.
+For example, merely deleting the newlines from the above sequence:
 
 ```erl unformatted foobar1
-[    Foo,
-    Bar
-]
+[    Foo, Bar]
 ```
 
 and re-running the formatter, will produce:
 
 ```erl formatted foobar1
-[
-    Foo,
-    Bar
-]
+[Foo, Bar]
 ```
 
 Similarly, adding the single newline back:
