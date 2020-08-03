@@ -360,8 +360,9 @@ container_common(Meta, Values, Left, Right, Break, LastFits0) ->
     LastFits = last_fits(LastFits0, SplitValues),
     HasLineBreak = has_line_break(Meta, SplitValues),
     BreakFun = break_fun(Break, HasLineBreak),
+    SurroundFun = surround_fun(HasLineBreak, Break, LastFits),
     Doc = container_inner_values(SplitValues, BreakFun, LastFits),
-    surround_container_values(Left, Doc, Right, HasLineBreak, Break, LastFits).
+    SurroundFun(Left, Doc, Right).
 
 -record(split_values, {
     init_values :: [erlfmt_parse:abstract_form()],
@@ -489,18 +490,20 @@ fold_inner_values(BreakFun, [{Value, ValueD} | [{Value2, _ValueD2} | _] = Values
         false -> BreakFun(concat(ValueD, <<",">>), fold_inner_values(BreakFun, ValuesVD))
     end.
 
-%% surround_container_values surrounds the doc created from container inner values.
-surround_container_values(Left, Doc, Right, true, _Combine, _Last) ->
-    surround(Left, <<"">>, concat(force_breaks(), Doc), <<"">>, Right);
-surround_container_values(Left, Doc, Right, _, Combine, Last) ->
-    Wrapped =
+%% surround_fun returns a function that surrounds the doc created from container inner values.
+surround_fun(true, _Combine, _Last) ->
+    fun(Left, Doc, Right) -> surround(Left, <<"">>, concat(force_breaks(), Doc), <<"">>, Right) end;
+surround_fun(_HasLineBreak, Combine, Last) ->
+    fun(Left, Doc, Right) ->
+        Wrapped =
         case Combine of
             break -> surround(Left, <<"">>, Doc, <<"">>, Right);
             flex_break -> group(concat(nest(concat(Left, Doc), ?INDENT, break), Right))
         end,
-    case Last of
-        last_fits -> next_break_fits(Wrapped, disabled);
-        last_normal -> Wrapped
+        case Last of
+            last_fits -> next_break_fits(Wrapped, disabled);
+            last_normal -> Wrapped
+        end
     end.
 
 % fa_group_to_algebra, see fa_groups/1 that creates function/arity groups.
