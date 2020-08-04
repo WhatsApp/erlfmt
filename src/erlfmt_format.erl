@@ -527,8 +527,6 @@ block_to_algebra(_Meta, Exprs) ->
     concat(force_breaks(), block_to_algebra_each(Exprs)).
 
 %% standalone comments are always trailing other expressions
-block_to_algebra_each([Expr | [{comment, _, _} | _] = Comments]) ->
-    concat(force_breaks(), line(expr_to_algebra(Expr), comments_to_algebra(Comments)));
 block_to_algebra_each([Expr]) ->
     expr_to_algebra(Expr);
 block_to_algebra_each([Expr | [Next | _] = Rest]) ->
@@ -595,11 +593,6 @@ clauses_to_algebra_([Clause | _] = Clauses) ->
     HasBreak = clause_has_break(Clause),
     group(concat(maybe_force_breaks(HasBreak), ClausesD)).
 
-fold_clauses_to_algebra([Clause | [{comment, _, _} = FirstComment | _] = Comments]) ->
-    case has_empty_line_between(Clause, FirstComment) of
-        true -> concat(expr_to_algebra(Clause), line(2), comments_to_algebra(Comments));
-        false -> concat(expr_to_algebra(Clause), line(), comments_to_algebra(Comments))
-    end;
 fold_clauses_to_algebra([Clause]) ->
     expr_to_algebra(Clause);
 fold_clauses_to_algebra([Clause | Clauses]) ->
