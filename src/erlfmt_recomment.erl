@@ -64,6 +64,9 @@ insert_expr_list([], Comments, Acc) ->
 
 insert_expr_container(Exprs, []) ->
     Exprs;
+insert_expr_container([Expr0], Comments0) when is_tuple(Expr0) ->
+    {Expr, Comments} = insert_expr(Expr0, Comments0),
+    [put_post_comments(Expr, Comments)];
 insert_expr_container([Expr0 | Exprs], Comments0) when is_tuple(Expr0) ->
     {Expr, Comments} = insert_expr(Expr0, Comments0),
     [Expr | insert_expr_container(Exprs, Comments)];
