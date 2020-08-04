@@ -355,179 +355,90 @@ call(Meta, Values, Left, Right) ->
 
 container_common(_Meta, [], Left, Right, _, _) ->
     concat(Left, Right);
-container_common(Meta, Values, Left, Right, Break, LastFits0) ->
-    SplitValues = init_last_and_comments(Values),
-    LastFits = last_fits(LastFits0, SplitValues),
-    {BreakFun, SurroundFun} = surround_and_break_fun(Meta, SplitValues, Break, LastFits),
-    Doc = container_inner_values(SplitValues, BreakFun, LastFits),
-    SurroundFun(Left, Doc, Right).
+container_common(Meta, Values, Left, Right, BreakKind0, LastFits0) ->
+    LastFitsFun = last_fits_fun(LastFits0, Values),
+    BreakKind = break_behaviour(Meta, Values, BreakKind0),
+    BreakFun = break_fun(BreakKind),
+    ValuesVD = map_inner_values(LastFitsFun, Values),
+    Doc = join_inner_values(BreakFun, ValuesVD),
+    Surrounded = surround_container(BreakKind, Left, Doc, Right),
+    LastFitsFun(Surrounded, disabled).
 
-surround_and_break_fun(Meta, SplitValues, Break, LastFits) ->
-    HasMetaLineBreak = has_meta_line_break(Meta, SplitValues),
-    HasAnyLineBreak = has_line_break(SplitValues),
-    {
-        break_fun(Break, HasMetaLineBreak),
-        surround_fun(HasMetaLineBreak, HasAnyLineBreak, Break, LastFits)
-    }.
+-type break_kind() :: break | flex_break | line.
 
--record(split_values, {
-    init_values :: [erlfmt_parse:abstract_form()],
-    last_value :: undefined | erlfmt_parse:abstract_form(),
-    trailing_comments :: [erlfmt_parse:abstract_form()]
-}).
+break_behaviour(Meta, Values, BreakKind) ->
+    case
+        has_opening_line_break(Meta, Values) orelse
+            has_trailing_comments(Values) orelse
+            (BreakKind =:= break andalso has_any_break_between(Values))
+    of
+        true -> line;
+        _ -> BreakKind
+    end.
 
-%% init_last_and_comments splits the list of container values into the initial values,
-%% the possible last value and the trailing comments.
--spec init_last_and_comments([erlfmt_parse:abstract_form()]) -> #split_values{}.
-init_last_and_comments(Values) ->
-    init_last_and_comments(Values, []).
+surround_container(line, Left, Doc, Right) ->
+    surround(Left, <<"">>, concat(force_breaks(), Doc), <<"">>, Right);
+surround_container(break, Left, Doc, Right) ->
+    surround(Left, <<"">>, Doc, <<"">>, Right);
+surround_container(flex_break, Left, Doc, Right) ->
+    group(concat(nest(concat(Left, Doc), ?INDENT, break), Right)).
 
--spec init_last_and_comments([erlfmt_parse:abstract_form()], [erlfmt_parse:abstract_form()]) ->
-    #split_values{}.
-init_last_and_comments([], []) ->
-    #split_values{init_values = [], last_value = undefined, trailing_comments = []};
-init_last_and_comments([{comment, _, _} | _] = Comments, Acc) ->
-    #split_values{
-        init_values = lists:reverse(Acc),
-        last_value = undefined,
-        trailing_comments = Comments
-    };
-init_last_and_comments([Last | [{comment, _, _} | _] = Comments], Acc) ->
-    #split_values{
-        init_values = lists:reverse(Acc),
-        last_value = Last,
-        trailing_comments = Comments
-    };
-init_last_and_comments([Last], Acc) ->
-    #split_values{
-        init_values = lists:reverse(Acc),
-        last_value = Last,
-        trailing_comments = []
-    };
-init_last_and_comments([H | T], Acc) ->
-    init_last_and_comments(T, [H | Acc]).
-
-%% last_fits checks whether last_fits is wanted,
-%% given the last value is next break fits and there are no trailing comments.
--spec last_fits(last_normal | last_fits, #split_values{}) -> last_normal | last_fits.
-last_fits(last_normal, _) ->
-    last_normal;
-last_fits(last_fits, #split_values{last_value = undefined}) ->
-    last_normal;
-last_fits(last_fits, #split_values{last_value = LastValue, trailing_comments = []}) ->
-    case is_next_break_fits(LastValue) of
-        true -> last_fits;
-        false -> last_normal
+%% last_fits_fun returns a fun similar to next_break_fits/2
+%% that takes into account the desired fits behaviour.
+-spec last_fits_fun(last_normal | last_fits, [erlfmt_parse:abstract_form()]) ->
+    fun((erlfmt_algebra:doc(), disabled | enabled) -> erlfmt_algebra:doc()).
+last_fits_fun(last_fits, Values) when Values =/= [] ->
+    case is_next_break_fits(lists:last(Values)) of
+        true -> fun erlfmt_algebra:next_break_fits/2;
+        false -> fun (Doc, _) -> Doc end
     end;
-last_fits(last_fits, _) ->
-    last_normal.
+last_fits_fun(_, _) ->
+    fun (Doc, _) -> Doc end.
 
-%% has_meta_line_break is true if there is an inner break or the values have a trailing comment.
--spec has_meta_line_break(erlfmt_parse:abstract_form(), #split_values{}) -> boolean().
-has_meta_line_break(_Meta, #split_values{trailing_comments = [_Comment | _]}) ->
-    true;
-has_meta_line_break(_Meta, #split_values{init_values = [], last_value = undefined}) ->
+has_trailing_comments([]) -> false;
+has_trailing_comments(Values) ->
+    case lists:last(Values) of
+        {comment, _, _} -> true;
+        LastValue ->
+            {_, PostComments} = comments(LastValue),
+            PostComments =/= []
+    end.
+
+-spec has_opening_line_break(erlfmt_scan:anno(), [erlfmt_parse:abstract_form()]) -> boolean().
+has_opening_line_break(_Meta, []) ->
     false;
-has_meta_line_break(Meta, #split_values{init_values = [HeadValue | _]}) ->
-    has_inner_break(Meta, HeadValue);
-has_meta_line_break(Meta, #split_values{init_values = [], last_value = OnlyValue}) ->
-    has_inner_break(Meta, OnlyValue).
+has_opening_line_break(Meta, [HeadValue | _]) ->
+    has_inner_break(Meta, HeadValue).
 
-%% has_line_break is true if there is a break between values.
-has_line_break(#split_values{init_values = Values, last_value = undefined}) ->
-    has_line_break(Values);
-has_line_break(#split_values{init_values = Values, last_value = LastValue}) ->
-    has_line_break(Values ++ [LastValue]);
-has_line_break([]) ->
-    false;
-has_line_break([_]) ->
-    false;
-has_line_break([Head | [ Head2 | _ ] = Tail]) ->
-    has_break_between(Head, Head2) orelse has_line_break(Tail).
+has_any_break_between([Head | [ Head2 | _ ] = Tail]) ->
+    has_break_between(Head, Head2) orelse has_any_break_between(Tail);
+has_any_break_between(_) ->
+    false.
 
--type doc_combo_fun() :: fun((erlfmt_algebra:doc(), erlfmt_algebra:doc()) ->
-        erlfmt_algebra:doc()
-).
-
-%% break_to_fun returns a break function/2.
--spec break_fun(break | flex_break, boolean()) -> doc_combo_fun().
-break_fun(_, true) -> fun erlfmt_algebra:line/2;
-break_fun(break, _) -> fun erlfmt_algebra:break/2;
-break_fun(flex_break, _) -> fun erlfmt_algebra:flex_break/2.
-
-%% container_inner_values combines the splitted values of a container into a single doc.
--spec container_inner_values(#split_values{}, doc_combo_fun(), last_normal | last_fits) ->
-    erlfmt_algebra:doc().
-container_inner_values(
-    #split_values{
-        init_values = InitValues,
-        last_value = MaybeLastValue,
-        trailing_comments = Comments
-    },
-    BreakFun,
-    Last
-) ->
-    {LastValue, LastValueD0} = combine_last_and_comments(MaybeLastValue, Comments),
-    LastValueD =
-        case Last of
-            last_fits -> next_break_fits(LastValueD0, enabled);
-            last_normal -> LastValueD0
-        end,
-    InitValuesVD = lists:map(fun(V) -> {V, expr_to_algebra(V)} end, InitValues),
-    ValuesVD = InitValuesVD ++ [{LastValue, LastValueD}],
-    fold_inner_values(BreakFun, ValuesVD).
+-spec break_fun(break_kind()) -> erlfmt_algebra:append_fun().
+break_fun(line) -> fun erlfmt_algebra:line/2;
+break_fun(break) -> fun erlfmt_algebra:break/2;
+break_fun(flex_break) -> fun erlfmt_algebra:flex_break/2.
 
 -type value_doc_pair() :: {erlfmt_parse:abstract_form(), erlfmt_algebra:doc()}.
 
-%% combine_last_and_comments combines the possible last value and trailing comments of a container.
-%% It returns the first value and the combined document.
--spec combine_last_and_comments(
-    undefined | erlfmt_parse:abstract_form(),
-    [erlfmt_parse:abstract_form()]
-) -> value_doc_pair().
-combine_last_and_comments(undefined, [FirstComment | _] = Comments) ->
-    {FirstComment, concat(force_breaks(), comments_to_algebra(Comments))};
-combine_last_and_comments(Value, [FirstComment | _] = Comments) ->
-    Doc =
-        case has_empty_line_between(Value, FirstComment) of
-            true -> concat(expr_to_algebra(Value), line(2), comments_to_algebra(Comments));
-            false -> concat(expr_to_algebra(Value), line(), comments_to_algebra(Comments))
-        end,
-    {Value, concat(force_breaks(), Doc)};
-combine_last_and_comments(Value, []) ->
-    {Value, expr_to_algebra(Value)}.
+map_inner_values(_LastFitsFun, []) -> [];
+map_inner_values(_LastFitsFun, [{comment, _, _} = FirstComment | _] = Comments) ->
+    [{FirstComment, comments_to_algebra(Comments)}];
+map_inner_values(LastFitsFun, [Value]) ->
+    [{Value, LastFitsFun(expr_to_algebra(Value), enabled)}];
+map_inner_values(Last, [Value | Values]) ->
+    [{Value, expr_to_algebra(Value)} | map_inner_values(Last, Values)].
 
-%% fold_inner_values combines pairs of values and their document representation into one document.
+%% join_inner_values combines pairs of values and their document representation into one document.
 %% It preserves empty lines and adds commas between documents.
--spec fold_inner_values(doc_combo_fun(), [value_doc_pair()]) -> erlfmt_algebra:doc().
-fold_inner_values(_BreakFun, [{_, ValueD}]) ->
+-spec join_inner_values(erlfmt_algebra:append_fun(), [value_doc_pair()]) -> erlfmt_algebra:doc().
+join_inner_values(_BreakFun, [{_, ValueD}]) ->
     ValueD;
-fold_inner_values(BreakFun, [{Value, ValueD} | [{Value2, _ValueD2} | _] = ValuesVD]) ->
+join_inner_values(BreakFun, [{Value, ValueD} | [{Value2, _ValueD2} | _] = ValuesVD]) ->
     case has_empty_line_between(Value, Value2) of
-        true -> concat([ValueD, <<",">>, line(2), fold_inner_values(BreakFun, ValuesVD)]);
-        false -> BreakFun(concat(ValueD, <<",">>), fold_inner_values(BreakFun, ValuesVD))
-    end.
-
-%% surround_fun returns a function that surrounds the doc created from container inner values.
-surround_fun(true, _HasAnyLineBreak, _Combine, _Last) ->
-    fun(Left, Doc, Right) ->
-        surround(Left, <<"">>, concat(force_breaks(), Doc), <<"">>, Right)
-    end;
-surround_fun(false, HasAnyLineBreak, Combine, Last) ->
-    fun(Left, Doc, Right) ->
-        Breaks = case HasAnyLineBreak of
-            true -> force_breaks();
-            false -> empty()
-        end,
-        Wrapped =
-        case Combine of
-            break -> surround(Left, <<"">>, concat(Breaks, Doc), <<"">>, Right);
-            flex_break -> group(concat(nest(concat(Left, Doc), ?INDENT, break), Right))
-        end,
-        case Last of
-            last_fits -> next_break_fits(Wrapped, disabled);
-            last_normal -> Wrapped
-        end
+        true -> concat([ValueD, <<",">>, line(2), join_inner_values(BreakFun, ValuesVD)]);
+        false -> BreakFun(concat(ValueD, <<",">>), join_inner_values(BreakFun, ValuesVD))
     end.
 
 % fa_group_to_algebra, see fa_groups/1 that creates function/arity groups.
@@ -600,13 +511,7 @@ field_to_algebra(Op, Key, Value) ->
 
 comprehension_to_algebra(Expr, LcExprs, Left, Right) ->
     ExprD = expr_to_algebra(Expr),
-    #split_values{
-        init_values = InitExprs,
-        last_value = LastExpr,
-        trailing_comments = TrailingComments
-    } = init_last_and_comments(LcExprs),
-    {_LastExpr, LastExprD} = combine_last_and_comments(LastExpr, TrailingComments),
-    LcExprsD = lists:map(fun expr_to_algebra/1, InitExprs) ++ [LastExprD],
+    LcExprsD = lists:map(fun expr_to_algebra/1, LcExprs),
     LcExprD = fold_doc(fun(D, Acc) -> break(concat(D, <<",">>), Acc) end, LcExprsD),
     Doc = concat([ExprD, break(<<" ">>), <<"||">>, <<" ">>, nest(group(LcExprD), 3)]),
     surround(Left, <<"">>, Doc, <<"">>, Right).

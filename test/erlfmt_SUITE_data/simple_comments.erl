@@ -200,9 +200,8 @@ call() ->
     %% comment 2
     _ = fun ?MODULE:'fun'/0,
     %% comment 3
-    fun
-        () ->
-            %% comment 4
-            ok
-        %% comment 5
+    fun() ->
+        %% comment 4
+        ok
+    %% comment 5
     end.

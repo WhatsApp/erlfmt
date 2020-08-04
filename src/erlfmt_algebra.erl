@@ -52,7 +52,7 @@
 
 -define(newline, <<"\n">>).
 
--export_type([doc/0]).
+-export_type([doc/0, append_fun/0]).
 
 -export([
     force_breaks/0,
@@ -161,6 +161,8 @@
         is_record(Doc, doc_nest) orelse
         is_record(Doc, doc_string))
 ).
+
+-type append_fun() :: fun((doc(), doc()) -> doc()).
 
 % empty is not printed at all, but it is essential to implement optional output: if ... then "output" else empty;
 % empty is mapped to the empty string by the pretty printer.

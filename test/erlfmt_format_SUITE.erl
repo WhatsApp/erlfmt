@@ -1303,6 +1303,13 @@ fun_expression(Config) when is_list(Config) ->
         "    Expression\n"
         "end\n",
         25
+    ),
+    ?assertSame(
+        "fun() ->\n"
+        "    %% comment 4\n"
+        "    ok\n"
+        "%% comment 5\n"
+        "end.\n"
     ).
 
 case_expression(Config) when is_list(Config) ->
