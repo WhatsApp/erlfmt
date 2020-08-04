@@ -1717,6 +1717,13 @@ attribute(Config) when is_list(Config) ->
         "    ]\n"
         ").\n",
         25
+    ),
+    ?assertSame(
+        "-export_type([\n"
+        "    baz/1,\n"
+        "    foo/2, foo/3,\n"
+        "    bar/2\n"
+        "]).\n"
     ).
 
 exportimport(Config) when is_list(Config) ->
