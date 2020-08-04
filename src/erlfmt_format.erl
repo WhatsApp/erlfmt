@@ -66,9 +66,10 @@ to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
         Doc = surround(HeadD, <<" ">>, BodyD, <<"">>, <<").">>),
         combine_comments(Meta, Doc)
     end);
-to_algebra({attribute, Meta, {atom, _, export}, [{list, Anno, Exports}]}) ->
+to_algebra({attribute, Meta, {atom, _, RawName} = Name, [{list, Anno, Exports}]}) when
+    RawName =:= export; RawName =:= export_type ->
     GroupedExports = {list, Anno, fa_groups(Exports)},
-    Doc = call(Meta, [GroupedExports], <<"-export(">>, <<").">>),
+    Doc = call(Meta, [GroupedExports], concat(<<"-">>, expr_to_algebra(Name), <<"(">>), <<").">>),
     combine_comments(Meta, Doc);
 to_algebra({attribute, Meta, {atom, _, import}, [Name, {list, Anno, Imports}]}) ->
     GroupedImports = {list, Anno, fa_groups(Imports)},
