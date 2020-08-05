@@ -2007,6 +2007,15 @@ spec(Config) when is_list(Config) ->
         "    #d{}\n"
         ") -> binary().\n",
         30
+    ),
+    ?assertSame(
+        "-spec use_credit(\n"
+        "    store:id(),\n"
+        "    decimal:decimal(),\n"
+        "    binary() | null,\n"
+        "    credit | {refund | dispute, binary()},\n"
+        "    binary() | null\n"
+        ") -> ok.\n"
     ).
 
 define(Config) when is_list(Config) ->

@@ -294,11 +294,9 @@ binary_op_to_algebra('/', _Meta, {atom, _, _} = Left, {integer, _, _} = Right) -
     %% special-case the foo/N syntax in attributes, division with a literal atom
     %% doesn't make sense in normal code, so it's safe to apply it everywhere
     concat(expr_to_algebra(Left), <<"/">>, expr_to_algebra(Right));
-binary_op_to_algebra('|' = Op, Meta0, Left, Right) ->
-    %% | does not increase indentation
-    %% don't print parens and comments twice - expr_to_algebra took care of it already
-    Meta = erlfmt_scan:delete_annos([parens, pre_comments, post_comments], Meta0),
-    binary_op_to_algebra(Op, Meta, Left, Right, 0);
+binary_op_to_algebra('|', Meta, Left, Right) ->
+    %% | does not increase indentation and breaks as a whole
+    union_to_algebra(Meta, Left, Right);
 binary_op_to_algebra(Op, Meta0, Left, Right) ->
     %% don't print parens and comments twice - expr_to_algebra took care of it already
     Meta = erlfmt_scan:delete_annos([parens, pre_comments, post_comments], Meta0),
@@ -312,20 +310,22 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     IsNextBreakFits = is_next_break_fits_op(Op, Right) andalso not HasBreak,
 
     Doc =
-        case Op of
-            '|' ->
-                 with_next_break_fits(IsNextBreakFits, RightD, fun (R) ->
-                    RightOpD = nest(break(concat(<<" ">>, OpD), R), Indent, break),
-                    concat(LeftD, concat(maybe_force_breaks(HasBreak), RightOpD))
-                end);
-            _ ->
-                with_next_break_fits(IsNextBreakFits, RightD, fun (R) ->
-                    RightOpD = nest(break(concat(<<" ">>, OpD), group(R)), Indent, break),
-                    concat(group(LeftD), group(concat(maybe_force_breaks(HasBreak), RightOpD)))
-                end)
-        end,
-
+        with_next_break_fits(IsNextBreakFits, RightD, fun (R) ->
+            RightOpD = nest(break(concat(<<" ">>, OpD), group(R)), Indent, break),
+            concat(group(LeftD), group(concat(maybe_force_breaks(HasBreak), RightOpD)))
+        end),
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
+
+union_to_algebra(Meta, Left, Right) ->
+    Unions = [Left | collect_unions(Right)],
+    UnionsD = lists:map(fun expr_to_algebra/1, Unions),
+    Doc = fold_doc(fun (LeftD, AccD) -> concat(LeftD, break(<<" |">>, AccD)) end, UnionsD),
+    group(concat(maybe_force_breaks(is_multiline(Meta)), Doc)).
+
+collect_unions({op, Meta, '|', Left, Right}) ->
+    [move_comments(Meta, Left) | collect_unions(Right)];
+collect_unions(Other) ->
+    [Other].
 
 maybe_force_breaks(true) -> force_breaks();
 maybe_force_breaks(false) -> empty().
@@ -693,6 +693,9 @@ try_of_block(Exprs, OfClauses) ->
             )
     end.
 
+is_multiline(Node) ->
+    erlfmt_scan:get_inner_line(Node) =/= erlfmt_scan:get_inner_end_line(Node).
+
 has_break_between(Left, Right) ->
     erlfmt_scan:get_end_line(Left) < erlfmt_scan:get_line(Right).
 
@@ -721,6 +724,10 @@ maybe_wrap_in_parens(Meta, Doc) ->
         true -> concat(<<"(">>, Doc, <<")">>);
         false -> Doc
     end.
+
+move_comments(Meta, Node) ->
+    {Pre, Post} = comments(Meta),
+    erlfmt_recomment:put_pre_comments(erlfmt_recomment:put_post_comments(Node, Post), Pre).
 
 combine_comments(Meta, Doc) ->
     {Pre, Post} = comments(Meta),
