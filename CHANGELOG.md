@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.5.0 (05.08.2020)
+
+### Enhancements
+  - new `--insert-pragma` CLI option adds the `@format` pragma to all the formatted
+    files that didn't have it before #75
+  - preserve empty lines in containers #83
+
+### Bug fixes
+  - correctly handle `.script` files like `rebar.config.script` #79
+  - `export_type` is formatted the same as `export` #86
+  - print type unions either all on single line or each type separated by
+    `|` on a separate line #84
+
 ## v0.4.2 (24.07.2020)
 
 ### Bug Fixes
