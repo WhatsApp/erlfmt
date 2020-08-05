@@ -15,7 +15,7 @@
 
 -include("erlfmt.hrl").
 
--export([recomment/2]).
+-export([recomment/2, put_pre_comments/2, put_post_comments/2]).
 
 -spec recomment(erlfmt_parse:abstract_node(), [erlfmt_scan:comment()]) ->
     erlfmt_parse:abstract_node().
@@ -243,11 +243,12 @@ put_post_comments(NodeOrMeta, []) ->
 put_post_comments(NodeOrMeta, Comments) ->
     Loc = erlfmt_scan:get_anno(end_location, NodeOrMeta),
     CommentLoc = erlfmt_scan:get_anno(end_location, lists:last(Comments)),
+    Existing = erlfmt_scan:get_anno(post_comments, NodeOrMeta, []),
     erlfmt_scan:merge_anno(
         #{
             end_location => max(Loc, CommentLoc),
             inner_end_location => Loc,
-            post_comments => Comments
+            post_comments => Existing ++ Comments
         },
         NodeOrMeta
     ).
@@ -257,11 +258,12 @@ put_pre_comments(NodeOrMeta, []) ->
 put_pre_comments(NodeOrMeta, Comments) ->
     Loc = erlfmt_scan:get_anno(location, NodeOrMeta),
     CommentLoc = erlfmt_scan:get_anno(location, hd(Comments)),
+    Existing = erlfmt_scan:get_anno(pre_comments, NodeOrMeta, []),
     erlfmt_scan:merge_anno(
         #{
             location => min(Loc, CommentLoc),
             inner_location => Loc,
-            pre_comments => Comments
+            pre_comments => Comments ++ Existing
         },
         NodeOrMeta
     ).
