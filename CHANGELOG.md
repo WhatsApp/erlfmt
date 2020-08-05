@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.5.1 (05.08.2020)
+
+### Bug fixes
+  - correctly handle type unions inside of multiline containers (such as specs) #90
+
 ## v0.5.0 (05.08.2020)
 
 ### Enhancements
