@@ -10,6 +10,7 @@ This style guide represents guidelines for writing good Erlang code according
 to the authors of erlfmt. It consists of two sections:
   * Linting - with guidelines about code content that are considered good
     practice and need to be applied manually
+    (or using [`rebar3_lint`](https://hex.pm/packages/rebar3_lint) / [`elvis`](https://github.com/inaka/elvis))
   * Formatting - with guidelines about code layout that can be applied
     automatically by using `erlfmt`
 
@@ -31,6 +32,10 @@ _File
 StoredID
 StoredId
 ```
+[Related `elvis` configuration](https://github.com/inaka/elvis_core/wiki/Rules#variable-naming-convention):
+  ```erlang
+  {elvis_style, variable_naming_convention, #{regex => "^([A-Z][0-9a-zA-Z]*)$"}}
+  ```
 
 * Use `snake_case` for functions, attributes, and atoms
 ```erlang
@@ -45,6 +50,11 @@ error
 bad_return
 read_file
 ```
+[Related `elvis` configuration](https://github.com/inaka/elvis_core/wiki/Rules#module-naming-convention):
+  ```erlang
+  {elvis_style, module_naming_convention, #{regex => "^([a-z][a-z0-9]*_?)*(_SUITE)?$"}},
+  {elvis_style, function_naming_convention, #{regex => "^([a-z]*_?)*$"}}
+  ```
 
 * Use `SCREAMING_SNAKE_CASE` for macro definitions
 ```erlang
@@ -59,6 +69,10 @@ read_file
 -define(SOME_MACRO(), hidden:call()).
 -define(ANOTHER_MACRO, "another macro").
 ```
+[Related `elvis` configuration](https://github.com/inaka/elvis_core/wiki/Rules#macro-names):
+  ```erlang
+  {elvis_style, macro_names}
+  ```
 
 * Omit `()` in macro names only if they represent constants
 ```erlang
@@ -97,12 +111,20 @@ validate_all([Key | Keys]) ->
     validate(Key),
     validate_all(Keys).
 ```
+[Related `elvis` configuration](https://github.com/inaka/elvis_core/wiki/Rules#variable-naming-convention):
+  ```erlang
+  {elvis_style, variable_naming_convention, #{regex => "^[A-Z][a-zA-Z]([0-9a-zA-Z]+)$"}}
+  ```
 
 * Use `snake_case` for naming applications and modules
 ```
 %% Good
 myapp/src/task_server.erl
 ```
+[Related `elvis` configuration](https://github.com/inaka/elvis_core/wiki/Rules#module-naming-convention):
+  ```erlang
+  {elvis_style, module_naming_convention, #{regex => "^([a-z][a-z0-9]*_?)*(_SUITE)?$"}}
+  ```
 
 ### Booleans
 
