@@ -588,6 +588,31 @@ list(Config) when is_list(Config) ->
         "\n"
         "    3\n"
         "]\n"
+    ),
+    ?assertFormat(
+        "gen_part_decode_funcs({constructed,bif}, TypeName, {_Name,parts,Tag,_Type}) ->\n"
+        "   emit([\n"
+        "       [\"  case Data of\",nl],\n"
+        "       [\"    L when is_list(L) ->\",nl],\n"
+        "       [\"      'dec_\",TypeName,\"'(lists:map(fun(X) -> element(1, \"],\n"
+        "       [{call,ber,ber_decode_erlang,[\"X\"]},\") end, L),\",{asis,Tag},\");\",nl],\n"
+        "       [\"    _ ->\",nl],\n"
+        "       [\"      [Res] = 'dec_\",TypeName,\"'([Data],\",{asis,Tag},\"),\",nl],\n"
+        "       [\"      Res\",nl],\n"
+        "       [\"  end\"]\n"
+        "   ]).\n",
+        "gen_part_decode_funcs({constructed, bif}, TypeName, {_Name, parts, Tag, _Type}) ->\n"
+        "    emit([\n"
+        "        [\"  case Data of\", nl],\n"
+        "        [\"    L when is_list(L) ->\", nl],\n"
+        "        [\"      'dec_\", TypeName, \"'(lists:map(fun(X) -> element(1, \"],\n"
+        "        [{call, ber, ber_decode_erlang, [\"X\"]}, \") end, L),\", {asis, Tag}, \");\", nl],\n"
+        "        [\"    _ ->\", nl],\n"
+        "        [\"      [Res] = 'dec_\", TypeName, \"'([Data],\", {asis, Tag}, \"),\", nl],\n"
+        "        [\"      Res\", nl],\n"
+        "        [\"  end\"]\n"
+        "    ]).\n",
+        92
     ).
 
 binary(Config) when is_list(Config) ->
