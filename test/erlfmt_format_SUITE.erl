@@ -1539,6 +1539,18 @@ receive_expression(Config) when is_list(Config) ->
         "    % foo\n"
         "    _ -> ok\n"
         "end\n"
+    ),
+    ?assertFormat(
+        "receive\n"
+        "    1 -> one; % one\n"
+        "    2 -> two % two\n"
+        "end\n",
+        "receive\n"
+        "    % one\n"
+        "    1 -> one;\n"
+        "    % two\n"
+        "    2 -> two\n"
+        "end\n"
     ).
 
 try_expression(Config) when is_list(Config) ->

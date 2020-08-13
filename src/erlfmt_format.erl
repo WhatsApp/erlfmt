@@ -205,10 +205,6 @@ do_expr_to_algebra({spec, _Meta, Name, [SingleClause]}) ->
     single_clause_spec_to_algebra(Name, SingleClause);
 do_expr_to_algebra({spec, _Meta, Name, Clauses}) ->
     group(nest(line(expr_to_algebra(Name), clauses_to_algebra(Clauses)), ?INDENT));
-do_expr_to_algebra({Clause, _, _, _, _} = Expr) when
-    Clause =:= clause; Clause =:= spec_clause
-->
-    clause_to_algebra(Expr);
 do_expr_to_algebra({'...', _Meta}) ->
     <<"...">>;
 do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
@@ -554,7 +550,7 @@ fun_to_algebra({function, _Anno, Mod, Name, Arity}) ->
         expr_to_algebra(Arity)
     ]);
 fun_to_algebra({clauses, _Anno, [Clause]}) ->
-    ClauseD = concat(maybe_force_breaks(clause_has_break(Clause)), expr_to_algebra(Clause)),
+    ClauseD = concat(maybe_force_breaks(clause_has_break(Clause)), clause_expr_to_algebra(Clause)),
     case Clause of
         {clause, _, {args, _, _}, _, _} -> group(break(concat(<<"fun">>, ClauseD), <<"end">>));
         _ -> group(break(space(<<"fun">>, ClauseD), <<"end">>))
@@ -571,32 +567,16 @@ fun_to_algebra({type, Meta, Args, Result}) ->
         group(break(nest(Body, ?INDENT, break), <<"">>, <<")">>))
     end).
 
-clauses_to_algebra([Clause]) when is_tuple(Clause) ->
-    HasBreak = clause_has_break(Clause),
-    case HasBreak of
-        true -> clauses_to_algebra_([Clause]);
-        false ->
-            %% This is a special case for a single clause,
-            %% with none of its own breaks.
-            %% We want to keep it in a single line,
-            %% even if it has comments that would usually force breaks using:
-            %% `group(Doc)`
-            Meta = element(2, Clause),
-            Doc = do_expr_to_algebra(Clause),
-            combine_comments(Meta, maybe_wrap_in_parens(Meta, group(Doc)))
-    end;
-clauses_to_algebra(Clauses) ->
-    clauses_to_algebra_(Clauses).
-
-clauses_to_algebra_([Clause | _] = Clauses) ->
+clauses_to_algebra([Clause | _] = Clauses) ->
     ClausesD = fold_clauses_to_algebra(Clauses),
     HasBreak = clause_has_break(Clause),
     group(concat(maybe_force_breaks(HasBreak), ClausesD)).
 
 fold_clauses_to_algebra([Clause]) ->
-    expr_to_algebra(Clause);
+    clause_expr_to_algebra(Clause);
 fold_clauses_to_algebra([Clause | Clauses]) ->
-    line(concat(expr_to_algebra(Clause), <<";">>), fold_clauses_to_algebra(Clauses)).
+    ClauseD = clause_expr_to_algebra(Clause),
+    line(concat(ClauseD, <<";">>), fold_clauses_to_algebra(Clauses)).
 
 clause_has_break({clause, _Meta, empty, Guards, [Body | _]}) ->
     has_break_between(Guards, Body);
@@ -606,6 +586,14 @@ clause_has_break({spec_clause, _Meta, Head, [Body], _Guards}) ->
     has_break_between(Head, Body);
 clause_has_break({macro_call, _Meta, _Name, _Args}) ->
     false.
+
+clause_expr_to_algebra({macro_call, Meta, _, _} = Expr) ->
+    ExprD = do_expr_to_algebra(Expr),
+    combine_comments_no_force(Meta, ExprD);
+clause_expr_to_algebra(Clause) ->
+    Meta = element(2, Clause),
+    ClauseD = clause_to_algebra(Clause),
+    combine_comments_no_force(Meta, ClauseD).
 
 clause_to_algebra({clause, _Meta, Head, empty, Body}) ->
     HeadD = expr_to_algebra(Head),
@@ -729,9 +717,14 @@ move_comments(Meta, Node) ->
     {Pre, Post} = comments(Meta),
     erlfmt_recomment:put_pre_comments(erlfmt_recomment:put_post_comments(Node, Post), Pre).
 
-combine_comments(Meta, Doc) ->
+combine_comments_no_force(Meta, Doc) ->
     {Pre, Post} = comments(Meta),
     combine_post_comments(Post, Meta, combine_pre_comments(Pre, Meta, Doc)).
+
+combine_comments(Meta, Doc) ->
+    {Pre, Post} = comments(Meta),
+    CombinedD = combine_post_comments(Post, Meta, combine_pre_comments(Pre, Meta, Doc)),
+    concat(maybe_force_breaks(Pre =/= [] orelse Post =/= []), CombinedD).
 
 combine_pre_comments([], _Meta, Doc) ->
     Doc;
@@ -740,16 +733,16 @@ combine_pre_comments(Comments, Meta, Doc) ->
         erlfmt_scan:get_end_line(lists:last(Comments)) + 1 <
             erlfmt_scan:get_inner_line(Meta)
     of
-        true -> concat([force_breaks(), comments_to_algebra(Comments), line(2), Doc]);
-        false -> concat([force_breaks(), comments_to_algebra(Comments), line(), Doc])
+        true -> concat(comments_to_algebra(Comments), line(2), Doc);
+        false -> concat(comments_to_algebra(Comments), line(), Doc)
     end.
 
 combine_post_comments([], _Meta, Doc) ->
     Doc;
 combine_post_comments([Comment | _] = Comments, Meta, Doc) ->
     case erlfmt_scan:get_inner_end_line(Meta) + 1 < erlfmt_scan:get_line(Comment) of
-        true -> concat([force_breaks(), Doc, line(2), comments_to_algebra(Comments)]);
-        false -> concat([force_breaks(), Doc, line(), comments_to_algebra(Comments)])
+        true -> concat(Doc, line(2), comments_to_algebra(Comments));
+        false -> concat(Doc, line(), comments_to_algebra(Comments))
     end.
 
 comments_to_algebra(Comments) ->
