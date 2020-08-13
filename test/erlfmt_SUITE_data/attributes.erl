@@ -33,3 +33,23 @@
 foo() -> ?FOO.
 
 bar() -> ?BAR.
+
+% no empty lines around "if"-like attributes
+-ifndef(TEST).
+-define(THISISPROD, true).
+-define(OTHER, foo).
+-else.
+-define(THISISPROD, false).
+-endif.
+
+% with empty lines around "if"-like attributes
+-ifndef(TEST).
+
+-define(THISISPROD, true).
+-define(OTHER, foo).
+
+-else.
+
+-define(THISISPROD, false).
+
+-endif.

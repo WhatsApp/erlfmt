@@ -1899,6 +1899,48 @@ exportimport(Config) when is_list(Config) ->
         "    c/1,\n"
         "    c/2\n"
         "]).\n"
+    ),
+    %% preserves empty line after if, ifdef, ifndef, else
+    ?assertSame(
+        "-if(true).\n"
+        "ok() -> ok.\n"
+        "\n"
+        "-if(true).\n"
+        "\n"
+        "ok() -> ok.\n"
+    ),
+    ?assertSame(
+        "-ifdef(FOO).\n"
+        "ok() -> ok.\n"
+        "\n"
+        "-ifdef(FOO).\n"
+        "\n"
+        "ok() -> ok.\n"
+    ),
+    ?assertSame(
+        "-ifndef(FOO).\n"
+        "ok() -> ok.\n"
+        "\n"
+        "-ifndef(FOO).\n"
+        "\n"
+        "ok() -> ok.\n"
+    ),
+    %% preserves empty line before else, endif
+    ?assertSame(
+        "ok() -> ok.\n"
+        "-else.\n"
+        "\n"
+        "ok() -> ok.\n"
+        "\n"
+        "-else.\n"
+    ),
+    ?assertSame(
+        "ok() -> ok.\n"
+        "-endif.\n"
+        "\n"
+        "ok() -> ok.\n"
+        "\n"
+        "-endif.\n"
     ).
 
 record_definition(Config) when is_list(Config) ->
