@@ -209,6 +209,10 @@ do_expr_to_algebra({'...', _Meta}) ->
     <<"...">>;
 do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
     concat(expr_to_algebra(Left), <<"*">>, expr_to_algebra(Right));
+do_expr_to_algebra({Clause, _, _, _, _} = Expr) when
+    Clause =:= clause; Clause =:= spec_clause
+->
+    clause_to_algebra(Expr);
 do_expr_to_algebra({guard_or, _Meta, Guards}) ->
     guard_to_algebra(Guards, <<";">>);
 do_expr_to_algebra({guard_and, _Meta, Guards}) ->
