@@ -55,7 +55,7 @@ do(Opts, Name) ->
 do_unprotected(Opts, Name) ->
     case parse_opts(Opts, Name, [], #config{}) of
         {format, Files, Config} ->
-            case format_files(Files, Config, _HadErrors = false) of
+            case parallel(fun (File) -> format_file(File, Config) end, Files) of
                 true -> erlang:halt(4);
                 false -> ok
             end;
@@ -65,7 +65,7 @@ do_unprotected(Opts, Name) ->
             erlang:halt(2)
     end.
 
-format_files([FileName | FileNames], Config, HadErrors) ->
+format_file(FileName, Config) ->
     case Config#config.verbose of
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
         false -> ok
@@ -74,18 +74,16 @@ format_files([FileName | FileNames], Config, HadErrors) ->
     case erlfmt:format_file(FileName, Config#config.out, Options) of
         {ok, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
-            format_files(FileNames, Config, HadErrors);
+            false;
         skip when Config#config.verbose ->
             io:format(standard_error, "Skipping ~s because of missing @format pragma\n", [FileName]),
-            format_files(FileNames, Config, HadErrors);
+            false;
         skip ->
-            format_files(FileNames, Config, HadErrors);
+            false;
         {error, Error} ->
             print_error_info(Error),
-            format_files(FileNames, Config, true)
-    end;
-format_files([], _Config, HadErrors) ->
-    HadErrors.
+            true
+    end.
 
 parse_opts([help | _Rest], Name, _Files, _Config) ->
     getopt:usage(opts(), Name),
@@ -144,3 +142,21 @@ expand_files(NewFiles, Files) when is_list(NewFiles) ->
 
 print_error_info(Info) ->
     io:put_chars(standard_error, [erlfmt:format_error_info(Info), $\n]).
+
+parallel(Fun, List) ->
+    N = erlang:system_info(schedulers) * 2,
+    parallel_loop(Fun, List, N, [], _HadErrors = false).
+
+parallel_loop(_, [], _, [], HadErrors) ->
+    HadErrors;
+parallel_loop(Fun, [Elem | Rest], N, Refs, HadErrors) when length(Refs) < N ->
+    {_, Ref} = erlang:spawn_monitor(fun() -> exit(Fun(Elem)) end),
+    parallel_loop(Fun, Rest, N, [Ref | Refs], HadErrors);
+parallel_loop(Fun, List, N, Refs0, HadErrors) ->
+    receive
+        {'DOWN', Ref, process, _, Bool} when is_boolean(Bool) ->
+            Refs = Refs0 -- [Ref],
+            parallel_loop(Fun, List, N, Refs, HadErrors orelse Bool);
+        {'DOWN', _Ref, process, _, Crash} ->
+            exit(Crash)
+    end.
