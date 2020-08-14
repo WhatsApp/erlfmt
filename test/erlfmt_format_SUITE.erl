@@ -2136,7 +2136,13 @@ define(Config) when is_list(Config) ->
     ?assertSame("-define(FOO, #foo).\n"),
     ?assertSame("-define(parens, ()).\n"),
     ?assertSame("-define(record(N), #N{}).\n"),
-    ?assertSame("-define(TIMEOUT_TYPE, 0..?MAX_INT_TIMEOUT | 'infinity').\n").
+    ?assertSame("-define(TIMEOUT_TYPE, 0..?MAX_INT_TIMEOUT | 'infinity').\n"),
+    ?assertSame(
+        "-define(DEFAULT(Name),\n"
+        "    Name(X) ->\n"
+        "        X\n"
+        ").\n"
+    ).
 
 type(Config) when is_list(Config) ->
     ?assertSame(
