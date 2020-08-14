@@ -107,9 +107,7 @@ contains_pragma_node(Node) ->
     lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments).
 
 contains_pragma_comment({comment, _Loc, Comments}) ->
-    string:find(Comments, "@format") =/= nomatch;
-contains_pragma_comment(_) ->
-    false.
+    string:find(Comments, "@format") =/= nomatch.
 
 %% insert_pragma_nodes only inserts an @format comment,
 %% if one has not already been inserted.
@@ -205,7 +203,7 @@ read_nodes_string(FileName, String, Pragma) ->
 read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma) ->
     read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma, [], [], []).
 read_nodes({ok, Tokens, Comments, Cont}, FileName, require, NodeAcc, Warnings0, TextAcc) ->
-    {Node, Warnings} = parse_nodes(Tokens, Comments, FileName, Cont, Warnings0),
+    {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
     case Node of
         {shebang, _, _} ->
             {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
@@ -240,25 +238,37 @@ read_nodes(Other, FileName, _Pragma, NodeAcc, Warnings, _TextAcc) ->
     read_nodes_loop(Other, FileName, NodeAcc, Warnings).
 
 read_nodes_loop({ok, Tokens, Comments, Cont}, FileName, Acc, Warnings0) ->
-    {Node, Warnings} = parse_nodes(Tokens, Comments, FileName, Cont, Warnings0),
+    {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
     read_nodes_loop(erlfmt_scan:continue(Cont), FileName, [Node | Acc], Warnings);
 read_nodes_loop({eof, _Loc}, _FileName, Acc, Warnings) ->
     {ok, lists:reverse(Acc), lists:reverse(Warnings)};
 read_nodes_loop({error, {ErrLoc, Mod, Reason}, _Loc}, FileName, _Acc, _Warnings) ->
     throw({error, {FileName, ErrLoc, Mod, Reason}}).
 
-parse_nodes([], _Comments, _FileName, Cont, Warnings) ->
+parse_node([], _Comments, _FileName, Cont, Warnings) ->
     {node_string(Cont), Warnings};
-parse_nodes([{shebang, Meta, String}], [], _FileName, _Cont, Warnings) ->
+parse_node([{shebang, Meta, String}], [], _FileName, _Cont, Warnings) ->
     {{shebang, Meta, String}, Warnings};
-parse_nodes(Tokens, Comments, FileName, Cont, Warnings) ->
-    case erlfmt_parse:parse_node(Tokens) of
-        {ok, Node} ->
-            {erlfmt_recomment:recomment(Node, Comments), Warnings};
-        {error, {ErrLoc, Mod, Reason}} ->
-            Warning = {FileName, ErrLoc, Mod, Reason},
-            {node_string(Cont), [Warning | Warnings]}
+parse_node([Token | _] = Tokens, Comments, FileName, Cont, Warnings) ->
+    {PreComments, _} = erlfmt_recomment:take_comments(erlfmt_scan:get_line(Token), Comments),
+    case lists:any(fun contains_ignore_comment/1, PreComments) of
+        false ->
+            case erlfmt_parse:parse_node(Tokens) of
+                {ok, Node} ->
+                    {erlfmt_recomment:recomment(Node, Comments), Warnings};
+                {error, {ErrLoc, Mod, Reason}} ->
+                    Warning = {FileName, ErrLoc, Mod, Reason},
+                    {node_string(Cont), [Warning | Warnings]}
+            end;
+        true ->
+            {node_string(Cont), Warnings}
     end.
+
+contains_ignore_comment({comment, _Loc, Comments}) ->
+    lists:any(
+        fun (Comment) -> string:trim(Comment, both, "% ") == "erlfmt-ignore" end,
+        Comments
+    ).
 
 node_string(Cont) ->
     {String, Anno} = erlfmt_scan:last_node_string(Cont),
