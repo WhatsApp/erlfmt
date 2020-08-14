@@ -15,7 +15,7 @@
 
 -include("erlfmt.hrl").
 
--export([recomment/2, put_pre_comments/2, put_post_comments/2]).
+-export([recomment/2, put_pre_comments/2, put_post_comments/2, take_comments/2]).
 
 -spec recomment(erlfmt_parse:abstract_node(), [erlfmt_scan:comment()]) ->
     erlfmt_parse:abstract_node().
