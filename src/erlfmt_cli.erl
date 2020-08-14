@@ -17,6 +17,7 @@
 
 -record(config, {
     verbose = false :: boolean(),
+    width = 92 :: pos_integer(),
     pragma = ignore :: erlfmt:pragma(),
     out = standard_out :: erlfmt:out()
 }).
@@ -29,6 +30,8 @@ opts() ->
         {write, $w, "write", undefined, "modify formatted files in place"},
         {out, $o, "out", binary, "output directory"},
         {verbose, undefined, "verbose", undefined, "include debug output"},
+        {print_width, undefined, "print-width", integer,
+            "The line length that formatter would wrap on"},
         {require_pragma, undefined, "require-pragma", undefined,
             "Require a special comment @format, called a pragma, "
             "to be present in the file's first docblock comment in order for prettier to format it."},
@@ -67,8 +70,8 @@ format_files([FileName | FileNames], Config, HadErrors) ->
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
         false -> ok
     end,
-    ErlfmtConfig = {Config#config.pragma, Config#config.out},
-    case erlfmt:format_file(FileName, ErlfmtConfig) of
+    Options = [{width, Config#config.width}, {pragma, Config#config.pragma}],
+    case erlfmt:format_file(FileName, Config#config.out, Options) of
         {ok, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
             format_files(FileNames, Config, HadErrors);
@@ -97,6 +100,8 @@ parse_opts([{out, Path} | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{out = {path, Path}});
 parse_opts([verbose | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{verbose = true});
+parse_opts([{print_width, Value} | Rest], Name, Files, Config) ->
+    parse_opts(Rest, Name, Files, Config#config{width = Value});
 parse_opts([require_pragma | _Rest], _Name, _Files, #config{pragma = insert}) ->
     {error, "Cannot use both --insert-pragma and --require-pragma options together."};
 parse_opts([require_pragma | Rest], Name, Files, Config) ->

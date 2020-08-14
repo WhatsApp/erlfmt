@@ -11,6 +11,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
+
 -define(IS_ATOMIC(Kind),
     Kind =:= integer orelse
         Kind =:= float orelse
@@ -18,12 +19,4 @@
         Kind =:= atom orelse
         Kind =:= string orelse
         Kind =:= var
-).
-
--define(IS_COLLECTION(Kind),
-    Kind =:= map orelse
-        Kind =:= list orelse
-        Kind =:= tuple orelse
-        Kind =:= bin orelse
-        Kind =:= block
 ).

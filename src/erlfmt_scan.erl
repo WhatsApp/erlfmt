@@ -13,7 +13,7 @@
 %% limitations under the License.
 -module(erlfmt_scan).
 
--include("erlfmt.hrl").
+-include("erlfmt_scan.hrl").
 
 -export([io_node/1, string_node/1, continue/1, last_node_string/1]).
 -export([

@@ -13,9 +13,17 @@
 %% limitations under the License.
 -module(erlfmt_recomment).
 
--include("erlfmt.hrl").
+-include("erlfmt_scan.hrl").
 
 -export([recomment/2, put_pre_comments/2, put_post_comments/2, take_comments/2]).
+
+-define(IS_COLLECTION(Kind),
+    Kind =:= map orelse
+        Kind =:= list orelse
+        Kind =:= tuple orelse
+        Kind =:= bin orelse
+        Kind =:= block
+).
 
 -spec recomment(erlfmt_parse:abstract_node(), [erlfmt_scan:comment()]) ->
     erlfmt_parse:abstract_node().

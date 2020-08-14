@@ -13,7 +13,7 @@
 %% limitations under the License.
 -module(erlfmt_format).
 
--include("erlfmt.hrl").
+-include("erlfmt_scan.hrl").
 
 -export([to_algebra/1, comments/1]).
 

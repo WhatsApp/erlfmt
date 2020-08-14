@@ -1023,7 +1023,7 @@ snapshot_same(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     PrivDir = ?config(priv_dir, Config),
     Pragma = proplists:get_value(pragma, Config, ignore),
-    case erlfmt:format_file(filename:join(DataDir, Module), {Pragma, {path, PrivDir}}) of
+    case erlfmt:format_file(filename:join(DataDir, Module), {path, PrivDir}, [{pragma, Pragma}]) of
         {ok, _} -> ok;
         skip -> ok;
         Other -> ct:fail("unexpected: ~p~n", [Other])
@@ -1036,16 +1036,10 @@ snapshot_formatted(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     PrivDir = ?config(priv_dir, Config),
     {ok, Expected} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
-    {ok, _} = erlfmt:format_file(
-        filename:join([DataDir, Module]),
-        {ignore, {path, PrivDir}}
-    ),
+    {ok, _} = erlfmt:format_file(filename:join([DataDir, Module]), {path, PrivDir}, []),
     {ok, Formatted} = file:read_file(filename:join([PrivDir, Module])),
     ?assertEqual(Expected, Formatted),
-    {ok, _} = erlfmt:format_file(
-        filename:join([DataDir, Module ++ ".formatted"]),
-        {ignore, {path, PrivDir}}
-    ),
+    {ok, _} = erlfmt:format_file(filename:join([DataDir, Module ++ ".formatted"]), {path, PrivDir}, []),
     {ok, FormattedFormatted} =
         file:read_file(filename:join([PrivDir, Module ++ ".formatted"])),
     ?assertEqual(Expected, FormattedFormatted).
@@ -1062,7 +1056,7 @@ broken_range(Config) ->
 format_range(Config, File) ->
     DataDir = ?config(data_dir, Config),
     Path = DataDir ++ File,
-    case erlfmt:format_range(Path, {3, 45}, {47, 1}) of
+    case erlfmt:format_range(Path, {3, 45}, {47, 1}, []) of
         {ok, _Output, _} -> ok;
         {options, Options} -> range_format_exact(Options, Path)
     end.
@@ -1070,7 +1064,7 @@ format_range(Config, File) ->
 range_format_exact([], _Path) ->
     ok;
 range_format_exact([{Start, End} | Options], Path) ->
-    {ok, _Output, _} = erlfmt:format_range(Path, Start, End),
+    {ok, _Output, _} = erlfmt:format_range(Path, Start, End, []),
     range_format_exact(Options, Path).
 
 contains_pragma(Config) when is_list(Config) ->
@@ -1269,10 +1263,10 @@ insert_pragma(Config) when is_list(Config) ->
     ).
 
 contains_pragma_string(String) ->
-    skip =/= erlfmt:format_string(String, 80, require).
+    skip =/= erlfmt:format_string(String, [{pragma, require}]).
 
 insert_pragma_string(String) ->
-    {ok, StringWithPragma, []} = erlfmt:format_string(String, 80, insert),
+    {ok, StringWithPragma, []} = erlfmt:format_string(String, [{pragma, insert}]),
     %% check that insert_pragma_nodes doesn't insert a pragma, when one has already been inserted.
-    ?assertEqual({ok, StringWithPragma, []}, erlfmt:format_string(StringWithPragma, 80, insert)),
+    ?assertEqual({ok, StringWithPragma, []}, erlfmt:format_string(StringWithPragma, [{pragma, insert}])),
     StringWithPragma.

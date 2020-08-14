@@ -153,5 +153,5 @@ strip_good_bad("%% Bad\n" ++ Rest) -> Rest;
 strip_good_bad(Rest) -> Rest.
 
 check_fmt(Unformatted, Expected) ->
-    {ok, Got, []} = erlfmt:format_string(Unformatted, 80, ignore),
+    {ok, Got, []} = erlfmt:format_string(Unformatted, []),
     ?assertEqual(string:trim(Expected), string:trim(Got)).

@@ -17,23 +17,21 @@
 -export([
     main/1,
     init/1,
-    format_file/2,
-    format_string/3,
-    format_range/3,
+    format_file/3,
+    format_string/2,
+    format_range/4,
     read_nodes/1,
     read_nodes_string/2,
     format_error/1,
     format_error_info/1
 ]).
 
--export_type([error_info/0, out/0, config/0]).
+-export_type([error_info/0, out/0, config/0, pragma/0]).
 
 -type error_info() :: {file:name_all(), erl_anno:location(), module(), Reason :: any()}.
 -type out() :: standard_out | {path, file:name_all()} | replace.
 -type pragma() :: require | insert | ignore.
--type config() :: {Pragma :: pragma(), Out :: out()}.
-
--define(PAGE_WIDTH, 92).
+-type config() :: [{pragma, pragma()} | {width, pos_integer()}].
 
 %% escript entry point
 -spec main([string()]) -> no_return().
@@ -58,9 +56,11 @@ init(State) ->
     rebar3_fmt_prv:init(State).
 
 %% API entry point
--spec format_file(file:name_all() | stdin, config()) ->
+-spec format_file(file:name_all() | stdin, out(), config()) ->
     {ok, [error_info()]} | skip | {error, error_info()}.
-format_file(FileName, {Pragma, Out}) ->
+format_file(FileName, Out, Options) ->
+    Width = proplists:get_value(width, Options, 92),
+    Pragma = proplists:get_value(pragma, Options, ignore),
     try
         case file_read_nodes(FileName, Pragma) of
             {ok, Nodes, Warnings} ->
@@ -69,7 +69,7 @@ format_file(FileName, {Pragma, Out}) ->
                         insert -> insert_pragma_nodes(Nodes);
                         _ -> Nodes
                     end,
-                [$\n | Formatted] = format_nodes(NodesWithPragma, ?PAGE_WIDTH),
+                [$\n | Formatted] = format_nodes(NodesWithPragma, Width),
                 verify_nodes(FileName, NodesWithPragma, Formatted),
                 write_formatted(FileName, Formatted, Out),
                 {ok, Warnings};
@@ -81,9 +81,11 @@ format_file(FileName, {Pragma, Out}) ->
         {error, Error} -> {error, Error}
     end.
 
--spec format_string(string(), integer(), pragma()) ->
+-spec format_string(string(), config()) ->
     {ok, string(), [error_info()]} | skip | {error, error_info()}.
-format_string(String, PageWidth, Pragma) ->
+format_string(String, Options) ->
+    Width = proplists:get_value(width, Options, 92),
+    Pragma = proplists:get_value(pragma, Options, ignore),
     try
         case read_nodes_string("nofile", String, Pragma) of
             {ok, Nodes, Warnings} ->
@@ -92,7 +94,7 @@ format_string(String, PageWidth, Pragma) ->
                         insert -> insert_pragma_nodes(Nodes);
                         _ -> Nodes
                     end,
-                [$\n | Formatted] = format_nodes(NodesWithPragma, PageWidth),
+                [$\n | Formatted] = format_nodes(NodesWithPragma, Width),
                 verify_nodes("nofile", NodesWithPragma, Formatted),
                 {ok, unicode:characters_to_list(Formatted), Warnings};
             {skip, _} ->
@@ -142,21 +144,23 @@ insert_pragma_node(Node) ->
 -spec format_range(
     file:name_all(),
     erlfmt_scan:location(),
-    erlfmt_scan:location()
+    erlfmt_scan:location(),
+    [{width, pos_integer()}]
 ) ->
     {ok, string(), [error_info()]} |
     {error, error_info()} |
     {options, [{erlfmt_scan:location(), erlfmt_scan:location()}]}.
-format_range(FileName, StartLocation, EndLocation) ->
+format_range(FileName, StartLocation, EndLocation, Options) ->
+    Width = proplists:get_value(width, Options, 92),
     try
         {ok, Nodes, Warnings} = file_read_nodes(FileName, ignore),
         case verify_ranges(Nodes, StartLocation, EndLocation) of
             {ok, NodesInRange} ->
-                [$\n | Result] = format_nodes(NodesInRange, ?PAGE_WIDTH),
+                [$\n | Result] = format_nodes(NodesInRange, Width),
                 verify_nodes(FileName, NodesInRange, Result),
                 {ok, unicode:characters_to_binary(Result), Warnings};
-            {options, Options} ->
-                {options, Options}
+            {options, PossibleRanges} ->
+                {options, PossibleRanges}
         end
     catch
         {error, Error} -> {error, Error}
