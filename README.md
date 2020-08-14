@@ -133,7 +133,7 @@ similar, all follow the same "container" rules.
 Finally, the formatter should be idempotent. Formatting the code once should
 produce the same output as formatting it multiple times.
 
-### Manual interventions
+## Manual interventions
 
 In some cases, the formatter rules might lead to code that looks decent, but
 not perfect. Therefore some manual intervention to help the formatter out might
@@ -191,14 +191,14 @@ change the AST of your program. After running the formatter, especially if
 running it for the first time on a sizeable codebase, it's recommended to
 inspect the code manually to correct similar sub-par layouts.
 
-### Respecting original format
+## Respecting original format
 
 The formatter keeps the original decisions in two key places
 
   * when choosing between a "collapsed" and an "expanded" layout for containers
   * when choosing between single-line and multi-line clauses.
 
-#### In containers
+### In containers
 
 For containers like lists, tuples, maps, records, function calls, macro calls,
 etc, there are two possible layouts - "collapsed" where the entire collection
@@ -237,7 +237,7 @@ Foo, Bar]
 
 and re-running the formatter, will produce the initial format again.
 
-#### In clauses
+### In clauses
 
 A similar approach is followed, when laying our clause sequences in functions,
 case expressions, receives, etc. The main choice there is simple - should
@@ -288,6 +288,26 @@ end
 ```
 
 which after re-formatting will result in the original layout again.
+
+## Ignoring Formatting
+
+We found that mostly it is possible to format erlang code in an at least somewhat acceptable way, but exceptions do occur.
+We have introduced the `erlfmt-ignore` comment, which when placed before a top-level expression, will indicate to `erlfmt` to skip over that expression, leave it as is and move on to the next expression.
+
+```erlang formatted matrix
+%% erlfmt-ignore
+-define(DELTA_MATRIX, [
+    [0,   0,   0,   0,   0,   0],
+    [0, -16,   0,   0,   0,   0],
+    [0,   0,  15,   0,   0,   0],
+    [0,   0,   0,   6,   0,   0],
+    [0, -16,   0,   0, -14,   0],
+    [0,   0,  15,   0,   0,   0]
+]).
+```
+
+**Only top-level expression are supported.**
+Nested expressions are not supported, for example expressions inside functions.
 
 ## Integrations
 
