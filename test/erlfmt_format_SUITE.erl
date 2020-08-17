@@ -414,6 +414,34 @@ binary_operator(Config) when is_list(Config) ->
         "    a := integer()\n"
         "}\n"
     ),
+    ?assertFormat(
+        "Foo =\n"
+        "   [\n"
+        "       1\n"
+        "   ]\n",
+        "Foo = [\n"
+        "    1\n"
+        "]\n"
+    ),
+    ?assertSame(
+        "f() ->\n"
+        "    {PreComments, InnerComments, PostComments} = split_comments(\n"
+        "        element(2, Expr0),\n"
+        "        Comments\n"
+        "    ).\n"
+    ),
+    ?assertSame(
+        "{function, _, [{clause, _, {call, _, _, [Pat]}, empty, [_]}]} =\n"
+        "    parse_form(\"f(\" ++ String ++ \") -> ok.\")\n"
+    ),
+    ?assertSame(
+        "[\n"
+        "    Foo\n"
+        "    || {Long, Pattern, YesVeryVeryLong, Pattern, EvenLonger, Longest} <-\n"
+        "           foo(1, 2)\n"
+        "]\n",
+        80
+    ),
 
     %% Keeps existing breaks
     ?assertSame(
@@ -2197,12 +2225,24 @@ type(Config) when is_list(Config) ->
         "        ]\n"
         "    ).\n"
     ),
-    ?assertSame(
+    ?assertFormat(
+        % "-type bar() :: fun(\n"
+        % "    (\n"
+        % "        %% foo\n"
+        % "        ...\n"
+        % "    ) -> float()\n"
+        % ").\n",
         "-type bar() :: fun((\n"
         "        %% foo\n"
         "        ...\n"
         "    ) -> float()\n"
-        ").\n"
+        ").\n",
+        "-type bar() ::\n"
+        "    fun((\n"
+        "            %% foo\n"
+        "            ...\n"
+        "        ) -> float()\n"
+        "    ).\n"
     ),
     ?assertFormat(
         "-type bar() :: fun((\n"

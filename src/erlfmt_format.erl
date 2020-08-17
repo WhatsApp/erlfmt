@@ -138,9 +138,9 @@ do_expr_to_algebra({map, Meta, Values}) ->
 do_expr_to_algebra({map, Meta, Expr, Values}) ->
     concat(expr_to_algebra(Expr), container(Meta, Values, <<"#{">>, <<"}">>));
 do_expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
-    field_to_algebra(<<" =>">>, Key, Value);
+    field_to_algebra(<<"=>">>, Key, Value);
 do_expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
-    field_to_algebra(<<" :=">>, Key, Value);
+    field_to_algebra(<<":=">>, Key, Value);
 do_expr_to_algebra({record, Meta, Name, Values}) ->
     concat(record_name_to_algebra(Meta, Name), container(Meta, Values, <<"{">>, <<"}">>));
 do_expr_to_algebra({record, Meta, Expr, Name, Values}) ->
@@ -150,7 +150,7 @@ do_expr_to_algebra({record, Meta, Expr, Name, Values}) ->
         container(Meta, Values, <<"{">>, <<"}">>)
     );
 do_expr_to_algebra({record_field, _Meta, Key, Value}) ->
-    field_to_algebra(<<" =">>, Key, Value);
+    field_to_algebra(<<"=">>, Key, Value);
 do_expr_to_algebra({record_index, Meta, Name, Key}) ->
     record_access_to_algebra(Meta, Name, Key);
 do_expr_to_algebra({record_field, _Meta, Name}) ->
@@ -164,9 +164,9 @@ do_expr_to_algebra({lc, _Meta, Expr, LcExprs}) ->
 do_expr_to_algebra({bc, _Meta, Expr, LcExprs}) ->
     comprehension_to_algebra(Expr, LcExprs, <<"<<">>, <<">>">>);
 do_expr_to_algebra({generate, _Meta, Left, Right}) ->
-    field_to_algebra(<<" <-">>, Left, Right);
+    field_to_algebra(<<"<-">>, Left, Right);
 do_expr_to_algebra({b_generate, _Meta, Left, Right}) ->
-    field_to_algebra(<<" <=">>, Left, Right);
+    field_to_algebra(<<"<=">>, Left, Right);
 do_expr_to_algebra({call, Meta, Name, Args}) ->
     concat(expr_to_algebra(Name), call(Meta, Args, <<"(">>, <<")">>));
 do_expr_to_algebra({macro_call, _Meta, Name, none}) ->
@@ -287,6 +287,11 @@ unary_needs_space({op, Meta, _, _}, _) ->
 unary_needs_space(_, _) ->
     false.
 
+field_to_algebra(Op, Left, Right) ->
+    LeftD = expr_to_algebra(Left),
+    RightD = expr_to_algebra(Right),
+    binary_op_to_algebra(Op, Left, Right, LeftD, RightD, ?INDENT).
+
 binary_op_to_algebra('..', _Meta, Left, Right) ->
     %% .. is special - non-assoc, no spaces around and never breaks
     concat(expr_to_algebra(Left), <<"..">>, expr_to_algebra(Right));
@@ -306,15 +311,28 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     OpD = string(atom_to_binary(Op, utf8)),
     LeftD = binary_operand_to_algebra(Op, Left, Indent),
     RightD = binary_operand_to_algebra(Op, Right, 0),
-    HasBreak = has_break_between(Left, Right),
-    IsNextBreakFits = is_next_break_fits_op(Op, Right) andalso not HasBreak,
-
     Doc =
-        with_next_break_fits(IsNextBreakFits, RightD, fun (R) ->
-            RightOpD = nest(break(concat(<<" ">>, OpD), group(R)), Indent, break),
-            concat(group(LeftD), group(concat(maybe_force_breaks(HasBreak), RightOpD)))
-        end),
+        case is_next_break_fits_op(Op) of
+            true -> binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent);
+            false -> breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent)
+        end,
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
+
+binary_op_to_algebra(Op, Left, Right, LeftD, RightD, Indent) ->
+    DontBreakCalls = is_call(Right) andalso not has_break_between(Left, Right),
+    case DontBreakCalls orelse is_next_break_fits(Right) of
+        true ->
+            with_next_break_fits(true, RightD, fun (R) ->
+                concat([group(LeftD), <<" ">>, Op, <<" ">>, group(R)])
+            end);
+        false ->
+            breakable_binary_op_to_algebra(Op, Left, Right, LeftD, RightD, Indent)
+    end.
+
+breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent) ->
+    HasBreak = has_break_between(Left, Right),
+    RightOpD = nest(break(concat(<<" ">>, OpD), group(RightD)), Indent, break),
+    concat(group(LeftD), group(concat(maybe_force_breaks(HasBreak), RightOpD))).
 
 union_to_algebra(Meta, Left, Right) ->
     Unions = [Left | collect_unions(Right)],
@@ -500,14 +518,6 @@ record_name_to_algebra(Meta, Name) ->
         true -> expr_to_algebra(Name);
         false -> concat(<<"#">>, expr_to_algebra(Name))
     end.
-
-field_to_algebra(Op, Key, Value) ->
-    KeyD = expr_to_algebra(Key),
-    ValueD = expr_to_algebra(Value),
-
-    with_next_break_fits(is_next_break_fits(Value, [call, macro_call]), ValueD, fun (V) ->
-        concat(group(KeyD), group(nest(break(Op, group(V)), ?INDENT, break)))
-    end).
 
 comprehension_to_algebra(Expr, LcExprs, Left, Right) ->
     ExprD = expr_to_algebra(Expr),
@@ -697,19 +707,25 @@ has_empty_line_between(Left, Right) ->
 has_inner_break(Outer, Inner) ->
     erlfmt_scan:get_inner_line(Outer) < erlfmt_scan:get_line(Inner).
 
-is_next_break_fits_op(Op, Expr) ->
-    lists:member(Op, ?NEXT_BREAK_FITS_OPS) andalso
-        is_next_break_fits(Expr, [call, macro_call]).
+is_next_break_fits_op(Op) ->
+    lists:member(Op, ?NEXT_BREAK_FITS_OPS).
 
-is_next_break_fits(Expr) -> is_next_break_fits(Expr, []).
+is_call({call, _, _, _}) -> true;
+is_call({macro_call, _, _, _}) -> true;
+is_call(_) -> false.
 
-is_next_break_fits(Expr, Extra) ->
-    lists:member(element(1, Expr), Extra ++ ?NEXT_BREAK_FITS) andalso
+is_next_break_fits(Expr) ->
+    lists:member(element(1, Expr), ?NEXT_BREAK_FITS) andalso
+        not_fun_type(Expr) andalso
         has_no_comments_or_parens(Expr).
 
 has_no_comments_or_parens(Meta) ->
     {Pre, Post} = comments(Meta),
     Pre =:= [] andalso Post =:= [] andalso not erlfmt_scan:get_anno(parens, Meta, false).
+
+not_fun_type({'fun', _, type}) -> false;
+not_fun_type({'fun', _, {type, _, _, _}}) -> false;
+not_fun_type(_) -> true.
 
 maybe_wrap_in_parens(Meta, Doc) ->
     case erlfmt_scan:get_anno(parens, Meta, false) of
