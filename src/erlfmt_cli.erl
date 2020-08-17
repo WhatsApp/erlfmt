@@ -17,7 +17,7 @@
 
 -record(config, {
     verbose = false :: boolean(),
-    width = 92 :: pos_integer(),
+    width = undefined :: undefined | pos_integer(),
     pragma = ignore :: erlfmt:pragma(),
     out = standard_out :: erlfmt:out()
 }).
@@ -66,16 +66,17 @@ do_unprotected(Opts, Name) ->
     end.
 
 format_file(FileName, Config) ->
-    case Config#config.verbose of
+    #config{pragma = Pragma, width = Width, verbose = Verbose, out = Out} = Config,
+    case Verbose of
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
         false -> ok
     end,
-    Options = [{width, Config#config.width}, {pragma, Config#config.pragma}],
-    case erlfmt:format_file(FileName, Config#config.out, Options) of
+    Options = [{pragma, Pragma}] ++ [{width, Width} || Width =/= undefined],
+    case erlfmt:format_file(FileName, Out, Options) of
         {ok, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
             false;
-        skip when Config#config.verbose ->
+        skip when Verbose ->
             io:format(standard_error, "Skipping ~s because of missing @format pragma\n", [FileName]),
             false;
         skip ->

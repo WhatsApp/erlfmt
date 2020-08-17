@@ -393,7 +393,7 @@ Message =
 
 ## Line length
 
-Line length must not exceed **92** characters.
+Line length must not exceed **100** characters.
 
 ## Licence
 

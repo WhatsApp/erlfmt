@@ -6,5 +6,5 @@ process(_Arg1, Arg2, _Arg3, _Arg4, _Arg5, _Arg6) ->
     % Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam ut ultricies magna. Donec sagittis vulputate tempus.
     % Curabitur nisi metus.
     other_module:call('some.atom'),
-    other_module:call(with_many, extremely_long_arguments, that_should, be_broken_up, size(Arg2)),
+    other_module:call(with_many, extremely_long_arguments, that_should_really, be_broken_up, size(Arg2)),
     ok.
