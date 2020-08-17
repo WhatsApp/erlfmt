@@ -36,7 +36,7 @@ while enforcing a selected maximum line-length.
 For example, this line that exceeds the length limit:
 
 ```erl unformatted scenario
-scenario(dial_phone_number(),  ring(), hello(mike),hello(joe), system_working(), seems_to_be())
+scenario(dial_phone_number(),  ring(), hello(mike),hello(joe), hello(robert),   system_working(), seems_to_be())
 ```
 
 will be re-printed automatically in a vertical style:
@@ -47,6 +47,7 @@ scenario(
     ring(),
     hello(mike),
     hello(joe),
+    hello(robert),
     system_working(),
     seems_to_be()
 )
@@ -140,17 +141,17 @@ not perfect. Therefore some manual intervention to help the formatter out might
 be needed. For example, given the following code:
 
 ```erl unformatted split_tokens
-split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
-    split_tokens(Rest, [{Type, token_anno(erl_anno:to_term(Meta), #{}), Value} | Acc], CAcc).
+split_tokens([{TokenType, Meta, TokenValue} | Rest], Acc, CAcc) ->
+    split_tokens(Rest, [{TokenType, token_anno(erl_anno:to_term(Meta), #{}), TokenValue} | Acc], CAcc).
 ```
 
 Because the line-length is exceeded, the formatter will produce the following:
 
 ```erl formatted split_tokens
-split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
+split_tokens([{TokenType, Meta, TokenValue} | Rest], Acc, CAcc) ->
     split_tokens(
         Rest,
-        [{Type, token_anno(erl_anno:to_term(Meta), #{}), Value} | Acc],
+        [{TokenType, token_anno(erl_anno:to_term(Meta), #{}), TokenValue} | Acc],
         CAcc
     ).
 ```
@@ -159,8 +160,8 @@ It might be more desirable, though, to extract a variable and allow the call to
 still be rendered in a single line, for example:
 
 ```erl formatted split_tokens2
-split_tokens([{Type, Meta, Value} | Rest], Acc, CAcc) ->
-    Token = {Type, token_anno(erl_anno:to_term(Meta), #{}), Value},
+split_tokens([{TokenType, Meta, TokenValue} | Rest], Acc, CAcc) ->
+    Token = {TokenType, token_anno(erl_anno:to_term(Meta), #{}), TokenValue},
     split_tokens(Rest, [Token | Acc], CAcc).
 ```
 

@@ -33,6 +33,8 @@
 -type pragma() :: require | insert | ignore.
 -type config() :: [{pragma, pragma()} | {width, pos_integer()}].
 
+-define(DEFAULT_WIDTH, 100).
+
 %% escript entry point
 -spec main([string()]) -> no_return().
 main(Argv) ->
@@ -59,7 +61,7 @@ init(State) ->
 -spec format_file(file:name_all() | stdin, out(), config()) ->
     {ok, [error_info()]} | skip | {error, error_info()}.
 format_file(FileName, Out, Options) ->
-    Width = proplists:get_value(width, Options, 92),
+    Width = proplists:get_value(width, Options, ?DEFAULT_WIDTH),
     Pragma = proplists:get_value(pragma, Options, ignore),
     try
         case file_read_nodes(FileName, Pragma) of
@@ -84,7 +86,7 @@ format_file(FileName, Out, Options) ->
 -spec format_string(string(), config()) ->
     {ok, string(), [error_info()]} | skip | {error, error_info()}.
 format_string(String, Options) ->
-    Width = proplists:get_value(width, Options, 92),
+    Width = proplists:get_value(width, Options, ?DEFAULT_WIDTH),
     Pragma = proplists:get_value(pragma, Options, ignore),
     try
         case read_nodes_string("nofile", String, Pragma) of
@@ -151,7 +153,7 @@ insert_pragma_node(Node) ->
     {error, error_info()} |
     {options, [{erlfmt_scan:location(), erlfmt_scan:location()}]}.
 format_range(FileName, StartLocation, EndLocation, Options) ->
-    Width = proplists:get_value(width, Options, 92),
+    Width = proplists:get_value(width, Options, ?DEFAULT_WIDTH),
     try
         {ok, Nodes, Warnings} = file_read_nodes(FileName, ignore),
         case verify_ranges(Nodes, StartLocation, EndLocation) of
