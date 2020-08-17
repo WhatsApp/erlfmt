@@ -25,7 +25,8 @@
 
 -type foo() ::
     %% comment 1
-    fun((
+    fun(
+        (
             %% comment 2
             ...
         ) ->

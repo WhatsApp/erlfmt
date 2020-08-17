@@ -577,11 +577,12 @@ fun_to_algebra({clauses, _Anno, Clauses}) ->
 fun_to_algebra(type) ->
     <<"fun()">>;
 fun_to_algebra({type, Meta, Args, Result}) ->
-    ArgsD = group(call(Meta, Args, <<"fun((">>, <<") ->">>)),
-    with_next_break_fits(is_next_break_fits(Result), expr_to_algebra(Result), fun(ResultD) ->
-        Body = concat(ArgsD, group(nest(concat(break(), ResultD), ?INDENT, break))),
-        group(break(nest(Body, ?INDENT, break), <<"">>, <<")">>))
-    end).
+    ArgsD = call(Meta, Args, <<"(">>, <<")">>),
+    Doc =
+        with_next_break_fits(is_next_break_fits(Result), expr_to_algebra(Result), fun(ResultD) ->
+            concat(ArgsD, group(nest(break(<<" ->">>, ResultD), ?INDENT, break)))
+        end),
+    surround(<<"fun(">>, <<"">>, Doc, <<"">>, <<")">>).
 
 clauses_to_algebra([Clause | _] = Clauses) ->
     ClausesD = fold_clauses_to_algebra(Clauses),
@@ -717,17 +718,11 @@ is_call({macro_call, _, _, _}) -> true;
 is_call(_) -> false.
 
 is_next_break_fits(Expr) ->
-    lists:member(element(1, Expr), ?NEXT_BREAK_FITS) andalso
-        not_fun_type(Expr) andalso
-        has_no_comments_or_parens(Expr).
+    lists:member(element(1, Expr), ?NEXT_BREAK_FITS) andalso has_no_comments_or_parens(Expr).
 
 has_no_comments_or_parens(Meta) ->
     {Pre, Post} = comments(Meta),
     Pre =:= [] andalso Post =:= [] andalso not erlfmt_scan:get_anno(parens, Meta, false).
-
-not_fun_type({'fun', _, type}) -> false;
-not_fun_type({'fun', _, {type, _, _, _}}) -> false;
-not_fun_type(_) -> true.
 
 maybe_wrap_in_parens(Meta, Doc) ->
     case erlfmt_scan:get_anno(parens, Meta, false) of

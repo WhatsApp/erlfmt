@@ -2187,8 +2187,9 @@ type(Config) when is_list(Config) ->
         50
     ),
     ?assertSame(
-        "-type foo() ::\n"
-        "    fun((A, B, C) -> return_type(A, B, C)).\n",
+        "-type foo() :: fun(\n"
+        "    (A, B, C) -> return_type(A, B, C)\n"
+        ").\n",
         50
     ),
     ?assertSame(
@@ -2204,47 +2205,56 @@ type(Config) when is_list(Config) ->
         "-type foo() :: {fun(), fun((...) -> mod:bar()), fun(() -> integer())}.\n"
     ),
     ?assertSame(
-        "-type bar() ::\n"
-        "    fun((\n"
-        "            %% foo\n"
-        "            ...\n"
-        "        ) -> float()\n"
-        "    ).\n"
+        "-type bar() :: fun(\n"
+        "    (\n"
+        "        %% foo\n"
+        "        ...\n"
+        "    ) -> float()\n"
+        ").\n"
     ),
     ?assertSame(
-        "-type bar() ::\n"
-        "    fun(() -> [\n"
+        "-type bar() :: fun(\n"
+        "    () -> [\n"
         "        atom()\n"
-        "    ]).\n"
+        "    ]\n"
+        ").\n"
     ),
     ?assertSame(
-        "-type bar() ::\n"
-        "    fun((\n"
-        "            %% foo\n"
-        "            ...\n"
-        "        ) -> [\n"
-        "            atom()\n"
-        "        ]\n"
-        "    ).\n"
+        "-type bar() :: fun(\n"
+        "    (\n"
+        "        %% foo\n"
+        "        ...\n"
+        "    ) -> [\n"
+        "        atom()\n"
+        "    ]\n"
+        ").\n"
     ),
     ?assertFormat(
-        % "-type bar() :: fun(\n"
-        % "    (\n"
-        % "        %% foo\n"
-        % "        ...\n"
-        % "    ) -> float()\n"
-        % ").\n",
         "-type bar() :: fun((\n"
         "        %% foo\n"
         "        ...\n"
         "    ) -> float()\n"
         ").\n",
+        "-type bar() :: fun(\n"
+        "    (\n"
+        "        %% foo\n"
+        "        ...\n"
+        "    ) -> float()\n"
+        ").\n"
+    ),
+    ?assertFormat(
         "-type bar() ::\n"
         "    fun((\n"
         "            %% foo\n"
         "            ...\n"
         "        ) -> float()\n"
-        "    ).\n"
+        "    ).\n",
+        "-type bar() :: fun(\n"
+        "    (\n"
+        "        %% foo\n"
+        "        ...\n"
+        "    ) -> float()\n"
+        ").\n"
     ),
     ?assertFormat(
         "-type bar() :: fun((\n"
@@ -2254,13 +2264,23 @@ type(Config) when is_list(Config) ->
         "-type bar() :: fun((...) -> float()).\n"
     ),
     ?assertSame(
+        "-type foo() :: fun(\n"
+        "    (\n"
+        "        %% comment\n"
+        "        ...\n"
+        "    ) ->\n"
+        "        %% comment\n"
+        "        bar()\n"
+        ").\n"
+    ),
+    ?assertSame(
         "-type foo() ::\n"
-        "    fun((\n"
-        "            %% comment\n"
+        "    %% comment 1\n"
+        "    fun(\n"
+        "        (\n"
+        "            %% comment 2\n"
         "            ...\n"
-        "        ) ->\n"
-        "            %% comment\n"
-        "            bar()\n"
+        "        ) -> bar()\n"
         "    ).\n"
     ).
 
