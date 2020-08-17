@@ -111,7 +111,7 @@ gen_part({constructed, bif}, TypeName, {_Name, parts, Tag, _Type}) ->
 
 The problem is that this DSLish list, is now less readable than it was before.
 
-Technically there is a work around, so that you don't need the `@noformat` comment.
+Technically there is a work around, so that you don't need the `erlfmt-ignore` comment.
 You can place each line, in its own list, so that each line is seen as a single element of the bigger list:
 
 ```erlang formatted gen_part2
