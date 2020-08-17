@@ -38,8 +38,9 @@
 -define(START_LOCATION, {1, 1}).
 
 -type inner() :: term().
--type scan() ::
-    fun((inner(), erl_anno:location()) -> {erl_scan:tokens_result() | {error, term()}, inner()}).
+-type scan() :: fun(
+    (inner(), erl_anno:location()) -> {erl_scan:tokens_result() | {error, term()}, inner()}
+).
 
 -record(state, {
     scan :: scan(),
