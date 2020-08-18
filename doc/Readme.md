@@ -20,7 +20,6 @@ Feedback can be given by:
   - Or commenting on the active pull request
 
 See [Pull Requests](https://github.com/WhatsApp/erlfmt/pulls) for incoming formatting decisions and the list below for merged formatting decisions.
-and [the doc folder](https://github.com/WhatsApp/erlfmt/tree/master/doc) for merged formatting decisions.
 
 As always, you can preferably provide feedback, by simply trying out the `erlfmt` and providing us with examples of what you would like us to reconsider.  We will point you to the appropriate formatting decision document, if one already exists.
 
