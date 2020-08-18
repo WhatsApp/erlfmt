@@ -340,5 +340,7 @@ $ _build/release/bin/erlfmt -w "{src,include,test}/*.{hrl,erl}" "rebar.config"
 ## Join the erlfmt community
 See the [CONTRIBUTING](.github/CONTRIBUTING.md) file for how to help out.
 
+Also see [Formatting Decisions](https://github.com/WhatsApp/erlfmt/blob/master/doc/README.md)
+
 ## License
 erlfmt is Apache 2.0 licensed, as found in the LICENSE file.
