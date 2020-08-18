@@ -44,7 +44,8 @@ opts() ->
 
 -spec do(list(), string()) -> ok.
 do(Opts, Name) ->
-    try do_unprotected(Opts, Name)
+    try
+        do_unprotected(Opts, Name)
     catch
         Kind:Reason:Stack ->
             io:format(standard_error, "~s Internal Error~n~s:~p~n~p~n", [Name, Kind, Reason, Stack]),
@@ -55,7 +56,7 @@ do(Opts, Name) ->
 do_unprotected(Opts, Name) ->
     case parse_opts(Opts, Name, [], #config{}) of
         {format, Files, Config} ->
-            case parallel(fun (File) -> format_file(File, Config) end, Files) of
+            case parallel(fun(File) -> format_file(File, Config) end, Files) of
                 true -> erlang:halt(4);
                 false -> ok
             end;

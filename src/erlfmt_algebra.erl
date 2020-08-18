@@ -461,13 +461,19 @@ fits(Width, Column, _, {tail, HasBreaks, Entries}) ->
     fits(Width, Column, HasBreaks, Entries);
 %   ## Flat no break
 
-fits(Width, Column, HasBreaks, [{Indent, _, #doc_fits{group = X, enabled_or_disabled = disabled}} | T]) ->
+fits(Width, Column, HasBreaks, [
+    {Indent, _, #doc_fits{group = X, enabled_or_disabled = disabled}}
+    | T
+]) ->
     fits(Width, Column, HasBreaks, [{Indent, flat_no_break, X} | T]);
 fits(Width, Column, HasBreaks, [{Indent, flat_no_break, #doc_fits{group = X}} | T]) ->
     fits(Width, Column, HasBreaks, [{Indent, flat_no_break, X} | T]);
 %   ## Breaks no flat
 
-fits(Width, Column, HasBreaks, [{Indent, _, #doc_fits{group = X, enabled_or_disabled = enabled}} | T]) ->
+fits(Width, Column, HasBreaks, [
+    {Indent, _, #doc_fits{group = X, enabled_or_disabled = enabled}}
+    | T
+]) ->
     fits(Width, Column, HasBreaks, [{Indent, break_no_flat, X} | T]);
 fits(Width, Column, HasBreaks, [{_Indent, break_no_flat, doc_force_breaks} | T]) ->
     fits(Width, Column, HasBreaks, T);
