@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.6.0 (18.08.2020)
+
+Configurable print-width and erlfmt-ignore comment
+
+### Enhancements
+
+  - `print-width` is now configurable as a command line parameter #99
+  - `% erlfmt-ignore` comment ignores the next form and does not format it #98
+  - files are now formatted in parallel #101
+
+### Bug fixes
+
+  - Preserve empty lines around if-like attributes #97
+  - Don't break multiple clauses with comments #96
+  - Make try and after always introduce a newline #107
+  - Do not preserve operator newline with a next break fits expression #104
+  - New format for multiline fun types #110
+
 ## v0.5.1 (05.08.2020)
 
 ### Bug fixes
