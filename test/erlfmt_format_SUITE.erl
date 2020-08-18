@@ -1588,13 +1588,16 @@ receive_expression(Config) when is_list(Config) ->
 try_expression(Config) when is_list(Config) ->
     ?assertFormat(
         "try ok after Expr end",
-        "try ok\n"
-        "after Expr\n"
+        "try\n"
+        "    ok\n"
+        "after\n"
+        "    Expr\n"
         "end\n"
     ),
     ?assertFormat(
         "try ok after Expr1, Expr2 end",
-        "try ok\n"
+        "try\n"
+        "    ok\n"
         "after\n"
         "    Expr1,\n"
         "    Expr2\n"
@@ -1605,19 +1608,22 @@ try_expression(Config) when is_list(Config) ->
         "try\n"
         "    Expr1,\n"
         "    Expr2\n"
-        "after Expr\n"
+        "after\n"
+        "    Expr\n"
         "end\n"
     ),
     ?assertFormat(
         "try ok catch _ -> throw end",
-        "try ok\n"
+        "try\n"
+        "    ok\n"
         "catch\n"
         "    _ -> throw\n"
         "end\n"
     ),
     ?assertFormat(
         "try ok catch throw:_ -> throw; error:_ -> error; exit:_ -> exit end",
-        "try ok\n"
+        "try\n"
+        "    ok\n"
         "catch\n"
         "    throw:_ -> throw;\n"
         "    error:_ -> error;\n"
@@ -1626,7 +1632,8 @@ try_expression(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "try ok catch error:Reason:Stack -> {error, {Reason, Stack}} end",
-        "try ok\n"
+        "try\n"
+        "    ok\n"
         "catch\n"
         "    error:Reason:Stack ->\n"
         "        {error, {Reason, Stack}}\n"
@@ -1637,14 +1644,8 @@ try_expression(Config) when is_list(Config) ->
         "try Expr of _ -> ok after Expr end",
         "try Expr of\n"
         "    _ -> ok\n"
-        "after Expr\n"
-        "end\n"
-    ),
-    ?assertFormat(
-        "try Expr of _ -> ok after Expr end",
-        "try Expr of\n"
-        "    _ -> ok\n"
-        "after Expr\n"
+        "after\n"
+        "    Expr\n"
         "end\n"
     ),
     ?assertFormat(
@@ -1654,7 +1655,8 @@ try_expression(Config) when is_list(Config) ->
         "    Expr2\n"
         "of\n"
         "    _ -> ok\n"
-        "after Expr\n"
+        "after\n"
+        "    Expr\n"
         "end\n"
     ),
     ?assertFormat(

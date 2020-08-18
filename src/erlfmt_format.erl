@@ -680,14 +680,14 @@ try_catch_to_algebra(Clauses) ->
 
 try_after_to_algebra(Exprs) ->
     ExprsD = block_to_algebra(Exprs),
-    group(nest(break(<<"after">>, ExprsD), ?INDENT)).
+    group(nest(line(<<"after">>, ExprsD), ?INDENT)).
 
 try_of_block(Exprs, OfClauses) ->
     ExprsD = block_to_algebra(Exprs),
 
     case OfClauses of
         [] ->
-            group(nest(break(<<"try">>, ExprsD), ?INDENT));
+            group(nest(line(<<"try">>, ExprsD), ?INDENT));
         _ ->
             concat(
                 surround(<<"try">>, <<" ">>, ExprsD, <<" ">>, <<"of">>),
