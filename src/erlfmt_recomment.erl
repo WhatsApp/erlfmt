@@ -91,7 +91,7 @@ split_comments(#{location := {SLine, _}, end_location := {ELine, _}}, Comments0)
     {PreComments, InnerComments, PostComments}.
 
 take_comments(Line, Comments) ->
-    F = fun ({_, #{end_location := {CLine, _}}, _}) -> CLine =< Line end,
+    F = fun({_, #{end_location := {CLine, _}}, _}) -> CLine =< Line end,
     lists:splitwith(F, Comments).
 
 insert_nested(Node, []) ->
@@ -134,9 +134,7 @@ insert_nested({clause, Meta, Head0, Guards0, Body0}, Comments0) ->
     {Guards, Comments2} = insert_expr(Guards0, Comments1),
     {Body, Comments} = insert_expr_list(Body0, Comments2),
     {{clause, Meta, Head, Guards, Body}, Comments};
-insert_nested({Guard, Meta, Guards0}, Comments0) when
-    Guard =:= guard_or; Guard =:= guard_and
-->
+insert_nested({Guard, Meta, Guards0}, Comments0) when Guard =:= guard_or; Guard =:= guard_and ->
     {Guards, Comments} = insert_expr_list(Guards0, Comments0),
     {{Guard, Meta, Guards}, Comments};
 insert_nested({Collection, Meta, Values0}, Comments0) when ?IS_COLLECTION(Collection) ->

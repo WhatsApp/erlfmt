@@ -172,13 +172,14 @@ format_range(FileName, StartLocation, EndLocation, Options) ->
 -spec read_nodes(file:name_all()) ->
     {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
 read_nodes(FileName) ->
-    try file_read_nodes(FileName, ignore)
+    try
+        file_read_nodes(FileName, ignore)
     catch
         {error, Error} -> {error, Error}
     end.
 
 file_read_nodes(FileName, Pragma) ->
-    read_file(FileName, fun (File) ->
+    read_file(FileName, fun(File) ->
         read_nodes(erlfmt_scan:io_node(File), FileName, Pragma)
     end).
 
@@ -187,8 +188,10 @@ read_file(stdin, Action) ->
 read_file(FileName, Action) ->
     case file:open(FileName, [read, binary, {encoding, unicode}]) of
         {ok, File} ->
-            try Action(File)
-            after file:close(File)
+            try
+                Action(File)
+            after
+                file:close(File)
             end;
         {error, Reason} ->
             throw({error, {FileName, 0, file, Reason}})
@@ -198,7 +201,8 @@ read_file(FileName, Action) ->
 -spec read_nodes_string(file:name_all(), string()) ->
     {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
 read_nodes_string(FileName, String) ->
-    try read_nodes_string(FileName, String, ignore)
+    try
+        read_nodes_string(FileName, String, ignore)
     catch
         {error, Error} -> {error, Error}
     end.
@@ -208,6 +212,7 @@ read_nodes_string(FileName, String, Pragma) ->
 
 read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma) ->
     read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma, [], [], []).
+
 read_nodes({ok, Tokens, Comments, Cont}, FileName, require, NodeAcc, Warnings0, TextAcc) ->
     {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
     case Node of
@@ -272,7 +277,7 @@ parse_node([Token | _] = Tokens, Comments, FileName, Cont, Warnings) ->
 
 contains_ignore_comment({comment, _Loc, Comments}) ->
     lists:any(
-        fun (Comment) -> string:trim(Comment, both, "% ") == "erlfmt-ignore" end,
+        fun(Comment) -> string:trim(Comment, both, "% ") == "erlfmt-ignore" end,
         Comments
     ).
 
@@ -281,22 +286,33 @@ node_string(Cont) ->
     {raw_string, Anno, string:trim(String, both, "\n")}.
 
 format_nodes([{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest], PageWidth) ->
-    [$\n, format_node(Attr, PageWidth), $\n, format_node(Fun, PageWidth), $\n | format_nodes(Rest, PageWidth)];
+    [
+        $\n,
+        format_node(Attr, PageWidth),
+        $\n,
+        format_node(Fun, PageWidth),
+        $\n
+        | format_nodes(Rest, PageWidth)
+    ];
 format_nodes([{attribute, _, {atom, _, Name}, _} = Attr | [NextNode | _] = Rest], PageWidth) when
     Name =:= 'if'; Name =:= 'ifdef'; Name =:= 'ifndef'; Name =:= 'else'
 ->
     % preserve empty line after
-    [$\n, format_node(Attr, PageWidth)] ++ maybe_empty_line(Attr, NextNode) ++ format_nodes(Rest, PageWidth);
-format_nodes([Node | [{attribute, _, {atom, _, Name}, _} = Attr | _] = Rest ], PageWidth) when
+    [$\n, format_node(Attr, PageWidth)] ++
+        maybe_empty_line(Attr, NextNode) ++ format_nodes(Rest, PageWidth);
+format_nodes([Node | [{attribute, _, {atom, _, Name}, _} = Attr | _] = Rest], PageWidth) when
     Name =:= 'else'; Name =:= 'endif'
 ->
     % preserve empty line before
-    [$\n, format_node(Node, PageWidth)] ++ maybe_empty_line(Node, Attr) ++ format_nodes(Rest, PageWidth);
+    [$\n, format_node(Node, PageWidth)] ++
+        maybe_empty_line(Node, Attr) ++ format_nodes(Rest, PageWidth);
 format_nodes([{attribute, _, {atom, _, RepeatedName}, _} | _] = Nodes, PageWidth) ->
     {Attrs, Rest} = split_attrs(RepeatedName, Nodes),
     MaybeEmptyLine =
         case Rest of
-            [{attribute, _, {atom, _, Name}, _} = Attr | _] when Name =:= 'else'; Name =:= 'endif' ->
+            [{attribute, _, {atom, _, Name}, _} = Attr | _] when
+                Name =:= 'else'; Name =:= 'endif'
+            ->
                 % preserve empty line before
                 maybe_empty_line(lists:last(Attrs), Attr);
             _ ->
@@ -352,7 +368,8 @@ is_not_comment(String) ->
 verify_nodes(FileName, Nodes, Formatted) ->
     case read_nodes_string(FileName, unicode:characters_to_list(Formatted)) of
         {ok, Nodes2, _} ->
-            try equivalent_list(Nodes, Nodes2)
+            try
+                equivalent_list(Nodes, Nodes2)
             catch
                 {not_equivalent, Left, Right} ->
                     Location = try_location(Left, Right),
@@ -391,10 +408,7 @@ string_concat_equivalent(String, Values) ->
     string:equal(String, [Value || {string, _, Value} <- Values]).
 
 concat_equivalent(ValuesL, ValuesR) ->
-    string:equal([Value || {string, _, Value} <- ValuesL], [
-        Value
-        || {string, _, Value} <- ValuesR
-    ]).
+    string:equal([Value || {string, _, Value} <- ValuesL], [Value || {string, _, Value} <- ValuesR]).
 
 equivalent_list([L | Ls], [R | Rs]) ->
     equivalent(L, R) andalso equivalent_list(Ls, Rs);

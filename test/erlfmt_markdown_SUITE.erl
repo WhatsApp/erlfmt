@@ -77,7 +77,7 @@ markdown_files(Config) when is_list(Config) ->
     ),
     ?assertMatch([_One, _Two, _Three | _AtLeast], Filenames),
     lists:map(
-        fun (Filename) ->
+        fun(Filename) ->
             {ok, Content} = file:read_file(Filename),
             check_markdown(binary_to_list(Content))
         end,
@@ -87,8 +87,8 @@ markdown_files(Config) when is_list(Config) ->
 find_markdown_filenames_in(Path) ->
     {ok, BaseFilenames} = file:list_dir_all(Path),
     Filenames =
-        lists:map(fun (Filename) -> filename:join([Path, Filename]) end, BaseFilenames),
-    lists:filter(fun (Filename) -> filename:extension(Filename) == ".md" end, Filenames).
+        lists:map(fun(Filename) -> filename:join([Path, Filename]) end, BaseFilenames),
+    lists:filter(fun(Filename) -> filename:extension(Filename) == ".md" end, Filenames).
 
 markdown_string(Config) when is_list(Config) ->
     S =
@@ -119,7 +119,7 @@ check_markdown(Content) ->
         Sections
     ),
     maps:map(
-        fun (Key, FormattedCode) ->
+        fun(Key, FormattedCode) ->
             check_fmt(FormattedCode, FormattedCode),
             case maps:find(Key, Unformatted) of
                 error ->

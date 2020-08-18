@@ -335,7 +335,7 @@ test_docs(Config) when is_list(Config) ->
     ?assertEqual(
         <<"A!B!C">>,
         render(
-            fold_doc(fun (D, Acc) -> concat([D, <<"!">>, Acc]) end, [
+            fold_doc(fun(D, Acc) -> concat([D, <<"!">>, Acc]) end, [
                 <<"A">>,
                 <<"B">>,
                 <<"C">>

@@ -62,12 +62,13 @@ to_algebra({attribute, Meta, {atom, _, define}, [Define, empty]}) ->
 to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
     HeadD = concat(<<"-define(">>, expr_to_algebra(Define), <<",">>),
     NextBreakFits = length(Body) =:= 1 andalso is_next_break_fits(hd(Body)),
-    with_next_break_fits(NextBreakFits, block_to_algebra(Meta, Body), fun (BodyD) ->
+    with_next_break_fits(NextBreakFits, block_to_algebra(Meta, Body), fun(BodyD) ->
         Doc = surround(HeadD, <<" ">>, BodyD, <<"">>, <<").">>),
         combine_comments(Meta, Doc)
     end);
 to_algebra({attribute, Meta, {atom, _, RawName} = Name, [{list, Anno, Exports}]}) when
-    RawName =:= export; RawName =:= export_type ->
+    RawName =:= export; RawName =:= export_type
+->
     GroupedExports = {list, Anno, fa_groups(Exports)},
     Doc = call(Meta, [GroupedExports], concat(<<"-">>, expr_to_algebra(Name), <<"(">>), <<").">>),
     combine_comments(Meta, Doc);
@@ -198,7 +199,7 @@ do_expr_to_algebra({'try', _Meta, Exprs, OfClauses, CatchClauses, After}) ->
     try_to_algebra(Exprs, OfClauses, CatchClauses, After);
 do_expr_to_algebra({'catch', _Meta, Exprs}) ->
     ExprsD = lists:map(fun expr_to_algebra/1, Exprs),
-    fold_doc(fun (Doc, Acc) -> concat(Doc, <<":">>, Acc) end, ExprsD);
+    fold_doc(fun(Doc, Acc) -> concat(Doc, <<":">>, Acc) end, ExprsD);
 do_expr_to_algebra({'if', _Meta, Clauses}) ->
     surround_block(<<"if">>, clauses_to_algebra(Clauses), <<"end">>);
 do_expr_to_algebra({spec, _Meta, Name, [SingleClause]}) ->
@@ -209,9 +210,7 @@ do_expr_to_algebra({'...', _Meta}) ->
     <<"...">>;
 do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
     concat(expr_to_algebra(Left), <<"*">>, expr_to_algebra(Right));
-do_expr_to_algebra({Clause, _, _, _, _} = Expr) when
-    Clause =:= clause; Clause =:= spec_clause
-->
+do_expr_to_algebra({Clause, _, _, _, _} = Expr) when Clause =:= clause; Clause =:= spec_clause ->
     clause_to_algebra(Expr);
 do_expr_to_algebra({guard_or, _Meta, Guards}) ->
     guard_to_algebra(Guards, <<";">>);
@@ -322,7 +321,7 @@ binary_op_to_algebra(Op, Left, Right, LeftD, RightD, Indent) ->
     DontBreakCalls = is_call(Right) andalso not has_break_between(Left, Right),
     case DontBreakCalls orelse is_next_break_fits(Right) of
         true ->
-            with_next_break_fits(true, RightD, fun (R) ->
+            with_next_break_fits(true, RightD, fun(R) ->
                 concat([group(LeftD), <<" ">>, Op, <<" ">>, group(R)])
             end);
         false ->
@@ -337,7 +336,7 @@ breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent) ->
 union_to_algebra(Meta, Left, Right) ->
     Unions = [Left | collect_unions(Right)],
     UnionsD = lists:map(fun expr_to_algebra/1, Unions),
-    Doc = fold_doc(fun (LeftD, AccD) -> concat(LeftD, break(<<" |">>, AccD)) end, UnionsD),
+    Doc = fold_doc(fun(LeftD, AccD) -> concat(LeftD, break(<<" |">>, AccD)) end, UnionsD),
     group(concat(maybe_force_breaks(is_multiline(Meta)), Doc)).
 
 collect_unions({op, Meta, '|', Left, Right}) ->
@@ -408,15 +407,17 @@ surround_container(flex_break, Left, Doc, Right) ->
 last_fits_fun(last_fits, Values) when Values =/= [] ->
     case is_next_break_fits(lists:last(Values)) of
         true -> fun erlfmt_algebra:next_break_fits/2;
-        false -> fun (Doc, _) -> Doc end
+        false -> fun(Doc, _) -> Doc end
     end;
 last_fits_fun(_, _) ->
-    fun (Doc, _) -> Doc end.
+    fun(Doc, _) -> Doc end.
 
-has_trailing_comments([]) -> false;
+has_trailing_comments([]) ->
+    false;
 has_trailing_comments(Values) ->
     case lists:last(Values) of
-        {comment, _, _} -> true;
+        {comment, _, _} ->
+            true;
         LastValue ->
             {_, PostComments} = comments(LastValue),
             PostComments =/= []
@@ -428,7 +429,7 @@ has_opening_line_break(_Meta, []) ->
 has_opening_line_break(Meta, [HeadValue | _]) ->
     has_inner_break(Meta, HeadValue).
 
-has_any_break_between([Head | [ Head2 | _ ] = Tail]) ->
+has_any_break_between([Head | [Head2 | _] = Tail]) ->
     has_break_between(Head, Head2) orelse has_any_break_between(Tail);
 has_any_break_between(_) ->
     false.
@@ -440,7 +441,8 @@ break_fun(flex_break) -> fun erlfmt_algebra:flex_break/2.
 
 -type value_doc_pair() :: {erlfmt_parse:abstract_form(), erlfmt_algebra:doc()}.
 
-map_inner_values(_LastFitsFun, []) -> [];
+map_inner_values(_LastFitsFun, []) ->
+    [];
 map_inner_values(_LastFitsFun, [{comment, _, _} = FirstComment | _] = Comments) ->
     [{FirstComment, comments_to_algebra(Comments)}];
 map_inner_values(LastFitsFun, [Value]) ->
@@ -507,7 +509,7 @@ bin_size_to_algebra(Expr) ->
 
 bin_types_to_algebra(Types) ->
     TypesD = lists:map(fun expr_to_algebra/1, Types),
-    concat(<<"/">>, fold_doc(fun (Doc, Acc) -> concat([Doc, <<"-">>, Acc]) end, TypesD)).
+    concat(<<"/">>, fold_doc(fun(Doc, Acc) -> concat([Doc, <<"-">>, Acc]) end, TypesD)).
 
 record_access_to_algebra(Meta, Name, Key) ->
     concat(record_name_to_algebra(Meta, Name), <<".">>, expr_to_algebra(Key)).
@@ -576,7 +578,7 @@ fun_to_algebra(type) ->
     <<"fun()">>;
 fun_to_algebra({type, Meta, Args, Result}) ->
     ArgsD = group(call(Meta, Args, <<"fun((">>, <<") ->">>)),
-    with_next_break_fits(is_next_break_fits(Result), expr_to_algebra(Result), fun (ResultD) ->
+    with_next_break_fits(is_next_break_fits(Result), expr_to_algebra(Result), fun(ResultD) ->
         Body = concat(ArgsD, group(nest(concat(break(), ResultD), ?INDENT, break))),
         group(break(nest(Body, ?INDENT, break), <<"">>, <<")">>))
     end).
@@ -622,7 +624,7 @@ clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
     GuardsD = expr_to_algebra(Guards),
     BodyD = block_to_algebra(Meta, Body),
 
-    Nested = fun (Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
+    Nested = fun(Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
     concat(
         space(HeadD, <<"when">>),
         group(concat(Nested(GuardsD), break(<<" ">>), <<"->">>)),
@@ -640,7 +642,7 @@ clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
     GuardsD = expr_to_algebra(Guards),
     BodyD = expr_to_algebra(Body),
 
-    Nested = fun (Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
+    Nested = fun(Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
     concat(
         space(HeadD, <<"->">>),
         group(concat(Nested(BodyD), break(<<" ">>), <<"when">>)),
@@ -649,7 +651,7 @@ clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
 
 guard_to_algebra(Guards, Separator) ->
     GuardsD = lists:map(fun expr_to_algebra/1, Guards),
-    Doc = fold_doc(fun (GuardD, Acc) -> break(concat(GuardD, Separator), Acc) end, GuardsD),
+    Doc = fold_doc(fun(GuardD, Acc) -> break(concat(GuardD, Separator), Acc) end, GuardsD),
     group(Doc).
 
 % %% Because the spec syntax is different from regular function syntax,
@@ -767,12 +769,11 @@ combine_post_comments([Comment | _] = Comments, Meta, Doc) ->
 
 comments_to_algebra(Comments) ->
     CommentsD = lists:map(fun comment_to_algebra/1, Comments),
-    fold_doc(fun (C, Acc) -> concat(C, line(2), Acc) end, CommentsD).
+    fold_doc(fun(C, Acc) -> concat(C, line(2), Acc) end, CommentsD).
 
 comment_to_algebra({comment, _Meta, Lines}) ->
     LinesD = lists:map(fun erlfmt_algebra:string/1, Lines),
     fold_doc(fun erlfmt_algebra:line/2, LinesD).
 
 comments(Meta) ->
-    {erlfmt_scan:get_anno(pre_comments, Meta, []),
-        erlfmt_scan:get_anno(post_comments, Meta, [])}.
+    {erlfmt_scan:get_anno(pre_comments, Meta, []), erlfmt_scan:get_anno(post_comments, Meta, [])}.

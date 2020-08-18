@@ -38,9 +38,8 @@
 -define(START_LOCATION, {1, 1}).
 
 -type inner() :: term().
--type scan() :: fun((inner(), erl_anno:location()) ->
-        {erl_scan:tokens_result() | {error, term()}, inner()}
-).
+-type scan() ::
+    fun((inner(), erl_anno:location()) -> {erl_scan:tokens_result() | {error, term()}, inner()}).
 
 -record(state, {
     scan :: scan(),
@@ -138,7 +137,8 @@ read_rest(#state{inner = undefined}) ->
     {ok, ""};
 read_rest(#state{scan = _Scan, inner = IO, loc = _Loc, buffer = Buffer}) ->
     String = stringify_tokens(Buffer),
-    try {ok, read_rest(IO, String)}
+    try
+        {ok, read_rest(IO, String)}
     catch
         {error, Reason} -> {error, {0, file, Reason}}
     end.
