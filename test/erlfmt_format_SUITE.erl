@@ -424,6 +424,19 @@ binary_operator(Config) when is_list(Config) ->
         "]\n"
     ),
     ?assertSame(
+        "Foo = {\n"
+        "    long_element_1,\n"
+        "    long_element_2,\n"
+        "    long_element_3\n"
+        "}\n"
+    ),
+    ?assertSame(
+        "Foo = <<\n"
+        "    1/float,\n"
+        "    <<222, 333>>\n"
+        ">>\n"
+    ),
+    ?assertSame(
         "f() ->\n"
         "    {PreComments, InnerComments, PostComments} = split_comments(\n"
         "        element(2, Expr0),\n"
