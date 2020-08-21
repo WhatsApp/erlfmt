@@ -521,11 +521,13 @@ record_name_to_algebra(Meta, Name) ->
         false -> concat(<<"#">>, expr_to_algebra(Name))
     end.
 
-comprehension_to_algebra(Expr, LcExprs, Left, Right) ->
+comprehension_to_algebra(Expr, [LcExpr | _] = LcExprs, Left, Right) ->
     ExprD = expr_to_algebra(Expr),
     LcExprsD = lists:map(fun expr_to_algebra/1, LcExprs),
     LcExprD = fold_doc(fun(D, Acc) -> break(concat(D, <<",">>), Acc) end, LcExprsD),
-    Doc = concat([ExprD, break(<<" ">>), <<"||">>, <<" ">>, nest(group(LcExprD), 3)]),
+    PostBreak = maybe_force_breaks(has_any_break_between(LcExprs)),
+    PreBreak = concat(maybe_force_breaks(has_break_between(Expr, LcExpr)), break(<<" ">>)),
+    Doc = concat([ExprD, PreBreak, <<"||">>, <<" ">>, nest(group(concat(PostBreak, LcExprD)), 3)]),
     surround(Left, <<"">>, Doc, <<"">>, Right).
 
 block_to_algebra([Expr]) ->

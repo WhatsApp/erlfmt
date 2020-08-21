@@ -1056,11 +1056,36 @@ list_comprehension(Config) when is_list(Config) ->
         "    {ALong, B}\n"
         "    || ALong = {_, _, _, {B, _}} <- All, lists:member(B, Keep)\n"
         "])\n"
+    ),
+        ?assertSame(
+        "[\n"
+        "    a\n"
+        "    || {a, b} <- es\n"
+        "].\n"
+    ),
+    ?assertSame(
+        "A = [\n"
+        "    a\n"
+        "    || {a, b} <- es,\n"
+        "       filter(b)\n"
+        "]\n"
+    ),
+    ?assertFormat("string:equal([Value || {string, _, Value} <- ValuesL], [Value || {string, _, Value} <- ValuesR]).\n",
+        "string:equal([Value || {string, _, Value} <- ValuesL], [\n"
+        "    Value\n"
+        "    || {string, _, Value} <- ValuesR\n"
+        "]).\n"
     ).
 
 binary_comprehension(Config) when is_list(Config) ->
     ?assertFormat("<<X||X<-List>>", "<<X || X <- List>>\n"),
     ?assertSame("<<X || <<X, Y>> <= Results, X >= Y>>\n"),
+    ?assertSame(
+        "<<\n"
+        "    X\n"
+        "    || <<X, Y>> <= Results,\n"
+        "       X >= Y\n"
+        ">>\n"),
     ?assertFormat(
         "<<(Long + Expression) || X <- Y, X < 10>>",
         "<<\n"
