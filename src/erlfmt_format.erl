@@ -655,7 +655,7 @@ clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
 guard_to_algebra(Guards, Separator) ->
     GuardsD = lists:map(fun expr_to_algebra/1, Guards),
     Doc = fold_doc(fun(GuardD, Acc) -> break(concat(GuardD, Separator), Acc) end, GuardsD),
-    group(Doc).
+    group(concat(maybe_force_breaks(has_any_break_between(Guards)), Doc)).
 
 % %% Because the spec syntax is different from regular function syntax,
 % %% in the general case we have to indent them differently, but with just

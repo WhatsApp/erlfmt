@@ -2154,6 +2154,11 @@ spec(Config) when is_list(Config) ->
         "    credit | {refund | dispute, binary()},\n"
         "    binary() | null\n"
         ") -> ok.\n"
+    ),
+    ?assertSame(
+        "-spec my_fun(TypeA, TypeB) -> ok when\n"
+        "    TypeA :: some_type(),\n"
+        "    TypeB :: some_other_type().\n"
     ).
 
 define(Config) when is_list(Config) ->
