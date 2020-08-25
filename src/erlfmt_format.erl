@@ -642,7 +642,7 @@ clause_to_algebra({spec_clause, _Meta, Head, [Body], empty}) ->
     );
 clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
     HeadD = expr_to_algebra(Head),
-    GuardsD = expr_to_algebra(Guards),
+    GuardsD = spec_clause_gaurds_to_algebra(Guards),
     BodyD = expr_to_algebra(Body),
 
     Nested = fun(Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
@@ -652,10 +652,24 @@ clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
         Nested(GuardsD)
     ).
 
+spec_clause_gaurds_to_algebra(Expr) ->
+    Meta = element(2, Expr),
+    Doc = case Expr of
+        {guard_or, _Meta, Guards} -> spec_guard_to_algebra(Guards, <<";">>);
+        {guard_and, _Meta, Guards} -> spec_guard_to_algebra(Guards, <<",">>);
+        Other -> do_expr_to_algebra(Other)
+    end,
+    combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
+
+spec_guard_to_algebra(Guards, Separator) ->
+    GuardsD = lists:map(fun spec_clause_gaurds_to_algebra/1, Guards),
+    Doc = fold_doc(fun(GuardD, Acc) -> break(concat(GuardD, Separator), Acc) end, GuardsD),
+    group(concat(maybe_force_breaks(has_any_break_between(Guards)), Doc)).
+
 guard_to_algebra(Guards, Separator) ->
     GuardsD = lists:map(fun expr_to_algebra/1, Guards),
     Doc = fold_doc(fun(GuardD, Acc) -> break(concat(GuardD, Separator), Acc) end, GuardsD),
-    group(concat(maybe_force_breaks(has_any_break_between(Guards)), Doc)).
+    group(Doc).
 
 % %% Because the spec syntax is different from regular function syntax,
 % %% in the general case we have to indent them differently, but with just
