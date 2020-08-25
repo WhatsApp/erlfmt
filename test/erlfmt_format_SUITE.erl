@@ -456,6 +456,34 @@ binary_operator(Config) when is_list(Config) ->
         80
     ),
 
+    %% Not next break fits
+    ?assertSame(
+        "Foo = {\n"
+        "    foo,\n"
+        "    bar,\n"
+        "    baz\n"
+        "}\n"
+    ),
+    ?assertFormat(
+        "Foo =\n"
+        "    {\n"
+        "        foo, bar,\n"
+        "        baz\n"
+        "    }\n",
+        "Foo = {\n"
+        "    foo,\n"
+        "    bar,\n"
+        "    baz\n"
+        "}\n"
+    ),
+    ?assertFormat(
+        "Foo = {foo, bar, verylong, morelonger, baz}\n",
+        "Foo =\n"
+        "    {foo, bar, verylong, morelonger,\n"
+        "        baz}\n",
+        40
+    ),
+
     %% Keeps existing breaks
     ?assertSame(
         "Foo andalso\n"
@@ -538,6 +566,16 @@ tuple(Config) when is_list(Config) ->
     ?assertSame(
         "{\n"
         "    foo\n"
+        "}\n"
+    ),
+    ?assertFormat(
+        "{\n"
+        "    foo, bar, baz\n"
+        "}\n",
+        "{\n"
+        "    foo,\n"
+        "    bar,\n"
+        "    baz\n"
         "}\n"
     ),
     ?assertFormat(
@@ -2365,4 +2403,11 @@ comment(Config) when is_list(Config) ->
         "1",
         "% foo\n"
         "1\n"
+    ),
+    ?assertSame(
+        "a =\n"
+        "    %% comment\n"
+        "    {\n"
+        "        b\n"
+        "    }\n"
     ).
