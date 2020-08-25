@@ -318,9 +318,8 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
 
 binary_op_to_algebra(Op, Left, Right, LeftD, RightD, Indent) ->
-    BreakFitsException = is_binary_op_break_fits_exception(Right) andalso
-        not has_break_between(Left, Right),
-    case is_next_break_fits(Right) orelse BreakFitsException of
+    DontBreakCalls = is_call(Right) andalso not has_break_between(Left, Right),
+    case DontBreakCalls orelse is_next_break_fits(Right) of
         true ->
             with_next_break_fits(true, RightD, fun(R) ->
                 concat([group(LeftD), <<" ">>, Op, <<" ">>, group(R)])
@@ -329,11 +328,9 @@ binary_op_to_algebra(Op, Left, Right, LeftD, RightD, Indent) ->
             breakable_binary_op_to_algebra(Op, Left, Right, LeftD, RightD, Indent)
     end.
 
-is_binary_op_break_fits_exception({call, _, _, _}) -> true;
-is_binary_op_break_fits_exception({macro_call, _, _, _}) -> true;
-is_binary_op_break_fits_exception({tuple, _, _}) -> true;
-is_binary_op_break_fits_exception({bin, _, _}) -> true;
-is_binary_op_break_fits_exception(_) -> false.
+is_call({call, _, _, _}) -> true;
+is_call({macro_call, _, _, _}) -> true;
+is_call(_) -> false.
 
 breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent) ->
     HasBreak = has_break_between(Left, Right),
@@ -736,6 +733,8 @@ has_inner_break(Outer, Inner) ->
 is_next_break_fits_op(Op) ->
     lists:member(Op, ?NEXT_BREAK_FITS_OPS).
 
+is_next_break_fits({FlexContainer, Meta, Values} = Expr) when FlexContainer =:= tuple; FlexContainer =:= bin ->
+    (has_opening_line_break(Meta, Values) orelse has_trailing_comments(Values)) andalso has_no_comments_or_parens(Expr);
 is_next_break_fits(Expr) ->
     lists:member(element(1, Expr), ?NEXT_BREAK_FITS) andalso has_no_comments_or_parens(Expr).
 
