@@ -36,6 +36,7 @@ We did a survey of what other formatters and style guides have chosen.
 - Elvis: [100](https://github.com/inaka/elvis_core/wiki/Rules#line-length)
 - Joe Armstrong’s: [80](http://www.erlang.se/doc/programming_rules.shtml#:~:text=writing%20long%20lines.-,7.4%20Don't%20write%20very%20long%20lines,have%20more%20than%2080%20characters)
 - WhatsApp Style Guide: 120
+- Klarna Internal Guidance: 80
 
 ### Other Style Guides and Formatters
 
