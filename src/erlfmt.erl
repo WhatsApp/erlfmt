@@ -29,7 +29,7 @@
 -export_type([error_info/0, out/0, config/0, pragma/0]).
 
 -type error_info() :: {file:name_all(), erl_anno:location(), module(), Reason :: any()}.
--type out() :: standard_out | {path, file:name_all()} | replace.
+-type out() :: standard_out | {path, file:name_all()} | replace | check.
 -type pragma() :: require | insert | ignore.
 -type config() :: [{pragma, pragma()} | {width, pos_integer()}].
 
@@ -59,7 +59,11 @@ init(State) ->
 
 %% API entry point
 -spec format_file(file:name_all() | stdin, out(), config()) ->
-    {ok, [error_info()]} | skip | {error, error_info()}.
+    {ok, [error_info()]} |
+    {check_failed, string(), string(), [error_info()]} |
+    {[error_info()]} |
+    skip |
+    {error, error_info()}.
 format_file(FileName, Out, Options) ->
     Width = proplists:get_value(width, Options, ?DEFAULT_WIDTH),
     Pragma = proplists:get_value(pragma, Options, ignore),
@@ -73,8 +77,10 @@ format_file(FileName, Out, Options) ->
                     end,
                 [$\n | Formatted] = format_nodes(NodesWithPragma, Width),
                 verify_nodes(FileName, NodesWithPragma, Formatted),
-                write_formatted(FileName, Formatted, Out),
-                {ok, Warnings};
+                case write_formatted(FileName, Formatted, Out) of
+                    {check_failed, OriginalStr, FormattedStr} -> {check_failed, OriginalStr, FormattedStr, Warnings};
+                    ok -> {ok, Warnings}
+                end;
             {skip, RawString} ->
                 write_formatted(FileName, RawString, Out),
                 skip
@@ -423,6 +429,16 @@ try_location(_, Node) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node
 try_location(_, [Node | _]) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node);
 try_location(_, _) -> 0.
 
+write_formatted(FileName, Formatted, check) ->
+    Original = read_file(FileName, fun(File) ->
+        erlfmt_scan:read_all(File)
+    end),
+    FormattedStr = unicode:characters_to_list(Formatted),
+    OriginalStr = unicode:characters_to_list(Original),
+    case OriginalStr =:= FormattedStr of
+        true -> ok;
+        false -> {check_failed, OriginalStr, FormattedStr}
+    end;
 write_formatted(_FileName, Formatted, standard_out) ->
     io:put_chars(Formatted);
 write_formatted(FileName, Formatted, Out) ->
