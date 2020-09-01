@@ -30,6 +30,11 @@ opts() ->
         {write, $w, "write", undefined, "modify formatted files in place"},
         {out, $o, "out", binary, "output directory"},
         {verbose, undefined, "verbose", undefined, "include debug output"},
+        {check, $c, "check", undefined,
+            "Check if your files are formatted."
+            "Get exit code 1, if some files are not formatted."
+            "stdin is not supported and --write is not supported."
+        },
         {print_width, undefined, "print-width", integer,
             "The line length that formatter would wrap on"},
         {require_pragma, undefined, "require-pragma", undefined,
@@ -56,9 +61,16 @@ do(Opts, Name) ->
 do_unprotected(Opts, Name) ->
     case parse_opts(Opts, Name, [], #config{}) of
         {format, Files, Config} ->
+            case Config#config.out of
+                check -> io:format(standard_error, "Checking formatting...~n", []);
+                _ -> ok
+            end,
             case parallel(fun(File) -> format_file(File, Config) end, Files) of
-                true -> erlang:halt(4);
-                false -> ok
+                ok -> ok;
+                warn ->
+                    io:format(standard_error, "[warn] Code style issues found in the above file(s). Forgot to run erlfmt?~n", []),
+                    erlang:halt(1);
+                error -> erlang:halt(4)
             end;
         {error, Message} ->
             io:put_chars(standard_error, [Message, "\n\n"]),
@@ -76,15 +88,19 @@ format_file(FileName, Config) ->
     case erlfmt:format_file(FileName, Out, Options) of
         {ok, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
-            false;
+            ok;
+        {check_failed, _, _, Warnings} ->
+            [print_error_info(Warning) || Warning <- Warnings],
+            io:format(standard_error, "[warn] ~s\n", [FileName]),
+            warn;
         skip when Verbose ->
             io:format(standard_error, "Skipping ~s because of missing @format pragma\n", [FileName]),
-            false;
+            skip;
         skip ->
-            false;
+            skip;
         {error, Error} ->
             print_error_info(Error),
-            true
+            error
     end.
 
 parse_opts([help | _Rest], Name, _Files, _Config) ->
@@ -94,12 +110,18 @@ parse_opts([version | _Rest], Name, _Files, _Config) ->
     {ok, Vsn} = application:get_key(erlfmt, vsn),
     io:format("~s version ~s\n", [Name, Vsn]),
     erlang:halt(0);
+parse_opts([write | _Rest], _Name, _Files, #config{out = check}) ->
+    {error, "--write replace mode can't be combined check mode"};
 parse_opts([write | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{out = replace});
 parse_opts([{out, Path} | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{out = {path, Path}});
 parse_opts([verbose | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{verbose = true});
+parse_opts([check | _Rest], _Name, _Files, #config{out = replace}) ->
+    {error, "--write replace mode can't be combined check mode"};
+parse_opts([check | Rest], Name, Files, Config) ->
+    parse_opts(Rest, Name, Files, Config#config{out = check});
 parse_opts([{print_width, Value} | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{width = Value});
 parse_opts([require_pragma | _Rest], _Name, _Files, #config{pragma = insert}) ->
@@ -114,6 +136,8 @@ parse_opts([{files, NewFiles} | Rest], Name, Files0, Config) ->
     parse_opts(Rest, Name, expand_files(NewFiles, Files0), Config);
 parse_opts([], _Name, [stdin], #config{out = Out}) when Out =/= standard_out ->
     {error, "stdin mode can't be combined with out or write options"};
+parse_opts([], _Name, [stdin], #config{out = check}) ->
+    {error, "stdin mode can't be combined check mode"};
 parse_opts([], _Name, [stdin], Config) ->
     {format, [stdin], Config};
 parse_opts([], _Name, [], _Config) ->
@@ -147,18 +171,27 @@ print_error_info(Info) ->
 
 parallel(Fun, List) ->
     N = erlang:system_info(schedulers) * 2,
-    parallel_loop(Fun, List, N, [], _HadErrors = false).
+    parallel_loop(Fun, List, N, [], _ReducedResult = ok).
 
-parallel_loop(_, [], _, [], HadErrors) ->
-    HadErrors;
-parallel_loop(Fun, [Elem | Rest], N, Refs, HadErrors) when length(Refs) < N ->
+parallel_loop(_, [], _, [], ReducedResult) ->
+    ReducedResult;
+parallel_loop(Fun, [Elem | Rest], N, Refs, ReducedResult) when length(Refs) < N ->
     {_, Ref} = erlang:spawn_monitor(fun() -> exit(Fun(Elem)) end),
-    parallel_loop(Fun, Rest, N, [Ref | Refs], HadErrors);
-parallel_loop(Fun, List, N, Refs0, HadErrors) ->
+    parallel_loop(Fun, Rest, N, [Ref | Refs], ReducedResult);
+parallel_loop(Fun, List, N, Refs0, ReducedResult0) ->
     receive
-        {'DOWN', Ref, process, _, Bool} when is_boolean(Bool) ->
+        {'DOWN', Ref, process, _, Result} when
+                Result =:= error; Result =:= warn; Result =:= ok; Result =:= skip ->
             Refs = Refs0 -- [Ref],
-            parallel_loop(Fun, List, N, Refs, HadErrors orelse Bool);
+            ReducedResult =
+                case {Result, ReducedResult0} of
+                    {_, error} -> error;
+                    {error, _} -> error;
+                    {_, warn} -> warn;
+                    {warn, _} -> warn;
+                    {_, _} -> ok
+                end,
+            parallel_loop(Fun, List, N, Refs, ReducedResult);
         {'DOWN', _Ref, process, _, Crash} ->
             exit(Crash)
     end.

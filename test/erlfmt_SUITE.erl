@@ -1011,32 +1011,24 @@ snapshot_insert_pragma_with(Config) when is_list(Config) ->
 
 snapshot_same(Module, Config) ->
     DataDir = ?config(data_dir, Config),
-    PrivDir = ?config(priv_dir, Config),
     Pragma = proplists:get_value(pragma, Config, ignore),
-    case erlfmt:format_file(filename:join(DataDir, Module), {path, PrivDir}, [{pragma, Pragma}]) of
+    case erlfmt:format_file(filename:join(DataDir, Module), check, [{pragma, Pragma}]) of
         {ok, _} -> ok;
         skip -> ok;
+        {check_failed, Original, Formatted, _} -> ?assertEqual(Formatted, Original);
         Other -> ct:fail("unexpected: ~p~n", [Other])
-    end,
-    {ok, Original} = file:read_file(filename:join(DataDir, Module)),
-    {ok, Formatted} = file:read_file(filename:join(PrivDir, Module)),
-    ?assertEqual(Original, Formatted).
+    end.
 
 snapshot_formatted(Module, Config) ->
+    snapshot_same(Module ++ ".formatted", Config),
     DataDir = ?config(data_dir, Config),
-    PrivDir = ?config(priv_dir, Config),
     {ok, Expected} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
-    {ok, _} = erlfmt:format_file(filename:join([DataDir, Module]), {path, PrivDir}, []),
-    {ok, Formatted} = file:read_file(filename:join([PrivDir, Module])),
-    ?assertEqual(Expected, Formatted),
-    {ok, _} = erlfmt:format_file(
-        filename:join([DataDir, Module ++ ".formatted"]),
-        {path, PrivDir},
-        []
-    ),
-    {ok, FormattedFormatted} =
-        file:read_file(filename:join([PrivDir, Module ++ ".formatted"])),
-    ?assertEqual(Expected, FormattedFormatted).
+    case erlfmt:format_file(filename:join([DataDir, Module]), check, []) of
+        {ok, _} -> ct:fail("expected ~p to require some formatting", [Module]);
+        skip -> ok;
+        {check_failed, _, Formatted, _} -> ?assertEqual(binary_to_list(Expected), Formatted);
+        Other -> ct:fail("unexpected: ~p~n", [Other])
+    end.
 
 simple_comments_range(Config) ->
     format_range(Config, "simple_comments.erl").
