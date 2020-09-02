@@ -161,7 +161,7 @@ f() ->
             CThisLongerField => with_this_longer_function(), % that comment
             NotTooLong => d                   % this comment
         },
-        H,
+        H
     ).
 ```
 
@@ -177,7 +177,7 @@ f() ->
             CThisLongerField => with_this_longer_function(),
             NotTooLong => d                   % this comment
         },
-        H,
+        H
     ).
 ```
 
@@ -196,12 +196,44 @@ f() ->
             % this comment
             NotTooLong => d
         },
-        H,
+        H
     ).
 ```
 
 This would be extremely complex to implement.
 Requiring us to invent another operator in the formatting algebra.
+
+Option 4: Do we move the aligned comment above the line, but keep it aligned?
+
+```erlang
+f() ->
+    g(
+        #{
+            A => a,                           % comment
+            B => bb,                          % another comment
+                                              % that comment
+            CThisLongerField => with_this_longer_function(),
+            NotTooLong => d                   % this comment
+        },
+        H
+    ).
+```
+
+Option 5: Do we move the aligned comment below the line and keep it aligned?
+
+```erlang
+f() ->
+    g(
+        #{
+            A => a,                           % comment
+            B => bb,                          % another comment
+            CThisLongerField => with_this_longer_function(),
+                                              % that comment
+            NotTooLong => d                   % this comment
+        },
+        H
+    ).
+```
 
 ## All comments always on a newline
 
