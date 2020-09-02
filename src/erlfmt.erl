@@ -61,7 +61,6 @@ init(State) ->
 -spec format_file(file:name_all() | stdin, out(), config()) ->
     {ok, [error_info()]} |
     {check_failed, string(), string(), [error_info()]} |
-    {[error_info()]} |
     skip |
     {error, error_info()}.
 format_file(FileName, Out, Options) ->
