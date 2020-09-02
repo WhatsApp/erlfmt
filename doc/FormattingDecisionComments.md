@@ -101,6 +101,107 @@ We have also [seen](https://github.com/erlang/otp/blob/master/lib/stdlib/src/erl
     }).
 ```
 
+## Erlang mode for Emacs
+
+- ✅ Minimize diff when changing a single line
+
+The standard erlang mode for emacs puts the single quoted comments by default at position 48 on the line.
+This means that comments are not realigned based on line lengths, but always aligned at the same fixed column.
+
+```erlang
+#{
+    A => a,                                    % comment
+    B => bb,                                   % another comment
+    C => ccc                                   % that comment
+}
+```
+
+If we add a new field that is longer than the others,
+then all the previous lines with comments will not need to change.
+
+```erlang
+#{
+    A => a,                                    % comment
+    B => bb,                                   % another comment
+    C => ccc,                                  % that comment
+    NotTooLong => d                            % this comment
+}
+```
+
+We have also [seen](https://github.com/erlang/otp/blob/master/lib/stdlib/src/erl_lint.erl#L107) users try to prevent having to change a lot of lines,
+by changing where the comment is placed, but when the comments are so far aligned to the right, this is less likely to happen.
+
+```erlang
+-record(x, {a=a :: 'a' | 'aa',
+    b='',                                      % b comment
+    c=cc :: 'cc'                               % c comment
+    }).
+```
+
+```erlang
+-record(x, {
+    a=a :: 'a' | 'aa',
+    b='',                                     % b comment
+    c=cc :: 'cc',                             % c comment
+    d=dd :: 'd' | 'dd'                        % d comment
+}).
+```
+
+The downside is when the line is indented a bit and ends up being longer than the 48 characters.
+We now have another design decision.
+
+Option 1: Do we simply leave the violating comment at the end up of the line?
+
+```erlang
+f() ->
+    g(
+        #{
+            A => a,                           % comment
+            B => bb,                          % another comment
+            CThisLongerField => with_this_longer_function(), % that comment
+            NotTooLong => d                   % this comment
+        },
+        H,
+    ).
+```
+
+Option 2: Do we move the violating comment above the line?
+
+```erlang
+f() ->
+    g(
+        #{
+            A => a,                           % comment
+            B => bb,                          % another comment
+            % that comment
+            CThisLongerField => with_this_longer_function(),
+            NotTooLong => d                   % this comment
+        },
+        H,
+    ).
+```
+
+Option 3: Move all comments, when one column is violated?
+
+```erlang
+f() ->
+    g(
+        #{
+            % comment
+            A => a,
+            % another comment
+            B => bb,
+            % that comment
+            CThisLongerField => with_this_longer_function(),
+            % this comment
+            NotTooLong => d
+        },
+        H,
+    ).
+```
+
+This would be extremely complex to implement.
+Requiring us to invent another operator in the formatting algebra.
 
 ## All comments always on a newline
 
