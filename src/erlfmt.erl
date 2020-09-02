@@ -60,7 +60,7 @@ init(State) ->
 %% API entry point
 -spec format_file(file:name_all() | stdin, out(), config()) ->
     {ok, [error_info()]} |
-    {check_failed, string(), string(), [error_info()]} |
+    {check_failed, binary(), binary(), [error_info()]} |
     skip |
     {error, error_info()}.
 format_file(FileName, Out, Options) ->
@@ -429,14 +429,11 @@ try_location(_, [Node | _]) when is_tuple(Node) -> erlfmt_scan:get_anno(location
 try_location(_, _) -> 0.
 
 write_formatted(FileName, Formatted, check) ->
-    Original = read_file(FileName, fun(File) ->
-        erlfmt_scan:read_all(File)
-    end),
-    FormattedStr = unicode:characters_to_list(Formatted),
-    OriginalStr = unicode:characters_to_list(Original),
-    case OriginalStr =:= FormattedStr of
+    {ok, Original} = file:read_file(FileName),
+    FormattedStr = unicode:characters_to_binary(Formatted),
+    case Original =:= FormattedStr of
         true -> ok;
-        false -> {check_failed, OriginalStr, FormattedStr}
+        false -> {check_failed, Original, FormattedStr}
     end;
 write_formatted(_FileName, Formatted, standard_out) ->
     io:put_chars(Formatted);

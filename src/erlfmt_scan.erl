@@ -29,8 +29,7 @@
     get_inner_end_line/1,
     update_anno/3,
     range_anno/2,
-    read_rest/1,
-    read_all/1
+    read_rest/1
 ]).
 
 -export_type([state/0, anno/0, token/0, comment/0]).
@@ -146,10 +145,6 @@ read_rest(#state{scan = _Scan, inner = IO, loc = _Loc, buffer = Buffer}) ->
     end.
 
 -dialyzer({no_improper_lists, [read_rest/2]}).
-
--spec read_all(term()) -> string().
-read_all(IO) ->
-    read_rest(IO, []).
 
 read_rest(IO, Data) when is_list(IO) ->
     [Data | IO];
