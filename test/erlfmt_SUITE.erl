@@ -1026,7 +1026,7 @@ snapshot_formatted(Module, Config) ->
     case erlfmt:format_file(filename:join([DataDir, Module]), check, []) of
         {ok, _} -> ct:fail("expected ~p to require some formatting", [Module]);
         skip -> ok;
-        {check_failed, _, Formatted, _} -> ?assertEqual(binary_to_list(Expected), Formatted);
+        {check_failed, _, Formatted, _} -> ?assertEqual(Expected, Formatted);
         Other -> ct:fail("unexpected: ~p~n", [Other])
     end.
 
