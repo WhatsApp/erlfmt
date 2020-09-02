@@ -77,7 +77,7 @@ format_file(FileName, Out, Options) ->
                 [$\n | Formatted] = format_nodes(NodesWithPragma, Width),
                 verify_nodes(FileName, NodesWithPragma, Formatted),
                 case write_formatted(FileName, Formatted, Out) of
-                    {check_failed, OriginalStr, FormattedStr} -> {check_failed, OriginalStr, FormattedStr, Warnings};
+                    {check_failed, OriginalBin, FormattedBin} -> {check_failed, OriginalBin, FormattedBin, Warnings};
                     ok -> {ok, Warnings}
                 end;
             {skip, RawString} ->
@@ -429,11 +429,11 @@ try_location(_, [Node | _]) when is_tuple(Node) -> erlfmt_scan:get_anno(location
 try_location(_, _) -> 0.
 
 write_formatted(FileName, Formatted, check) ->
-    {ok, Original} = file:read_file(FileName),
-    FormattedStr = unicode:characters_to_binary(Formatted),
-    case Original =:= FormattedStr of
+    {ok, OriginalBin} = file:read_file(FileName),
+    FormattedBin = unicode:characters_to_binary(Formatted),
+    case OriginalBin =:= FormattedBin of
         true -> ok;
-        false -> {check_failed, Original, FormattedStr}
+        false -> {check_failed, OriginalBin, FormattedBin}
     end;
 write_formatted(_FileName, Formatted, standard_out) ->
     io:put_chars(Formatted);
