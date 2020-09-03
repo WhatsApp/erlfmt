@@ -41,4 +41,4 @@ jobs:
     - name: Release
       run: rebar3 as release escriptize
     - name: Check foramtting
-      run: _build/release/bin/erlfmt --check "{src,include,test}/*.{hrl,erl}" "rebar.config"
+      run: rm src/erlfmt_parse.erl && _build/release/bin/erlfmt --check "{src,include,test}/*.{hrl,erl}" "rebar.config"
