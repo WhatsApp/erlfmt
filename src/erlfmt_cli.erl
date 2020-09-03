@@ -33,8 +33,7 @@ opts() ->
         {check, $c, "check", undefined,
             "Check if your files are formatted."
             "Get exit code 1, if some files are not formatted."
-            "stdin is not supported and --write is not supported."
-        },
+            "stdin is not supported and --write is not supported."},
         {print_width, undefined, "print-width", integer,
             "The line length that formatter would wrap on"},
         {require_pragma, undefined, "require-pragma", undefined,
@@ -66,11 +65,17 @@ do_unprotected(Opts, Name) ->
                 _ -> ok
             end,
             case parallel(fun(File) -> format_file(File, Config) end, Files) of
-                ok -> ok;
+                ok ->
+                    ok;
                 warn ->
-                    io:format(standard_error, "[warn] Code style issues found in the above file(s). Forgot to run erlfmt?~n", []),
+                    io:format(
+                        standard_error,
+                        "[warn] Code style issues found in the above file(s). Forgot to run erlfmt?~n",
+                        []
+                    ),
                     erlang:halt(1);
-                error -> erlang:halt(4)
+                error ->
+                    erlang:halt(4)
             end;
         {error, Message} ->
             io:put_chars(standard_error, [Message, "\n\n"]),
@@ -181,7 +186,8 @@ parallel_loop(Fun, [Elem | Rest], N, Refs, ReducedResult) when length(Refs) < N 
 parallel_loop(Fun, List, N, Refs0, ReducedResult0) ->
     receive
         {'DOWN', Ref, process, _, Result} when
-                Result =:= error; Result =:= warn; Result =:= ok; Result =:= skip ->
+            Result =:= error; Result =:= warn; Result =:= ok; Result =:= skip
+        ->
             Refs = Refs0 -- [Ref],
             ReducedResult =
                 case {Result, ReducedResult0} of

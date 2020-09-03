@@ -658,11 +658,12 @@ clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
 
 spec_clause_gaurds_to_algebra(Expr) ->
     Meta = element(2, Expr),
-    Doc = case Expr of
-        {guard_or, _Meta, Guards} -> spec_guard_to_algebra(Guards, <<";">>);
-        {guard_and, _Meta, Guards} -> spec_guard_to_algebra(Guards, <<",">>);
-        Other -> do_expr_to_algebra(Other)
-    end,
+    Doc =
+        case Expr of
+            {guard_or, _Meta, Guards} -> spec_guard_to_algebra(Guards, <<";">>);
+            {guard_and, _Meta, Guards} -> spec_guard_to_algebra(Guards, <<",">>);
+            Other -> do_expr_to_algebra(Other)
+        end,
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
 
 spec_guard_to_algebra(Guards, Separator) ->
@@ -733,8 +734,11 @@ has_inner_break(Outer, Inner) ->
 is_next_break_fits_op(Op) ->
     lists:member(Op, ?NEXT_BREAK_FITS_OPS).
 
-is_next_break_fits({FlexContainer, Meta, Values} = Expr) when FlexContainer =:= tuple; FlexContainer =:= bin ->
-    (has_opening_line_break(Meta, Values) orelse has_trailing_comments(Values)) andalso has_no_comments_or_parens(Expr);
+is_next_break_fits({FlexContainer, Meta, Values} = Expr) when
+    FlexContainer =:= tuple; FlexContainer =:= bin
+->
+    (has_opening_line_break(Meta, Values) orelse has_trailing_comments(Values)) andalso
+        has_no_comments_or_parens(Expr);
 is_next_break_fits(Expr) ->
     lists:member(element(1, Expr), ?NEXT_BREAK_FITS) andalso has_no_comments_or_parens(Expr).
 

@@ -77,8 +77,10 @@ format_file(FileName, Out, Options) ->
                 [$\n | Formatted] = format_nodes(NodesWithPragma, Width),
                 verify_nodes(FileName, NodesWithPragma, Formatted),
                 case write_formatted(FileName, Formatted, Out) of
-                    {check_failed, OriginalBin, FormattedBin} -> {check_failed, OriginalBin, FormattedBin, Warnings};
-                    ok -> {ok, Warnings}
+                    {check_failed, OriginalBin, FormattedBin} ->
+                        {check_failed, OriginalBin, FormattedBin, Warnings};
+                    ok ->
+                        {ok, Warnings}
                 end;
             {skip, RawString} ->
                 write_formatted(FileName, RawString, Out),
