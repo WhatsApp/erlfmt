@@ -1108,7 +1108,7 @@ list_comprehension(Config) when is_list(Config) ->
         "    || ALong = {_, _, _, {B, _}} <- All, lists:member(B, Keep)\n"
         "])\n"
     ),
-        ?assertSame(
+    ?assertSame(
         "[\n"
         "    a\n"
         "    || {a, b} <- es\n"
@@ -1121,7 +1121,8 @@ list_comprehension(Config) when is_list(Config) ->
         "       filter(b)\n"
         "]\n"
     ),
-    ?assertFormat("string:equal([Value || {string, _, Value} <- ValuesL], [Value || {string, _, Value} <- ValuesR]).\n",
+    ?assertFormat(
+        "string:equal([Value || {string, _, Value} <- ValuesL], [Value || {string, _, Value} <- ValuesR]).\n",
         "string:equal([Value || {string, _, Value} <- ValuesL], [\n"
         "    Value\n"
         "    || {string, _, Value} <- ValuesR\n"
@@ -1136,7 +1137,8 @@ binary_comprehension(Config) when is_list(Config) ->
         "    X\n"
         "    || <<X, Y>> <= Results,\n"
         "       X >= Y\n"
-        ">>\n"),
+        ">>\n"
+    ),
     ?assertFormat(
         "<<(Long + Expression) || X <- Y, X < 10>>",
         "<<\n"
