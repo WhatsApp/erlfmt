@@ -74,7 +74,7 @@ format_file(FileName, Out, Options) ->
                         insert -> insert_pragma_nodes(Nodes);
                         _ -> Nodes
                     end,
-                [$\n | Formatted] = format_nodes(NodesWithPragma, Width),
+                Formatted = format_nodes(NodesWithPragma, Width),
                 verify_nodes(FileName, NodesWithPragma, Formatted),
                 case write_formatted(FileName, Formatted, Out) of
                     {check_failed, OriginalBin, FormattedBin} ->
@@ -103,7 +103,7 @@ format_string(String, Options) ->
                         insert -> insert_pragma_nodes(Nodes);
                         _ -> Nodes
                     end,
-                [$\n | Formatted] = format_nodes(NodesWithPragma, Width),
+                Formatted = format_nodes(NodesWithPragma, Width),
                 verify_nodes("nofile", NodesWithPragma, Formatted),
                 {ok, unicode:characters_to_list(Formatted), Warnings};
             {skip, _} ->
@@ -165,7 +165,7 @@ format_range(FileName, StartLocation, EndLocation, Options) ->
         {ok, Nodes, Warnings} = file_read_nodes(FileName, ignore),
         case verify_ranges(Nodes, StartLocation, EndLocation) of
             {ok, NodesInRange} ->
-                [$\n | Result] = format_nodes(NodesInRange, Width),
+                Result = format_nodes(NodesInRange, Width),
                 verify_nodes(FileName, NodesInRange, Result),
                 {ok, unicode:characters_to_binary(Result), Warnings};
             {options, PossibleRanges} ->
@@ -217,8 +217,8 @@ read_nodes_string(FileName, String) ->
 read_nodes_string(FileName, String, Pragma) ->
     read_nodes(erlfmt_scan:string_node(String), FileName, Pragma).
 
-read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma) ->
-    read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma, [], [], []).
+read_nodes(State, FileName, Pragma) ->
+    read_nodes(State, FileName, Pragma, [], [], []).
 
 read_nodes({ok, Tokens, Comments, Cont}, FileName, require, NodeAcc, Warnings0, TextAcc) ->
     {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
@@ -292,28 +292,38 @@ node_string(Cont) ->
     {String, Anno} = erlfmt_scan:last_node_string(Cont),
     {raw_string, Anno, string:trim(String, both, "\n")}.
 
-format_nodes([{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest], PageWidth) ->
+format_nodes([], _PageWidth) ->
+    [];
+format_nodes(Nodes, PageWidth) ->
+    [$\n | Formatted] = format_nodes_loop(Nodes, PageWidth),
+    Formatted.
+
+format_nodes_loop(
+    [{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest],
+    PageWidth
+) ->
     [
         $\n,
         format_node(Attr, PageWidth),
         $\n,
         format_node(Fun, PageWidth),
         $\n
-        | format_nodes(Rest, PageWidth)
+        | format_nodes_loop(Rest, PageWidth)
     ];
-format_nodes([{attribute, _, {atom, _, Name}, _} = Attr | [NextNode | _] = Rest], PageWidth) when
-    Name =:= 'if'; Name =:= 'ifdef'; Name =:= 'ifndef'; Name =:= 'else'
-->
+format_nodes_loop(
+    [{attribute, _, {atom, _, Name}, _} = Attr | [NextNode | _] = Rest],
+    PageWidth
+) when Name =:= 'if'; Name =:= 'ifdef'; Name =:= 'ifndef'; Name =:= 'else' ->
     % preserve empty line after
     [$\n, format_node(Attr, PageWidth)] ++
-        maybe_empty_line(Attr, NextNode) ++ format_nodes(Rest, PageWidth);
-format_nodes([Node | [{attribute, _, {atom, _, Name}, _} = Attr | _] = Rest], PageWidth) when
+        maybe_empty_line(Attr, NextNode) ++ format_nodes_loop(Rest, PageWidth);
+format_nodes_loop([Node | [{attribute, _, {atom, _, Name}, _} = Attr | _] = Rest], PageWidth) when
     Name =:= 'else'; Name =:= 'endif'
 ->
     % preserve empty line before
     [$\n, format_node(Node, PageWidth)] ++
-        maybe_empty_line(Node, Attr) ++ format_nodes(Rest, PageWidth);
-format_nodes([{attribute, _, {atom, _, RepeatedName}, _} | _] = Nodes, PageWidth) ->
+        maybe_empty_line(Node, Attr) ++ format_nodes_loop(Rest, PageWidth);
+format_nodes_loop([{attribute, _, {atom, _, RepeatedName}, _} | _] = Nodes, PageWidth) ->
     {Attrs, Rest} = split_attrs(RepeatedName, Nodes),
     MaybeEmptyLine =
         case Rest of
@@ -325,10 +335,10 @@ format_nodes([{attribute, _, {atom, _, RepeatedName}, _} | _] = Nodes, PageWidth
             _ ->
                 "\n"
         end,
-    format_attrs(Attrs, PageWidth) ++ MaybeEmptyLine ++ format_nodes(Rest, PageWidth);
-format_nodes([Node | Rest], PageWidth) ->
-    [$\n, format_node(Node, PageWidth), $\n | format_nodes(Rest, PageWidth)];
-format_nodes([], _PageWidth) ->
+    format_attrs(Attrs, PageWidth) ++ MaybeEmptyLine ++ format_nodes_loop(Rest, PageWidth);
+format_nodes_loop([Node | Rest], PageWidth) ->
+    [$\n, format_node(Node, PageWidth), $\n | format_nodes_loop(Rest, PageWidth)];
+format_nodes_loop([], _PageWidth) ->
     [].
 
 maybe_empty_line(Node, Next) ->
