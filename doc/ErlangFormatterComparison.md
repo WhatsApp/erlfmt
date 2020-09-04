@@ -40,7 +40,7 @@ One of the biggest lacking features with current Erlang formatters in handling o
 
 -define(MACRO(), object).
 
-`argument`(?MACRO()) -> ok.
+argument(?MACRO()) -> ok.
 
 match() ->
     ?assertMatch({ok, Num} when is_integer(Num), get_number()).
@@ -342,5 +342,4 @@ Executed in    6.86 secs   fish           external
 $ cat otp/lib/*/{src,include}/*.{e,h}rl | wc -l
 1361202 (1.36M)
 ```
-
 
