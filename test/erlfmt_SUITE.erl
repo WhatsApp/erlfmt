@@ -68,6 +68,7 @@
     snapshot_insert_pragma_with/1,
     snapshot_script/1,
     snapshot_ignore_format/1,
+    snapshot_empty/1,
     simple_comments_range/1,
     comments_range/1,
     broken_range/1,
@@ -139,7 +140,8 @@ groups() ->
             snapshot_otp_examples,
             snapshot_insert_pragma_with,
             snapshot_script,
-            snapshot_ignore_format
+            snapshot_ignore_format,
+            snapshot_empty
         ]},
         {range_tests, [parallel], [
             simple_comments_range,
@@ -1005,6 +1007,8 @@ snapshot_overlong(Config) -> snapshot_formatted("overlong.erl", Config).
 snapshot_otp_examples(Config) -> snapshot_formatted("otp_examples.erl", Config).
 
 snapshot_ignore_format(Config) -> snapshot_formatted("ignore_format.erl", Config).
+
+snapshot_empty(Config) -> snapshot_same("empty.erl", Config).
 
 snapshot_insert_pragma_with(Config) when is_list(Config) ->
     snapshot_same("pragma.erl", [{pragma, insert} | Config]).
