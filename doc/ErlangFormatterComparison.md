@@ -185,7 +185,7 @@ See the reasoning behind this decision [here](https://github.com/WhatsApp/erlfmt
 During parsing with the default Erlang parser, some information is lost, but since `erlfmt` forked the parser, it can preserve the exact representation of strings, atoms and integers.
 For example:
 
-```erlang formatted rep
+```erlang
 1_000_000,
 
 "\x61\x62\x63",
