@@ -2,10 +2,10 @@
 
 |                               |erlfmt                                                           |rebar3_format                |steamroller                                    |erl_tidy |
 |---                            |---                                                              |---                          |---                                            |--- |
-|File Types                     |.erl, .hrl, .app, .app.src, .config, .script, .escript           |.erl, .hrl	                |.erl, .hrl, .app, .app.src, .config, .script	|.erl	|
-|Macros                         |No crashes formatting OTP                                        |Skips entire files sometimes	|Skips entire files sometimes	                |Crashes sometimes	|
-|Comments                       |Preserves and moves to line before                               |Preserves but Floating       |Crashes sometimes and Reorders	                |Crashes sometimes and Floating	|
-|Configurable vs Opinionated	|Opinionated                                                      |Configurable                 |Opinionated                                    |Configurable |
+|File Types                     |.erl, .hrl, .app, .app.src, .config, .script, .escript           |.erl, .hrl	                |.erl, .hrl, .app, .app.src, .config, .script	|.erl |
+|Macros                         |No crashes formatting OTP                                        |Skips entire files sometimes	|Skips entire files sometimes	                |Crashes sometimes |
+|Comments                       |Preserves and moves to line before                               |Preserves but Floating       |Crashes sometimes and Reorders	                |Crashes sometimes and Floating |
+|Configurable vs Opinionated    |Opinionated                                                      |Configurable                 |Opinionated                                    |Configurable |
 |Preserving Representation      |Yes                                                              |Some                         |No                                             |No |
 |Line Break Hints               |Yes                                                              |No                           |No                                             |No |
 |Opt In/Out                     |per file, per top level expression                               |No                           |No                                             |No |
@@ -33,12 +33,13 @@ One of the biggest lacking features with current Erlang formatters in handling o
 
 `erlfmt` forked the erlang parser to make sure that it can handle macros and can handle all of the following macros and format them.
 
-```erlang formatted macros
+```erlang
 -module(macros).
 
 -include_lib("stdlib/include/assert.hrl").
 
 -define(MACRO(), object).
+
 `argument`(?MACRO()) -> ok.
 
 match() ->
@@ -54,17 +55,20 @@ bar() ->
     #?RECORD_NAME2{a = 1}.
 
 -define(NAME, name).
+
 ?NAME() -> ok.
 
 -define(FALLBACK_CLAUSE(Name), Name(_) -> default_action()).
+
 compute(X) when is_integer(X) -> ok;
 ?FALLBACK_CLAUSE(compute).
 ```
 
 Sometimes there are still edge cases, which `erlfmt` cannot format, but it can at least preserve the exact string, without crashing, while formatting all the other functions/attributes/expressions in the file.
 
-```erlang formatted macro2
+```erlang
 -define(line, put(line, ?LINE),).
+
 foo() ->
     ?line compute().
 ```
@@ -151,7 +155,7 @@ comprehension() ->
 
 `erlfmt` moves trailing comments above the line, given the following input:
 
-```
+```erlang
 %% Constants
 -define(VERSION_CHECK_INTERVAL_MILLIS_DEFAULT, 10000). % Minimum interval between health checks
 -define(MAX_WRITE_FAILURES, 3).
@@ -159,7 +163,7 @@ comprehension() ->
 
 The trailing comment is moved to the line above and the above comment is moved to make space.
 
-```
+```erlang formatted comments
 %% Constants
 
 % Minimum interval between health checks
@@ -181,7 +185,7 @@ See the reasoning behind this decision [here](https://github.com/WhatsApp/erlfmt
 During parsing with the default Erlang parser, some information is lost, but since `erlfmt` forked the parser, it can preserve the exact representation of strings, atoms and integers.
 For example:
 
-```erlang
+```erlang formatted rep
 1_000_000,
 
 "\x61\x62\x63",
@@ -195,7 +199,8 @@ For example:
 {undefined, 'undefined'}.
 ```
 
-* rebar3_format
+`rebar3_format` simplifies lists, atoms and strings.
+
 ```erlang
 1_000_000,
 
@@ -209,7 +214,9 @@ For example:
 
 {undefined, undefined}.
 ```
-* steamroller
+
+`steamroller` preserves lists, but simplifies strings, atoms and numbers.
+
 ```erlang
 1000000,
 "abc",
@@ -218,7 +225,9 @@ For example:
 [1 | [2 | [3 | improper_list]]],
 {undefined, undefined}.
 ```
-* erl_tidy
+
+`erl_tidy` simplifies all the examples.
+
 ```erlang
 1000000,
 
