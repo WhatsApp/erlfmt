@@ -1,6 +1,6 @@
 # Erlang Formatter Comparison
 
-|                               |erlfmt                                                           |rebar3_format                |steamroller                                    |erl_tidy |
+|                                                           |erlfmt                                                           |rebar3_format                |steamroller                                    |erl_tidy |
 |---                            |---                                                              |---                          |---                                            |--- |
 |[File Types](#file-types)                                  |.erl, .hrl, .app, .app.src, .config, .script, .escript           |.erl, .hrl	                |.erl, .hrl, .app, .app.src, .config, .script	|.erl |
 |[Macros](#macros)                                          |No crashes formatting OTP                                        |Skips entire files sometimes	|Skips entire files sometimes	                |Crashes sometimes |
@@ -8,7 +8,7 @@
 |[Configurable vs Opinionated](#configurable-vs-opinionated)|Opinionated                                                      |Configurable                 |Opinionated                                    |Configurable |
 |[Preserving Representation](#preserving-representation)    |Yes                                                              |Some                         |No                                             |No |
 |[Line Break Hints](#line-break-hints)                      |Yes                                                              |No                           |No                                             |No |
-|[Opt In/Out](#opt-inout)                                   |per file, per top level expression                               |No                           |No                                             |No |
+|[Opt In/Out](#opt-inout)                                   |per file, per top level expression                               |per file                     |No                                             |No |
 |[Speed](#speed)                                            |OTP lib in 7s                                                    |N/A                          |N/A                                            |N/A |
 
 ## File Types
@@ -319,8 +319,9 @@ x() -> Foo = [short, list].
 
 ## Opt In/Out
 
-`erlfmt` is the only Erlang formatter, as far as we know, that allows you to opt-in per file and opt-out per top-level expression.
+`rebar3-format` allows you to opt out per file by adding `-format ignore.` to the top of your file.
 
+`erlfmt` allows you to opt-in per file and opt-out per top-level expression.
 Adding a comment to the top of the file `%% @format` and running `erlfmt` with the `--require-pragma` option, will result in only files that have this comment will be formatted.
 
 Adding a comment `%% erlfmt-ignore` above a top level expression, will skip over this single expression and continue to format the rest of the file.

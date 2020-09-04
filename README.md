@@ -38,7 +38,7 @@ what_is(Erlang) ->
 |Configurable vs Opinionated    |Opinionated                                                      |Configurable                 |Opinionated                                    |Configurable |
 |Preserving Representation      |Yes                                                              |Some                         |No                                             |No |
 |Line Break Hints               |Yes                                                              |No                           |No                                             |No |
-|Opt In/Out                     |per file, per top level expression                               |No                           |No                                             |No |
+|Opt In/Out                     |per file, per top level expression                               |per file                     |No                                             |No |
 |Speed                          |OTP lib in 7s                                                    |N/A                          |N/A                                            |N/A |
 
 See the [comparison with other erlang formatters document](./doc/ErlangFormatterComparison.md) for more details.
