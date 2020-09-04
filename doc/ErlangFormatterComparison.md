@@ -11,13 +11,16 @@
 |[Opt In/Out](#opt-inout)                                   |per file, per top level expression                               |per file                     |No                                             |No |
 |[Speed](#speed)                                            |OTP lib in 7s                                                    |N/A                          |N/A                                            |N/A |
 
+In practice, `rebar3_format` is configurable, so you could embed a formatter of your choosing,
+but in this document, when we mention `rebar3_format` we are referring to the rebar3 `default_formatter`.
+
 ## File Types
 
 `erlfmt` and `streamroller` support all file types `.erl`, `.hrl`, `.app`, `.app.src`, `.config`, `.script` that are common in the Erlang ecosystem, but `erlfmt` can also handle `.escript` files which include a top `#!/usr/bin/env escript` directive, where most other formatters only support `.erl` and `.hrl` files.
 
 ## Macros
 
-One of the biggest lacking features with current Erlang formatters in handling of macros.  For example:
+One of the biggest lacking features with current Erlang formatters is the handling of macros.  For example:
 
 * `erl_tidy`
     * Crashes on some macros (`argument`, `?NAME`, and `compute`)
