@@ -2,14 +2,14 @@
 
 |                               |erlfmt                                                           |rebar3_format                |steamroller                                    |erl_tidy |
 |---                            |---                                                              |---                          |---                                            |--- |
-|File Types                     |.erl, .hrl, .app, .app.src, .config, .script, .escript           |.erl, .hrl	                |.erl, .hrl, .app, .app.src, .config, .script	|.erl |
-|Macros                         |No crashes formatting OTP                                        |Skips entire files sometimes	|Skips entire files sometimes	                |Crashes sometimes |
-|Comments                       |Preserves and moves to line before                               |Preserves but Floating       |Crashes sometimes and Reorders	                |Crashes sometimes and Floating |
-|Configurable vs Opinionated    |Opinionated                                                      |Configurable                 |Opinionated                                    |Configurable |
-|Preserving Representation      |Yes                                                              |Some                         |No                                             |No |
-|Line Break Hints               |Yes                                                              |No                           |No                                             |No |
-|Opt In/Out                     |per file, per top level expression                               |No                           |No                                             |No |
-|Speed                          |OTP lib in 7s                                                    |N/A                          |N/A                                            |N/A |
+|[File Types](#file-types)                                  |.erl, .hrl, .app, .app.src, .config, .script, .escript           |.erl, .hrl	                |.erl, .hrl, .app, .app.src, .config, .script	|.erl |
+|[Macros](#macros)                                          |No crashes formatting OTP                                        |Skips entire files sometimes	|Skips entire files sometimes	                |Crashes sometimes |
+|[Comments](#comments)                                      |Preserves and moves to line before                               |Preserves but Floating       |Crashes sometimes and Reorders	                |Crashes sometimes and Floating |
+|[Configurable vs Opinionated](#configurable-vs-opinionated)|Opinionated                                                      |Configurable                 |Opinionated                                    |Configurable |
+|[Preserving Representation](#preserving-representation)    |Yes                                                              |Some                         |No                                             |No |
+|[Line Break Hints](#line-break-hints)                      |Yes                                                              |No                           |No                                             |No |
+|[Opt In/Out](#opt-inout)                                   |per file, per top level expression                               |No                           |No                                             |No |
+|[Speed](#speed)                                            |OTP lib in 7s                                                    |N/A                          |N/A                                            |N/A |
 
 ## File Types
 
