@@ -295,31 +295,35 @@ node_string(Cont) ->
 format_nodes([], _PageWidth) ->
     [];
 format_nodes(Nodes, PageWidth) ->
-    [$\n | Formatted] = format_nodes_helper(Nodes, PageWidth),
+    [$\n | Formatted] = format_nodes_loop(Nodes, PageWidth),
     Formatted.
 
-format_nodes_helper([{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest], PageWidth) ->
+format_nodes_loop(
+    [{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest],
+    PageWidth
+) ->
     [
         $\n,
         format_node(Attr, PageWidth),
         $\n,
         format_node(Fun, PageWidth),
         $\n
-        | format_nodes_helper(Rest, PageWidth)
+        | format_nodes_loop(Rest, PageWidth)
     ];
-format_nodes_helper([{attribute, _, {atom, _, Name}, _} = Attr | [NextNode | _] = Rest], PageWidth) when
-    Name =:= 'if'; Name =:= 'ifdef'; Name =:= 'ifndef'; Name =:= 'else'
-->
+format_nodes_loop(
+    [{attribute, _, {atom, _, Name}, _} = Attr | [NextNode | _] = Rest],
+    PageWidth
+) when Name =:= 'if'; Name =:= 'ifdef'; Name =:= 'ifndef'; Name =:= 'else' ->
     % preserve empty line after
     [$\n, format_node(Attr, PageWidth)] ++
-        maybe_empty_line(Attr, NextNode) ++ format_nodes_helper(Rest, PageWidth);
-format_nodes_helper([Node | [{attribute, _, {atom, _, Name}, _} = Attr | _] = Rest], PageWidth) when
+        maybe_empty_line(Attr, NextNode) ++ format_nodes_loop(Rest, PageWidth);
+format_nodes_loop([Node | [{attribute, _, {atom, _, Name}, _} = Attr | _] = Rest], PageWidth) when
     Name =:= 'else'; Name =:= 'endif'
 ->
     % preserve empty line before
     [$\n, format_node(Node, PageWidth)] ++
-        maybe_empty_line(Node, Attr) ++ format_nodes_helper(Rest, PageWidth);
-format_nodes_helper([{attribute, _, {atom, _, RepeatedName}, _} | _] = Nodes, PageWidth) ->
+        maybe_empty_line(Node, Attr) ++ format_nodes_loop(Rest, PageWidth);
+format_nodes_loop([{attribute, _, {atom, _, RepeatedName}, _} | _] = Nodes, PageWidth) ->
     {Attrs, Rest} = split_attrs(RepeatedName, Nodes),
     MaybeEmptyLine =
         case Rest of
@@ -331,10 +335,10 @@ format_nodes_helper([{attribute, _, {atom, _, RepeatedName}, _} | _] = Nodes, Pa
             _ ->
                 "\n"
         end,
-    format_attrs(Attrs, PageWidth) ++ MaybeEmptyLine ++ format_nodes_helper(Rest, PageWidth);
-format_nodes_helper([Node | Rest], PageWidth) ->
-    [$\n, format_node(Node, PageWidth), $\n | format_nodes_helper(Rest, PageWidth)];
-format_nodes_helper([], _PageWidth) ->
+    format_attrs(Attrs, PageWidth) ++ MaybeEmptyLine ++ format_nodes_loop(Rest, PageWidth);
+format_nodes_loop([Node | Rest], PageWidth) ->
+    [$\n, format_node(Node, PageWidth), $\n | format_nodes_loop(Rest, PageWidth)];
+format_nodes_loop([], _PageWidth) ->
     [].
 
 maybe_empty_line(Node, Next) ->
