@@ -10,7 +10,12 @@ We actively welcome your pull requests.
 3. If you've changed APIs, update the documentation.
 4. Ensure the test suite passes using `rebar3 ct`.
 5. Make sure your code passes dialyzer using `rebar3 dialyzer`.
-6. If you haven't already, complete the Contributor License Agreement ("CLA").
+6. Make sure the code is formatted with `erlfmt`:
+```sh
+$ rebar3 as release escriptize
+$ _build/release/bin/erlfmt -w "{src,include,test}/*.{hrl,erl}" "rebar.config"
+```
+7. If you haven't already, complete the Contributor License Agreement ("CLA").
 
 ## Contributor License Agreement ("CLA")
 In order to accept your pull request, we need you to submit a CLA. You only need
