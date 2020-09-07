@@ -28,6 +28,21 @@ what_is(Erlang) ->
 
 *Disclaimer: erlfmt is just a code formatter, not a solution to all life's problems.*
 
+## Comparison with other Erlang formatters
+
+|                               |erlfmt                                                           |rebar3_format                |steamroller                                    |erl_tidy |
+|---                            |---                                                              |---                          |---                                            |--- |
+|File Types                     |.erl, .hrl, .app, .app.src, .config, .script, .escript           |.erl, .hrl	                |.erl, .hrl, .app, .app.src, .config, .script	|.erl |
+|Macros                         |No crashes formatting OTP                                        |Skips entire files sometimes	|Skips entire files sometimes	                |Crashes sometimes |
+|Comments                       |Preserves and moves to line before                               |Preserves but Floating       |Crashes sometimes and Reorders	                |Crashes sometimes and Floating |
+|Configurable vs Opinionated    |Opinionated                                                      |Configurable                 |Opinionated                                    |Configurable |
+|Preserving Representation      |Yes                                                              |Some                         |No                                             |No |
+|Line Break Hints               |Yes                                                              |No                           |No                                             |No |
+|Opt In/Out                     |per file, per top level expression                               |per file                     |No                                             |No |
+|Speed                          |OTP lib in 7s                                                    |N/A                          |N/A                                            |N/A |
+
+See the [comparison with other erlang formatters document](./doc/ErlangFormatterComparison.md) for more details.
+
 ## Line length
 
 erlfmt enforces a consistent style by parsing your code and re-printing it,
