@@ -18,7 +18,7 @@ case Erlang of movie->[hello(mike,joe,robert),credits]; language->formatting_arg
 
 Now, with the new erlfmt, code is readable and you get along with your co workers :D
 
-```erl formatted demo2
+```erlang formatted demo2
 what_is(Erlang) ->
     case Erlang of
         movie -> [hello(mike, joe, robert), credits];
@@ -27,6 +27,17 @@ what_is(Erlang) ->
 ```
 
 *Disclaimer: erlfmt is just a code formatter, not a solution to all life's problems.*
+
+## Table of Contents
+
+  - [Comparison with other Erlang formatters](#comparison-with-other-erlang-formatters)
+  - [Usage](#usage)
+  - [Line length](#line-length)
+  - [Design principles](#design-principles)
+  - [Manual interventions](#manual-interventions)
+  - [Respecting original format](#respecting-original-format)
+  - [Ignoring Formatting](#ignoring-formatting)
+  - [Join the erlfmt community](#join-the-erlfmt-community)
 
 ## Comparison with other Erlang formatters
 
@@ -43,39 +54,6 @@ what_is(Erlang) ->
 
 See the [comparison with other erlang formatters document](./doc/ErlangFormatterComparison.md) for more details.
 
-## Line length
-
-erlfmt enforces a consistent style by parsing your code and re-printing it,
-while enforcing a selected maximum line-length.
-
-For example, this line that exceeds the length limit:
-
-```erl unformatted scenario
-scenario(dial_phone_number(),  ring(), hello(mike),hello(joe), hello(robert),   system_working(), seems_to_be())
-```
-
-will be re-printed automatically in a vertical style:
-
-```erl formatted scenario
-scenario(
-    dial_phone_number(),
-    ring(),
-    hello(mike),
-    hello(joe),
-    hello(robert),
-    system_working(),
-    seems_to_be()
-)
-```
-
-But this snippet:
-
-```erl formatted hello
-hello(mike, joe, robert)
-```
-
-will be kept as-is, since it fits in a single line.
-
 ## Usage
 
 ### Rebar3
@@ -83,14 +61,14 @@ will be kept as-is, since it fits in a single line.
 The easiest way to use erlfmt is as a rebar plugin, by adding to your
 `rebar.config`:
 
-```erl formatted rebarconfig1
+```erlang formatted rebarconfig1
 {plugins, [erlfmt]}.
 ```
 
 This will provide a new `rebar3 fmt` task. All erlfmt command-line options
 can be configured with defaults in your `rebar.config`, for example:
 
-```erl formatted rebarconfig2
+```erlang formatted rebarconfig2
 {erlfmt, [
     write,
     {files, "{src,include,test}/*.{hrl,erl}"}
@@ -119,9 +97,49 @@ You can then run it from the command line:
 $ erlfmt -w './otp/lib/*/{src,include}/*.{erl,hrl}'
 ```
 
-## Requirements
+### Requirements
 
 erlfmt requires Erlang/OTP 21+ and works on all platforms.
+
+### Integrations
+
+ - Visual Studio Code's [Erlang Formatter](https://marketplace.visualstudio.com/items?itemName=szTheory.erlang-formatter) extension.
+ - How to integrate with [doom emacs](https://github.com/WhatsApp/erlfmt/issues/46#issuecomment-655996639)
+
+Add your integration here, by making a pull request.
+
+## Line length
+
+erlfmt enforces a consistent style by parsing your code and re-printing it,
+while enforcing a selected maximum line-length.
+
+For example, this line that exceeds the length limit:
+
+```erlang unformatted scenario
+scenario(dial_phone_number(),  ring(), hello(mike),hello(joe), hello(robert),   system_working(), seems_to_be())
+```
+
+will be re-printed automatically in a vertical style:
+
+```erlang formatted scenario
+scenario(
+    dial_phone_number(),
+    ring(),
+    hello(mike),
+    hello(joe),
+    hello(robert),
+    system_working(),
+    seems_to_be()
+)
+```
+
+But this snippet:
+
+```erlang formatted hello
+hello(mike, joe, robert)
+```
+
+will be kept as-is, since it fits in a single line.
 
 ## Design principles
 
@@ -155,14 +173,14 @@ In some cases, the formatter rules might lead to code that looks decent, but
 not perfect. Therefore some manual intervention to help the formatter out might
 be needed. For example, given the following code:
 
-```erl unformatted split_tokens
+```erlang unformatted split_tokens
 split_tokens([{TokenType, Meta, TokenValue} | Rest], Acc, CAcc) ->
     split_tokens(Rest, [{TokenType, token_anno(erl_anno:to_term(Meta), #{}), TokenValue} | Acc], CAcc).
 ```
 
 Because the line-length is exceeded, the formatter will produce the following:
 
-```erl formatted split_tokens
+```erlang formatted split_tokens
 split_tokens([{TokenType, Meta, TokenValue} | Rest], Acc, CAcc) ->
     split_tokens(
         Rest,
@@ -174,7 +192,7 @@ split_tokens([{TokenType, Meta, TokenValue} | Rest], Acc, CAcc) ->
 It might be more desirable, though, to extract a variable and allow the call to
 still be rendered in a single line, for example:
 
-```erl formatted split_tokens2
+```erlang formatted split_tokens2
 split_tokens([{TokenType, Meta, TokenValue} | Rest], Acc, CAcc) ->
     Token = {TokenType, token_anno(erl_anno:to_term(Meta), #{}), TokenValue},
     split_tokens(Rest, [Token | Acc], CAcc).
@@ -183,7 +201,7 @@ split_tokens([{TokenType, Meta, TokenValue} | Rest], Acc, CAcc) ->
 A similar situation could happen with long patterns in function heads,
 for example let's look at this function:
 
-```erl
+```erlang
 my_function(
     #user{name: Name, age: Age, ...},
     Arg2,
@@ -223,7 +241,7 @@ separate line. The formatter respects this choice, if possible. If there is a
 newline between the opening bracket/brace/parenthesis and the first element,
 the collection will be always printed "expanded", for example:
 
-```erl formatted foobar
+```erlang formatted foobar
 [
     Foo,
     Bar
@@ -234,19 +252,19 @@ will be preserved, even though it could fit on a single line.
 This is controlled by whether the user has included a newline in the original version.
 For example, merely deleting the newlines from the above sequence:
 
-```erl unformatted foobar1
+```erlang unformatted foobar1
 [    Foo, Bar]
 ```
 
 and re-running the formatter, will produce:
 
-```erl formatted foobar1
+```erlang formatted foobar1
 [Foo, Bar]
 ```
 
 Similarly, adding the single newline back:
 
-```erl unformatted foobar
+```erlang unformatted foobar
 [
 Foo, Bar]
 ```
@@ -263,7 +281,7 @@ a single line, or in all clauses the body is printed on a new line.
 This is controlled by the layout of the first clause, again allowing to change
 the layout of the entire sequence with just one character, for example:
 
-```erl formatted is_beautiful
+```erlang formatted is_beautiful
 case is_beautiful(Code) of
     true ->
         ring_the_bell();
@@ -276,7 +294,7 @@ Even though, the expressions could all fit on a single line, because there is a
 newline in the first clause after `->`, this layout is preserved. If we'd like
 to "collapse" it, we can do that by removing the first newline:
 
-```erl unformatted is_beautiful2
+```erlang unformatted is_beautiful2
 case is_beautiful(Code) of
     true ->        ring_the_bell();
     false ->
@@ -286,7 +304,7 @@ end
 
 and re-running the formatter will produce:
 
-```erl formatted is_beautiful2
+```erlang formatted is_beautiful2
 case is_beautiful(Code) of
     true -> ring_the_bell();
     false -> dig_a_hole()
@@ -295,7 +313,7 @@ end
 
 To go back to the original layout, we can insert the newline back again:
 
-```erl unformatted is_beautiful
+```erlang unformatted is_beautiful
 case is_beautiful(Code) of
     true ->
 ring_the_bell();
@@ -325,25 +343,20 @@ We have introduced the `erlfmt-ignore` comment, which when placed before a top-l
 **Only top-level expression are supported.**
 Nested expressions are not supported, for example expressions inside functions.
 
-## Integrations
-
- - Visual Studio Code's [Erlang Formatter](https://marketplace.visualstudio.com/items?itemName=szTheory.erlang-formatter) extension.
- - How to integrate with [doom emacs](https://github.com/WhatsApp/erlfmt/issues/46#issuecomment-655996639)
-
-Add your integration here, by making a pull request.
-
-## Internal Documentation
+## Join the erlfmt community
 
 To learn more about erlfmt internals, please explore the `doc/` directory
 
-## Test
+See the [CONTRIBUTING](.github/CONTRIBUTING.md) file for how to help out.
+
+### Test
 
 ```sh
 $ rebar3 ct
 $ rebar3 dialyzer
 ```
 
-## Local use
+### Local use
 
 To format erlfmt itself:
 
@@ -352,12 +365,14 @@ $ rebar3 as release escriptize
 $ _build/release/bin/erlfmt -w "{src,include,test}/*.{hrl,erl}" "rebar.config"
 ```
 
-## Join the erlfmt community
-See the [CONTRIBUTING](.github/CONTRIBUTING.md) file for how to help out.
+### Release Process
 
-Also see [Formatting Decisions](https://github.com/WhatsApp/erlfmt/blob/master/doc/Readme.md)
+The [release process](./RELEASE.md) requires a few steps, updating the [CHANGELOG.md](./CHANGELOG.md), releasing to [hex](https://hex.pm/packages/erlfmt) and more.
 
-Release process is documented [here]((./RELEASE.md))
+### Decision Documents
 
-## License
-erlfmt is Apache 2.0 licensed, as found in the LICENSE file.
+[Formatting Decisions](https://github.com/WhatsApp/erlfmt/blob/master/doc/Readme.md) documents are intended to explain our reasoning for making certain formatting decisions.
+
+### License
+
+erlfmt is Apache 2.0 licensed, as found in the [LICENSE](./LICENSE) file.
