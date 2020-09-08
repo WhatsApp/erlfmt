@@ -29,7 +29,7 @@
 -export_type([error_info/0, out/0, config/0, pragma/0]).
 
 -type error_info() :: {file:name_all(), erl_anno:location(), module(), Reason :: any()}.
--type out() :: standard_out | {path, file:name_all()} | replace | check.
+-type out() :: standard_out | {path, file:name_all()} | replace.
 -type pragma() :: require | insert | ignore.
 -type config() :: [{pragma, pragma()} | {width, pos_integer()}].
 
@@ -60,7 +60,6 @@ init(State) ->
 %% API entry point
 -spec format_file(file:name_all() | stdin, out(), config()) ->
     {ok, [error_info()]} |
-    {check_failed, binary(), binary(), [error_info()]} |
     skip |
     {error, error_info()}.
 format_file(FileName, Out, Options) ->
@@ -76,12 +75,8 @@ format_file(FileName, Out, Options) ->
                     end,
                 Formatted = format_nodes(NodesWithPragma, Width),
                 verify_nodes(FileName, NodesWithPragma, Formatted),
-                case write_formatted(FileName, Formatted, Out) of
-                    {check_failed, OriginalBin, FormattedBin} ->
-                        {check_failed, OriginalBin, FormattedBin, Warnings};
-                    ok ->
-                        {ok, Warnings}
-                end;
+                write_formatted(FileName, Formatted, Out),
+                {ok, Warnings};
             {skip, RawString} ->
                 write_formatted(FileName, RawString, Out),
                 skip
@@ -440,13 +435,6 @@ try_location(_, Node) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node
 try_location(_, [Node | _]) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node);
 try_location(_, _) -> 0.
 
-write_formatted(FileName, Formatted, check) ->
-    {ok, OriginalBin} = file:read_file(FileName),
-    FormattedBin = unicode:characters_to_binary(Formatted),
-    case OriginalBin =:= FormattedBin of
-        true -> ok;
-        false -> {check_failed, OriginalBin, FormattedBin}
-    end;
 write_formatted(_FileName, Formatted, standard_out) ->
     io:put_chars(Formatted);
 write_formatted(FileName, Formatted, Out) ->

@@ -55,6 +55,7 @@
     smoke_test_stdio_insert_pragma_without/1,
     smoke_test_stdio_insert_and_require_pragma/1,
     smoke_test_stdio_unicode/1,
+    smoke_test_stdio_check/1,
     snapshot_simple_comments/1,
     snapshot_big_binary/1,
     snapshot_attributes/1,
@@ -125,7 +126,8 @@ groups() ->
             smoke_test_stdio_with_pragma,
             smoke_test_stdio_insert_pragma_without,
             smoke_test_stdio_insert_and_require_pragma,
-            smoke_test_stdio_unicode
+            smoke_test_stdio_unicode,
+            smoke_test_stdio_check
         ]},
         {snapshot_tests, [parallel], [
             snapshot_simple_comments,
@@ -1016,23 +1018,34 @@ snapshot_insert_pragma_with(Config) when is_list(Config) ->
 snapshot_same(Module, Config) ->
     DataDir = ?config(data_dir, Config),
     Pragma = proplists:get_value(pragma, Config, ignore),
-    case erlfmt:format_file(filename:join(DataDir, Module), check, [{pragma, Pragma}]) of
-        {ok, _} -> ok;
+    {ok, OriginalBin} = file:read_file(filename:join(DataDir, Module)),
+    Original = unicode:characters_to_list(OriginalBin),
+    case erlfmt:format_string(Original, [{pragma, Pragma}]) of
+        {ok, Original, _} -> ok;
         skip -> ok;
-        {check_failed, Original, Formatted, _} -> ?assertEqual(Formatted, Original);
         Other -> ct:fail("unexpected: ~p~n", [Other])
     end.
 
 snapshot_formatted(Module, Config) ->
     snapshot_same(Module ++ ".formatted", Config),
     DataDir = ?config(data_dir, Config),
-    {ok, Expected} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
-    case erlfmt:format_file(filename:join([DataDir, Module]), check, []) of
-        {ok, _} -> ct:fail("expected ~p to require some formatting", [Module]);
-        skip -> ok;
-        {check_failed, _, Formatted, _} -> ?assertEqual(Expected, Formatted);
-        Other -> ct:fail("unexpected: ~p~n", [Other])
-    end.
+    {ok, FormattedBin} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
+    Formatted = unicode:characters_to_list(FormattedBin),
+    {ok, OriginalBin} = file:read_file(filename:join([DataDir, Module])),
+    Original = unicode:characters_to_list(OriginalBin),
+    ?assertMatch({ok, Formatted, _}, erlfmt:format_string(Original, [])).
+
+smoke_test_stdio_check(Config) when is_list(Config) ->
+    DataDir = ?config(data_dir, Config),
+    Same = os:cmd(
+        "cat " ++
+            filename:join(DataDir, "attributes.erl") ++ " | " ++ escript() ++ " - " ++ "--check"
+    ),
+    ?assertMatch(nomatch, string:find(Same, "[warn]")),
+    Warn = os:cmd(
+        "cat " ++ filename:join(DataDir, "comments.erl") ++ " | " ++ escript() ++ " - " ++ "--check"
+    ),
+    ?assertNotMatch(nomatch, string:find(Warn, "[warn]")).
 
 simple_comments_range(Config) ->
     format_range(Config, "simple_comments.erl").
