@@ -204,6 +204,7 @@ literals(Config) when is_list(Config) ->
 
 string_concat(Config) when is_list(Config) ->
     ?assertSame("\"foo\" \"bar\"\n"),
+    ?assertSame("<<\"foo\" ?foo()>>\n"),
     ?assertFormat(
         "\"foo\" \"bar\"",
         "\"foo\"\n"
