@@ -28,7 +28,7 @@ list_comprehension lc_expr lc_exprs
 binary_comprehension
 tuple
 record_expr record_name record_field_name record_tuple record_field record_fields
-map_expr map_tuple map_field map_fields map_key
+map_expr map_tuple
 if_expr if_clause if_clauses case_expr cr_clause cr_clauses receive_expr
 fun_expr fun_clause fun_clauses
 atom_or_var atom_or_var_or_macro integer_or_var_or_macro
@@ -39,7 +39,7 @@ atomic concatable concatables macro_record_or_concatable
 prefix_op mult_op add_op list_op comp_op
 binary bin_elements bin_element bit_expr bit_size_expr bit_type_list bit_type
 type types anno_types type_call type_argument_list
-type_sig type_sigs fun_type binary_type bin_element_type type_map_fields type_map_field
+type_sig type_sigs fun_type binary_type bin_element_type
 type_spec spec_fun
 macro_call_expr macro_string macro_call_pat macro_call_type macro_call_none
 macro_expr macro_exprs
@@ -79,6 +79,8 @@ Left 500 mult_op.
 Unary 600 prefix_op.
 Nonassoc 700 '#'.
 Nonassoc 800 ':'.
+Nonassoc 800 '=>'.
+Nonassoc 800 ':='.
 
 %% Types
 
@@ -122,6 +124,8 @@ type_sig -> type_argument_list '->' type 'when' anno_types :
 type -> type '::' type : ?mkop2('$1', '$2', '$3').
 type -> type '|' type : ?mkop2('$1', '$2', '$3').
 type -> type '..' type : ?mkop2('$1', '$2', '$3').
+type -> type '=>' type : {map_field_assoc, ?range_anno('$1', '$3'), '$1', '$3'}.
+type -> type ':=' type : {map_field_exact, ?range_anno('$1', '$3'), '$1', '$3'}.
 type -> macro_call_type : '$1'.
 type -> type add_op type : ?mkop2('$1', '$2', '$3').
 type -> type mult_op type : ?mkop2('$1', '$2', '$3').
@@ -134,7 +138,7 @@ type -> '[' ']' : {list, ?range_anno('$1', '$2'), []}.
 type -> '[' type ']' : {list, ?range_anno('$1', '$3'), ['$2']}.
 type -> '[' type ',' '...' ']' : {list, ?range_anno('$1', '$5'), ['$2', '$4']}.
 type -> '#' '{' '}' : {map, ?range_anno('$1', '$3'), []}.
-type -> '#' '{' type_map_fields '}' : {map, ?range_anno('$1', '$4'), '$3'}.
+type -> '#' '{' types '}' : {map, ?range_anno('$1', '$4'), '$3'}.
 type -> '{' '}' : {tuple, ?range_anno('$1', '$2'), []}.
 type -> '{' types '}' : {tuple, ?range_anno('$1', '$3'), '$2'}.
 type -> '#' record_name '{' '}' : {record, ?range_anno('$1', '$4'), '$2', []}.
@@ -159,14 +163,6 @@ fun_type -> 'fun' '(' '(' '...' ')' '->' type ')' :
     {'fun', ?range_anno('$1', '$8'), {type, ?range_anno('$4', '$7'), ['$4'], '$7'}}.
 fun_type -> 'fun' '(' type_argument_list '->' type ')' :
     {'fun', ?range_anno('$1', '$6'), {type, ?range_anno('$3', '$5'), ?val('$3'), '$5'}}.
-
-type_map_fields -> type_map_field : ['$1'].
-type_map_fields -> type_map_field ',' type_map_fields : ['$1' | '$3'].
-
-type_map_field -> type '=>' type :
-    {map_field_assoc, ?range_anno('$1', '$3'), '$1', '$3'}.
-type_map_field -> type ':=' type :
-    {map_field_exact, ?range_anno('$1', '$3'), '$1', '$3'}.
 
 binary_type -> '<<' '>>' :
     {bin, ?range_anno('$1', '$2'), []}.
@@ -218,6 +214,8 @@ expr -> expr comp_op expr : ?mkop2('$1', '$2', '$3').
 expr -> expr list_op expr : ?mkop2('$1', '$2', '$3').
 expr -> expr add_op expr : ?mkop2('$1', '$2', '$3').
 expr -> expr mult_op expr : ?mkop2('$1', '$2', '$3').
+expr -> expr '=>' expr : {map_field_assoc, ?range_anno('$1', '$3'), '$1', '$3'}.
+expr -> expr ':=' expr : {map_field_exact, ?range_anno('$1', '$3'), '$1', '$3'}.
 expr -> prefix_op expr : ?mkop1('$1', '$2').
 expr -> expr '::' type : ?mkop2('$1', '$2', '$3').
 expr -> map_expr : '$1'.
@@ -332,17 +330,7 @@ map_expr -> map_expr '#' map_tuple :
     {map, ?range_anno('$1', '$3'), '$1', ?val('$3')}.
 
 map_tuple -> '{' '}' : {[], ?anno('$2')}.
-map_tuple -> '{' map_fields '}' : {'$2', ?anno('$3')}.
-
-map_fields -> map_field : ['$1'].
-map_fields -> map_field ',' map_fields : ['$1' | '$3'].
-
-map_field -> map_key '=>' expr :
-    {map_field_assoc, ?range_anno('$1', '$3'), '$1', '$3'}.
-map_field -> map_key ':=' expr :
-    {map_field_exact, ?range_anno('$1', '$3'), '$1', '$3'}.
-
-map_key -> expr : '$1'.
+map_tuple -> '{' exprs '}' : {'$2', ?anno('$3')}.
 
 %% N.B. This is called from expr.
 %% N.B. Field names are returned as the complete object, even if they are

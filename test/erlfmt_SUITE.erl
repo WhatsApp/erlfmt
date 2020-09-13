@@ -43,6 +43,7 @@
     operators/1,
     lists/1,
     binaries/1,
+    maps/1,
     clauses/1,
     types/1,
     annos/1,
@@ -111,6 +112,7 @@ groups() ->
             operators,
             lists,
             binaries,
+            maps,
             clauses,
             types,
             annos,
@@ -539,6 +541,13 @@ macro_definitions(Config) when is_list(Config) ->
             {op, _, '|', {op, _, '..', {integer, _, 0}, {integer, _, 100}}, {atom, _, infinity}}
         ]},
         parse_form("-define(TIMEOUT_TYPE, 0..100 | 'infinity').")
+    ),
+    ?assertMatch(
+        {attribute, _, {atom, _, define}, [
+            {var, _, 'FOO'},
+            {map_field_assoc, _, {atom, _, foo}, {atom, _, bar}}
+        ]},
+        parse_form("-define(FOO, foo => bar).")
     ).
 
 functions_and_funs(Config) when is_list(Config) ->
@@ -666,6 +675,12 @@ binaries(Config) when is_list(Config) ->
         parse_expr("<<1/unit:8>>")
     ).
 
+maps(Config) when is_list(Config) ->
+    ?assertMatch(
+        {map, _, [{macro_call, _, {var, _, 'FOO'}, none}]},
+        parse_expr("#{?FOO}")
+    ).
+
 clauses(Config) when is_list(Config) ->
     ?assertMatch(
         {'if', _, [
@@ -731,9 +746,10 @@ types(Config) when is_list(Config) ->
     ?assertMatch(
         {map, _, [
             {map_field_exact, _, {map, _, []}, {integer, _, 1}},
-            {map_field_assoc, _, {tuple, _, []}, {integer, _, 2}}
+            {map_field_assoc, _, {tuple, _, []}, {integer, _, 2}},
+            {macro_call, _, {var, _, 'FOO'}, none}
         ]},
-        parse_type("#{#{} := 1, {} => 2}")
+        parse_type("#{#{} := 1, {} => 2, ?FOO}")
     ),
     ?assertMatch(
         {tuple, _, [
