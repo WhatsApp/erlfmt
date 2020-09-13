@@ -35,7 +35,8 @@ atom_or_var atom_or_var_or_macro integer_or_var_or_macro
 try_expr try_catch try_clause try_clauses
 function_call argument_list
 exprs anno_exprs guard guard_or vars
-atomic concatable concatables macro_record_or_concatable
+atomic
+concatable_no_call concatable concatables_no_initial_call concatables macro_record_or_concatable
 prefix_op mult_op add_op list_op comp_op
 binary bin_elements bin_element bit_expr bit_size_expr bit_type_list bit_type
 type types anno_types type_call type_argument_list
@@ -367,7 +368,7 @@ macro_record_or_concatable -> var macro_call_none '.' record_field_name :
 macro_record_or_concatable -> var macro_call_none record_tuple :
     Anno = (?range_anno('$1', '$3'))#{macro_record => true},
     {record, Anno, '$1', '$2', ?val('$3')}.
-macro_record_or_concatable -> var concatables :
+macro_record_or_concatable -> var concatables_no_initial_call :
     {concat, ?range_anno('$1', '$2'), ['$1' | ?val('$2')]}.
 
 record_tuple -> '{' '}' : {[], ?anno('$2')}.
@@ -575,13 +576,20 @@ atomic -> string concatables : {concat, ?range_anno('$1', '$2'), ['$1' | ?val('$
 atomic -> macro_call_none concatables : {concat, ?range_anno('$1', '$2'), ['$1' | ?val('$2')]}.
 atomic -> macro_string concatables : {concat, ?range_anno('$1', '$2'), ['$1' | ?val('$2')]}.
 
+concatables_no_initial_call -> concatable_no_call concatables : {['$1' | ?val('$2')], ?anno('$2')}.
+concatables_no_initial_call -> concatable_no_call : {['$1'], ?anno('$1')}.
+
 concatables -> concatable : {['$1'], ?anno('$1')}.
 concatables -> concatable concatables : {['$1' | ?val('$2')], ?anno('$2')}.
 
+concatable_no_call -> string : '$1'.
+concatable_no_call -> var : '$1'.
+concatable_no_call -> macro_call_none : '$1'.
+concatable_no_call -> macro_string : '$1'.
+
 concatable -> string : '$1'.
 concatable -> var : '$1'.
-concatable -> macro_call_none : '$1'.
-concatable -> macro_string : '$1'.
+concatable -> macro_call_expr : '$1'.
 
 prefix_op -> '+' : '$1'.
 prefix_op -> '-' : '$1'.

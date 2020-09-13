@@ -351,6 +351,10 @@ macro_call_exprs(Config) when is_list(Config) ->
         parse_expr("\"prefix\" ??foo")
     ),
     ?assertMatch(
+        {concat, _, [{string, _, "prefix"}, {macro_call, _, {atom, _, foo}, []}]},
+        parse_expr("\"prefix\" ?foo()")
+    ),
+    ?assertMatch(
         {concat, _, [{string, _, "prefix"}, {var, _, 'Var'}]},
         parse_expr("\"prefix\" Var")
     ),
