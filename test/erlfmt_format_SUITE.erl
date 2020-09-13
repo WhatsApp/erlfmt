@@ -758,6 +758,11 @@ map_create(Config) when is_list(Config) ->
         "    ],\n"
         "    3 => 4\n"
         "}\n"
+    ),
+    ?assertSame(
+        "#{\n"
+        "    ?FOO\n"
+        "}\n"
     ).
 
 map_update(Config) when is_list(Config) ->
