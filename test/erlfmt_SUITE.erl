@@ -1022,7 +1022,7 @@ snapshot_same(Module, Config) ->
     Original = unicode:characters_to_list(OriginalBin),
     case erlfmt:format_string(Original, [{pragma, Pragma}]) of
         {ok, Original, _} -> ok;
-        skip -> ok;
+        {skip, _} -> ok;
         Other -> ct:fail("unexpected: ~p~n", [Other])
     end.
 
@@ -1045,7 +1045,13 @@ smoke_test_stdio_check(Config) when is_list(Config) ->
     Warn = os:cmd(
         "cat " ++ filename:join(DataDir, "comments.erl") ++ " | " ++ escript() ++ " - " ++ "--check"
     ),
-    ?assertNotMatch(nomatch, string:find(Warn, "[warn]")).
+    ?assertNotMatch(nomatch, string:find(Warn, "[warn]")),
+    Skip = os:cmd(
+        "cat " ++
+            filename:join(DataDir, "comments.erl") ++
+            " | " ++ escript() ++ " - " ++ "--check --require-pragma --verbose"
+    ),
+    ?assertNotMatch(nomatch, string:find(Skip, "Skip")).
 
 simple_comments_range(Config) ->
     format_range(Config, "simple_comments.erl").
@@ -1266,7 +1272,10 @@ insert_pragma(Config) when is_list(Config) ->
     ).
 
 contains_pragma_string(String) ->
-    skip =/= erlfmt:format_string(String, [{pragma, require}]).
+    case erlfmt:format_string(String, [{pragma, require}]) of
+        {skip, _} -> false;
+        _ -> true
+    end.
 
 insert_pragma_string(String) ->
     {ok, StringWithPragma, []} = erlfmt:format_string(String, [{pragma, insert}]),

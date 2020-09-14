@@ -17,7 +17,7 @@
 -export([
     main/1,
     init/1,
-    format_file/3,
+    format_file/2,
     format_string/2,
     format_range/4,
     read_nodes/1,
@@ -58,11 +58,9 @@ init(State) ->
     rebar3_fmt_prv:init(State).
 
 %% API entry point
--spec format_file(file:name_all() | stdin, out(), config()) ->
-    {ok, [error_info()]} |
-    skip |
-    {error, error_info()}.
-format_file(FileName, Out, Options) ->
+-spec format_file(file:name_all() | stdin, config()) ->
+    {ok, [unicode:chardata()], [error_info()]} | {skip, string()} | {error, error_info()}.
+format_file(FileName, Options) ->
     Width = proplists:get_value(width, Options, ?DEFAULT_WIDTH),
     Pragma = proplists:get_value(pragma, Options, ignore),
     try
@@ -75,18 +73,16 @@ format_file(FileName, Out, Options) ->
                     end,
                 Formatted = format_nodes(NodesWithPragma, Width),
                 verify_nodes(FileName, NodesWithPragma, Formatted),
-                write_formatted(FileName, Formatted, Out),
-                {ok, Warnings};
+                {ok, Formatted, Warnings};
             {skip, RawString} ->
-                write_formatted(FileName, RawString, Out),
-                skip
+                {skip, RawString}
         end
     catch
         {error, Error} -> {error, Error}
     end.
 
 -spec format_string(string(), config()) ->
-    {ok, string(), [error_info()]} | skip | {error, error_info()}.
+    {ok, string(), [error_info()]} | {skip, string()} | {error, error_info()}.
 format_string(String, Options) ->
     Width = proplists:get_value(width, Options, ?DEFAULT_WIDTH),
     Pragma = proplists:get_value(pragma, Options, ignore),
@@ -101,8 +97,8 @@ format_string(String, Options) ->
                 Formatted = format_nodes(NodesWithPragma, Width),
                 verify_nodes("nofile", NodesWithPragma, Formatted),
                 {ok, unicode:characters_to_list(Formatted), Warnings};
-            {skip, _} ->
-                skip
+            {skip, RawString} ->
+                {skip, RawString}
         end
     catch
         {error, Error} -> {error, Error}
@@ -287,6 +283,7 @@ node_string(Cont) ->
     {String, Anno} = erlfmt_scan:last_node_string(Cont),
     {raw_string, Anno, string:trim(String, both, "\n")}.
 
+-spec format_nodes([erlfmt_parse:abstract_form()], pos_integer()) -> [unicode:chardata()].
 format_nodes([], _PageWidth) ->
     [];
 format_nodes(Nodes, PageWidth) ->
@@ -342,6 +339,7 @@ maybe_empty_line(Node, Next) ->
         false -> ""
     end.
 
+-spec format_node(erlfmt_parse:abstract_form(), pos_integer()) -> unicode:chardata().
 format_node({raw_string, _Anno, String}, _PageWidth) ->
     String;
 format_node({shebang, _Anno, String}, _PageWidth) ->
@@ -434,24 +432,6 @@ try_location([Node | _], _) when is_tuple(Node) -> erlfmt_scan:get_anno(location
 try_location(_, Node) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node);
 try_location(_, [Node | _]) when is_tuple(Node) -> erlfmt_scan:get_anno(location, Node);
 try_location(_, _) -> 0.
-
-write_formatted(_FileName, Formatted, standard_out) ->
-    io:put_chars(Formatted);
-write_formatted(FileName, Formatted, Out) ->
-    OutFileName = out_file(FileName, Out),
-    case filelib:ensure_dir(OutFileName) of
-        ok -> ok;
-        {error, Reason1} -> throw({error, {OutFileName, 0, file, Reason1}})
-    end,
-    case file:write_file(OutFileName, unicode:characters_to_binary(Formatted)) of
-        ok -> ok;
-        {error, Reason2} -> throw({error, {OutFileName, 0, file, Reason2}})
-    end.
-
-out_file(FileName, replace) ->
-    FileName;
-out_file(FileName, {path, Path}) ->
-    filename:join(Path, filename:basename(FileName)).
 
 -spec format_error_info(error_info()) -> unicode:chardata().
 format_error_info({FileName, Anno, Mod, Reason}) ->

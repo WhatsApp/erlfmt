@@ -93,15 +93,6 @@ do_unprotected(Opts, Name) ->
             erlang:halt(2)
     end.
 
--dialyzer({no_improper_lists, [read_stdin/1]}).
-
-read_stdin(Data) ->
-    case io:get_chars(standard_io, "", 4096) of
-        MoreData when is_binary(MoreData) -> read_stdin([Data | MoreData]);
-        eof -> {ok, Data};
-        {error, Reason} -> throw({error, Reason})
-    end.
-
 format_file(FileName, Config) ->
     #config{pragma = Pragma, width = Width, verbose = Verbose, check = Check, out = Out} = Config,
     case Verbose of
@@ -110,42 +101,80 @@ format_file(FileName, Config) ->
     end,
     Options = [{pragma, Pragma}] ++ [{width, Width} || Width =/= undefined],
     Result =
-        case Check of
-            true ->
-                {ok, OriginalBin} =
-                    case FileName of
-                        stdin -> read_stdin([]);
-                        _ -> file:read_file(FileName)
-                    end,
-                Original = unicode:characters_to_list(OriginalBin),
-                case erlfmt:format_string(Original, Options) of
-                    {ok, Formatted, FormatWarnings} ->
-                        case Formatted of
-                            Original -> {ok, FormatWarnings};
-                            _ -> {warn, FormatWarnings}
-                        end;
-                    Other ->
-                        Other
-                end;
+        case {Check, FileName} of
+            {true, stdin} ->
+                check_stdin(Options);
             _ ->
-                erlfmt:format_file(FileName, Out, Options)
+                erlfmt:format_file(FileName, Options)
         end,
+    case {Verbose, Result} of
+        {true, {skip, _}} ->
+            io:format(standard_error, "Skipping ~s because of missing @format pragma\n", [FileName]);
+        _ ->
+            ok
+    end,
     case Result of
-        {ok, Warnings} ->
+        {ok, FormattedText, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
-            ok;
+            case Check of
+                true -> ok;
+                false -> write_formatted(FileName, FormattedText, Out)
+            end;
         {warn, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
             io:format(standard_error, "[warn] ~s\n", [FileName]),
             warn;
-        skip when Verbose ->
-            io:format(standard_error, "Skipping ~s because of missing @format pragma\n", [FileName]),
-            skip;
-        skip ->
-            skip;
+        {skip, RawString} ->
+            case Check of
+                true ->
+                    skip;
+                false ->
+                    write_formatted(FileName, RawString, Out),
+                    skip
+            end;
         {error, Error} ->
             print_error_info(Error),
             error
+    end.
+
+write_formatted(_FileName, Formatted, standard_out) ->
+    io:put_chars(Formatted);
+write_formatted(FileName, Formatted, Out) ->
+    OutFileName = out_file(FileName, Out),
+    case filelib:ensure_dir(OutFileName) of
+        ok -> ok;
+        {error, Reason1} -> throw({error, {OutFileName, 0, file, Reason1}})
+    end,
+    case file:write_file(OutFileName, unicode:characters_to_binary(Formatted)) of
+        ok -> ok;
+        {error, Reason2} -> throw({error, {OutFileName, 0, file, Reason2}})
+    end.
+
+out_file(FileName, replace) ->
+    FileName;
+out_file(FileName, {path, Path}) ->
+    filename:join(Path, filename:basename(FileName)).
+
+check_stdin(Options) ->
+    {ok, OriginalBin} = read_stdin([]),
+    Original = unicode:characters_to_list(OriginalBin),
+    case erlfmt:format_string(Original, Options) of
+        {ok, Formatted, FormatWarnings} ->
+            case Formatted of
+                Original -> {ok, Formatted, FormatWarnings};
+                _ -> {warn, FormatWarnings}
+            end;
+        Other ->
+            Other
+    end.
+
+-dialyzer({no_improper_lists, [read_stdin/1]}).
+
+read_stdin(Data) ->
+    case io:get_chars(standard_io, "", 4096) of
+        MoreData when is_binary(MoreData) -> read_stdin([Data | MoreData]);
+        eof -> {ok, Data};
+        {error, Reason} -> throw({error, Reason})
     end.
 
 parse_opts([help | _Rest], Name, _Files, _Config) ->
@@ -179,7 +208,7 @@ parse_opts([insert_pragma | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{pragma = insert});
 parse_opts([{files, NewFiles} | Rest], Name, Files0, Config) ->
     parse_opts(Rest, Name, expand_files(NewFiles, Files0), Config);
-parse_opts([], _Name, [stdin], #config{out = Out}) when Out =/= standard_out, Out =/= check ->
+parse_opts([], _Name, [stdin], #config{out = Out}) when Out =/= standard_out ->
     {error, "stdin mode can't be combined with write options"};
 parse_opts([], _Name, [stdin], Config) ->
     {format, [stdin], Config};
