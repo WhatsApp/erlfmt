@@ -136,6 +136,8 @@ continue(Scan, Inner0, Loc0, Buffer0) ->
 read_rest(#state{inner = undefined}) ->
     %% reached EOF, no further nodes
     {ok, ""};
+read_rest(#state{scan = _Scan, inner = eof, loc = _Loc, buffer = Buffer}) ->
+    {ok, stringify_tokens(Buffer)};
 read_rest(#state{scan = _Scan, inner = IO, loc = _Loc, buffer = Buffer}) ->
     String = stringify_tokens(Buffer),
     try
