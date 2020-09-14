@@ -15,12 +15,13 @@
 
 -export([opts/0, do/2]).
 
+-type out() :: standard_out | {path, file:name_all()} | replace | check.
+
 -record(config, {
     verbose = false :: boolean(),
-    check = false :: boolean(),
     width = undefined :: undefined | pos_integer(),
     pragma = ignore :: erlfmt:pragma(),
-    out = standard_out :: erlfmt:out()
+    out = standard_out :: out()
 }).
 
 -spec opts() -> [getopt:option_spec()].
@@ -61,14 +62,14 @@ do(Opts, Name) ->
 do_unprotected(Opts, Name) ->
     case parse_opts(Opts, Name, [], #config{}) of
         {format, Files, Config} ->
-            case Config#config.check of
-                true -> io:format(standard_error, "Checking formatting...~n", []);
+            case Config#config.out of
+                check -> io:format(standard_error, "Checking formatting...~n", []);
                 _ -> ok
             end,
             case parallel(fun(File) -> format_file(File, Config) end, Files) of
                 ok ->
-                    case Config#config.check of
-                        true ->
+                    case Config#config.out of
+                        check ->
                             io:format(
                                 standard_error,
                                 "All matched files use erlfmt code style!~n",
@@ -94,16 +95,18 @@ do_unprotected(Opts, Name) ->
     end.
 
 format_file(FileName, Config) ->
-    #config{pragma = Pragma, width = Width, verbose = Verbose, check = Check, out = Out} = Config,
+    #config{pragma = Pragma, width = Width, verbose = Verbose, out = Out} = Config,
     case Verbose of
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
         false -> ok
     end,
     Options = [{pragma, Pragma}] ++ [{width, Width} || Width =/= undefined],
     Result =
-        case {Check, FileName} of
-            {true, stdin} ->
+        case {Out, FileName} of
+            {check, stdin} ->
                 check_stdin(Options);
+            {check, _} ->
+                check_file(FileName, Options);
             _ ->
                 erlfmt:format_file(FileName, Options)
         end,
@@ -116,38 +119,37 @@ format_file(FileName, Config) ->
     case Result of
         {ok, FormattedText, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
-            case Check of
-                true -> ok;
-                false -> write_formatted(FileName, FormattedText, Out)
-            end;
+            write_formatted(FileName, FormattedText, Out);
         {warn, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
             io:format(standard_error, "[warn] ~s\n", [FileName]),
             warn;
         {skip, RawString} ->
-            case Check of
-                true ->
-                    skip;
-                false ->
-                    write_formatted(FileName, RawString, Out),
-                    skip
-            end;
+            write_formatted(FileName, RawString, Out);
         {error, Error} ->
             print_error_info(Error),
             error
     end.
 
+write_formatted(_FileName, _Formatted, check) ->
+    ok;
 write_formatted(_FileName, Formatted, standard_out) ->
     io:put_chars(Formatted);
 write_formatted(FileName, Formatted, Out) ->
     OutFileName = out_file(FileName, Out),
     case filelib:ensure_dir(OutFileName) of
-        ok -> ok;
-        {error, Reason1} -> throw({error, {OutFileName, 0, file, Reason1}})
+        ok ->
+            ok;
+        {error, Reason1} ->
+            print_error_info({OutFileName, 0, file, Reason1}),
+            error
     end,
     case file:write_file(OutFileName, unicode:characters_to_binary(Formatted)) of
-        ok -> ok;
-        {error, Reason2} -> throw({error, {OutFileName, 0, file, Reason2}})
+        ok ->
+            ok;
+        {error, Reason2} ->
+            print_error_info({OutFileName, 0, file, Reason2}),
+            error
     end.
 
 out_file(FileName, replace) ->
@@ -155,17 +157,34 @@ out_file(FileName, replace) ->
 out_file(FileName, {path, Path}) ->
     filename:join(Path, filename:basename(FileName)).
 
-check_stdin(Options) ->
-    {ok, OriginalBin} = read_stdin([]),
-    Original = unicode:characters_to_list(OriginalBin),
-    case erlfmt:format_string(Original, Options) of
+check_file(FileName, Options) ->
+    case erlfmt:format_file(FileName, Options) of
         {ok, Formatted, FormatWarnings} ->
-            case Formatted of
-                Original -> {ok, Formatted, FormatWarnings};
+            {ok, OriginalBin} = file:read_file(FileName),
+            FormattedBin = unicode:characters_to_binary(Formatted),
+            case FormattedBin of
+                OriginalBin -> {ok, Formatted, FormatWarnings};
                 _ -> {warn, FormatWarnings}
             end;
         Other ->
             Other
+    end.
+
+check_stdin(Options) ->
+    case read_stdin([]) of
+        {ok, OriginalBin} ->
+            Original = unicode:characters_to_list(OriginalBin),
+            case erlfmt:format_string(Original, Options) of
+                {ok, Formatted, FormatWarnings} ->
+                    case Formatted of
+                        Original -> {ok, Formatted, FormatWarnings};
+                        _ -> {warn, FormatWarnings}
+                    end;
+                Other ->
+                    Other
+            end;
+        {error, Reason} ->
+            {error, Reason}
     end.
 
 -dialyzer({no_improper_lists, [read_stdin/1]}).
@@ -174,7 +193,7 @@ read_stdin(Data) ->
     case io:get_chars(standard_io, "", 4096) of
         MoreData when is_binary(MoreData) -> read_stdin([Data | MoreData]);
         eof -> {ok, Data};
-        {error, Reason} -> throw({error, Reason})
+        {error, Reason} -> {error, Reason}
     end.
 
 parse_opts([help | _Rest], Name, _Files, _Config) ->
@@ -184,18 +203,20 @@ parse_opts([version | _Rest], Name, _Files, _Config) ->
     {ok, Vsn} = application:get_key(erlfmt, vsn),
     io:format("~s version ~s\n", [Name, Vsn]),
     erlang:halt(0);
-parse_opts([write | _Rest], _Name, _Files, #config{check = true}) ->
-    {error, "--write replace mode can't be combined check mode"};
+parse_opts([write | _Rest], _Name, _Files, #config{out = Out}) when Out =/= standard_out ->
+    {error, "--write or replace mode can't be combined check mode"};
 parse_opts([write | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{out = replace});
+parse_opts([{out, _Path} | _Rest], _Name, _Files, #config{out = Out}) when Out =/= standard_out ->
+    {error, "out or replace mode can't be combined check mode"};
 parse_opts([{out, Path} | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{out = {path, Path}});
 parse_opts([verbose | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{verbose = true});
-parse_opts([check | _Rest], _Name, _Files, #config{out = replace}) ->
-    {error, "--write replace mode can't be combined check mode"};
+parse_opts([check | _Rest], _Name, _Files, #config{out = Out}) when Out =/= standard_out ->
+    {error, "--check mode can't be combined write or replace mode"};
 parse_opts([check | Rest], Name, Files, Config) ->
-    parse_opts(Rest, Name, Files, Config#config{check = true});
+    parse_opts(Rest, Name, Files, Config#config{out = check});
 parse_opts([{print_width, Value} | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{width = Value});
 parse_opts([require_pragma | _Rest], _Name, _Files, #config{pragma = insert}) ->
@@ -208,7 +229,7 @@ parse_opts([insert_pragma | Rest], Name, Files, Config) ->
     parse_opts(Rest, Name, Files, Config#config{pragma = insert});
 parse_opts([{files, NewFiles} | Rest], Name, Files0, Config) ->
     parse_opts(Rest, Name, expand_files(NewFiles, Files0), Config);
-parse_opts([], _Name, [stdin], #config{out = Out}) when Out =/= standard_out ->
+parse_opts([], _Name, [stdin], #config{out = Out}) when Out =/= standard_out, Out =/= check ->
     {error, "stdin mode can't be combined with write options"};
 parse_opts([], _Name, [stdin], Config) ->
     {format, [stdin], Config};

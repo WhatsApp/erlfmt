@@ -26,10 +26,9 @@
     format_error_info/1
 ]).
 
--export_type([error_info/0, out/0, config/0, pragma/0]).
+-export_type([error_info/0, config/0, pragma/0]).
 
 -type error_info() :: {file:name_all(), erl_anno:location(), module(), Reason :: any()}.
--type out() :: standard_out | {path, file:name_all()} | replace.
 -type pragma() :: require | insert | ignore.
 -type config() :: [{pragma, pragma()} | {width, pos_integer()}].
 
