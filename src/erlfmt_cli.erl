@@ -31,7 +31,7 @@ opts() ->
         {write, $w, "write", undefined, "modify formatted files in place"},
         {out, $o, "out", binary, "output directory"},
         {verbose, undefined, "verbose", undefined, "include debug output"},
-        {check, undefined, "check", undefined,
+        {check, $c, "check", undefined,
             "Check if your files are formatted."
             "Get exit code 1, if some files are not formatted."
             "--write is not supported."},
