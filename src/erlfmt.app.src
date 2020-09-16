@@ -1,11 +1,11 @@
-{application, erlfmt,
- [{description, "erlfmt is an opinionated Erlang code formatter"},
-  {vsn, "0.6.0"},
-  {registered, []},
-  {applications, [kernel, stdlib]},
-  {env,[]},
-  {modules, []},
-  {licenses, ["Apache-2.0"]},
-  {links, [{"GitHub", "https://github.com/WhatsApp/erlfmt"}]},
-  {exclude_files, ["src/erlfmt_parse.erl"]}
+{application, erlfmt, [
+    {description, "erlfmt is an opinionated Erlang code formatter"},
+    {vsn, "0.6.0"},
+    {registered, []},
+    {applications, [kernel, stdlib]},
+    {env, []},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, [{"GitHub", "https://github.com/WhatsApp/erlfmt"}]},
+    {exclude_files, ["src/erlfmt_parse.erl"]}
 ]}.
