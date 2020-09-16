@@ -354,6 +354,8 @@ See the [CONTRIBUTING](.github/CONTRIBUTING.md) file for how to help out.
 ```sh
 $ rebar3 ct
 $ rebar3 dialyzer
+# or
+$ make check
 ```
 
 ### Local use
@@ -361,8 +363,7 @@ $ rebar3 dialyzer
 To format erlfmt itself:
 
 ```sh
-$ rebar3 as release escriptize
-$ _build/release/bin/erlfmt -w "{src,include,test}/*.{hrl,erl}" "rebar.config"
+$ make fmt
 ```
 
 ### Release Process

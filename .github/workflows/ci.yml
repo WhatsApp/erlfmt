@@ -32,13 +32,5 @@ jobs:
         key: ${{ runner.os }}-dialyzer-${{ hashFiles(format('{0}{1}', github.workspace, '/rebar.config')) }}
         restore-keys: |
           ${{ runner.os }}-dialyzer-
-    - name: Compile
-      run: rebar3 compile
-    - name: Run CT Tests
-      run: rebar3 ct
-    - name: Run Dialyzer
-      run: rebar3 dialyzer
-    - name: Release
-      run: rebar3 as release escriptize
-    - name: Check formatting
-      run: rm src/erlfmt_parse.erl && _build/release/bin/erlfmt --check "{src,include,test}/*.{hrl,erl,app.src}" "rebar.config"
+    - name: Check
+      run: make check
