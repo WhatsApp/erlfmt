@@ -16,19 +16,16 @@ clean:
 	rebar3 clean
 
 .PHONY: fmt
-fmt:
-	make clean
-	make release
+fmt: release
 	_build/release/bin/erlfmt -w "{src,include,test}/*.{hrl,erl,app.src}" "rebar.config"
 
 .PHONY: checkfmt
-checkfmt:
-	make release
+checkfmt: release
 	rm src/erlfmt_parse.erl
 	_build/release/bin/erlfmt -c "{src,include,test}/*.{hrl,erl,app.src}" "rebar.config"
 
 .PHONY: check
-check:
+check: clean
 	make compile
 	make test
 	rebar3 dialyzer
