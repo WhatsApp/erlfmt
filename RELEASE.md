@@ -36,7 +36,14 @@ $ PATH="/usr/local/opt/erlang@22/bin:$PATH" _build/release/bin/erlfmt -h
 $ _build/release/bin/erlfmt -h
 ```
 7. Release to hex: `rebar3 hex publish`.
-   If you have not used hex before, create `~/.config/rebar3/rebar.config` and include the contents `{plugins, [rebar3_hex]}`:
+
+If you have not used hex before, create `~/.config/rebar3/rebar.config` and include the contents `{plugins, [rebar3_hex]}`:
+```bash
+$ mkdir -p ~/.config/rebar3/ && echo "{plugins, [rebar3_hex]}." >> ~/.config/rebar3/rebar.config
 ```
-mkdir -p ~/.config/rebar3/ && echo "{plugins, [rebar3_hex]}." >> ~/.config/rebar3/rebar.config
+
+If you forgot your local password:
+```bash
+$ rebar3 hex user deauth
+$ rebar3 hex user auth
 ```
