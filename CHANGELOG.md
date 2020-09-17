@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.7.0 (17.09.2020)
+
+`--check` flag now provides exit code 1, if files are not formatted.
+
+### Enhancements
+
+  - `--check` flag #123
+
+### Bug fixes
+
+  - Preserve newline in list & binary comprehensions #116
+  - Preserve new lines in guards and specs #115
+  - Make multi-line tuples & binaries next-break-fits #117
+  - Use deterministic compiler option for releasing precompiled escript #127
+  - Do not crash when formatting an empty file #130
+  - Relax map syntax #137
+  - Support macros with parens in concat #138
+
 ## v0.6.0 (18.08.2020)
 
 Configurable print-width and erlfmt-ignore comment
