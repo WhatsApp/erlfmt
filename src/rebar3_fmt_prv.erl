@@ -28,7 +28,7 @@ init(State) ->
             {module, ?MODULE},
             {bare, true},
             {deps, ?DEPS},
-            {example, "rebar3 fmt"},
+            {example, "rebar3 fmt --write"},
             {opts, erlfmt_cli:opts()},
             {short_desc, "Erlang code formatter"},
             {desc, "Erlang code formatter"}
