@@ -1047,6 +1047,7 @@ snapshot_same(Module, Config) ->
     case erlfmt:format_string(Original, [{pragma, Pragma}]) of
         {ok, Original, _} -> ok;
         {skip, _} -> ok;
+        {ok, Other, _} -> ct:fail("unexpected:~n~s~n", [Other]);
         Other -> ct:fail("unexpected: ~p~n", [Other])
     end.
 

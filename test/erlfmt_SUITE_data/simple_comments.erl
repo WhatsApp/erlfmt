@@ -14,8 +14,9 @@
 -define(STR(X),
     %% comment 1
     ??X
-    %% comment 2
-).
+)
+%% comment 2
+.
 
 -define(FUN(M, F), M:F).
 

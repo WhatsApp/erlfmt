@@ -2396,6 +2396,17 @@ type(Config) when is_list(Config) ->
         "            ...\n"
         "        ) -> bar()\n"
         "    ).\n"
+    ),
+    ?assertSame(
+        "-type t() ::\n"
+        "    a\n"
+        "% comment\n"
+        ".\n"
+    ),
+    ?assertSame(
+        "-attr(bla)\n"
+        "% comment\n"
+        ".\n"
     ).
 
 exprs(Config) when is_list(Config) ->
@@ -2411,6 +2422,16 @@ exprs(Config) when is_list(Config) ->
     ).
 
 comment(Config) when is_list(Config) ->
+    ?assertSame(
+        "A\n"
+        "% comment\n"
+        ".\n"
+    ),
+    ?assertSame(
+        "A = b\n"
+        "% comment\n"
+        ".\n"
+    ),
     ?assertSame(
         "%foo\n"
         "1 + 2\n"
