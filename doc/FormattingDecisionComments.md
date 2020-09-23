@@ -38,6 +38,7 @@ Page 43, Section COMMENTS
 ## Goals
 
   - Minimize diff when changing a single line, impacts surrounding context.
+  - **TODO** add more goals to help us make a decision.
 
 ## Aligning single percentage comments
 
@@ -148,9 +149,12 @@ by changing where the comment is placed, but when the comments are so far aligne
 ```
 
 The downside is when the line is indented a bit and ends up being longer than the 48 characters.
-We now have another design decision.
+We now have another design decision. [Option 5](#option-5) seems to be the only pragmatic option.
 
-Option 1: Do we simply leave the violating comment at the end up of the line?
+### Option 1: Do we simply leave the violating comment at the end up of the line?
+
+This option delays the decision until the comment overflows the line.
+Picking another option from the start would be simpler, so we only have one a single fall back option.
 
 ```erlang
 f() ->
@@ -165,7 +169,10 @@ f() ->
     ).
 ```
 
-Option 2: Do we move the violating comment above the line?
+### Option 2: Do we move the violating comment above the line?
+
+This would require extending the underlying formatting algebra with a new operator,
+which is a relatively complex task.
 
 ```erlang
 f() ->
@@ -181,7 +188,10 @@ f() ->
     ).
 ```
 
-Option 3: Move all comments, when one column is violated?
+### Option 3: Move all comments, when one column is violated?
+
+This would be extremely complex to implement.
+Requiring us to invent another operator in the formatting algebra that is more than complex than the one for Option 2.
 
 ```erlang
 f() ->
@@ -200,10 +210,10 @@ f() ->
     ).
 ```
 
-This would be extremely complex to implement.
-Requiring us to invent another operator in the formatting algebra.
+### Option 4: Do we move the aligned comment above the line, but keep it aligned?
 
-Option 4: Do we move the aligned comment above the line, but keep it aligned?
+A problem with this style is it not only requires the invention of a new operator,
+it also looks like `% another comment` and `% that comment` are part of the same comment block.
 
 ```erlang
 f() ->
@@ -219,7 +229,11 @@ f() ->
     ).
 ```
 
-Option 5: Do we move the aligned comment below the line and keep it aligned?
+### Option 5: Do we move the aligned comment below the line and keep it aligned?
+
+This is a pragmatic option, that could be easy enough to implement.
+Also, `% that comment` and `% this comment` is less likely to be perceived as a block comment,
+because `NotTooLong => d` is placed in the middle of the comments.
 
 ```erlang
 f() ->
@@ -229,6 +243,45 @@ f() ->
             B => bb,                          % another comment
             CThisLongerField => with_this_longer_function(),
                                               % that comment
+            NotTooLong => d                   % this comment
+        },
+        H
+    ).
+```
+
+### Option 6: split expression over two lines
+
+This can work in a few limited cases, but as soon as we add parameters to the function call,
+we need to rethink where we place the comment again.
+
+```erlang
+f() ->
+    g(
+        #{
+            A => a,                           % comment
+            B => bb,                          % another comment
+            CThisLongerField =>
+                with_this_longer_function(),  % that comment
+            NotTooLong => d                   % this comment
+        },
+        H
+    ).
+```
+
+### Option 7: move the comment in the middle of the expression
+
+This option allows us to add more parameters to the function call,
+but moving a comment in between expressions is not always a viable option.
+It would be nice to find an option that works in more cases.
+
+```erlang
+f() ->
+    g(
+        #{
+            A => a,                           % comment
+            B => bb,                          % another comment
+            CThisLongerField =>               % that comment
+                with_this_longer_function(),
             NotTooLong => d                   % this comment
         },
         H
