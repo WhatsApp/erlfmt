@@ -29,6 +29,7 @@ As always, you can preferably provide feedback, by simply trying out the `erlfmt
   - [When with Multiline Guards](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionWhenMultilineGuards.md)
   - [Comments](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionComments.md)
   - [DefaultWidth](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionDefaultWidth.md)
+  - [Pipes](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionPipes.md)
 
 
 
