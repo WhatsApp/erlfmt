@@ -57,6 +57,7 @@
     function/1,
     attribute/1,
     exportimport/1,
+    ifdef/1,
     record_definition/1,
     spec/1,
     define/1,
@@ -108,6 +109,7 @@ groups() ->
             function,
             attribute,
             exportimport,
+            ifdef,
             spec,
             record_definition,
             define,
@@ -2040,7 +2042,9 @@ exportimport(Config) when is_list(Config) ->
         "    c/1,\n"
         "    c/2\n"
         "]).\n"
-    ),
+    ).
+
+ifdef(Config) when is_list(Config) ->
     %% preserves empty line after if, ifdef, ifndef, else
     ?assertSame(
         "-if(true).\n"
@@ -2081,6 +2085,16 @@ exportimport(Config) when is_list(Config) ->
         "\n"
         "ok() -> ok.\n"
         "\n"
+        "-endif.\n"
+    ),
+    %% preserves no empty line before endif
+    ?assertSame(
+        "-ifdef(TEST).\n"
+        "start(_StartType, _StartArgs) ->\n"
+        "    mylib_sup:start_link().\n"
+        "\n"
+        "stop(_State) ->\n"
+        "    ok.\n"
         "-endif.\n"
     ).
 

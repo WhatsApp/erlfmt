@@ -182,6 +182,7 @@ bin_element_type -> var ':' var '*' type :
 attr_val -> expr                     : [delete_parens('$1')].
 attr_val -> expr ',' exprs           : ['$1' | '$3'].
 attr_val -> '(' expr ',' exprs ')'   : ['$2' | '$4'].
+attr_val -> '(' ')'                  : [].
 
 %% Anno is wrong here, we'll adjust it at the top level using the dot token.
 function -> function_clauses :
