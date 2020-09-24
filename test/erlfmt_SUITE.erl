@@ -224,11 +224,15 @@ attributes(Config) when is_list(Config) ->
         parse_form("-if(?foo == 2).")
     ),
     ?assertMatch(
-        {attribute, _, {atom, _, else}, []},
+        {attribute, _, {atom, _, else}, no_parens},
         parse_form("-else.")
     ),
     ?assertMatch(
-        {attribute, _, {atom, _, endif}, []},
+        {attribute, _, {atom, _, else}, []},
+        parse_form("-else().")
+    ),
+    ?assertMatch(
+        {attribute, _, {atom, _, endif}, no_parens},
         parse_form("-endif.")
     ),
     ?assertMatch(
