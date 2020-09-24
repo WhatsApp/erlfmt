@@ -97,7 +97,7 @@ node -> standalone_exprs anno_exprs : {exprs, ?range_anno('$1', '$2'), ?val('$2'
 
 %% Anno is wrong here, we'll adjust it at the top level using the dot token.
 attribute -> '-' 'if' attr_val               : build_attribute('$1', '$2', '$3').
-attribute -> '-' atom                        : build_attribute('$1', '$2', []).
+attribute -> '-' atom                        : build_attribute('$1', '$2', no_parens).
 attribute -> '-' atom attr_val               : build_attribute('$1', '$2', '$3').
 attribute -> '-' spec type_spec              : build_attribute('$1', '$2', ['$3']).
 attribute -> '-' callback type_spec          : build_attribute('$1', '$2', ['$3']).
@@ -182,6 +182,7 @@ bin_element_type -> var ':' var '*' type :
 attr_val -> expr                     : [delete_parens('$1')].
 attr_val -> expr ',' exprs           : ['$1' | '$3'].
 attr_val -> '(' expr ',' exprs ')'   : ['$2' | '$4'].
+attr_val -> '(' ')'                  : [].
 
 %% Anno is wrong here, we'll adjust it at the top level using the dot token.
 function -> function_clauses :

@@ -53,7 +53,7 @@
 to_algebra({function, Meta, Clauses}) ->
     Doc = concat(clauses_to_algebra(Clauses), string(".")),
     combine_comments(Meta, Doc);
-to_algebra({attribute, Meta, Name, []}) ->
+to_algebra({attribute, Meta, Name, no_parens}) ->
     Doc = concat(<<"-">>, expr_to_algebra(Name), <<".">>),
     combine_comments(Meta, Doc);
 to_algebra({attribute, Meta, {atom, _, define}, [Define, empty]}) ->
