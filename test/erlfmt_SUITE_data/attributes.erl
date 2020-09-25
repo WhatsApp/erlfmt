@@ -25,8 +25,8 @@
 }).
 
 -type ghi() ::
-    fun() |
-    binary().
+    fun()
+    | binary().
 
 -type klm() :: fun() | binary().
 

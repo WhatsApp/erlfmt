@@ -2209,10 +2209,10 @@ spec(Config) when is_list(Config) ->
     ?assertFormat(
         "-spec encode(#a{} | #blonglonglong{} | #c{} | #d{}) -> binary().",
         "-spec encode(\n"
-        "    #a{} |\n"
-        "    #blonglonglong{} |\n"
-        "    #c{} |\n"
-        "    #d{}\n"
+        "    #a{}\n"
+        "    | #blonglonglong{}\n"
+        "    | #c{}\n"
+        "    | #d{}\n"
         ") -> binary().\n",
         30
     ),
@@ -2459,4 +2459,13 @@ comment(Config) when is_list(Config) ->
         "    {\n"
         "        b\n"
         "    }\n"
+    ),
+    ?assertSame(
+        "-spec foo() ->\n"
+        "    %% comment\n"
+        "    term()\n"
+        "    %% other comment\n"
+        "    | [term()]\n"
+        "    %% error comment\n"
+        "    | error.\n"
     ).

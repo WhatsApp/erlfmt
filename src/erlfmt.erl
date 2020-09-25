@@ -146,9 +146,9 @@ insert_pragma_node(Node) ->
     erlfmt_scan:location(),
     [{width, pos_integer()}]
 ) ->
-    {ok, string(), [error_info()]} |
-    {error, error_info()} |
-    {options, [{erlfmt_scan:location(), erlfmt_scan:location()}]}.
+    {ok, string(), [error_info()]}
+    | {error, error_info()}
+    | {options, [{erlfmt_scan:location(), erlfmt_scan:location()}]}.
 format_range(FileName, StartLocation, EndLocation, Options) ->
     Width = proplists:get_value(width, Options, ?DEFAULT_WIDTH),
     try

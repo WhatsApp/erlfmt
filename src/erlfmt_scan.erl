@@ -62,9 +62,9 @@
 -type location() :: {pos_integer(), pos_integer()}.
 -type token() :: {atom(), anno(), term()} | {atom(), anno()}.
 -type node_ret() ::
-    {ok, [token()], [comment()], state()} |
-    {error, {erl_anno:location(), module(), term()}, erl_anno:location()} |
-    {eof, erl_anno:location()}.
+    {ok, [token()], [comment()], state()}
+    | {error, {erl_anno:location(), module(), term()}, erl_anno:location()}
+    | {eof, erl_anno:location()}.
 
 -opaque state() :: #state{}.
 

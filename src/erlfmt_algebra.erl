@@ -138,16 +138,16 @@
 %  - to preserve the users' intention of a newline by breaking up the group or
 %  - to break things when a comment is present and they have to be broken up
 -type doc() ::
-    binary() |
-    doc_force_breaks |
-    doc_nil |
-    #doc_string{} |
-    #doc_line{} |
-    #doc_cons{} |
-    #doc_nest{} |
-    #doc_group{} |
-    #doc_break{} |
-    #doc_fits{}.
+    binary()
+    | doc_force_breaks
+    | doc_nil
+    | #doc_string{}
+    | #doc_line{}
+    | #doc_cons{}
+    | #doc_nest{}
+    | #doc_group{}
+    | #doc_break{}
+    | #doc_fits{}.
 
 -define(is_doc(Doc),
     ((Doc == doc_force_breaks) orelse
