@@ -112,7 +112,7 @@ WhatsApp:
   - Commas as a Suffix: 124
   - Commas as a Prefix: 3116
 
-We tried some other code bases too: [luerl](https://github.com/rvirding/luerl), [circuitbreak](https://github.com/klarna/circuit_breaker), (worker_pool)[https://github.com/inaka/worker_pool], but these data sets where too small in comparison.
+We tried some other code bases too: [luerl](https://github.com/rvirding/luerl), [circuitbreak](https://github.com/klarna/circuit_breaker), [worker_pool](https://github.com/inaka/worker_pool), but these data sets where too small in comparison.
 
 ## Welcoming to new comers
 
