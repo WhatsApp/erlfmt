@@ -104,9 +104,15 @@ OTP:
   - Commas as a Suffix: 4533
   - Commas as a Prefix: 20
 
-WhatsApp
+WhatsApp:
   - Commas as a Suffix: 50x
   - Commas as a Prefix: x
+
+[Kazoo](https://github.com/2600hz/kazoo):
+  - Commas as a Suffix: 124
+  - Commas as a Prefix: 3116
+
+We tried some other code bases too: [luerl](https://github.com/rvirding/luerl), [circuitbreak](https://github.com/klarna/circuit_breaker), (worker_pool)[https://github.com/inaka/worker_pool], but these data sets where too small in comparison.
 
 ## Welcoming to new comers
 
@@ -120,7 +126,8 @@ The following style guides from other languages use ending commas exclusively:
 
 ## Decision
 
-Given the popularity of commas at the end of lines, `erlfmt` will try to enforce this as the consistent style.
+The issue seems to be divisive per erlang code base, but still the numbers show that commas at the end of lines are more popular.
+`erlfmt` will try to enforce this as the consistent style.
 
 
 
