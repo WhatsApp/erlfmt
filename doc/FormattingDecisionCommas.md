@@ -120,7 +120,7 @@ WhatsApp:
   - Commas as a Suffix: 173
   - Commas as a Prefix: 0
 
-[inaka repos](#inaka)
+[inaka repos](#inaka):
   - Commas as a Suffix: 244
   - Commas as a Prefix: 442
 
