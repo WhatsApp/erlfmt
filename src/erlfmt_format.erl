@@ -338,15 +338,19 @@ breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent) ->
     concat(group(LeftD), group(concat(maybe_force_breaks(HasBreak), RightOpD))).
 
 union_to_algebra(Meta, Left, Right) ->
-    Unions = [Left | collect_unions(Right)],
-    UnionsD = lists:map(fun expr_to_algebra/1, Unions),
-    Doc = fold_doc(fun(LeftD, AccD) -> concat(LeftD, break(<<" |">>, AccD)) end, UnionsD),
+    Doc = break(expr_to_algebra(Left), fold_unions(Right)),
     group(concat(maybe_force_breaks(is_multiline(Meta)), Doc)).
 
-collect_unions({op, Meta, '|', Left, Right}) ->
-    [move_comments(Meta, Left) | collect_unions(Right)];
-collect_unions(Other) ->
-    [Other].
+fold_unions({op, Meta, '|', Left, Right}) ->
+    LeftD = expr_to_algebra(Left),
+    LeftPipeD = concat(<<"| ">>, LeftD),
+    Doc = combine_comments(Meta, LeftPipeD),
+    break(Doc, fold_unions(Right));
+fold_unions(Expr) ->
+    Meta = element(2, Expr),
+    ExprD = do_expr_to_algebra(Expr),
+    ExprPipeD = concat(<<"| ">>, ExprD),
+    combine_comments(Meta, ExprPipeD).
 
 maybe_force_breaks(true) -> force_breaks();
 maybe_force_breaks(false) -> empty().
@@ -751,10 +755,6 @@ maybe_wrap_in_parens(Meta, Doc) ->
         true -> concat(<<"(">>, Doc, <<")">>);
         false -> Doc
     end.
-
-move_comments(Meta, Node) ->
-    {Pre, Post} = comments(Meta),
-    erlfmt_recomment:put_pre_comments(erlfmt_recomment:put_post_comments(Node, Post), Pre).
 
 combine_comments_no_force(Meta, Doc) ->
     {Pre, Post} = comments(Meta),

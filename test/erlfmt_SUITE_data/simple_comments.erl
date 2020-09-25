@@ -36,9 +36,9 @@
 
 -spec foo() ->
     %% comment
-    term() |
+    term()
     %% other comment
-    [term()].
+    | [term()].
 foo() ->
     [
         [baz(2), foobar(), map(#{}), record(#foo{}), binary(), comprehension()],
