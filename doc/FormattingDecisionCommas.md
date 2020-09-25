@@ -120,7 +120,11 @@ WhatsApp:
   - Commas as a Suffix: 173
   - Commas as a Prefix: 0
 
-We tried some other code bases too: [luerl](https://github.com/rvirding/luerl), [circuitbreak](https://github.com/klarna/circuit_breaker), [worker_pool](https://github.com/inaka/worker_pool), but these data sets where too small in comparison.
+[inaka repos](#inaka)
+  - Commas as a Suffix: 244
+  - Commas as a Prefix: 442
+
+We tried some other code bases too: [luerl](https://github.com/rvirding/luerl) and [circuitbreak](https://github.com/klarna/circuit_breaker), but these data sets where too small in comparison.
 
 ## Welcoming to new comers
 
@@ -137,5 +141,45 @@ The following style guides from other languages use ending commas exclusively:
 The issue seems to be divisive per erlang code base, but still the numbers show that commas at the end of lines are more popular.
 `erlfmt` will try to enforce this as the consistent style.
 
+## Appendix
 
+### Inaka
 
+Reproducing the `inaka` data, can be done by cloning a bunch of the `inaka` repos, using the following script:
+
+```sh
+#!/bin/sh
+git clone https://github.com/inaka/elvis_core
+git clone https://github.com/inaka/elvis
+git clone https://github.com/inaka/apns4erl
+git clone https://github.com/inaka/sheldon
+git clone https://github.com/inaka/shotgun
+git clone https://github.com/inaka/cowboy_swagger
+git clone https://github.com/inaka/worker_pool
+git clone https://github.com/inaka/katana-test
+git clone https://github.com/inaka/erlang-github
+git clone https://github.com/inaka/cowboy-trails
+git clone https://github.com/inaka/katana-code
+git clone https://github.com/inaka/tirerl
+git clone https://github.com/inaka/gold_fever
+git clone https://github.com/inaka/xref_runner
+git clone https://github.com/inaka/lasse
+git clone https://github.com/inaka/zipper
+git clone https://github.com/inaka/canillita
+git clone https://github.com/inaka/sumo_db_mysql
+git clone https://github.com/inaka/rpsls
+git clone https://github.com/inaka/sumo_db_pgsql
+git clone https://github.com/inaka/sumo_db
+git clone https://github.com/inaka/sumo_rest
+git clone https://github.com/inaka/sumo_db_elasticsearch
+git clone https://github.com/inaka/spellingci
+git clone https://github.com/inaka/beam_olympics-extended
+git clone https://github.com/inaka/beam_olympics
+git clone https://github.com/inaka/sumo_db_riak
+git clone https://github.com/inaka/fiar
+git clone https://github.com/inaka/serpents
+git clone https://github.com/inaka/sumo_db_mongo
+git clone https://github.com/inaka/lsl
+git clone https://github.com/inaka/niffy
+git clone https://github.com/inaka/toy_kv
+```
