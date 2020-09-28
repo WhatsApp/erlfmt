@@ -28,6 +28,7 @@ As always, you can preferably provide feedback, by simply trying out the `erlfmt
   - [Commas in Lists](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionListCommas.md)
   - [Ignore](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionIgnore.md)
   - [When with Multiline Guards](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionWhenMultilineGuards.md)
+  - [Number of Spaces](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionSpaces.md)
   - [Comments](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionComments.md)
   - [DefaultWidth](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionDefaultWidth.md)
   - [Pipes](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionPipes.md)
