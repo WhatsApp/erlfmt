@@ -30,7 +30,7 @@
 
 -type error_info() :: {file:name_all(), erl_anno:location(), module(), Reason :: any()}.
 -type pragma() :: require | insert | ignore.
--type config() :: [{pragma, pragma()} | {print_width, pos_integer()}].
+-type config() :: [{pragma, pragma()} | {print_width, pos_integer()} | verbose].
 
 -define(DEFAULT_WIDTH, 100).
 
@@ -72,7 +72,12 @@ format_file(FileName, Options) ->
                     end,
                 Formatted = format_nodes(NodesWithPragma, PrintWidth),
                 verify_nodes(FileName, NodesWithPragma, Formatted),
-                {ok, Formatted, Warnings};
+                VerboseWarnings =
+                    case proplists:get_bool(verbose, Options) of
+                        true -> check_line_lengths(FileName, PrintWidth, Formatted);
+                        false -> []
+                    end,
+                {ok, Formatted, Warnings ++ VerboseWarnings};
             {skip, RawString} ->
                 {skip, RawString}
         end
@@ -449,7 +454,9 @@ format_error({not_equivalent, Node1, Node2}) ->
         [Node1, Node2]
     );
 format_error(could_not_reparse) ->
-    "formatter result invalid, could not reparse".
+    "formatter result invalid, could not reparse";
+format_error({long_line, Length, Width}) ->
+    io_lib:format("Line too long (~p > ~p)", [Length, Width]).
 
 verify_ranges(Nodes, StartLocation, EndLocation) ->
     ApplicableNodes = nodes_in_range(Nodes, StartLocation, EndLocation),
@@ -505,3 +512,11 @@ get_location(Node) ->
 
 get_end_location(Node) ->
     erlfmt_scan:get_anno(end_location, Node).
+
+check_line_lengths(FileName, Width, String) ->
+    Lines = string:split(String, "\n", all),
+    [
+        {FileName, LineNo, ?MODULE, {long_line, string:length(Line), Width}}
+        || {LineNo, Line} <- lists:zip(lists:seq(1, length(Lines)), Lines),
+           string:length(Line) > Width
+    ].
