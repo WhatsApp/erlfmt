@@ -2243,6 +2243,9 @@ spec(Config) when is_list(Config) ->
         "-spec my_fun(TypeA, TypeB) -> ok when\n"
         "    TypeA :: some_type(),\n"
         "    TypeB :: some_other_type().\n"
+    ),
+    ?assertSame(
+        "-spec f(A, B) -> result() when B :: term() | (List :: [term()]).\n"
     ).
 
 define(Config) when is_list(Config) ->

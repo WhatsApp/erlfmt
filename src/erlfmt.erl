@@ -399,6 +399,8 @@ equivalent({concat, _, Left} = L, {concat, _, Right} = R) ->
     concat_equivalent(Left, Right) orelse throw({not_equivalent, L, R});
 equivalent({string, _, String} = L, {concat, _, Values} = R) ->
     string_concat_equivalent(String, Values) orelse throw({not_equivalent, L, R});
+equivalent({op, _, Op1, _, _} = L, {op, _, Op2, _, _} = R) when Op1 =/= Op2 ->
+    throw({not_equivalent, L, R});
 equivalent({Type, _, L}, {Type, _, R}) ->
     equivalent(L, R);
 equivalent({Type, _, L1, L2}, {Type, _, R1, R2}) ->
