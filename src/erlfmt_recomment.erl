@@ -228,6 +228,11 @@ insert_nested({'receive', Meta, Clauses0, AfterExpr0, AfterBody0}, Comments0) ->
 insert_nested({'if', Meta, Clauses0}, Comments0) ->
     Clauses = insert_expr_container(Clauses0, Comments0),
     {{'if', Meta, Clauses}, []};
+insert_nested({'try', Meta, Exprs0, OfClauses0, CatchClauses0, []}, Comments0) ->
+    {Exprs, Comments1} = insert_expr_list(Exprs0, Comments0),
+    {OfClauses, Comments2} = insert_expr_list(OfClauses0, Comments1),
+    CatchClauses = insert_expr_container(CatchClauses0, Comments2),
+    {{'try', Meta, Exprs, OfClauses, CatchClauses, []}, []};
 insert_nested({'try', Meta, Exprs0, OfClauses0, CatchClauses0, After0}, Comments0) ->
     {Exprs, Comments1} = insert_expr_list(Exprs0, Comments0),
     {OfClauses, Comments2} = insert_expr_list(OfClauses0, Comments1),
