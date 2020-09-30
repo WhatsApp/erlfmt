@@ -51,56 +51,56 @@
 
 -spec to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:doc().
 to_algebra({function, Meta, Clauses}) ->
-    Doc = concat(clauses_to_algebra(Clauses), string(".")),
-    combine_comments(Meta, Doc);
+    Doc = clauses_to_algebra(Clauses),
+    combine_comments_with_dot(Meta, Doc);
 to_algebra({attribute, Meta, Name, no_parens}) ->
-    Doc = concat(<<"-">>, expr_to_algebra(Name), <<".">>),
-    combine_comments(Meta, Doc);
+    Doc = concat(<<"-">>, expr_to_algebra(Name)),
+    combine_comments_with_dot(Meta, Doc);
 to_algebra({attribute, Meta, {atom, _, define}, [Define, empty]}) ->
-    Doc = concat(<<"-define(">>, expr_to_algebra(Define), <<",).">>),
-    combine_comments(Meta, Doc);
+    Doc = concat(<<"-define(">>, expr_to_algebra(Define), <<",)">>),
+    combine_comments_with_dot(Meta, Doc);
 to_algebra({attribute, Meta, {atom, _, define}, [Define | Body]}) ->
     HeadD = concat(<<"-define(">>, expr_to_algebra(Define), <<",">>),
     NextBreakFits = length(Body) =:= 1 andalso is_next_break_fits(hd(Body)),
     with_next_break_fits(NextBreakFits, block_to_algebra(Meta, Body), fun(BodyD) ->
-        Doc = surround(HeadD, <<" ">>, BodyD, <<"">>, <<").">>),
-        combine_comments(Meta, Doc)
+        Doc = surround(HeadD, <<" ">>, BodyD, <<"">>, <<")">>),
+        combine_comments_with_dot(Meta, Doc)
     end);
 to_algebra({attribute, Meta, {atom, _, RawName} = Name, [{list, Anno, Exports}]}) when
     RawName =:= export; RawName =:= export_type
 ->
     GroupedExports = {list, Anno, fa_groups(Exports)},
-    Doc = call(Meta, [GroupedExports], concat(<<"-">>, expr_to_algebra(Name), <<"(">>), <<").">>),
-    combine_comments(Meta, Doc);
+    Doc = call(Meta, [GroupedExports], concat(<<"-">>, expr_to_algebra(Name), <<"(">>), <<")">>),
+    combine_comments_with_dot(Meta, Doc);
 to_algebra({attribute, Meta, {atom, _, import}, [Name, {list, Anno, Imports}]}) ->
     GroupedImports = {list, Anno, fa_groups(Imports)},
-    Doc = call(Meta, [Name, GroupedImports], <<"-import(">>, <<").">>),
-    combine_comments(Meta, Doc);
+    Doc = call(Meta, [Name, GroupedImports], <<"-import(">>, <<")">>),
+    combine_comments_with_dot(Meta, Doc);
 to_algebra({attribute, Meta, {atom, _, RawName} = Name, [Value]}) when
     RawName =:= type; RawName =:= opaque; RawName =:= spec; RawName =:= callback
 ->
     ValueD = next_break_fits(expr_to_algebra(Value), enabled),
-    Doc = concat([<<"-">>, expr_to_algebra(Name), <<" ">>, ValueD, <<".">>]),
-    combine_comments(Meta, Doc);
+    Doc = concat([<<"-">>, expr_to_algebra(Name), <<" ">>, ValueD]),
+    combine_comments_with_dot(Meta, Doc);
 to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Values} = Tuple]}) ->
     HeadD = concat(<<"-record(">>, expr_to_algebra(Name), <<",">>),
     case has_no_comments_or_parens(TMeta) of
         true ->
-            Doc = space(HeadD, container(TMeta, Values, <<"{">>, <<"}).">>)),
-            combine_comments(Meta, Doc);
+            Doc = space(HeadD, container(TMeta, Values, <<"{">>, <<"})">>)),
+            combine_comments_with_dot(Meta, Doc);
         false ->
-            Doc = surround(HeadD, <<"">>, expr_to_algebra(Tuple), <<"">>, <<").">>),
-            combine_comments(Meta, Doc)
+            Doc = surround(HeadD, <<"">>, expr_to_algebra(Tuple), <<"">>, <<")">>),
+            combine_comments_with_dot(Meta, Doc)
     end;
 to_algebra({attribute, Meta, Name, Values}) ->
-    Doc = concat(<<"-">>, expr_to_algebra(Name), call(Meta, Values, <<"(">>, <<").">>)),
-    combine_comments(Meta, Doc);
+    Doc = concat(<<"-">>, expr_to_algebra(Name), call(Meta, Values, <<"(">>, <<")">>)),
+    combine_comments_with_dot(Meta, Doc);
 to_algebra(Expr) ->
     Meta = element(2, Expr),
     Doc = do_expr_to_algebra(Expr),
     case maps:get(dot, Meta, false) of
         true ->
-            combine_comments(Meta, concat(Doc, <<".">>));
+            combine_comments_with_dot(Meta, Doc);
         false ->
             combine_comments(Meta, Doc)
     end.
@@ -765,6 +765,16 @@ combine_comments(Meta, Doc) ->
     CombinedD = combine_post_comments(Post, Meta, combine_pre_comments(Pre, Meta, Doc)),
     concat(maybe_force_breaks(Pre =/= [] orelse Post =/= []), CombinedD).
 
+combine_comments_with_dot(Meta, Doc) ->
+    {Pre, PreDot, Post} = comments_with_pre_dot(Meta),
+    PreDotDoc = combine_pre_dot_comments(PreDot, Doc),
+    combine_post_comments(Post, Meta, combine_pre_comments(Pre, Meta, PreDotDoc)).
+
+combine_pre_dot_comments([], Doc) ->
+    concat(Doc, <<".">>);
+combine_pre_dot_comments(Comments, Doc) ->
+    concat([Doc, line(), comments_to_algebra(Comments), line(), <<".">>]).
+
 combine_pre_comments([], _Meta, Doc) ->
     Doc;
 combine_pre_comments(Comments, Meta, Doc) ->
@@ -792,5 +802,10 @@ comment_to_algebra({comment, _Meta, Lines}) ->
     LinesD = lists:map(fun erlfmt_algebra:string/1, Lines),
     fold_doc(fun erlfmt_algebra:line/2, LinesD).
 
+comments_with_pre_dot(Meta) ->
+    {erlfmt_scan:get_anno(pre_comments, Meta, []), erlfmt_scan:get_anno(pre_dot_comments, Meta, []),
+        erlfmt_scan:get_anno(post_comments, Meta, [])}.
+
 comments(Meta) ->
+    [] = erlfmt_scan:get_anno(pre_dot_comments, Meta, []),
     {erlfmt_scan:get_anno(pre_comments, Meta, []), erlfmt_scan:get_anno(post_comments, Meta, [])}.
