@@ -1737,6 +1737,15 @@ try_expression(Config) when is_list(Config) ->
         "end\n",
         35
     ),
+    ?assertSame(
+        "try 2 of\n"
+        "    true -> ok\n"
+        "catch\n"
+        "    _ ->\n"
+        "        []\n"
+        "    %% comment\n"
+        "end\n"
+    ),
     ?assertFormat(
         "try Expr of _ -> ok after Expr end",
         "try Expr of\n"
