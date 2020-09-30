@@ -38,12 +38,20 @@ insert_node({function, Meta0, Clauses0}, Comments0) ->
     Meta1 = put_pre_comments(Meta0, PreComments),
     Meta = put_post_comments(Meta1, PostComments),
     {function, Meta, Clauses};
-insert_node({attribute, Meta0, Name, Values0}, Comments) ->
+insert_node({attribute, Meta0, {atom, _, RawName} = Name, Values0}, Comments) when
+    RawName =:= spec; RawName =:= callback; RawName =:= type; RawName =:= opaque
+->
     {PreComments, InnerComments, PostCommennts} = split_comments(Meta0, Comments),
     {Values, RestComments} = insert_expr_list(Values0, InnerComments),
     Meta1 = put_pre_comments(Meta0, PreComments),
     Meta2 = put_post_comments(Meta1, PostCommennts),
     Meta = put_pre_dot_comments(Meta2, RestComments),
+    {attribute, Meta, Name, Values};
+insert_node({attribute, Meta0, Name, Values0}, Comments) ->
+    {PreComments, InnerComments, PostCommennts} = split_comments(Meta0, Comments),
+    Values = insert_expr_container(Values0, InnerComments),
+    Meta1 = put_pre_comments(Meta0, PreComments),
+    Meta = put_post_comments(Meta1, PostCommennts),
     {attribute, Meta, Name, Values};
 insert_node({exprs, Meta0, Exprs0}, Comments0) ->
     {PreComments, InnerComments, PostCommennts} = split_comments(Meta0, Comments0),

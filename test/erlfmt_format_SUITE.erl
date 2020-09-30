@@ -2400,11 +2400,19 @@ type(Config) when is_list(Config) ->
     ?assertSame(
         "-type t() ::\n"
         "    a\n"
-        "% comment\n"
+        "    | b\n"
+        "% | c\n"
         ".\n"
     ),
     ?assertSame(
-        "-attr(bla)\n"
+        "-attr(\n"
+        "    bla\n"
+        "    % comment\n"
+        ").\n"
+    ),
+    ?assertSame(
+        "-opaque t() ::\n"
+        "    a\n"
         "% comment\n"
         ".\n"
     ).
