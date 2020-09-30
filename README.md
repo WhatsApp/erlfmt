@@ -65,7 +65,7 @@ The easiest way to use erlfmt is as a rebar plugin, by adding to your
 `rebar.config`:
 
 ```erlang formatted rebarconfig1
-{plugins, [erlfmt]}.
+{project_plugins, [erlfmt]}.
 ```
 
 This will provide a new `rebar3 fmt` task. All erlfmt command-line options
