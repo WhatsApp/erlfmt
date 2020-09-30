@@ -13,7 +13,7 @@
 %% limitations under the License.
 -module(erlfmt_cli).
 
--export([opts/0, do/2]).
+-export([opts/0, do/2, do/3]).
 
 -type out() :: standard_out | {path, file:name_all()} | replace | check.
 
@@ -21,8 +21,10 @@
     verbose = false :: boolean(),
     width = undefined :: undefined | pos_integer(),
     pragma = ignore :: erlfmt:pragma(),
-    out = standard_out :: out()
+    out = undefined :: undefined | out()
 }).
+
+-type parsed() :: {format, list(), #config{}} | help | version | {error, string()}.
 
 -spec opts() -> [getopt:option_spec()].
 opts() ->
@@ -48,19 +50,34 @@ opts() ->
         {files, undefined, undefined, string, "files to format, - for stdin"}
     ].
 
--spec do(list(), string()) -> ok.
-do(Opts, Name) ->
+-spec do(string(), list()) -> ok.
+do(Name, Opts) ->
+    do(Name, Opts, []).
+
+-spec do(string(), list(), list()) -> ok.
+do(Name, PreferOpts, DefaultOpts) ->
+    PreferParsed = parse_opts(PreferOpts),
+    DefaultParsed = parse_opts(DefaultOpts),
+    Parsed = resolve_parsed(PreferParsed, DefaultParsed),
+    with_parsed(Name, Parsed).
+
+-spec with_parsed(string(), parsed()) -> ok.
+with_parsed(Name, Config) ->
     try
-        do_unprotected(Opts, Name)
+        unprotected_with_config(Name, Config)
     catch
         Kind:Reason:Stack ->
             io:format(standard_error, "~s Internal Error~n~s:~p~n~p~n", [Name, Kind, Reason, Stack]),
             erlang:halt(127)
     end.
 
--spec do_unprotected(list(), string()) -> ok.
-do_unprotected(Opts, Name) ->
-    case parse_opts(Opts, Name, [], #config{}) of
+-spec unprotected_with_config(string(), parsed()) -> ok.
+unprotected_with_config(Name, ParsedConfig) ->
+    case ParsedConfig of
+        {format, [], _Config} ->
+            io:put_chars(standard_error, ["no files provided to format\n\n"]),
+            getopt:usage(opts(), Name),
+            erlang:halt(2);
         {format, Files, Config} ->
             case Config#config.out of
                 check -> io:format(standard_error, "Checking formatting...~n", []);
@@ -91,15 +108,27 @@ do_unprotected(Opts, Name) ->
         {error, Message} ->
             io:put_chars(standard_error, [Message, "\n\n"]),
             getopt:usage(opts(), Name),
-            erlang:halt(2)
+            erlang:halt(2);
+        help ->
+            getopt:usage(opts(), Name),
+            erlang:halt(0);
+        version ->
+            {ok, Vsn} = application:get_key(erlfmt, vsn),
+            io:format("~s version ~s\n", [Name, Vsn]),
+            erlang:halt(0)
     end.
 
 format_file(FileName, Config) ->
-    #config{pragma = Pragma, width = Width, verbose = Verbose, out = Out} = Config,
+    #config{pragma = Pragma, width = Width, verbose = Verbose, out = Out0} = Config,
     case Verbose of
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
         false -> ok
     end,
+    Out =
+        case Out0 of
+            undefined -> standard_out;
+            _ -> Out0
+        end,
     Options = [{pragma, Pragma}] ++ [{width, Width} || Width =/= undefined],
     Result =
         case {Out, FileName} of
@@ -196,50 +225,102 @@ read_stdin(Data) ->
         {error, Reason} -> {error, Reason}
     end.
 
-parse_opts([help | _Rest], Name, _Files, _Config) ->
-    getopt:usage(opts(), Name),
-    erlang:halt(0);
-parse_opts([version | _Rest], Name, _Files, _Config) ->
-    {ok, Vsn} = application:get_key(erlfmt, vsn),
-    io:format("~s version ~s\n", [Name, Vsn]),
-    erlang:halt(0);
-parse_opts([write | _Rest], _Name, _Files, #config{out = Out}) when Out =/= standard_out ->
+-spec parse_opts(list()) -> parsed().
+parse_opts(Args) ->
+    parse_opts(Args, [], #config{}).
+
+parse_opts([help | _Rest], _Files, _Config) ->
+    help;
+parse_opts([version | _Rest], _Files, _Config) ->
+    version;
+parse_opts([write | _Rest], _Files, #config{out = Out}) when Out =/= undefined ->
     {error, "--write or replace mode can't be combined check mode"};
-parse_opts([write | Rest], Name, Files, Config) ->
-    parse_opts(Rest, Name, Files, Config#config{out = replace});
-parse_opts([{out, _Path} | _Rest], _Name, _Files, #config{out = Out}) when Out =/= standard_out ->
+parse_opts([write | Rest], Files, Config) ->
+    parse_opts(Rest, Files, Config#config{out = replace});
+parse_opts([{out, _Path} | _Rest], _Files, #config{out = Out}) when Out =/= undefined ->
     {error, "out or replace mode can't be combined check mode"};
-parse_opts([{out, Path} | Rest], Name, Files, Config) ->
-    parse_opts(Rest, Name, Files, Config#config{out = {path, Path}});
-parse_opts([verbose | Rest], Name, Files, Config) ->
-    parse_opts(Rest, Name, Files, Config#config{verbose = true});
-parse_opts([check | _Rest], _Name, _Files, #config{out = Out}) when Out =/= standard_out ->
+parse_opts([{out, Path} | Rest], Files, Config) ->
+    parse_opts(Rest, Files, Config#config{out = {path, Path}});
+parse_opts([verbose | Rest], Files, Config) ->
+    parse_opts(Rest, Files, Config#config{verbose = true});
+parse_opts([check | _Rest], _Files, #config{out = Out}) when Out =/= undefined ->
     {error, "--check mode can't be combined write or replace mode"};
-parse_opts([check | Rest], Name, Files, Config) ->
-    parse_opts(Rest, Name, Files, Config#config{out = check});
-parse_opts([{print_width, Value} | Rest], Name, Files, Config) ->
-    parse_opts(Rest, Name, Files, Config#config{width = Value});
-parse_opts([require_pragma | _Rest], _Name, _Files, #config{pragma = insert}) ->
+parse_opts([check | Rest], Files, Config) ->
+    parse_opts(Rest, Files, Config#config{out = check});
+parse_opts([{print_width, Value} | Rest], Files, Config) ->
+    parse_opts(Rest, Files, Config#config{width = Value});
+parse_opts([require_pragma | _Rest], _Files, #config{pragma = insert}) ->
     {error, "Cannot use both --insert-pragma and --require-pragma options together."};
-parse_opts([require_pragma | Rest], Name, Files, Config) ->
-    parse_opts(Rest, Name, Files, Config#config{pragma = require});
-parse_opts([insert_pragma | _Rest], _Name, _Files, #config{pragma = require}) ->
+parse_opts([require_pragma | Rest], Files, Config) ->
+    parse_opts(Rest, Files, Config#config{pragma = require});
+parse_opts([insert_pragma | _Rest], _Files, #config{pragma = require}) ->
     {error, "Cannot use both --insert-pragma and --require-pragma options together."};
-parse_opts([insert_pragma | Rest], Name, Files, Config) ->
-    parse_opts(Rest, Name, Files, Config#config{pragma = insert});
-parse_opts([{files, NewFiles} | Rest], Name, Files0, Config) ->
-    parse_opts(Rest, Name, expand_files(NewFiles, Files0), Config);
-parse_opts([], _Name, [stdin], #config{out = Out}) when Out =/= standard_out, Out =/= check ->
+parse_opts([insert_pragma | Rest], Files, Config) ->
+    parse_opts(Rest, Files, Config#config{pragma = insert});
+parse_opts([{files, NewFiles} | Rest], Files0, Config) ->
+    parse_opts(Rest, expand_files(NewFiles, Files0), Config);
+parse_opts([], [stdin], #config{out = Out}) when
+    Out =/= standard_out, Out =/= undefined, Out =/= check
+->
     {error, "stdin mode can't be combined with write options"};
-parse_opts([], _Name, [stdin], Config) ->
+parse_opts([], [stdin], Config) ->
     {format, [stdin], Config};
-parse_opts([], _Name, [], _Config) ->
-    {error, "no files provided to format"};
-parse_opts([], _Name, Files, Config) ->
+parse_opts([], Files, Config) ->
     case lists:member(stdin, Files) of
         true -> {error, "stdin mode can't be combined with other files"};
         false -> {format, lists:reverse(Files), Config}
     end.
+
+-spec resolve_parsed(parsed(), parsed()) -> parsed().
+resolve_parsed(PreferParsed, DefaultParsed) ->
+    case {PreferParsed, DefaultParsed} of
+        {{error, _} = Error, _} ->
+            Error;
+        {_, {error, _} = Error} ->
+            Error;
+        {help, _} ->
+            help;
+        {_, help} ->
+            help;
+        {version, _} ->
+            version;
+        {_, version} ->
+            version;
+        {{format, PreferFiles, PreferConfig}, {format, DefaultFiles, DefaultConfig}} ->
+            {format, resolve_files(PreferFiles, DefaultFiles),
+                resolve_config(PreferConfig, DefaultConfig)}
+    end.
+
+resolve_files([], DefaultFiles) -> DefaultFiles;
+resolve_files(PreferFiles, _DefaultFiles) -> PreferFiles.
+
+resolve_config(
+    #config{verbose = PreferVerbose, width = PreferWidth, pragma = PreferPragma, out = PreferOut},
+    #config{
+        verbose = DefaultVerbose,
+        width = DefaultWidth,
+        pragma = DefaultPragma,
+        out = DefaultOut
+    }
+) ->
+    #config{
+        verbose = PreferVerbose orelse DefaultVerbose,
+        width = resolve_width(PreferWidth, DefaultWidth),
+        pragma = resolve_pragma(PreferPragma, DefaultPragma),
+        out = resolve_out(PreferOut, DefaultOut)
+    }.
+
+resolve_width(undefined, W) -> W;
+resolve_width(W, undefined) -> W;
+resolve_width(W, _) -> W.
+
+resolve_pragma(ignore, P) -> P;
+resolve_pragma(P, ignore) -> P;
+resolve_pragma(P, _) -> P.
+
+resolve_out(undefined, O) -> O;
+resolve_out(O, undefined) -> O;
+resolve_out(O, _) -> O.
 
 expand_files("-", Files) ->
     [stdin | Files];

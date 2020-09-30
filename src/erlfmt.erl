@@ -43,9 +43,9 @@ main(Argv) ->
     Opts = erlfmt_cli:opts(),
     case getopt:parse(Opts, Argv) of
         {ok, {ArgOpts, []}} ->
-            erlfmt_cli:do(ArgOpts, "erlfmt");
+            erlfmt_cli:do("erlfmt", ArgOpts);
         {ok, {ArgOpts, ExtraFiles}} ->
-            erlfmt_cli:do([{files, ExtraFiles} | ArgOpts], "erlfmt");
+            erlfmt_cli:do("erlfmt", [{files, ExtraFiles} | ArgOpts]);
         {error, Error} ->
             io:put_chars(standard_error, [getopt:format_error(Opts, Error), "\n\n"]),
             getopt:usage(Opts, "erlfmt")

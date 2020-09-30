@@ -40,9 +40,9 @@ do(State) ->
     ConfigOpts = rebar_state:get(State, erlfmt, []),
     case rebar_state:command_parsed_args(State) of
         {ArgOpts, []} ->
-            erlfmt_cli:do(ConfigOpts ++ ArgOpts, "rebar3 fmt");
+            erlfmt_cli:do("rebar3 fmt", ArgOpts, ConfigOpts);
         {ArgOpts, ExtraFiles} ->
-            erlfmt_cli:do(ConfigOpts ++ [{files, ExtraFiles}] ++ ArgOpts, "rebar3 fmt")
+            erlfmt_cli:do("rebar3 fmt", ArgOpts, ConfigOpts ++ [{files, ExtraFiles}])
     end,
     {ok, State}.
 
