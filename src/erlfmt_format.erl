@@ -349,7 +349,7 @@ fold_unions({op, Meta, '|', Left, Right}) ->
 fold_unions(Expr) ->
     Meta = element(2, Expr),
     ExprD = do_expr_to_algebra(Expr),
-    ExprPipeD = concat(<<"| ">>, ExprD),
+    ExprPipeD = concat(<<"| ">>, maybe_wrap_in_parens(Meta, ExprD)),
     combine_comments(Meta, ExprPipeD).
 
 maybe_force_breaks(true) -> force_breaks();
