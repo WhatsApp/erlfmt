@@ -90,7 +90,7 @@ And you can add the following command in your CI to ensure your Erlang is format
 $ rebar3 fmt --check
 ```
 
-For more usage instructions, see [./doc/RebarUsage.md]
+For more usage instructions, see (RebarUsage)[./doc/RebarUsage.md]
 
 ### Escript
 
