@@ -21,7 +21,7 @@
     verbose = false :: boolean(),
     width = undefined :: undefined | pos_integer(),
     pragma = ignore :: erlfmt:pragma(),
-    out = undefined :: undefined | out()
+    out = standard_out :: out()
 }).
 
 -type parsed() :: {format, list(), #config{}} | help | version | {error, string()}.
@@ -119,16 +119,11 @@ unprotected_with_config(Name, ParsedConfig) ->
     end.
 
 format_file(FileName, Config) ->
-    #config{pragma = Pragma, width = Width, verbose = Verbose, out = Out0} = Config,
+    #config{pragma = Pragma, width = Width, verbose = Verbose, out = Out} = Config,
     case Verbose of
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
         false -> ok
     end,
-    Out =
-        case Out0 of
-            undefined -> standard_out;
-            _ -> Out0
-        end,
     Options = [{pragma, Pragma}] ++ [{width, Width} || Width =/= undefined],
     Result =
         case {Out, FileName} of
@@ -233,17 +228,17 @@ parse_opts([help | _Rest], _Files, _Config) ->
     help;
 parse_opts([version | _Rest], _Files, _Config) ->
     version;
-parse_opts([write | _Rest], _Files, #config{out = Out}) when Out =/= undefined ->
+parse_opts([write | _Rest], _Files, #config{out = Out}) when Out =/= standard_out ->
     {error, "--write or replace mode can't be combined check mode"};
 parse_opts([write | Rest], Files, Config) ->
     parse_opts(Rest, Files, Config#config{out = replace});
-parse_opts([{out, _Path} | _Rest], _Files, #config{out = Out}) when Out =/= undefined ->
+parse_opts([{out, _Path} | _Rest], _Files, #config{out = Out}) when Out =/= standard_out ->
     {error, "out or replace mode can't be combined check mode"};
 parse_opts([{out, Path} | Rest], Files, Config) ->
     parse_opts(Rest, Files, Config#config{out = {path, Path}});
 parse_opts([verbose | Rest], Files, Config) ->
     parse_opts(Rest, Files, Config#config{verbose = true});
-parse_opts([check | _Rest], _Files, #config{out = Out}) when Out =/= undefined ->
+parse_opts([check | _Rest], _Files, #config{out = Out}) when Out =/= standard_out ->
     {error, "--check mode can't be combined write or replace mode"};
 parse_opts([check | Rest], Files, Config) ->
     parse_opts(Rest, Files, Config#config{out = check});
@@ -259,9 +254,7 @@ parse_opts([insert_pragma | Rest], Files, Config) ->
     parse_opts(Rest, Files, Config#config{pragma = insert});
 parse_opts([{files, NewFiles} | Rest], Files0, Config) ->
     parse_opts(Rest, expand_files(NewFiles, Files0), Config);
-parse_opts([], [stdin], #config{out = Out}) when
-    Out =/= standard_out, Out =/= undefined, Out =/= check
-->
+parse_opts([], [stdin], #config{out = Out}) when Out =/= standard_out, Out =/= check ->
     {error, "stdin mode can't be combined with write options"};
 parse_opts([], [stdin], Config) ->
     {format, [stdin], Config};
@@ -311,15 +304,12 @@ resolve_config(
     }.
 
 resolve_width(undefined, W) -> W;
-resolve_width(W, undefined) -> W;
 resolve_width(W, _) -> W.
 
 resolve_pragma(ignore, P) -> P;
-resolve_pragma(P, ignore) -> P;
 resolve_pragma(P, _) -> P.
 
-resolve_out(undefined, O) -> O;
-resolve_out(O, undefined) -> O;
+resolve_out(standard_out, O) -> O;
 resolve_out(O, _) -> O.
 
 expand_files("-", Files) ->
