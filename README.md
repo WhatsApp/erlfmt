@@ -73,6 +73,7 @@ can be configured with defaults in your `rebar.config`, for example:
 
 ```erlang formatted rebarconfig2
 {erlfmt, [
+    write,
     {files, "{src,include,test}/*.{hrl,erl}"}
 ]}.
 ```
@@ -80,7 +81,7 @@ can be configured with defaults in your `rebar.config`, for example:
 Now you can format all the files in your project by running:
 
 ```
-$ rebar3 fmt --write
+$ rebar3 fmt
 ```
 
 And you can add the following command in your CI to ensure your Erlang is formatted:
@@ -88,6 +89,8 @@ And you can add the following command in your CI to ensure your Erlang is format
 ```
 $ rebar3 fmt --check
 ```
+
+For more usage instructions, see [./doc/RebarUsage.md]
 
 ### Escript
 

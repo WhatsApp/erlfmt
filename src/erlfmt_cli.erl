@@ -262,7 +262,9 @@ parse_opts([], Files, Config) ->
     case lists:member(stdin, Files) of
         true -> {error, "stdin mode can't be combined with other files"};
         false -> {format, lists:reverse(Files), Config}
-    end.
+    end;
+parse_opts([Unknown | _], _Files, _Config) ->
+    {error, io_lib:format("unknown option: ~p", [Unknown])}.
 
 -spec resolve_parsed(parsed(), parsed()) -> parsed().
 resolve_parsed(PreferParsed, DefaultParsed) ->
