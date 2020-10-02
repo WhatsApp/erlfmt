@@ -75,7 +75,8 @@
     comments_range/1,
     broken_range/1,
     contains_pragma/1,
-    insert_pragma/1
+    insert_pragma/1,
+    overlong_warning/1
 ]).
 
 suite() ->
@@ -155,13 +156,22 @@ groups() ->
         {pragma_tests, [parallel], [
             contains_pragma,
             insert_pragma
+        ]},
+        {verbose_warning_tests, [parallel], [
+            overlong_warning
         ]}
     ].
 
 group(_) -> [].
 
 all() ->
-    [{group, smoke_tests}, {group, parser}, {group, range_tests}, {group, pragma_tests}].
+    [
+        {group, smoke_tests},
+        {group, parser},
+        {group, range_tests},
+        {group, pragma_tests},
+        {group, verbose_warning_tests}
+    ].
 
 %%--------------------------------------------------------------------
 %% TEST CASES
@@ -1310,3 +1320,26 @@ insert_pragma_string(String) ->
         erlfmt:format_string(StringWithPragma, [{pragma, insert}])
     ),
     StringWithPragma.
+
+overlong_warning(Config) when is_list(Config) ->
+    DataDir = ?config(data_dir, Config),
+    FileName = filename:join([DataDir, "overlong.erl"]),
+    Options = [verbose],
+    {ok, Formatted, FileWarnings} = erlfmt:format_file(FileName, Options),
+    FormattedList = unicode:characters_to_list(Formatted),
+    {ok, _, StringWarnings} = erlfmt:format_string(FormattedList, Options),
+    {ok, _, RangeWarnings} = erlfmt:format_range(FileName, {1, 1}, {11, 8}, Options),
+    FileLongLines = [{LineNo, Length} || {_, LineNo, _, {long_line, Length, _}} <- FileWarnings],
+    StringLongLines = [
+        {LineNo, Length}
+        || {_, LineNo, _, {long_line, Length, _}} <- StringWarnings
+    ],
+    RangeLongLines = [{LineNo, Length} || {_, LineNo, _, {long_line, Length, _}} <- RangeWarnings],
+    % Line 6 is an overlong comment
+    % Line 8 is a comment which would be too long if we counted bytes of a utf-8 encoding instead of glyphs
+    ?assert(lists:member({6, 121}, FileLongLines)),
+    ?assertEqual([], [Line || {8, _} = Line <- FileLongLines]),
+    ?assert(lists:member({6, 121}, StringLongLines)),
+    ?assertEqual([], [Line || {8, _} = Line <- StringLongLines]),
+    ?assert(lists:member({6, 121}, RangeLongLines)),
+    ?assertEqual([], [Line || {8, _} = Line <- RangeLongLines]).
