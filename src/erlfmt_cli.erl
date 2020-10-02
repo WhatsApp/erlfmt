@@ -19,7 +19,7 @@
 
 -record(config, {
     verbose = false :: boolean(),
-    width = undefined :: undefined | pos_integer(),
+    print_width = undefined :: undefined | pos_integer(),
     pragma = ignore :: erlfmt:pragma(),
     out = standard_out :: out()
 }).
@@ -119,12 +119,12 @@ unprotected_with_config(Name, ParsedConfig) ->
     end.
 
 format_file(FileName, Config) ->
-    #config{pragma = Pragma, width = Width, verbose = Verbose, out = Out} = Config,
+    #config{pragma = Pragma, print_width = PrintWidth, verbose = Verbose, out = Out} = Config,
     case Verbose of
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
         false -> ok
     end,
-    Options = [{pragma, Pragma}] ++ [{width, Width} || Width =/= undefined],
+    Options = [{pragma, Pragma}] ++ [{print_width, PrintWidth} || PrintWidth =/= undefined],
     Result =
         case {Out, FileName} of
             {check, stdin} ->
@@ -243,7 +243,7 @@ parse_opts([check | _Rest], _Files, #config{out = Out}) when Out =/= standard_ou
 parse_opts([check | Rest], Files, Config) ->
     parse_opts(Rest, Files, Config#config{out = check});
 parse_opts([{print_width, Value} | Rest], Files, Config) ->
-    parse_opts(Rest, Files, Config#config{width = Value});
+    parse_opts(Rest, Files, Config#config{print_width = Value});
 parse_opts([require_pragma | _Rest], _Files, #config{pragma = insert}) ->
     {error, "Cannot use both --insert-pragma and --require-pragma options together."};
 parse_opts([require_pragma | Rest], Files, Config) ->
@@ -290,17 +290,22 @@ resolve_files([], DefaultFiles) -> DefaultFiles;
 resolve_files(PreferFiles, _DefaultFiles) -> PreferFiles.
 
 resolve_config(
-    #config{verbose = PreferVerbose, width = PreferWidth, pragma = PreferPragma, out = PreferOut},
+    #config{
+        verbose = PreferVerbose,
+        print_width = PreferWidth,
+        pragma = PreferPragma,
+        out = PreferOut
+    },
     #config{
         verbose = DefaultVerbose,
-        width = DefaultWidth,
+        print_width = DefaultWidth,
         pragma = DefaultPragma,
         out = DefaultOut
     }
 ) ->
     #config{
         verbose = PreferVerbose orelse DefaultVerbose,
-        width = resolve_width(PreferWidth, DefaultWidth),
+        print_width = resolve_width(PreferWidth, DefaultWidth),
         pragma = resolve_pragma(PreferPragma, DefaultPragma),
         out = resolve_out(PreferOut, DefaultOut)
     }.

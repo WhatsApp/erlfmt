@@ -30,7 +30,7 @@
 
 -type error_info() :: {file:name_all(), erl_anno:location(), module(), Reason :: any()}.
 -type pragma() :: require | insert | ignore.
--type config() :: [{pragma, pragma()} | {width, pos_integer()}].
+-type config() :: [{pragma, pragma()} | {print_width, pos_integer()}].
 
 -define(DEFAULT_WIDTH, 100).
 
@@ -60,7 +60,7 @@ init(State) ->
 -spec format_file(file:name_all() | stdin, config()) ->
     {ok, [unicode:chardata()], [error_info()]} | {skip, string()} | {error, error_info()}.
 format_file(FileName, Options) ->
-    Width = proplists:get_value(width, Options, ?DEFAULT_WIDTH),
+    PrintWidth = proplists:get_value(print_width, Options, ?DEFAULT_WIDTH),
     Pragma = proplists:get_value(pragma, Options, ignore),
     try
         case file_read_nodes(FileName, Pragma) of
@@ -70,7 +70,7 @@ format_file(FileName, Options) ->
                         insert -> insert_pragma_nodes(Nodes);
                         _ -> Nodes
                     end,
-                Formatted = format_nodes(NodesWithPragma, Width),
+                Formatted = format_nodes(NodesWithPragma, PrintWidth),
                 verify_nodes(FileName, NodesWithPragma, Formatted),
                 {ok, Formatted, Warnings};
             {skip, RawString} ->
@@ -83,7 +83,7 @@ format_file(FileName, Options) ->
 -spec format_string(string(), config()) ->
     {ok, string(), [error_info()]} | {skip, string()} | {error, error_info()}.
 format_string(String, Options) ->
-    Width = proplists:get_value(width, Options, ?DEFAULT_WIDTH),
+    PrintWidth = proplists:get_value(print_width, Options, ?DEFAULT_WIDTH),
     Pragma = proplists:get_value(pragma, Options, ignore),
     try
         case read_nodes_string("nofile", String, Pragma) of
@@ -93,7 +93,7 @@ format_string(String, Options) ->
                         insert -> insert_pragma_nodes(Nodes);
                         _ -> Nodes
                     end,
-                Formatted = format_nodes(NodesWithPragma, Width),
+                Formatted = format_nodes(NodesWithPragma, PrintWidth),
                 verify_nodes("nofile", NodesWithPragma, Formatted),
                 {ok, unicode:characters_to_list(Formatted), Warnings};
             {skip, RawString} ->
@@ -144,18 +144,18 @@ insert_pragma_node(Node) ->
     file:name_all(),
     erlfmt_scan:location(),
     erlfmt_scan:location(),
-    [{width, pos_integer()}]
+    [{print_width, pos_integer()}]
 ) ->
     {ok, string(), [error_info()]}
     | {error, error_info()}
     | {options, [{erlfmt_scan:location(), erlfmt_scan:location()}]}.
 format_range(FileName, StartLocation, EndLocation, Options) ->
-    Width = proplists:get_value(width, Options, ?DEFAULT_WIDTH),
+    PrintWidth = proplists:get_value(print_width, Options, ?DEFAULT_WIDTH),
     try
         {ok, Nodes, Warnings} = file_read_nodes(FileName, ignore),
         case verify_ranges(Nodes, StartLocation, EndLocation) of
             {ok, NodesInRange} ->
-                Result = format_nodes(NodesInRange, Width),
+                Result = format_nodes(NodesInRange, PrintWidth),
                 verify_nodes(FileName, NodesInRange, Result),
                 {ok, unicode:characters_to_binary(Result), Warnings};
             {options, PossibleRanges} ->
@@ -283,38 +283,38 @@ node_string(Cont) ->
     {raw_string, Anno, string:trim(String, both, "\n")}.
 
 -spec format_nodes([erlfmt_parse:abstract_form()], pos_integer()) -> [unicode:chardata()].
-format_nodes([], _PageWidth) ->
+format_nodes([], _PrintWidth) ->
     [];
-format_nodes(Nodes, PageWidth) ->
-    [$\n | Formatted] = format_nodes_loop(Nodes, PageWidth),
+format_nodes(Nodes, PrintWidth) ->
+    [$\n | Formatted] = format_nodes_loop(Nodes, PrintWidth),
     Formatted.
 
 format_nodes_loop(
     [{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest],
-    PageWidth
+    PrintWidth
 ) ->
     [
         $\n,
-        format_node(Attr, PageWidth),
+        format_node(Attr, PrintWidth),
         $\n,
-        format_node(Fun, PageWidth),
+        format_node(Fun, PrintWidth),
         $\n
-        | format_nodes_loop(Rest, PageWidth)
+        | format_nodes_loop(Rest, PrintWidth)
     ];
 format_nodes_loop(
     [{attribute, _, {atom, _, Name}, _} = Attr | [NextNode | _] = Rest],
-    PageWidth
+    PrintWidth
 ) when Name =:= 'if'; Name =:= 'ifdef'; Name =:= 'ifndef'; Name =:= 'else' ->
     % preserve empty line after
-    [$\n, format_node(Attr, PageWidth)] ++
-        maybe_empty_line(Attr, NextNode) ++ format_nodes_loop(Rest, PageWidth);
-format_nodes_loop([Node | [{attribute, _, {atom, _, Name}, _} = Attr | _] = Rest], PageWidth) when
+    [$\n, format_node(Attr, PrintWidth)] ++
+        maybe_empty_line(Attr, NextNode) ++ format_nodes_loop(Rest, PrintWidth);
+format_nodes_loop([Node | [{attribute, _, {atom, _, Name}, _} = Attr | _] = Rest], PrintWidth) when
     Name =:= 'else'; Name =:= 'endif'
 ->
     % preserve empty line before
-    [$\n, format_node(Node, PageWidth)] ++
-        maybe_empty_line(Node, Attr) ++ format_nodes_loop(Rest, PageWidth);
-format_nodes_loop([{attribute, _, {atom, _, RepeatedName}, _} | _] = Nodes, PageWidth) ->
+    [$\n, format_node(Node, PrintWidth)] ++
+        maybe_empty_line(Node, Attr) ++ format_nodes_loop(Rest, PrintWidth);
+format_nodes_loop([{attribute, _, {atom, _, RepeatedName}, _} | _] = Nodes, PrintWidth) ->
     {Attrs, Rest} = split_attrs(RepeatedName, Nodes),
     MaybeEmptyLine =
         case Rest of
@@ -326,10 +326,10 @@ format_nodes_loop([{attribute, _, {atom, _, RepeatedName}, _} | _] = Nodes, Page
             _ ->
                 "\n"
         end,
-    format_attrs(Attrs, PageWidth) ++ MaybeEmptyLine ++ format_nodes_loop(Rest, PageWidth);
-format_nodes_loop([Node | Rest], PageWidth) ->
-    [$\n, format_node(Node, PageWidth), $\n | format_nodes_loop(Rest, PageWidth)];
-format_nodes_loop([], _PageWidth) ->
+    format_attrs(Attrs, PrintWidth) ++ MaybeEmptyLine ++ format_nodes_loop(Rest, PrintWidth);
+format_nodes_loop([Node | Rest], PrintWidth) ->
+    [$\n, format_node(Node, PrintWidth), $\n | format_nodes_loop(Rest, PrintWidth)];
+format_nodes_loop([], _PrintWidth) ->
     [].
 
 maybe_empty_line(Node, Next) ->
@@ -339,13 +339,13 @@ maybe_empty_line(Node, Next) ->
     end.
 
 -spec format_node(erlfmt_parse:abstract_form(), pos_integer()) -> unicode:chardata().
-format_node({raw_string, _Anno, String}, _PageWidth) ->
+format_node({raw_string, _Anno, String}, _PrintWidth) ->
     String;
-format_node({shebang, _Anno, String}, _PageWidth) ->
+format_node({shebang, _Anno, String}, _PrintWidth) ->
     String;
-format_node(Node, PageWidth) ->
+format_node(Node, PrintWidth) ->
     Doc = erlfmt_format:to_algebra(Node),
-    erlfmt_algebra:format(Doc, PageWidth).
+    erlfmt_algebra:format(Doc, PrintWidth).
 
 split_attrs(PredName, Nodes) ->
     lists:splitwith(
@@ -356,13 +356,13 @@ split_attrs(PredName, Nodes) ->
         Nodes
     ).
 
-format_attrs([Attr], PageWidth) ->
-    [$\n, format_node(Attr, PageWidth)];
-format_attrs([Attr | [Attr2 | _] = Rest], PageWidth) ->
-    FAttr = format_node(Attr, PageWidth),
+format_attrs([Attr], PrintWidth) ->
+    [$\n, format_node(Attr, PrintWidth)];
+format_attrs([Attr | [Attr2 | _] = Rest], PrintWidth) ->
+    FAttr = format_node(Attr, PrintWidth),
     case has_empty_line_between(Attr, Attr2) orelse has_non_comment_newline(FAttr) of
-        true -> [$\n, FAttr, $\n | format_attrs(Rest, PageWidth)];
-        false -> [$\n, FAttr | format_attrs(Rest, PageWidth)]
+        true -> [$\n, FAttr, $\n | format_attrs(Rest, PrintWidth)];
+        false -> [$\n, FAttr | format_attrs(Rest, PrintWidth)]
     end.
 
 has_empty_line_between(Left, Right) ->
