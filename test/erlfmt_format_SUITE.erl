@@ -307,7 +307,8 @@ binary_operator(Config) when is_list(Config) ->
     ?assertFormat(
         "Foo ++ Bar ++ Baz",
         "Foo ++\n"
-        "    Bar ++ Baz\n",
+        "    Bar ++\n"
+        "    Baz\n",
         15
     ),
     ?assertFormat(
@@ -335,7 +336,8 @@ binary_operator(Config) when is_list(Config) ->
     ?assertSame("Foo + Bar + Baz\n"),
     ?assertFormat(
         "Foo + Bar + Baz",
-        "Foo + Bar +\n"
+        "Foo +\n"
+        "    Bar +\n"
         "    Baz\n",
         14
     ),
@@ -378,19 +380,22 @@ binary_operator(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "A * (B + C) * D",
-        "A * (B + C) *\n"
+        "A *\n"
+        "    (B + C) *\n"
         "    D\n",
         12
     ),
     ?assertFormat(
         "One * (Two + Three + Four) * Five",
         "One *\n"
-        "    (Two + Three +\n"
-        "        Four) * Five\n",
+        "    (Two +\n"
+        "        Three +\n"
+        "        Four) *\n"
+        "    Five\n",
         20
     ),
 
-    %% Next break fits
+    % %% Next break fits
     ?assertSame(
         "Foo = [\n"
         "    1\n"
@@ -492,6 +497,57 @@ binary_operator(Config) when is_list(Config) ->
         "Foo andalso\n"
         "    Bar andalso\n"
         "    Baz\n"
+    ),
+    ?assertFormat(
+        "Foo orelse Bar orelse Baz\n",
+        "Foo orelse\n"
+        "    Bar orelse\n"
+        "    Baz\n",
+        12
+    ),
+    ?assertFormat(
+        "Foo orelse Bar orelse Baz\n",
+        "Foo orelse\n"
+        "    Bar orelse\n"
+        "    Baz\n",
+        20
+    ),
+    ?assertFormat(
+        "Foo orelse Bar orelse Baz orelse Abc orelse Cde\n",
+        "Foo orelse\n"
+        "    Bar orelse\n"
+        "    Baz orelse\n"
+        "    Abc orelse\n"
+        "    Cde\n",
+        30
+    ),
+    ?assertFormat(
+        "Foo andalso\n"
+        "    Bar andalso Baz\n",
+        "Foo andalso\n"
+        "    Bar andalso\n"
+        "    Baz\n"
+    ),
+    ?assertSame(
+        "s2c(<<C, Rest/binary>>, Acc) when\n"
+        "    C == $\; orelse\n"
+        "        C == $\$ orelse\n"
+        "        C == $\> orelse\n"
+        "        C == $\< orelse\n"
+        "        C == $\/\n"
+        "->\n"
+        "    ok.\n"
+     ),
+     ?assertSame(
+        "[\n"
+        "    Slash ++\n"
+        "        binary_to_list(A2) ++\n"
+        "        SlashArraySlash ++\n"
+        "        binary_to_list(A1) ++\n"
+        "        Slash ++\n"
+        "        graphviz_edge_label(L)\n"
+        "    || {_, A1, A2, L} <- Es\n"
+        "].\n"
     ).
 
 tuple(Config) when is_list(Config) ->

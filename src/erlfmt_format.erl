@@ -123,7 +123,7 @@ do_expr_to_algebra({concat, _Meta, Values}) ->
 do_expr_to_algebra({op, _Meta, Op, Expr}) ->
     unary_op_to_algebra(Op, Expr);
 do_expr_to_algebra({op, Meta, Op, Left, Right}) ->
-    binary_op_to_algebra(Op, Meta, Left, Right);
+    group(binary_op_to_algebra(Op, Meta, Left, Right));
 do_expr_to_algebra({tuple, Meta, Values}) ->
     flex_container(Meta, Values, <<"{">>, <<"}">>);
 do_expr_to_algebra({list, Meta, Values}) ->
@@ -139,9 +139,9 @@ do_expr_to_algebra({map, Meta, Values}) ->
 do_expr_to_algebra({map, Meta, Expr, Values}) ->
     concat(expr_to_algebra(Expr), container(Meta, Values, <<"#{">>, <<"}">>));
 do_expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
-    field_to_algebra(<<"=>">>, Key, Value);
+    field_to_algebra('=>', Key, Value);
 do_expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
-    field_to_algebra(<<":=">>, Key, Value);
+    field_to_algebra(':=', Key, Value);
 do_expr_to_algebra({record, Meta, Name, Values}) ->
     concat(record_name_to_algebra(Meta, Name), container(Meta, Values, <<"{">>, <<"}">>));
 do_expr_to_algebra({record, Meta, Expr, Name, Values}) ->
@@ -151,7 +151,7 @@ do_expr_to_algebra({record, Meta, Expr, Name, Values}) ->
         container(Meta, Values, <<"{">>, <<"}">>)
     );
 do_expr_to_algebra({record_field, _Meta, Key, Value}) ->
-    field_to_algebra(<<"=">>, Key, Value);
+    field_to_algebra('=', Key, Value);
 do_expr_to_algebra({record_index, Meta, Name, Key}) ->
     record_access_to_algebra(Meta, Name, Key);
 do_expr_to_algebra({record_field, _Meta, Name}) ->
@@ -165,9 +165,9 @@ do_expr_to_algebra({lc, _Meta, Expr, LcExprs}) ->
 do_expr_to_algebra({bc, _Meta, Expr, LcExprs}) ->
     comprehension_to_algebra(Expr, LcExprs, <<"<<">>, <<">>">>);
 do_expr_to_algebra({generate, _Meta, Left, Right}) ->
-    field_to_algebra(<<"<-">>, Left, Right);
+    field_to_algebra('<-', Left, Right);
 do_expr_to_algebra({b_generate, _Meta, Left, Right}) ->
-    field_to_algebra(<<"<=">>, Left, Right);
+    field_to_algebra('<=', Left, Right);
 do_expr_to_algebra({call, Meta, Name, Args}) ->
     concat(expr_to_algebra(Name), call(Meta, Args, <<"(">>, <<")">>));
 do_expr_to_algebra({macro_call, _Meta, Name, none}) ->
@@ -289,7 +289,8 @@ unary_needs_space(_, _) ->
 field_to_algebra(Op, Left, Right) ->
     LeftD = expr_to_algebra(Left),
     RightD = expr_to_algebra(Right),
-    binary_op_to_algebra(Op, Left, Right, LeftD, RightD, ?INDENT).
+    HasBreak = has_break_between(Left, Right),
+    binary_op_to_algebra(Op, Left, Right, LeftD, RightD, HasBreak, ?INDENT).
 
 binary_op_to_algebra('..', _Meta, Left, Right) ->
     %% .. is special - non-assoc, no spaces around and never breaks
@@ -304,38 +305,38 @@ binary_op_to_algebra('|', Meta, Left, Right) ->
 binary_op_to_algebra(Op, Meta0, Left, Right) ->
     %% don't print parens and comments twice - expr_to_algebra took care of it already
     Meta = erlfmt_scan:delete_annos([parens, pre_comments, post_comments], Meta0),
-    binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT).
+    binary_op_to_algebra(Op, Meta, Left, Right, binary_op_has_any_break(Op, Left, Right), ?INDENT).
 
-binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
-    OpD = string(atom_to_binary(Op, utf8)),
-    LeftD = binary_operand_to_algebra(Op, Left, Indent),
-    RightD = binary_operand_to_algebra(Op, Right, 0),
+binary_op_to_algebra(Op, Meta, Left, Right, HasBreak, Indent) ->
+    LeftD = binary_operand_to_algebra(Op, Left, HasBreak, Indent),
+    RightD = binary_operand_to_algebra(Op, Right, HasBreak, 0),
     Doc =
         case is_next_break_fits_op(Op) of
-            true -> binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent);
-            false -> breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent)
+            true -> binary_op_to_algebra(Op, Left, Right, LeftD, RightD, HasBreak, Indent);
+            false -> breakable_binary_op_to_algebra(Op, Left, Right, LeftD, RightD, HasBreak, Indent)
         end,
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
 
-binary_op_to_algebra(Op, Left, Right, LeftD, RightD, Indent) ->
-    DontBreakCalls = is_call(Right) andalso not has_break_between(Left, Right),
+binary_op_to_algebra(Op, Left, Right, LeftD, RightD, HasBreak, Indent) ->
+    DontBreakCalls = is_call(Right) andalso not HasBreak,
+    OpD = string(atom_to_binary(Op, utf8)),
     case DontBreakCalls orelse is_next_break_fits(Right) of
         true ->
             with_next_break_fits(true, RightD, fun(R) ->
-                concat([group(LeftD), <<" ">>, Op, <<" ">>, group(R)])
+                concat([group(LeftD), <<" ">>, OpD, <<" ">>, group(R)])
             end);
         false ->
-            breakable_binary_op_to_algebra(Op, Left, Right, LeftD, RightD, Indent)
+            group(breakable_binary_op_to_algebra(Op, Left, Right, LeftD, RightD, HasBreak, Indent))
     end.
 
 is_call({call, _, _, _}) -> true;
 is_call({macro_call, _, _, _}) -> true;
 is_call(_) -> false.
 
-breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent) ->
-    HasBreak = has_break_between(Left, Right),
-    RightOpD = nest(break(concat(<<" ">>, OpD), group(RightD)), Indent, break),
-    concat(group(LeftD), group(concat(maybe_force_breaks(HasBreak), RightOpD))).
+breakable_binary_op_to_algebra(Op, _Left, _Right, LeftD, RightD, HasBreak, Indent) ->
+    OpD = string(atom_to_binary(Op, utf8)),
+    RightOpD = nest(break(concat(<<" ">>, OpD), RightD), Indent, break),
+    concat(LeftD, concat(maybe_force_breaks(HasBreak), RightOpD)).
 
 union_to_algebra(Meta, Left, Right) ->
     Doc = break(expr_to_algebra(Left), fold_unions(Right)),
@@ -360,13 +361,27 @@ with_next_break_fits(true, Doc, Fun) ->
 with_next_break_fits(false, Doc, Fun) ->
     Fun(Doc).
 
-binary_operand_to_algebra(Op, {op, Meta, Op, Left, Right}, Indent) ->
+binary_op_has_any_break(Op, Left, Right) ->
+    has_break_between(Left, final_op(Op, Right)).
+
+final_op(Op, {op, Meta, Op, _Left, Right} = Node) ->
+    case erlfmt_scan:get_anno(parens, Meta, false) of
+        false -> final_op(Op, Right);
+        _ -> Node
+    end;
+final_op(_Op, Other) ->
+    Other.
+
+binary_operand_to_algebra(Op, {op, Meta, Op, Left, Right} = Expr, HasBreak, Indent) ->
     %% Same operator, no parens, means correct side and no repeated nesting
     case erlfmt_scan:get_anno(parens, Meta, false) of
-        false -> binary_op_to_algebra(Op, Meta, Left, Right, Indent);
-        _ -> binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT)
+        false ->
+            binary_op_to_algebra(Op, Meta, Left, Right, HasBreak, Indent);
+        _ ->
+            expr_to_algebra(Expr)
+            % binary_op_to_algebra(Op, Meta, Left, Right, binary_op_has_any_break(Op, Left, Right), ?INDENT)
     end;
-binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
+binary_operand_to_algebra(_ParentOp, Expr, _HasBreak, _Indent) ->
     expr_to_algebra(Expr).
 
 container(Meta, Values, Left, Right) ->
