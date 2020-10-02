@@ -1064,7 +1064,11 @@ smoke_test_stdio_check(Config) when is_list(Config) ->
     DataDir = ?config(data_dir, Config),
     Same = os:cmd(
         "cat " ++
-            filename:join(DataDir, "attributes.erl") ++ " | " ++ escript() ++ " - " ++ "--check"
+            filename:join(DataDir, "attributes.erl") ++
+            " | " ++
+            escript() ++
+            " - " ++
+            "--check"
     ),
     ?assertMatch(nomatch, string:find(Same, "[warn]")),
     Warn = os:cmd(
@@ -1074,7 +1078,10 @@ smoke_test_stdio_check(Config) when is_list(Config) ->
     Skip = os:cmd(
         "cat " ++
             filename:join(DataDir, "comments.erl") ++
-            " | " ++ escript() ++ " - " ++ "--check --require-pragma --verbose"
+            " | " ++
+            escript() ++
+            " - " ++
+            "--check --require-pragma --verbose"
     ),
     ?assertNotMatch(nomatch, string:find(Skip, "Skip")).
 

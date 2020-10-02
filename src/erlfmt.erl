@@ -307,13 +307,15 @@ format_nodes_loop(
 ) when Name =:= 'if'; Name =:= 'ifdef'; Name =:= 'ifndef'; Name =:= 'else' ->
     % preserve empty line after
     [$\n, format_node(Attr, PageWidth)] ++
-        maybe_empty_line(Attr, NextNode) ++ format_nodes_loop(Rest, PageWidth);
+        maybe_empty_line(Attr, NextNode) ++
+        format_nodes_loop(Rest, PageWidth);
 format_nodes_loop([Node | [{attribute, _, {atom, _, Name}, _} = Attr | _] = Rest], PageWidth) when
     Name =:= 'else'; Name =:= 'endif'
 ->
     % preserve empty line before
     [$\n, format_node(Node, PageWidth)] ++
-        maybe_empty_line(Node, Attr) ++ format_nodes_loop(Rest, PageWidth);
+        maybe_empty_line(Node, Attr) ++
+        format_nodes_loop(Rest, PageWidth);
 format_nodes_loop([{attribute, _, {atom, _, RepeatedName}, _} | _] = Nodes, PageWidth) ->
     {Attrs, Rest} = split_attrs(RepeatedName, Nodes),
     MaybeEmptyLine =
@@ -409,7 +411,9 @@ equivalent({Type, _, L1, L2, L3}, {Type, _, R1, R2, R3}) ->
     equivalent(L1, R1) andalso equivalent(L2, R2) andalso equivalent(L3, R3);
 equivalent({Type, _, L1, L2, L3, L4}, {Type, _, R1, R2, R3, R4}) ->
     equivalent(L1, R1) andalso
-        equivalent(L2, R2) andalso equivalent(L3, R3) andalso equivalent(L4, R4);
+        equivalent(L2, R2) andalso
+        equivalent(L3, R3) andalso
+        equivalent(L4, R4);
 equivalent(Ls, Rs) when is_list(Ls), is_list(Rs) ->
     equivalent_list(Ls, Rs);
 equivalent(L, R) ->

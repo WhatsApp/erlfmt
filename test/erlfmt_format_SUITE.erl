@@ -537,8 +537,8 @@ binary_operator(Config) when is_list(Config) ->
         "        C == $\/\n"
         "->\n"
         "    ok.\n"
-     ),
-     ?assertSame(
+    ),
+    ?assertSame(
         "[\n"
         "    Slash ++\n"
         "        binary_to_list(A2) ++\n"

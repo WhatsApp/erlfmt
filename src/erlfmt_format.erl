@@ -312,8 +312,10 @@ binary_op_to_algebra(Op, Meta, Left, Right, HasBreak, Indent) ->
     RightD = binary_operand_to_algebra(Op, Right, HasBreak, 0),
     Doc =
         case is_next_break_fits_op(Op) of
-            true -> binary_op_to_algebra(Op, Left, Right, LeftD, RightD, HasBreak, Indent);
-            false -> breakable_binary_op_to_algebra(Op, Left, Right, LeftD, RightD, HasBreak, Indent)
+            true ->
+                binary_op_to_algebra(Op, Left, Right, LeftD, RightD, HasBreak, Indent);
+            false ->
+                breakable_binary_op_to_algebra(Op, Left, Right, LeftD, RightD, HasBreak, Indent)
         end,
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
 
@@ -379,7 +381,6 @@ binary_operand_to_algebra(Op, {op, Meta, Op, Left, Right} = Expr, HasBreak, Inde
             binary_op_to_algebra(Op, Meta, Left, Right, HasBreak, Indent);
         _ ->
             expr_to_algebra(Expr)
-            % binary_op_to_algebra(Op, Meta, Left, Right, binary_op_has_any_break(Op, Left, Right), ?INDENT)
     end;
 binary_operand_to_algebra(_ParentOp, Expr, _HasBreak, _Indent) ->
     expr_to_algebra(Expr).
