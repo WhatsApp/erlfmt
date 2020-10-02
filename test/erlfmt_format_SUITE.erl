@@ -2140,6 +2140,14 @@ record_definition(Config) when is_list(Config) ->
         "    }\n"
         ").\n",
         60
+    ),
+    ?assertSame(
+        "-record(foo, {\n"
+        "    field = #{\n"
+        "        key1 => [],\n"
+        "        key2 => []\n"
+        "    } :: type()\n"
+        "}).\n"
     ).
 
 spec(Config) when is_list(Config) ->
