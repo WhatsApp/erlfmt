@@ -151,14 +151,14 @@ all() ->
 %%--------------------------------------------------------------------
 %% TEST CASES
 -define(assertSame(String), ?assertSame(String, 80)).
--define(assertSame(String, Width),
-    ?assertEqual(String, format_string(String, [{width, Width}]))
+-define(assertSame(String, PrintWidth),
+    ?assertEqual(String, format_string(String, [{print_width, PrintWidth}]))
 ).
 
 -define(assertFormat(Bad, Good), ?assertFormat(Bad, Good, 80)).
--define(assertFormat(Bad, Good, Width), begin
-    ?assertEqual(Good, format_string(Good, [{width, Width}])),
-    ?assertEqual(Good, format_string(Bad, [{width, Width}]))
+-define(assertFormat(Bad, Good, PrintWidth), begin
+    ?assertEqual(Good, format_string(Good, [{print_width, PrintWidth}])),
+    ?assertEqual(Good, format_string(Bad, [{print_width, PrintWidth}]))
 end).
 
 format_string(String, Options) ->

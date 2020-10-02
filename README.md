@@ -116,6 +116,7 @@ erlfmt requires Erlang/OTP 21+ and works on all platforms.
 
  - Visual Studio Code's [Erlang Formatter](https://marketplace.visualstudio.com/items?itemName=szTheory.erlang-formatter) extension.
  - How to integrate with [doom emacs](https://github.com/WhatsApp/erlfmt/issues/46#issuecomment-655996639)
+ - Use `erlfmt` through [`rebar3_format`](https://github.com/AdRoll/rebar3_format/blob/master/README.md#erlfmt)
 
 Add your integration here, by making a pull request.
 
