@@ -1,4 +1,4 @@
-## Formatting Decision: Comments
+# Formatting Decision: Comments
 
 This is a document explaining our reasoning behind the formatting decision for comments.
 
