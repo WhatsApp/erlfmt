@@ -2143,6 +2143,19 @@ record_definition(Config) when is_list(Config) ->
     ).
 
 spec(Config) when is_list(Config) ->
+    ?assertFormat(
+        "-spec child_spec(#{\n"
+        "    name => {local, Name :: atom()} | {global, GlobalName :: any()} | {via, Module :: atom(), ViaName :: any()},\n"
+        "    another_field => atom()\n"
+        "}) -> supervisor:child_spec().\n",
+        "-spec child_spec(#{\n"
+        "    name =>\n"
+        "        {local, Name :: atom()}\n"
+        "        | {global, GlobalName :: any()}\n"
+        "        | {via, Module :: atom(), ViaName :: any()},\n"
+        "    another_field => atom()\n"
+        "}) -> supervisor:child_spec().\n"
+    ),
     ?assertSame(
         "-spec foo(Int) -> atom() when Int :: integer().\n"
     ),

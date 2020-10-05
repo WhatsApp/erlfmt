@@ -86,9 +86,9 @@ Nonassoc 800 ':='.
 %% Types
 
 Right 40 '::'.
-Right 170 '|'.
-Nonassoc 200 '..'.
-Nonassoc 200 '*'. % for binary expressions
+Right 900 '|'.
+Nonassoc 1000 '..'.
+Nonassoc 1000 '*'. % for binary expressions
 
 node -> attribute dot : setelement(2, '$1', ?range_anno('$1', '$2')).
 node -> function dot : setelement(2, '$1', ?range_anno('$1', '$2')).
