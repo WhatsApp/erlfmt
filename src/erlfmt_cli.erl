@@ -47,7 +47,10 @@ opts() ->
             "Insert a @format pragma to the top of formatted files when pragma is absent."
             "Works well when used in tandem with --require-pragma, but"
             "it is not allowed to use require-pragma and insert-pragma at the same time."},
-        {files, undefined, undefined, string, "files to format, - for stdin"}
+        {files, undefined, undefined, string,
+            "files to format, - for stdin."
+            "If no files are provided then {src,include,test}/*.{hrl,erl,app.src} and rebar.config"
+            "are specified as the default."}
     ].
 
 -spec do(string(), list()) -> ok.
@@ -58,7 +61,23 @@ do(Name, Opts) ->
 do(Name, PreferOpts, DefaultOpts) ->
     PreferParsed = parse_opts(PreferOpts),
     DefaultParsed = parse_opts(DefaultOpts),
-    Parsed = resolve_parsed(PreferParsed, DefaultParsed),
+    case {specified_files(PreferOpts), PreferParsed} of
+        {SpecifiedFiles, {format, [], _}} when SpecifiedFiles =/= [] ->
+            io:format(standard_error, "no files matching ~p~n", [SpecifiedFiles]);
+        _ ->
+            ok
+    end,
+    Parsed =
+        case specified_files(DefaultOpts ++ PreferOpts) of
+            [] ->
+                DefaultFiles = parse_opts([
+                    {files, "{src,include,test}/*.{hrl,erl,app.src}"},
+                    {files, "rebar.config"}
+                ]),
+                resolve_parsed(PreferParsed, resolve_parsed(DefaultParsed, DefaultFiles));
+            _ ->
+                resolve_parsed(PreferParsed, DefaultParsed)
+        end,
     with_parsed(Name, Parsed).
 
 -spec with_parsed(string(), parsed()) -> ok.
@@ -319,6 +338,16 @@ resolve_pragma(P, _) -> P.
 resolve_out(standard_out, O) -> O;
 resolve_out(O, _) -> O.
 
+specified_files(List) ->
+    lists:filter(
+        fun
+            ({files, _}) -> true;
+            (stdin) -> true;
+            (_) -> false
+        end,
+        List
+    ).
+
 expand_files("-", Files) ->
     [stdin | Files];
 expand_files(NewFile, Files) when is_integer(hd(NewFile)) ->
@@ -328,7 +357,6 @@ expand_files(NewFile, Files) when is_integer(hd(NewFile)) ->
         false ->
             case filelib:wildcard(NewFile) of
                 [] ->
-                    io:format(standard_error, "no file matching '~s'", [NewFile]),
                     Files;
                 NewFiles ->
                     NewFiles ++ Files

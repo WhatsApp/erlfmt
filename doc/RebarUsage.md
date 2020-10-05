@@ -45,6 +45,7 @@ You could also setup your rebar3 config to:
   - only check files and not format them, using `check` instead of `write`,
   - output which files are being checked, using `verbose` and
   - set the default width, using `{print_width, 100}`
+  - If you do not specify files, then the default is `{files, ["{src,include,test}/*.{hrl,erl,app.src}", "rebar.config"]}`
 
 ```erlang formatted rebarconfig3
 {erlfmt, [
