@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.8.0 (5.10.2020)
+
+Better rebar integration
+
+### Enhancements
+
+  - Better rebar integration #196 #183 #197 #200
+  - Change formatting of pipes to prefixes #191 #194
+
+### Fixes
+
+  - Parse attributes with empty parens #189
+  - Do not crash with comments before a dot #184
+  - Do not crash with post comments in catch #195
+
 ## v0.7.0 (17.09.2020)
 
 `--check` flag now provides exit code 1, if files are not formatted.
