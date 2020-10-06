@@ -1022,8 +1022,14 @@ snapshot_attributes(Config) -> snapshot_same("attributes.erl", Config).
 
 snapshot_escript(Config) -> snapshot_same("escript.erl", Config).
 
+%% On the third line (or second line depending on the presence of the Emacs directive),
+%% arguments can be specified to the emulator
+%% https://erlang.org/doc/man/escript.html
 snapshot_emulator_args(Config) -> snapshot_same("emulator_args.erl", Config).
 
+%% On the third line (or second line depending on the presence of the Emacs directive),
+%% arguments can be specified to the emulator
+%% https://erlang.org/doc/man/escript.html
 snapshot_emulator_args2(Config) -> snapshot_same("emulator_args2.erl", Config).
 
 snapshot_pragma(Config) -> snapshot_same("pragma.erl", [{pragma, require} | Config]).
