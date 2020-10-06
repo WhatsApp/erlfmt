@@ -327,6 +327,15 @@ format_nodes_loop([{attribute, _, {atom, _, RepeatedName}, _} | _] = Nodes, Prin
                 "\n"
         end,
     format_attrs(Attrs, PrintWidth) ++ MaybeEmptyLine ++ format_nodes_loop(Rest, PrintWidth);
+format_nodes_loop([{shebang, Meta, _} = Node | Rest], PrintWidth) ->
+    %% preserve empty line after shebang
+    MaybeNewLine =
+        case erlfmt_scan:get_end_line(Meta) =< 2 of
+            true -> [];
+            _ -> [$\n]
+        end,
+    [$\n, format_node(Node, PrintWidth)] ++
+        MaybeNewLine ++ format_nodes_loop(Rest, PrintWidth);
 format_nodes_loop([Node | Rest], PrintWidth) ->
     [$\n, format_node(Node, PrintWidth), $\n | format_nodes_loop(Rest, PrintWidth)];
 format_nodes_loop([], _PrintWidth) ->

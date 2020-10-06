@@ -85,8 +85,9 @@ continue(Scan, Inner0, Loc0, []) ->
     case Scan(Inner0, Loc0) of
         {{ok, [{'#', _}, {'!', _} | _] = Tokens0, Loc}, Inner} ->
             {ShebangTokens, Buffer} = split_shebang(Tokens0),
+            EndLocation = 1 + length(lists:takewhile(fun is_white_space/1, Buffer)),
             Shebang = unicode:characters_to_list(stringify_tokens(ShebangTokens)),
-            Anno = [{text, Shebang}, {location, Loc0}],
+            Anno = #{location => Loc0, end_location => {EndLocation, 1}, text => Shebang},
             State = #state{
                 scan = Scan,
                 inner = Inner,
@@ -178,12 +179,12 @@ last_node_string(#state{original = [First | _] = Tokens}) ->
     Location = erl_scan:location(First),
     {String, token_anno([{text, String}, {location, Location}])}.
 
+is_white_space({white_space, _, [$\n | _]}) -> true;
+is_white_space(_) -> false.
+
 split_shebang(Tokens) ->
     {ShebangTokens, Rest} = lists:splitwith(
-        fun
-            ({white_space, _, [$\n | _]}) -> false;
-            (_) -> true
-        end,
+        fun(Token) -> not(is_white_space(Token)) end,
         Tokens
     ),
     {ShebangTokens, Rest}.
