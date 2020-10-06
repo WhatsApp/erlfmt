@@ -184,7 +184,7 @@ is_white_space(_) -> false.
 
 split_shebang(Tokens) ->
     {ShebangTokens, Rest} = lists:splitwith(
-        fun(Token) -> not(is_white_space(Token)) end,
+        fun(Token) -> not (is_white_space(Token)) end,
         Tokens
     ),
     {ShebangTokens, Rest}.
