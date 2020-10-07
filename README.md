@@ -72,10 +72,7 @@ This will provide a new `rebar3 fmt` task. All erlfmt command-line options
 can be configured with defaults in your `rebar.config`, for example:
 
 ```erlang formatted rebarconfig2
-{erlfmt, [
-    write,
-    {files, "{src,include,test}/*.{hrl,erl}"}
-]}.
+{erlfmt, [write]}.
 ```
 
 Now you can format all the files in your project by running:

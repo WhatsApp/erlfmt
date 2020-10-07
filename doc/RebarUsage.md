@@ -17,7 +17,7 @@ All erlfmt command-line options can be configured with defaults in your `rebar.c
 ]}.
 ```
 
-Now you can format all the files in your project by running:
+Now you can format the files in your project by running:
 
 ```sh
 $ rebar3 fmt
