@@ -35,8 +35,8 @@ opts() ->
         {out, $o, "out", binary, "output directory"},
         {verbose, undefined, "verbose", undefined, "include debug output"},
         {check, $c, "check", undefined,
-            "Check if your files are formatted."
-            "Get exit code 1, if some files are not formatted."
+            "Check if your files are formatted. "
+            "Get exit code 1, if some files are not formatted. "
             "--write is not supported."},
         {print_width, undefined, "print-width", integer,
             "The line length that formatter would wrap on"},
@@ -44,12 +44,13 @@ opts() ->
             "Require a special comment @format, called a pragma, "
             "to be present in the file's first docblock comment in order for prettier to format it."},
         {insert_pragma, undefined, "insert-pragma", undefined,
-            "Insert a @format pragma to the top of formatted files when pragma is absent."
-            "Works well when used in tandem with --require-pragma, but"
-            "it is not allowed to use require-pragma and insert-pragma at the same time."},
+            "Insert a @format pragma to the top of formatted files when pragma is absent. "
+            "Works well when used in tandem with --require-pragma, "
+            "but it is not allowed to use require-pragma and insert-pragma at the same time."},
         {files, undefined, undefined, string,
-            "files to format, - for stdin."
-            "If no files are provided then {src,include,test}/*.{hrl,erl,app.src} and rebar.config"
+            "files to format, - for stdin. "
+            "If no files are provided and one option of [-w, -o, -c] are provided then "
+            "{src,include,test}/*.{hrl,erl,app.src} and rebar.config "
             "are specified as the default."}
     ].
 
