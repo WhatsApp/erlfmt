@@ -61,18 +61,19 @@ do(Name, Opts) ->
 do(Name, PreferOpts, DefaultOpts) ->
     PreferParsed = parse_opts(PreferOpts),
     DefaultParsed = parse_opts(DefaultOpts),
-    case {specified_files(PreferOpts), PreferParsed} of
-        {SpecifiedFiles, {format, [], _}} when SpecifiedFiles =/= [] ->
-            io:format(standard_error, "no files matching ~p~n", [SpecifiedFiles]);
-        _ ->
-            ok
-    end,
+    SpecifiedFiles = specified_files(PreferOpts) ++ specified_files(DefaultOpts),
     Parsed =
-        case specified_files(DefaultOpts ++ PreferOpts) of
-            [] ->
+        case {PreferParsed, DefaultParsed, SpecifiedFiles} of
+            {{format, _, #config{out = standard_out}}, {format, _, #config{out = standard_out}}, _} ->
+                %% Do not provide default files if we are writing to stdout
+                resolve_parsed(PreferParsed, DefaultParsed);
+            {{format, [], _}, {format, [], _}, _} when SpecifiedFiles =/= [] ->
+                io:format(standard_error, "no files matching ~p~n", [SpecifiedFiles]),
+                help;
+            {_, _, []} ->
+                %% no files means we should provide default files
                 DefaultFiles = parse_opts([
-                    {files, "{src,include,test}/*.{hrl,erl,app.src}"},
-                    {files, "rebar.config"}
+                    {files, ["{src,include,test}/*.{hrl,erl,app.src}", "rebar.config"]}
                 ]),
                 resolve_parsed(PreferParsed, resolve_parsed(DefaultParsed, DefaultFiles));
             _ ->
