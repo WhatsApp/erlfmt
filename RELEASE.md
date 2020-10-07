@@ -47,3 +47,5 @@ If you forgot your local password:
 $ rebar3 hex user deauth
 $ rebar3 hex user auth
 ```
+
+Visit https://hex.pm/packages/erlfmt to see that it was published.
