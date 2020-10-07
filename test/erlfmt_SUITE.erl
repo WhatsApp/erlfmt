@@ -63,6 +63,7 @@
     snapshot_escript/1,
     snapshot_emulator_args/1,
     snapshot_emulator_args2/1,
+    snapshot_emulator_args_module/1,
     snapshot_pragma/1,
     snapshot_no_pragma/1,
     snapshot_comments/1,
@@ -140,6 +141,7 @@ groups() ->
             snapshot_escript,
             snapshot_emulator_args,
             snapshot_emulator_args2,
+            snapshot_emulator_args_module,
             snapshot_pragma,
             snapshot_no_pragma,
             snapshot_comments,
@@ -1025,12 +1027,17 @@ snapshot_escript(Config) -> snapshot_same("escript.erl", Config).
 %% On the third line (or second line depending on the presence of the Emacs directive),
 %% arguments can be specified to the emulator
 %% https://erlang.org/doc/man/escript.html
-snapshot_emulator_args(Config) -> snapshot_same("emulator_args.erl", Config).
+snapshot_emulator_args(Config) -> snapshot_same("emulator_args.escript", Config).
 
 %% On the third line (or second line depending on the presence of the Emacs directive),
 %% arguments can be specified to the emulator
 %% https://erlang.org/doc/man/escript.html
-snapshot_emulator_args2(Config) -> snapshot_same("emulator_args2.erl", Config).
+snapshot_emulator_args2(Config) -> snapshot_same("emulator_args2.escript", Config).
+
+%% On the third line (or second line depending on the presence of the Emacs directive),
+%% arguments can be specified to the emulator
+%% https://erlang.org/doc/man/escript.html
+snapshot_emulator_args_module(Config) -> snapshot_same("emulator_args_module.escript", Config).
 
 snapshot_pragma(Config) -> snapshot_same("pragma.erl", [{pragma, require} | Config]).
 

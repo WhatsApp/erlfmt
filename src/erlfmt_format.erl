@@ -15,7 +15,7 @@
 
 -include("erlfmt_scan.hrl").
 
--export([to_algebra/1, comments/1]).
+-export([to_algebra/1, comments/1, comments_with_pre_dot/1]).
 
 -import(erlfmt_algebra, [
     force_breaks/0,
@@ -50,6 +50,9 @@
 -define(NEXT_BREAK_FITS_OPS, ['=', '::']).
 
 -spec to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:doc().
+to_algebra({shebang, Meta, String}) ->
+    Doc = string(String),
+    combine_comments(Meta, Doc);
 to_algebra({function, Meta, Clauses}) ->
     Doc = clauses_to_algebra(Clauses),
     combine_comments_with_dot(Meta, Doc);
