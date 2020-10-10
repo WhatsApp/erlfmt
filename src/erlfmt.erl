@@ -167,7 +167,12 @@ format_range(FileName, StartLocation, EndLocation, Options) ->
             {ok, NodesInRange} ->
                 Result = format_nodes(NodesInRange, PrintWidth),
                 verify_nodes(FileName, NodesInRange, Result),
-                {ok, unicode:characters_to_binary(Result), Warnings};
+                VerboseWarnings =
+                    case proplists:get_bool(verbose, Options) of
+                        true -> check_line_lengths(FileName, PrintWidth, Result, StartLocation);
+                        false -> []
+                    end,
+                {ok, unicode:characters_to_binary(Result), Warnings ++ VerboseWarnings};
             {options, PossibleRanges} ->
                 {options, PossibleRanges}
         end
@@ -519,9 +524,16 @@ get_end_location(Node) ->
     erlfmt_scan:get_anno(end_location, Node).
 
 check_line_lengths(FileName, Width, String) ->
+    check_line_lengths(FileName, Width, String, {1, 0}).
+
+check_line_lengths(FileName, Width, String, {FirstLineNo, _}) ->
     Lines = string:split(String, "\n", all),
+    LastLineNo = FirstLineNo + length(Lines) - 1,
     [
         {FileName, LineNo, ?MODULE, {long_line, string:length(Line), Width}}
-        || {LineNo, Line} <- lists:zip(lists:seq(1, length(Lines)), Lines),
+        || {LineNo, Line} <- lists:zip(
+               lists:seq(FirstLineNo, LastLineNo),
+               Lines
+           ),
            string:length(Line) > Width
     ].
