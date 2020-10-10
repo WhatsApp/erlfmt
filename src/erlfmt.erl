@@ -100,7 +100,12 @@ format_string(String, Options) ->
                     end,
                 Formatted = format_nodes(NodesWithPragma, PrintWidth),
                 verify_nodes("nofile", NodesWithPragma, Formatted),
-                {ok, unicode:characters_to_list(Formatted), Warnings};
+                VerboseWarnings =
+                    case proplists:get_bool(verbose, Options) of
+                        true -> check_line_lengths("nofile", PrintWidth, Formatted);
+                        false -> []
+                    end,
+                {ok, unicode:characters_to_list(Formatted), Warnings ++ VerboseWarnings};
             {skip, RawString} ->
                 {skip, RawString}
         end
