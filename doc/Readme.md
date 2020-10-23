@@ -25,14 +25,15 @@ As always, you can preferably provide feedback, by simply trying out the `erlfmt
 
 ## Merged Formatting Decisions
 
-  - [DefaultWidth](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionDefaultWidth.md)
-  - [Ignore](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionIgnore.md)
-  - [Comments](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionComments.md)
-  - [Pipes](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionPipes.md)
-  - [Commas in Lists](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionListCommas.md)
-  - [Number of Spaces](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionSpaces.md)
-  - [Multiline Lists](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionLists.md)
-  - [When with Multiline Guards](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionWhenMultilineGuards.md)
+  - [DefaultWidth](./FormattingDecisionDefaultWidth.md)
+  - [Ignore](./FormattingDecisionIgnore.md)
+  - [Comments](./FormattingDecisionComments.md)
+  - [Pipes](./FormattingDecisionPipes.md)
+  - [Commas in Lists](./FormattingDecisionListCommas.md)
+  - [Number of Spaces](./FormattingDecisionSpaces.md)
+  - [Multiline Lists](./FormattingDecisionLists.md)
+  - [List Comprehensions](./FormattingDecisionListComprehensions.md)
+  - [When with Multiline Guards](./FormattingDecisionWhenMultilineGuards.md)
 
 
 
