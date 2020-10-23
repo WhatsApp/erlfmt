@@ -104,7 +104,7 @@ format_string(String, Options) ->
     end.
 
 contains_pragma_node(Node) ->
-    {PreComments, PostComments} = erlfmt_format:comments(Node),
+    {PreComments, _, PostComments} = erlfmt_format:comments_with_pre_dot(Node),
     lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments).
 
 contains_pragma_comment({comment, _Loc, Comments}) ->
@@ -115,7 +115,10 @@ contains_pragma_comment({comment, _Loc, Comments}) ->
 insert_pragma_nodes([]) ->
     [];
 insert_pragma_nodes([{shebang, _, _} = Node | Nodes]) ->
-    [Node | insert_pragma_nodes(Nodes)];
+    case contains_pragma_node(Node) of
+        true -> [Node | Nodes];
+        false -> [Node | insert_pragma_nodes(Nodes)]
+    end;
 insert_pragma_nodes([Node | Nodes]) ->
     case contains_pragma_node(Node) of
         true -> [Node | Nodes];
@@ -210,37 +213,79 @@ read_nodes_string(FileName, String, Pragma) ->
 read_nodes(State, FileName, Pragma) ->
     read_nodes(State, FileName, Pragma, [], [], []).
 
-read_nodes({ok, Tokens, Comments, Cont}, FileName, require, NodeAcc, Warnings0, TextAcc) ->
+read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma, [], Warnings0, TextAcc) ->
     {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
-    case Node of
-        {shebang, _, _} ->
+    case {Pragma, contains_pragma_node(Node), Node} of
+        {_, _, {shebang, _, _}} ->
             {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
             read_nodes(
                 erlfmt_scan:continue(Cont),
                 FileName,
-                require,
-                [Node | NodeAcc],
+                Pragma,
+                [erlfmt_scan:put_anno(end_location, {1, 1}, Node)],
                 Warnings,
                 TextAcc ++ LastString
             );
+        {require, false, _} ->
+            {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
+            case erlfmt_scan:read_rest(Cont) of
+                {ok, Rest} ->
+                    {skip, [TextAcc, LastString | Rest]};
+                {error, {ErrLoc, Mod, Reason}} ->
+                    throw({error, {FileName, ErrLoc, Mod, Reason}})
+            end;
         _ ->
-            case contains_pragma_node(Node) of
-                false ->
-                    {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
-                    case erlfmt_scan:read_rest(Cont) of
-                        {ok, Rest} ->
-                            {skip, [TextAcc, LastString | Rest]};
-                        {error, {ErrLoc, Mod, Reason}} ->
-                            throw({error, {FileName, ErrLoc, Mod, Reason}})
-                    end;
-                _ ->
-                    read_nodes_loop(
-                        erlfmt_scan:continue(Cont),
-                        FileName,
-                        [Node | NodeAcc],
-                        Warnings
-                    )
-            end
+            read_nodes_loop(
+                erlfmt_scan:continue(Cont),
+                FileName,
+                [Node],
+                Warnings
+            )
+    end;
+read_nodes(
+    {ok, Tokens, Comments, Cont},
+    FileName,
+    Pragma,
+    [{shebang, _, _} = ShebangNode],
+    Warnings0,
+    TextAcc
+) ->
+    {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
+    case {Pragma, contains_pragma_node(Node), Node} of
+        {require, false, _} ->
+            {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
+            case erlfmt_scan:read_rest(Cont) of
+                {ok, Rest} ->
+                    {skip, [TextAcc, LastString | Rest]};
+                {error, {ErrLoc, Mod, Reason}} ->
+                    throw({error, {FileName, ErrLoc, Mod, Reason}})
+            end;
+        {_, _, {raw_string, RawAnno, RawString}} ->
+            ShebangNodeWithPostComments =
+                erlfmt_scan:put_anno(post_comments, [{comment, RawAnno, [RawString]}], ShebangNode),
+            read_nodes_loop(
+                erlfmt_scan:continue(Cont),
+                FileName,
+                [ShebangNodeWithPostComments],
+                Warnings
+            );
+        _ ->
+            {NodeWithoutPreComments, ShebangNodeWithPostComments} =
+                case erlfmt_scan:get_anno(pre_comments, Node, undefined) of
+                    undefined ->
+                        {Node, ShebangNode};
+                    PreComments ->
+                        {
+                            erlfmt_scan:delete_anno(pre_comments, Node),
+                            erlfmt_scan:put_anno(post_comments, PreComments, ShebangNode)
+                        }
+                end,
+            read_nodes_loop(
+                erlfmt_scan:continue(Cont),
+                FileName,
+                [NodeWithoutPreComments, ShebangNodeWithPostComments],
+                Warnings
+            )
     end;
 read_nodes(Other, FileName, _Pragma, NodeAcc, Warnings, _TextAcc) ->
     read_nodes_loop(Other, FileName, NodeAcc, Warnings).
@@ -340,8 +385,6 @@ maybe_empty_line(Node, Next) ->
 
 -spec format_node(erlfmt_parse:abstract_form(), pos_integer()) -> unicode:chardata().
 format_node({raw_string, _Anno, String}, _PrintWidth) ->
-    String;
-format_node({shebang, _Anno, String}, _PrintWidth) ->
     String;
 format_node(Node, PrintWidth) ->
     Doc = erlfmt_format:to_algebra(Node),
