@@ -145,7 +145,10 @@ format_file(FileName, Config) ->
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
         false -> ok
     end,
-    Options = [{pragma, Pragma}] ++ [{print_width, PrintWidth} || PrintWidth =/= undefined],
+    Options =
+        [{pragma, Pragma}] ++
+            [{print_width, PrintWidth} || PrintWidth =/= undefined] ++
+            [verbose || Verbose],
     Result =
         case {Out, FileName} of
             {check, stdin} ->
