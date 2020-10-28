@@ -254,7 +254,7 @@ read_stdin(Data) ->
         {error, Reason} -> {error, Reason}
     end.
 
--spec parse_opts(list(string())) -> parsed().
+-spec parse_opts(list()) -> parsed().
 parse_opts(Args) ->
     parse_opts(Args, [], [], #config{}).
 
