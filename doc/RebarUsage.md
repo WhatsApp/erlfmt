@@ -46,6 +46,7 @@ You could also setup your rebar3 config to:
   - output which files are being checked, using `verbose` and
   - set the default width, using `{print_width, 100}`
   - If you do not specify files, then the default is `{files, ["{src,include,test}/*.{hrl,erl,app.src}", "rebar.config"]}`
+  - Exclude generated files, like `src/erlfmt_parse.erl`
 
 ```erlang formatted rebarconfig3
 {erlfmt, [
@@ -53,7 +54,8 @@ You could also setup your rebar3 config to:
     require_pragma,
     verbose,
     {print_width, 100},
-    {files, ["{src,include,test}/*.{hrl,erl,app.src}", "rebar.config"]}
+    {files, ["{src,include,test}/*.{hrl,erl,app.src}", "rebar.config"]},
+    {exclude_files, ["src/erlfmt_parse.erl"]}
 ]}.
 ```
 

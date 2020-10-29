@@ -57,6 +57,7 @@
     smoke_test_stdio_insert_and_require_pragma/1,
     smoke_test_stdio_unicode/1,
     smoke_test_stdio_check/1,
+    exclude_check/1,
     snapshot_simple_comments/1,
     snapshot_big_binary/1,
     snapshot_attributes/1,
@@ -133,7 +134,8 @@ groups() ->
             smoke_test_stdio_insert_pragma_without,
             smoke_test_stdio_insert_and_require_pragma,
             smoke_test_stdio_unicode,
-            smoke_test_stdio_check
+            smoke_test_stdio_check,
+            exclude_check
         ]},
         {snapshot_tests, [parallel], [
             snapshot_simple_comments,
@@ -1108,6 +1110,20 @@ smoke_test_stdio_check(Config) when is_list(Config) ->
             " | " ++ escript() ++ " - " ++ "--check --require-pragma --verbose"
     ),
     ?assertNotMatch(nomatch, string:find(Skip, "Skip")).
+
+exclude_check(Config) when is_list(Config) ->
+    Files = filename:join(?config(data_dir, Config), "*.erl"),
+    Exclude = filename:join(?config(data_dir, Config), "broken.erl"),
+    WithBroken = os:cmd(
+        escript() ++ " -c " ++ Files
+    ),
+    ?assertNotMatch(nomatch, string:find(WithBroken, "[warn]")),
+    ?assertNotMatch(nomatch, string:find(WithBroken, "broken.erl")),
+    WithoutBroken = os:cmd(
+        escript() ++ " -c " ++ Files ++ " --exclude-files=" ++ Exclude
+    ),
+    ?assertNotMatch(nomatch, string:find(WithoutBroken, "[warn]")),
+    ?assertMatch(nomatch, string:find(WithoutBroken, "broken.erl")).
 
 simple_comments_range(Config) ->
     format_range(Config, "simple_comments.erl").

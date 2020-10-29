@@ -21,8 +21,7 @@ fmt: release
 
 .PHONY: checkfmt
 checkfmt: release
-	rm src/erlfmt_parse.erl
-	_build/release/bin/erlfmt -c
+	_build/release/bin/erlfmt -c --exclude-files="src/erlfmt_parse.erl"
 
 .PHONY: check
 check: clean
