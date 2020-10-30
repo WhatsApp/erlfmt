@@ -25,6 +25,8 @@ Page 43, Section COMMENTS
 
 ### Conventions in Practice
 
+These are just examples:
+
  - Emacs formats single line comments to align.
  - In some places of OTP and RabbitMQ double percentage comments are used instead of single percentage comments:
    * https://github.com/erlang/otp/blob/master/lib/compiler/src/beam_discasm.hrl#L32
@@ -34,6 +36,16 @@ Page 43, Section COMMENTS
    * https://github.com/rabbitmq/rabbitmq-server/blob/master/src/rabbit_mirror_queue_misc.erl#L492
  - Elixir, in the erlang code, single percentage comments are used as double percentage comments:
    * https://github.com/elixir-lang/elixir/blob/master/lib/elixir/src/elixir.erl#L309-L323
+
+### Analysis
+
+We have done a more thorough analysis of how comments are used in practice.
+
+It shows that mostly `%%` is used for standalone comments, while `%` is used with comments that share a line with code.
+We also see a preference for the numbers of: `standalone > directly following > aligned` comments, where directly following comments still has a significant market share.
+We tried, but struggled to find enough of a pattern where comments are aligned at a specific column number in practice.
+
+You can find the details of the analysis [here](./FormattingDecisionComments/Readme.md).
 
 ## Goals
 
