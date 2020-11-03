@@ -2561,4 +2561,13 @@ comment(Config) when is_list(Config) ->
         "    | [term()]\n"
         "    %% error comment\n"
         "    | error.\n"
+    ),
+    ?assertFormat(
+        "a, % trailing comment\n"
+        "%% post comment\n"
+        "b.\n",
+        "% trailing comment\n"
+        "a,\n"
+        "%% post comment\n"
+        "b.\n"
     ).

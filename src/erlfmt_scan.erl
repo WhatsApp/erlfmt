@@ -204,9 +204,15 @@ split_tokens(Tokens, ExtraTokens0) ->
             {TransformedTokens, Tokens ++ ExtraTokens, Comments ++ ExtraComments, ExtraRest}
     end.
 
-split_tokens([{comment, _, _} = Comment0 | Rest0], Acc, CAcc) ->
-    {Comment, Rest} = collect_comments(Rest0, Comment0),
-    split_tokens(Rest, Acc, [Comment | CAcc]);
+split_tokens([{comment, Meta, _} = Comment0 | Rest0], Acc, CAcc) ->
+    case Acc =/= [] andalso erl_anno:line(Meta) =:= get_line(hd(Acc)) of
+        true ->
+            {Comment, []} = collect_comments([], Comment0),
+            split_tokens(Rest0, Acc, [Comment | CAcc]);
+        false ->
+            {Comment, Rest} = collect_comments(Rest0, Comment0),
+            split_tokens(Rest, Acc, [Comment | CAcc])
+    end;
 split_tokens([{white_space, _, _} | Rest], Acc, CAcc) ->
     split_tokens(Rest, Acc, CAcc);
 split_tokens([{Atomic, Meta, Value} | Rest], Acc, CAcc) when ?IS_ATOMIC(Atomic) ->
