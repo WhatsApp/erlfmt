@@ -114,9 +114,9 @@ insert_nested(Node, []) ->
     {Node, []};
 insert_nested({Atomic, _, _} = Node, Comments) when ?IS_ATOMIC(Atomic) ->
     {Node, Comments};
-insert_nested({concat, _, _} = Node, Comments) ->
-    %% concat promotes all inner comments to the top
-    {put_pre_comments(Node, Comments), []};
+insert_nested({concat, Meta, Strings0}, Comments0) ->
+    {Strings, Comments} = insert_expr_list(Strings0, Comments0),
+    {{concat, Meta, Strings}, Comments};
 insert_nested({op, Meta, Op, Expr0}, Comments0) ->
     {Expr, Comments} = insert_expr(Expr0, Comments0),
     {{op, Meta, Op, Expr}, Comments};

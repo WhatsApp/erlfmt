@@ -265,6 +265,23 @@ string_concat(Config) when is_list(Config) ->
         "X =\n"
         "    \"foo\\n\"\n"
         "    \"bar\"\n"
+    ),
+    ?assertFormat(
+        "-define(R,\n"
+        "    \"a\"  % a\n"
+        "    \"b\" % b\n"
+        "    \"c\" % c\n"
+        "    \"d\"). % d\n",
+        "-define(R,\n"
+        "    % a\n"
+        "    \"a\"\n"
+        "    % b\n"
+        "    \"b\"\n"
+        "    % c\n"
+        "    \"c\"\n"
+        "    % d\n"
+        "    \"d\"\n"
+        ").\n"
     ).
 
 unary_operator(Config) when is_list(Config) ->
