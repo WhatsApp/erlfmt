@@ -800,16 +800,17 @@ types(Config) when is_list(Config) ->
         parse_type("fun()")
     ),
     ?assertMatch(
-        {'fun', _, {type, _, [{'...', _}], {call, _, {atom, _, integer}, []}}},
+        {'fun', _, {type, _, {args, _, [{'...', _}]}, {call, _, {atom, _, integer}, []}}},
         parse_type("fun((...) -> integer())")
     ),
     ?assertMatch(
-        {'fun', _, {type, _, [], {atom, _, ok}}},
+        {'fun', _, {type, _, {args, _, []}, {atom, _, ok}}},
         parse_type("fun(() -> ok)")
     ),
     ?assertMatch(
         {'fun', _,
-            {type, _, [{call, _, {atom, _, integer}, []}], {call, _, {atom, _, integer}, []}}},
+            {type, _, {args, _, [{call, _, {atom, _, integer}, []}]},
+                {call, _, {atom, _, integer}, []}}},
         parse_type("fun((integer()) -> integer())")
     ).
 

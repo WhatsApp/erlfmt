@@ -590,11 +590,12 @@ fun_to_algebra({clauses, _Anno, Clauses}) ->
 fun_to_algebra(type) ->
     <<"fun()">>;
 fun_to_algebra({type, Meta, Args, Result}) ->
-    ArgsD = call(Meta, Args, <<"(">>, <<")">>),
-    Doc =
+    ArgsD = expr_to_algebra(Args),
+    Doc0 =
         with_next_break_fits(is_next_break_fits(Result), expr_to_algebra(Result), fun(ResultD) ->
             concat(ArgsD, group(nest(break(<<" ->">>, ResultD), ?INDENT, break)))
         end),
+    Doc = combine_comments(Meta, Doc0),
     surround(<<"fun(">>, <<"">>, Doc, <<"">>, <<")">>).
 
 clauses_to_algebra([Clause | _] = Clauses) ->

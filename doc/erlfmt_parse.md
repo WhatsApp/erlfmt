@@ -20,7 +20,7 @@ In `erlfmt_parse` the following AST nodes have different definitions:
   an atom `empty` or a `guard_or` node, and `Head` element is one of:
   * regular `call` node for functions and named funs;
   * atom `empty` for `if` expressions;
-  * `{args, Anno, Args}` node for bare argument clauses inside anonymous funs;
+  * `{args, Anno, Args}` node for an list of expressions wrapped in parentheses;
   * `{catch, Anno, Args}` node for clauses in `catch` clauses, where
     2 to 3 arguments represent the various `:` separated syntaxes;
   * other expression for `case`, `receive`, "of" part of `try` expression
@@ -50,7 +50,8 @@ In `erlfmt_parse` the following AST nodes have different definitions:
     Additionally it is less strict - the clauses aren't checked for the same
     name or arity.
   * `type` for the anonymous function type `fun()`.
-  * `{type, Anno, Args, Res}` for the anonymous function type `fun((...Args) -> Res)`.
+  * `{type, Anno, Args, Res}` for the anonymous function type `fun((...Args) -> Res)`
+     where `Args` is a `args` node.
 
 * The `named_fun` node is not used.
 

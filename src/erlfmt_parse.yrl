@@ -161,9 +161,9 @@ type -> atom ':' atom type_argument_list :
 fun_type -> 'fun' '(' ')' :
     {'fun', ?range_anno('$1', '$3'), type}.
 fun_type -> 'fun' '(' '(' '...' ')' '->' type ')' :
-    {'fun', ?range_anno('$1', '$8'), {type, ?range_anno('$4', '$7'), ['$4'], '$7'}}.
+    {'fun', ?range_anno('$1', '$8'), {type, ?range_anno('$3', '$7'), {args, ?range_anno('$3', '$5'), ['$4']}, '$7'}}.
 fun_type -> 'fun' '(' type_argument_list '->' type ')' :
-    {'fun', ?range_anno('$1', '$6'), {type, ?range_anno('$3', '$5'), ?val('$3'), '$5'}}.
+    {'fun', ?range_anno('$1', '$6'), {type, ?range_anno('$3', '$5'), {args, ?anno('$3'), ?val('$3')}, '$5'}}.
 
 binary_type -> '<<' '>>' :
     {bin, ?range_anno('$1', '$2'), []}.
