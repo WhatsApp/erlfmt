@@ -247,7 +247,7 @@ insert_nested({'fun', _, Fun} = Node, Comments0) when
 ->
     {put_pre_comments(Node, Comments0), []};
 insert_nested({'fun', Meta, {type, InnerMeta, Args0, Res0}}, Comments0) ->
-    {Args, Comments1} = insert_expr_list(Args0, Comments0),
+    {Args, Comments1} = insert_expr(Args0, Comments0),
     {Res, Comments} = insert_expr(Res0, Comments1),
     {{'fun', Meta, {type, InnerMeta, Args, Res}}, Comments};
 insert_nested({'fun', Meta, {clauses, InnerMeta, Clauses0}}, Comments0) ->

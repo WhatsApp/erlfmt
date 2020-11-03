@@ -2408,7 +2408,11 @@ type(Config) when is_list(Config) ->
         "        ...\n"
         "    ) -> float()\n"
         ").",
-        "-type bar() :: fun((...) -> float()).\n"
+        "-type bar() :: fun(\n"
+        "    (\n"
+        "        ...\n"
+        "    ) -> float()\n"
+        ").\n"
     ),
     ?assertSame(
         "-type foo() :: fun(\n"
@@ -2429,6 +2433,15 @@ type(Config) when is_list(Config) ->
         "            ...\n"
         "        ) -> bar()\n"
         "    ).\n"
+    ),
+    ?assertSame(
+        "-type bar() :: fun(\n"
+        "    (\n"
+        "        %% foo\n"
+        "        ...\n"
+        "        %% after\n"
+        "    ) -> float()\n"
+        ").\n"
     ),
     ?assertSame(
         "-type t() ::\n"
