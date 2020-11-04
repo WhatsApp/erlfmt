@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.9.0 (4.11.2020)
+
+Default files and exclude_files option
+
+### Enhancements
+
+  - Provide default value for `--files` when none is provided #204
+  - Add `--exclude-files` flag to manually exclude some files from the formatter #213
+  - Warn on overly long lines, given `--verbose` flag #209
+
+### Fixes
+
+  - Comments below shebang are pull upwards to support emulator args #207
+  - Bind Pipe Tighter in parser #206
+  - Fix record field type end location in parser #201
+  - Properly handle comments inside concats #216
+  - Properly handle trailing comments followed by post-comments #217
+  - Preserve comments inside fun type arg list #218
+
 ## v0.8.0 (5.10.2020)
 
 Better rebar integration
