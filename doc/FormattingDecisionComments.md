@@ -31,6 +31,12 @@ Page 43, Section COMMENTS
 >
 > Now that you have a source file that defines a module, you need to compile it.
 
+### Inaka Erlang Coding Standards & Guidelines
+
+> Module comments go with %%%, function comments with %%, and code comments with %.
+
+- https://github.com/inaka/erlang_guidelines#comment-levels
+
 ## Conventions
 
 ### Examples from practice
