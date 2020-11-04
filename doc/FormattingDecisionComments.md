@@ -145,7 +145,7 @@ The standard erlang mode for emacs puts the single quoted comments by default at
 This means that comments are not realigned based on line lengths, but always aligned at the same fixed column.
 
 When speaking to people this seemed to be a relatively popular style,
-but after conducting some analyses, it seems there wasn't a consensus on a fixed position for comments to be aligned too.
+but after conducting some analyses, it seems there wasn't a consensus on a fixed position for comments to be aligned to.
 So even though aligning comments in general is a relatively popular style in erlang, aligning them to one specific column number is not.
 
 ```erlang
