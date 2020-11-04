@@ -2,7 +2,15 @@
 
 This is a document explaining our reasoning behind the formatting decision for comments.
 
-## Conventions in Documentation
+Currently `erlfmt` moves all trailing comments to the line above, so that all comments are always alone on their own line.
+
+After looking at documentation and doing an analyses we have concluded that [directly following comments](#single-comments-on-the-same-line) should also be supported in future.
+This does not include aligning comments, since:
+  - we could not find a popular enough convention of aligning to a specific column number and
+  - aligning comments can cause large diffs, from changing a single line for comments to be re-aligned.
+More details on this future change can be found in issue [#219](https://github.com/WhatsApp/erlfmt/issues/219)
+
+## Documentation
 
 ### Erlang.se
 
@@ -23,7 +31,9 @@ Page 43, Section COMMENTS
 >
 > Now that you have a source file that defines a module, you need to compile it.
 
-### Conventions in Practice
+## Conventions
+
+### Examples from practice
 
 These are just examples:
 
@@ -50,7 +60,8 @@ You can find the details of the analysis [here](./FormattingDecisionComments/Rea
 ## Goals
 
   - Minimize diff when changing a single line, impacts surrounding context.
-  - **TODO** add more goals to help us make a decision.
+  - Currently popular style
+  - Welcoming to new comers
 
 ## Aligning single percentage comments
 
@@ -58,6 +69,10 @@ Sometimes single percentage comments are aligned.
 We have decided not to support this, as it violates one of our goals.
 
  - ❌ Minimize diff when changing a single line
+ - ✅ Currently popular style
+ - ❌ Welcoming to new comers
+
+Currently this is a relatively popular style in erlang, but not in too many communities outside of erlang.
 
 ```erlang
 #{
@@ -116,10 +131,16 @@ We have also [seen](https://github.com/erlang/otp/blob/master/lib/stdlib/src/erl
 
 ## Erlang mode for Emacs
 
-- ✅ Minimize diff when changing a single line
+ - ✅ Minimize diff when changing a single line
+ - ❌ Currently popular style
+ - ❌ Welcoming to new comers
 
 The standard erlang mode for emacs puts the single quoted comments by default at position 48 on the line.
 This means that comments are not realigned based on line lengths, but always aligned at the same fixed column.
+
+When speaking to people this seemed to be a relatively popular style,
+but after conducting some analyses, it seems there wasn't a consensus on a fixed position for comments to be aligned too.
+So even though aligning comments in general is a relatively popular style in erlang, aligning them to one specific column number is not.
 
 ```erlang
 #{
@@ -160,7 +181,11 @@ by changing where the comment is placed, but when the comments are so far aligne
 }).
 ```
 
-The downside is when the line is indented a bit and ends up being longer than the 48 characters.
+One problem is that in our analyses we could not find that column 48 is a popular column outside of OTP to align comments to.
+Given `erlfmt` is an opinionated formatter, we do not want to introduce extra configuration,
+but picking an un-configurable column number when no popular number exists is not ideal.
+
+Another downside is when the line is indented a bit and ends up being longer than the 48 characters.
 We now have another design decision. [Option 5](#option-5) seems to be the only pragmatic option.
 
 ### Option 1: Do we simply leave the violating comment at the end up of the line?
@@ -302,7 +327,13 @@ f() ->
 
 ## All comments always on a newline
 
-- ✅ Minimize diff when changing a single line
+ - ✅ Minimize diff when changing a single line
+ - ✅ Currently popular style
+ - ❌ Welcoming to new comers
+
+This was the easiest formatting of comments to implemented in a consistent manner.
+Standalone comments are by far the most popular comments in erlang, although it could be argued that moving following comments to the line above is not.
+On the other hand, programmers from most other languages are used to being allowed to have trailing comments on the same line as code, which this style does not accommodate.
 
 ```erlang
 #{
@@ -356,7 +387,12 @@ X =
 
 ## Single comments on the same line
 
-- ✅ Minimize diff when changing a single line
+ - ✅ Minimize diff when changing a single line
+ - ✅ Currently popular style
+ - ✅ Welcoming to new comers
+
+This is not only currently a popular style in the erlang community, but also in other languages.
+We believe this should be the chosen layout, but it will require a significant change to the formatting algorithm as stated at the top of this document.
 
 ```erlang
 #{
