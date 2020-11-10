@@ -750,9 +750,6 @@ has_empty_line_between(Left, Right) ->
 has_inner_break(Outer, Inner) ->
     erlfmt_scan:get_inner_line(Outer) < erlfmt_scan:get_line(Inner).
 
-is_next_break_fits_op(Op) ->
-    lists:member(Op, ?NEXT_BREAK_FITS_OPS).
-
 is_next_break_fits({FlexContainer, Meta, Values} = Expr) when
     FlexContainer =:= tuple; FlexContainer =:= bin
 ->
