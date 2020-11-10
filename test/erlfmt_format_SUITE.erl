@@ -934,7 +934,6 @@ force_break(Config) when is_list(Config) ->
         "    %% foo\n"
         "]\n"
     ),
-
     ?assertFormat(
         "[1, 2\n"
         "    %% foo\n"
@@ -2293,6 +2292,14 @@ spec(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "-spec f(A, B) -> result() when B :: term() | (List :: [term()]).\n"
+    ),
+    ?assertSame(
+        "-spec do_stuff(Arg :: binary()) -> binary().\n"
+        "-ifdef(TEST).\n"
+        "do_stuff(Arg) -> Arg.\n"
+        "-else.\n"
+        "do_stuff(_Arg) -> <<\"ok\">>.\n"
+        "-endif.\n"
     ).
 
 define(Config) when is_list(Config) ->

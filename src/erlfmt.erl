@@ -349,25 +349,15 @@ format_nodes(Nodes, PrintWidth) ->
     [$\n | Formatted] = format_nodes_loop(Nodes, PrintWidth),
     Formatted.
 
-format_nodes_loop(
-    [{attribute, _, {atom, _, spec}, _} = Attr, {function, _, _} = Fun | Rest],
-    PrintWidth
-) ->
-    [
-        $\n,
-        format_node(Attr, PrintWidth),
-        $\n,
-        format_node(Fun, PrintWidth),
-        $\n
-        | format_nodes_loop(Rest, PrintWidth)
-    ];
-format_nodes_loop(
-    [{attribute, _, {atom, _, Name}, _} = Attr | [NextNode | _] = Rest],
-    PrintWidth
-) when Name =:= 'if'; Name =:= 'ifdef'; Name =:= 'ifndef'; Name =:= 'else' ->
+format_nodes_loop([{attribute, _, {atom, _, spec}, _} = Attr | [_ | _] = Rest], PrintWidth) ->
+    [$\n, format_node(Attr, PrintWidth)] ++
+        format_nodes_loop(Rest, PrintWidth);
+format_nodes_loop([{attribute, _, {atom, _, Name}, _} = Attr | [Next | _] = Rest], PrintWidth) when
+    Name =:= 'if'; Name =:= 'ifdef'; Name =:= 'ifndef'; Name =:= 'else'
+->
     % preserve empty line after
     [$\n, format_node(Attr, PrintWidth)] ++
-        maybe_empty_line(Attr, NextNode) ++ format_nodes_loop(Rest, PrintWidth);
+        maybe_empty_line(Attr, Next) ++ format_nodes_loop(Rest, PrintWidth);
 format_nodes_loop([Node | [{attribute, _, {atom, _, Name}, _} = Attr | _] = Rest], PrintWidth) when
     Name =:= 'else'; Name =:= 'endif'
 ->
