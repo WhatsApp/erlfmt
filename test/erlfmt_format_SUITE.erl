@@ -2420,12 +2420,13 @@ type(Config) when is_list(Config) ->
         "            ...\n"
         "        ) -> float()\n"
         "    ).\n",
-        "-type bar() :: fun(\n"
-        "    (\n"
-        "        %% foo\n"
-        "        ...\n"
-        "    ) -> float()\n"
-        ").\n"
+        "-type bar() ::\n"
+        "    fun(\n"
+        "        (\n"
+        "            %% foo\n"
+        "            ...\n"
+        "        ) -> float()\n"
+        "    ).\n"
     ),
     ?assertFormat(
         "-type bar() :: fun((\n"
@@ -2485,6 +2486,10 @@ type(Config) when is_list(Config) ->
         "    a\n"
         "% comment\n"
         ".\n"
+    ),
+    ?assertSame(
+        "-type ps() ::\n"
+        "    [p()].\n"
     ).
 
 exprs(Config) when is_list(Config) ->
