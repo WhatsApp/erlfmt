@@ -292,7 +292,7 @@ unary_needs_space(_, _) ->
 field_to_algebra(Op, Left, Right) ->
     LeftD = expr_to_algebra(Left),
     RightD = expr_to_algebra(Right),
-    binary_op_to_algebra(Op, Left, Right, LeftD, RightD, ?INDENT).
+    field_to_algebra(Op, Left, Right, LeftD, RightD, ?INDENT).
 
 binary_op_to_algebra('..', _Meta, Left, Right) ->
     %% .. is special - non-assoc, no spaces around and never breaks
@@ -314,21 +314,32 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     LeftD = binary_operand_to_algebra(Op, Left, Indent),
     RightD = binary_operand_to_algebra(Op, Right, 0),
     Doc =
-        case is_next_break_fits_op(Op) of
-            true -> binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent);
-            false -> breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent)
+        case Op of
+            '::' -> dolon_to_algebra(Left, Right, LeftD, RightD, Indent);
+            '=' -> field_to_algebra(<<"=">>, Left, Right, LeftD, RightD, Indent);
+            _ -> breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent)
         end,
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
 
-binary_op_to_algebra(Op, Left, Right, LeftD, RightD, Indent) ->
+dolon_to_algebra(Left, Right, LeftD, RightD, Indent) ->
+    case (not has_break_between(Left, Right)) andalso is_next_break_fits(Right) of
+        true ->
+            with_next_break_fits(true, RightD, fun(R) ->
+                concat(group(LeftD), <<" :: ">>, group(R))
+            end);
+        false ->
+            breakable_binary_op_to_algebra(<<"::">>, Left, Right, LeftD, RightD, Indent)
+    end.
+
+field_to_algebra(OpD, Left, Right, LeftD, RightD, Indent) ->
     DontBreakCalls = is_call(Right) andalso not has_break_between(Left, Right),
     case DontBreakCalls orelse is_next_break_fits(Right) of
         true ->
             with_next_break_fits(true, RightD, fun(R) ->
-                concat([group(LeftD), <<" ">>, Op, <<" ">>, group(R)])
+                concat([group(LeftD), <<" ">>, OpD, <<" ">>, group(R)])
             end);
         false ->
-            breakable_binary_op_to_algebra(Op, Left, Right, LeftD, RightD, Indent)
+            breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent)
     end.
 
 is_call({call, _, _, _}) -> true;
