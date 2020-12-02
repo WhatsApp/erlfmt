@@ -20,6 +20,7 @@
     format_file/2,
     format_string/2,
     format_range/4,
+    format_nodes/2,
     read_nodes/1,
     read_nodes_string/2,
     format_error/1,
