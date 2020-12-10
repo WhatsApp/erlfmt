@@ -1139,6 +1139,12 @@ list_comprehension(Config) when is_list(Config) ->
         "].\n"
     ),
     ?assertSame(
+        "[\n"
+        "    X\n"
+        "    || true, true, true\n"
+        "].\n"
+    ),
+    ?assertSame(
         "A = [\n"
         "    a\n"
         "    || {a, b} <- es,\n"
