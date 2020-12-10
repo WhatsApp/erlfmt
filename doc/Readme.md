@@ -29,7 +29,7 @@ As always, you can preferably provide feedback, by simply trying out the `erlfmt
   - [Ignore](./FormattingDecisionIgnore.md)
   - [Comments](./FormattingDecisionComments.md)
   - [Pipes](./FormattingDecisionPipes.md)
-  - [Commas in Lists](./FormattingDecisionListCommas.md)
+  - [Commas in Lists](./FormattingDecisionCommas.md)
   - [Number of Spaces](./FormattingDecisionSpaces.md)
   - [Multiline Lists](./FormattingDecisionLists.md)
   - [List Comprehensions](./FormattingDecisionListComprehensions.md)
