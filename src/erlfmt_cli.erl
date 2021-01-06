@@ -202,7 +202,14 @@ write_formatted(FileName, Formatted, Out) ->
             print_error_info({OutFileName, 0, file, Reason1}),
             error
     end,
-    case file:write_file(OutFileName, unicode:characters_to_binary(Formatted)) of
+    {ok, OriginalBin} = file:read_file(FileName),
+    case unicode:characters_to_binary(Formatted) of
+        OriginalBin -> ok;
+        FormattedBin -> write_file(OutFileName, FormattedBin)
+    end.
+
+write_file(OutFileName, FormattedBin) ->
+    case file:write_file(OutFileName, unicode:characters_to_binary(FormattedBin)) of
         ok ->
             ok;
         {error, Reason2} ->
