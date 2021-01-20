@@ -223,6 +223,8 @@ do_expr_to_algebra({fa_group, _Meta, GroupedExports}) ->
     fa_group_to_algebra(GroupedExports);
 do_expr_to_algebra({exprs, _Meta, Exprs}) ->
     block_to_algebra(Exprs);
+do_expr_to_algebra({clauses, _Meta, Clauses}) ->
+    clauses_to_algebra(Clauses);
 do_expr_to_algebra(Other) ->
     error(unsupported, [Other]).
 
@@ -714,13 +716,13 @@ receive_after_to_algebra(Expr, Body) ->
 try_to_algebra(Exprs, OfClauses, CatchClauses, After) ->
     Clauses =
         [try_of_block(Exprs, OfClauses)] ++
-            [try_catch_to_algebra(CatchClauses) || CatchClauses =/= []] ++
+            [try_catch_to_algebra(CatchClauses) || CatchClauses =/= none] ++
             [try_after_to_algebra(After) || After =/= []] ++
             [<<"end">>],
     concat(force_breaks(), (group(fold_doc(fun erlfmt_algebra:line/2, Clauses)))).
 
 try_catch_to_algebra(Clauses) ->
-    group(nest(line(<<"catch">>, clauses_to_algebra(Clauses)), ?INDENT)).
+    group(nest(line(<<"catch">>, expr_to_algebra(Clauses)), ?INDENT)).
 
 try_after_to_algebra(Exprs) ->
     ExprsD = block_to_algebra(Exprs),

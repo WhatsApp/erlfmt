@@ -441,11 +441,11 @@ try_expr -> 'try' exprs try_catch :
     {'try', ?range_anno('$1', '$3'), '$2', [], TryClauses, After}.
 
 try_catch -> 'catch' try_clauses 'end' :
-        {'$2', ?anno('$3'), []}.
+        {{clauses, ?range_anno('$1', '$3'), '$2'}, ?anno('$3'), []}.
 try_catch -> 'catch' try_clauses 'after' exprs 'end' :
-        {'$2', ?anno('$5'), '$4'}.
+        {{clauses, ?range_anno('$1', '$3'), '$2'}, ?anno('$5'), '$4'}.
 try_catch -> 'after' exprs 'end' :
-        {[], ?anno('$3'), '$2'}.
+        {none, ?anno('$3'), '$2'}.
 
 try_clauses -> try_clause : ['$1'].
 try_clauses -> try_clause ';' try_clauses : ['$1' | '$3'].

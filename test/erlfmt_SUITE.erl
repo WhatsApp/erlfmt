@@ -730,7 +730,7 @@ clauses(Config) when is_list(Config) ->
     ),
     ?assertMatch(
         {'try', _, [{atom, _, ok}], [{clause, _, {var, _, '_'}, empty, [{atom, _, ok}]}],
-            [
+            {clauses, _, [
                 {clause, _, {var, _, '_'}, empty, [{atom, _, ok}]},
                 {clause, _, {'catch', _, [{var, _, '_'}, {var, _, '_'}]}, empty, [
                     {atom, _, ok}
@@ -738,7 +738,7 @@ clauses(Config) when is_list(Config) ->
                 {clause, _, {'catch', _, [{var, _, '_'}, {var, _, '_'}, {var, _, '_'}]}, empty, [
                     {atom, _, ok}
                 ]}
-            ],
+            ]},
             []},
         parse_expr("try ok of _ -> ok catch _ -> ok; _:_ -> ok; _:_:_ -> ok end")
     ).
