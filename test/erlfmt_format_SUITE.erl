@@ -2610,4 +2610,22 @@ comment(Config) when is_list(Config) ->
         "a,\n"
         "%% post comment\n"
         "b.\n"
+    ),
+    ?assertFormat(
+        "\"a,\n"
+        "b\" % c\n"
+        ".\n",
+        "% c\n"
+        "\"a,\\n\"\n"
+        "\"b\".\n"
+    ),
+    ?assertFormat(
+        "%% pre\n"
+        "\"a,\n"
+        "b\" % c\n"
+        ".\n",
+        "%% pre\n"
+        "% c\n"
+        "\"a,\\n\"\n"
+        "\"b\".\n"
     ).
