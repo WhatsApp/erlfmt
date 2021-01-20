@@ -1853,7 +1853,16 @@ try_expression(Config) when is_list(Config) ->
         "try 2 of\n"
         "    _ ->\n"
         "        undefined\n"
-        "    %% after catch\n"
+        "    %% after of\n"
+        "after\n"
+        "    ok\n"
+        "    %% after after\n"
+        "end\n"
+    ),
+    ?assertSame(
+        "try\n"
+        "    2\n"
+        "    % after expr\n"
         "after\n"
         "    ok\n"
         "    %% after after\n"

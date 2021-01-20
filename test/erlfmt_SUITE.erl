@@ -729,7 +729,7 @@ clauses(Config) when is_list(Config) ->
         parse_expr("receive _ -> true end")
     ),
     ?assertMatch(
-        {'try', _, [{atom, _, ok}],
+        {'try', _, {body, _, [{atom, _, ok}]},
             {clauses, _, [{clause, _, {var, _, '_'}, empty, [{atom, _, ok}]}]},
             {clauses, _, [
                 {clause, _, {var, _, '_'}, empty, [{atom, _, ok}]},

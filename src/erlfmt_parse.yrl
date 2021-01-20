@@ -436,10 +436,12 @@ fun_clause -> var pat_argument_list clause_guard clause_body :
 try_expr -> 'try' exprs 'of' cr_clauses try_catch :
     {TryClauses, _, NextToken, After} = '$5',
     OfClauses = {clauses, ?range_upto_anno('$3', NextToken), '$4'},
-    {'try', ?range_anno('$1', '$5'), '$2', OfClauses, TryClauses, After}.
+    Body = {body, ?range_upto_anno('$1', '$3'), '$2'},
+    {'try', ?range_anno('$1', '$5'), Body, OfClauses, TryClauses, After}.
 try_expr -> 'try' exprs try_catch :
-    {TryClauses, _, _NextToken, After} = '$3',
-    {'try', ?range_anno('$1', '$3'), '$2', none, TryClauses, After}.
+    {TryClauses, _, NextToken, After} = '$3',
+    Body = {body, ?range_upto_anno('$1', NextToken), '$2'},
+    {'try', ?range_anno('$1', '$3'), Body, none, TryClauses, After}.
 
 try_catch -> 'catch' try_clauses 'end' :
         {{clauses, ?range_anno('$1', '$3'), '$2'}, ?anno('$3'), '$1', []}.
