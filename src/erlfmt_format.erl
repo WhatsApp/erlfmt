@@ -732,12 +732,12 @@ try_of_block(Exprs, OfClauses) ->
     ExprsD = block_to_algebra(Exprs),
 
     case OfClauses of
-        [] ->
+        none ->
             group(nest(line(<<"try">>, ExprsD), ?INDENT));
         _ ->
             concat(
                 surround(<<"try">>, <<" ">>, ExprsD, <<" ">>, <<"of">>),
-                nest(concat(line(), clauses_to_algebra(OfClauses)), ?INDENT)
+                nest(concat(line(), expr_to_algebra(OfClauses)), ?INDENT)
             )
     end.
 

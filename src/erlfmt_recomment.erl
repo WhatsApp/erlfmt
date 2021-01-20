@@ -231,13 +231,13 @@ insert_nested({'if', Meta, Clauses0}, Comments0) ->
     {{'if', Meta, Clauses}, []};
 insert_nested({'try', Meta, Exprs0, OfClauses0, CatchClauses0, []}, Comments0) ->
     {Exprs, Comments1} = insert_expr_list(Exprs0, Comments0),
-    {OfClauses, Comments2} = insert_expr_list(OfClauses0, Comments1),
-    {CatchClauses, []} = insert_expr(CatchClauses0, Comments2),
+    {OfClauses, Comments2} = insert_expr_or_none(OfClauses0, Comments1),
+    {CatchClauses, []} = insert_expr_or_none(CatchClauses0, Comments2),
     {{'try', Meta, Exprs, OfClauses, CatchClauses, []}, []};
 insert_nested({'try', Meta, Exprs0, OfClauses0, CatchClauses0, After0}, Comments0) ->
     {Exprs, Comments1} = insert_expr_list(Exprs0, Comments0),
-    {OfClauses, Comments2} = insert_expr_list(OfClauses0, Comments1),
-    {CatchClauses, Comments3} = insert_expr(CatchClauses0, Comments2),
+    {OfClauses, Comments2} = insert_expr_or_none(OfClauses0, Comments1),
+    {CatchClauses, Comments3} = insert_expr_or_none(CatchClauses0, Comments2),
     After = insert_expr_container(After0, Comments3),
     {{'try', Meta, Exprs, OfClauses, CatchClauses, After}, []};
 insert_nested({spec, Meta, Name, Clauses0}, Comments0) ->
@@ -265,6 +265,9 @@ insert_nested({clauses, Meta, Clauses0}, Comments0) ->
     {{clauses, Meta, Clauses}, []};
 insert_nested({Name, Meta}, Comments) ->
     {{Name, Meta}, Comments}.
+
+insert_expr_or_none(none, Comments) -> {none, Comments};
+insert_expr_or_none(Expr, Comments) -> insert_expr(Expr, Comments).
 
 put_pre_dot_comments(NodeOrMeta, []) ->
     NodeOrMeta;
