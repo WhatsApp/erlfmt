@@ -112,8 +112,9 @@ take_comments(Line, Comments) ->
 
 insert_nested(Node, []) ->
     {Node, []};
-insert_nested({Atomic, _, _} = Node, Comments) when ?IS_ATOMIC(Atomic) ->
-    {Node, Comments};
+insert_nested({Atomic, _, _} = Node0, Comments) when ?IS_ATOMIC(Atomic) ->
+    Node = put_pre_comments(Node0, Comments),
+    {Node, []};
 insert_nested({concat, Meta, Strings0}, Comments0) ->
     {Strings, Comments} = insert_expr_list(Strings0, Comments0),
     {{concat, Meta, Strings}, Comments};
