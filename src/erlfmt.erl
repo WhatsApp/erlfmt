@@ -141,12 +141,8 @@ insert_pragma_node(Node) ->
     NewPreComments =
         case PreComments of
             [] ->
-                [
-                    {comment, #{end_location => {2, 1}, location => {1, 1}}, [
-                        "%% @format",
-                        ""
-                    ]}
-                ];
+                Loc = erlfmt_scan:get_anno(location, Node),
+                [{comment, #{location => Loc, end_location => Loc}, ["%% @format", ""]}];
             _ ->
                 {comment, Loc, LastComments} = lists:last(PreComments),
                 lists:droplast(PreComments) ++
@@ -238,7 +234,7 @@ read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma, [], Warnings0, TextAc
                 erlfmt_scan:continue(Cont),
                 FileName,
                 Pragma,
-                [erlfmt_scan:put_anno(end_location, {1, 1}, Node)],
+                [Node],
                 Warnings,
                 TextAcc ++ LastString
             );
@@ -267,8 +263,8 @@ read_nodes(
     TextAcc
 ) ->
     {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
-    case {Pragma, contains_pragma_node(Node), Node} of
-        {require, false, _} ->
+    case {Pragma, contains_pragma_node(Node)} of
+        {require, false} ->
             {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
             case erlfmt_scan:read_rest(Cont) of
                 {ok, Rest} ->
@@ -276,30 +272,11 @@ read_nodes(
                 {error, {ErrLoc, Mod, Reason}} ->
                     throw({error, {FileName, ErrLoc, Mod, Reason}})
             end;
-        {_, _, {raw_string, RawAnno, RawString}} ->
-            ShebangNodeWithPostComments =
-                erlfmt_scan:put_anno(post_comments, [{comment, RawAnno, [RawString]}], ShebangNode),
-            read_nodes_loop(
-                erlfmt_scan:continue(Cont),
-                FileName,
-                [ShebangNodeWithPostComments],
-                Warnings
-            );
         _ ->
-            {NodeWithoutPreComments, ShebangNodeWithPostComments} =
-                case erlfmt_scan:get_anno(pre_comments, Node, undefined) of
-                    undefined ->
-                        {Node, ShebangNode};
-                    PreComments ->
-                        {
-                            erlfmt_scan:delete_anno(pre_comments, Node),
-                            erlfmt_scan:put_anno(post_comments, PreComments, ShebangNode)
-                        }
-                end,
             read_nodes_loop(
                 erlfmt_scan:continue(Cont),
                 FileName,
-                [NodeWithoutPreComments, ShebangNodeWithPostComments],
+                [Node, ShebangNode],
                 Warnings
             )
     end;
@@ -316,8 +293,8 @@ read_nodes_loop({error, {ErrLoc, Mod, Reason}, _Loc}, FileName, _Acc, _Warnings)
 
 parse_node([], _Comments, _FileName, Cont, Warnings) ->
     {node_string(Cont), Warnings};
-parse_node([{shebang, Meta, String}], [], _FileName, _Cont, Warnings) ->
-    {{shebang, Meta, String}, Warnings};
+parse_node([{shebang, Meta, String}], Comments, _FileName, _Cont, Warnings) ->
+    {{shebang, erlfmt_recomment:put_post_comments(Meta, Comments), String}, Warnings};
 parse_node([Token | _] = Tokens, Comments, FileName, Cont, Warnings) ->
     {PreComments, _} = erlfmt_recomment:take_comments(erlfmt_scan:get_line(Token), Comments),
     case lists:any(fun contains_ignore_comment/1, PreComments) of
@@ -350,36 +327,15 @@ format_nodes(Nodes, PrintWidth) ->
     [$\n | Formatted] = format_nodes_loop(Nodes, PrintWidth),
     Formatted.
 
-format_nodes_loop([{attribute, _, {atom, _, spec}, _} = Attr | [_ | _] = Rest], PrintWidth) ->
-    [$\n, format_node(Attr, PrintWidth)] ++
-        format_nodes_loop(Rest, PrintWidth);
-format_nodes_loop([{attribute, _, {atom, _, Name}, _} = Attr | [Next | _] = Rest], PrintWidth) when
-    Name =:= 'if'; Name =:= 'ifdef'; Name =:= 'ifndef'; Name =:= 'else'
-->
-    % preserve empty line after
-    [$\n, format_node(Attr, PrintWidth)] ++
-        maybe_empty_line(Attr, Next) ++ format_nodes_loop(Rest, PrintWidth);
-format_nodes_loop([Node | [{attribute, _, {atom, _, Name}, _} = Attr | _] = Rest], PrintWidth) when
-    Name =:= 'else'; Name =:= 'endif'
-->
-    % preserve empty line before
-    [$\n, format_node(Node, PrintWidth)] ++
-        maybe_empty_line(Node, Attr) ++ format_nodes_loop(Rest, PrintWidth);
-format_nodes_loop([{attribute, _, {atom, _, RepeatedName}, _} | _] = Nodes, PrintWidth) ->
-    {Attrs, Rest} = split_attrs(RepeatedName, Nodes),
-    MaybeEmptyLine =
-        case Rest of
-            [{attribute, _, {atom, _, Name}, _} = Attr | _] when
-                Name =:= 'else'; Name =:= 'endif'
-            ->
-                % preserve empty line before
-                maybe_empty_line(lists:last(Attrs), Attr);
-            _ ->
-                "\n"
-        end,
-    format_attrs(Attrs, PrintWidth) ++ MaybeEmptyLine ++ format_nodes_loop(Rest, PrintWidth);
-format_nodes_loop([Node | Rest], PrintWidth) ->
-    [$\n, format_node(Node, PrintWidth), $\n | format_nodes_loop(Rest, PrintWidth)];
+format_nodes_loop([Node | [Next | _] = Rest], PrintWidth) ->
+    [
+        $\n,
+        format_node(Node, PrintWidth),
+        maybe_empty_line(Node, Next)
+        | format_nodes_loop(Rest, PrintWidth)
+    ];
+format_nodes_loop([Node], PrintWidth) ->
+    [$\n, format_node(Node, PrintWidth), $\n];
 format_nodes_loop([], _PrintWidth) ->
     [].
 
@@ -396,32 +352,8 @@ format_node(Node, PrintWidth) ->
     Doc = erlfmt_format:to_algebra(Node),
     erlfmt_algebra:format(Doc, PrintWidth).
 
-split_attrs(PredName, Nodes) ->
-    lists:splitwith(
-        fun
-            ({attribute, _, {atom, _, Name}, _}) -> PredName =:= Name;
-            (_) -> false
-        end,
-        Nodes
-    ).
-
-format_attrs([Attr], PrintWidth) ->
-    [$\n, format_node(Attr, PrintWidth)];
-format_attrs([Attr | [Attr2 | _] = Rest], PrintWidth) ->
-    FAttr = format_node(Attr, PrintWidth),
-    case has_empty_line_between(Attr, Attr2) orelse has_non_comment_newline(FAttr) of
-        true -> [$\n, FAttr, $\n | format_attrs(Rest, PrintWidth)];
-        false -> [$\n, FAttr | format_attrs(Rest, PrintWidth)]
-    end.
-
 has_empty_line_between(Left, Right) ->
     erlfmt_scan:get_end_line(Left) + 1 < erlfmt_scan:get_line(Right).
-
-has_non_comment_newline(String) ->
-    length(lists:filter(fun is_not_comment/1, string:split(String, "\n", all))) >= 2.
-
-is_not_comment(String) ->
-    not (string:is_empty(String) orelse string:equal(string:slice(String, 0, 1), "%")).
 
 verify_nodes(FileName, Nodes, Formatted) ->
     case read_nodes_string(FileName, unicode:characters_to_list(Formatted)) of

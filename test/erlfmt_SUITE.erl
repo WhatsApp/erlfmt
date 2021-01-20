@@ -1081,7 +1081,7 @@ snapshot_same(Module, Config) ->
     case erlfmt:format_string(Original, [{pragma, Pragma}]) of
         {ok, Original, _} -> ok;
         {skip, _} -> ok;
-        {ok, Other, _} -> ct:fail("unexpected:~n~s~n", [Other]);
+        {ok, Other, _} -> ct:fail({unexpected, Other, expected, Original});
         Other -> ct:fail("unexpected: ~p~n", [Other])
     end.
 
@@ -1282,7 +1282,7 @@ insert_pragma(Config) when is_list(Config) ->
         "-export([f/3]).\n",
         insert_pragma_string(
             "%% attached comment\n"
-            "-module(pragma)\n."
+            "-module(pragma).\n"
             "\n"
             "-export([f/3]).\n"
         )
@@ -1297,7 +1297,7 @@ insert_pragma(Config) when is_list(Config) ->
         insert_pragma_string(
             "%% single comment\n"
             "\n"
-            "-module(pragma)\n."
+            "-module(pragma).\n"
             "\n"
             "-export([f/3]).\n"
         )
@@ -1318,7 +1318,7 @@ insert_pragma(Config) when is_list(Config) ->
             "%% LICENSE\n"
             "%% LICENSE\n"
             "\n"
-            "-module(pragma)\n."
+            "-module(pragma).\n"
             "\n"
             "-export([f/3]).\n"
         )
@@ -1354,8 +1354,8 @@ insert_pragma_string(String) ->
     {ok, StringWithPragma, []} = erlfmt:format_string(String, [{pragma, insert}]),
     %% check that insert_pragma_nodes doesn't insert a pragma, when one has already been inserted.
     ?assertEqual(
-        {ok, StringWithPragma, []},
-        erlfmt:format_string(StringWithPragma, [{pragma, insert}])
+        erlfmt:format_string(StringWithPragma, [{pragma, insert}]),
+        {ok, StringWithPragma, []}
     ),
     StringWithPragma.
 
