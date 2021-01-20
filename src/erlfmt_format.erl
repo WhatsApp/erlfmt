@@ -216,9 +216,9 @@ do_expr_to_algebra({bin_size, _Meta, Left, Right}) ->
 do_expr_to_algebra({Clause, _, _, _, _} = Expr) when Clause =:= clause; Clause =:= spec_clause ->
     clause_to_algebra(Expr);
 do_expr_to_algebra({guard_or, _Meta, Guards}) ->
-    guard_to_algebra(Guards, <<";">>);
+    guards_to_algebra(Guards, <<";">>);
 do_expr_to_algebra({guard_and, _Meta, Guards}) ->
-    guard_to_algebra(Guards, <<",">>);
+    guards_to_algebra(Guards, <<",">>);
 do_expr_to_algebra({fa_group, _Meta, GroupedExports}) ->
     fa_group_to_algebra(GroupedExports);
 do_expr_to_algebra({exprs, _Meta, Exprs}) ->
@@ -679,21 +679,22 @@ spec_clause_gaurds_to_algebra(Expr) ->
     Meta = element(2, Expr),
     Doc =
         case Expr of
-            {guard_or, _Meta, Guards} -> spec_guard_to_algebra(Guards, <<";">>);
-            {guard_and, _Meta, Guards} -> spec_guard_to_algebra(Guards, <<",">>);
+            {guard_or, _Meta, Guards} -> spec_guards_to_algebra(Guards, <<";">>);
+            {guard_and, _Meta, Guards} -> spec_guards_to_algebra(Guards, <<",">>);
             Other -> do_expr_to_algebra(Other)
         end,
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
 
-spec_guard_to_algebra(Guards, Separator) ->
-    GuardsD = lists:map(fun spec_clause_gaurds_to_algebra/1, Guards),
+spec_guards_to_algebra(Guards, Separator) ->
+    guards_to_algebra(Guards, Separator, fun spec_clause_gaurds_to_algebra/1).
+
+guards_to_algebra(Guards, Separator) ->
+    guards_to_algebra(Guards, Separator, fun expr_to_algebra/1).
+
+guards_to_algebra(Guards, Separator, GuardToAlgebra) ->
+    GuardsD = lists:map(GuardToAlgebra, Guards),
     Doc = fold_doc(fun(GuardD, Acc) -> break(concat(GuardD, Separator), Acc) end, GuardsD),
     group(concat(maybe_force_breaks(has_any_break_between(Guards)), Doc)).
-
-guard_to_algebra(Guards, Separator) ->
-    GuardsD = lists:map(fun expr_to_algebra/1, Guards),
-    Doc = fold_doc(fun(GuardD, Acc) -> break(concat(GuardD, Separator), Acc) end, GuardsD),
-    group(Doc).
 
 % %% Because the spec syntax is different from regular function syntax,
 % %% in the general case we have to indent them differently, but with just
