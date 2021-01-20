@@ -1963,6 +1963,15 @@ attribute(Config) when is_list(Config) ->
         "    foo/2, foo/3,\n"
         "    bar/2\n"
         "]).\n"
+    ),
+    ?assertFormat(
+        "-type str() :: string().\n"
+        "\n"
+        "\n"
+        "-type int() :: integer().\n",
+        "-type str() :: string().\n"
+        "\n"
+        "-type int() :: integer().\n"
     ).
 
 exportimport(Config) when is_list(Config) ->

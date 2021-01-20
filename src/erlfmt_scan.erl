@@ -84,9 +84,11 @@ continue(#state{scan = Scan, inner = Inner, loc = Loc, buffer = Buffer}) ->
 continue(Scan, Inner0, Loc0, []) ->
     case Scan(Inner0, Loc0) of
         {{ok, [{'#', _}, {'!', _} | _] = Tokens0, Loc}, Inner} ->
-            {ShebangTokens, Buffer} = split_shebang(Tokens0),
+            {ShebangTokens, Comments, Buffer} = split_shebang(Tokens0),
             Shebang = unicode:characters_to_list(stringify_tokens(ShebangTokens)),
-            Anno = #{location => Loc0, text => Shebang},
+            LastAnno = erl_anno:to_term(element(2, lists:last(ShebangTokens))),
+            #{end_location := EndLoc} = atomic_anno(LastAnno),
+            Anno = #{location => Loc0, end_location => EndLoc, text => Shebang},
             State = #state{
                 scan = Scan,
                 inner = Inner,
@@ -94,7 +96,7 @@ continue(Scan, Inner0, Loc0, []) ->
                 original = ShebangTokens,
                 buffer = Buffer
             },
-            {ok, [{shebang, Anno, Shebang}], [], State};
+            {ok, [{shebang, Anno, Shebang}], Comments, State};
         {{ok, Tokens, Loc}, Inner} ->
             continue(Scan, Inner, Loc, Tokens);
         {{error, Reason}, _Inner} ->
@@ -182,11 +184,32 @@ has_new_line({white_space, _, [$\n | _]}) -> true;
 has_new_line(_) -> false.
 
 split_shebang(Tokens) ->
-    {ShebangTokens, Rest} = lists:splitwith(
-        fun(Token) -> not (has_new_line(Token)) end,
-        Tokens
-    ),
-    {ShebangTokens, Rest}.
+    {ShebangTokens, Rest0} = take_line(Tokens),
+    {ShebangComments, Rest} = take_shebang_comments(Rest0),
+    {ShebangTokens, ShebangComments, Rest}.
+
+take_line(Tokens) ->
+    lists:splitwith(fun(Token) -> not has_new_line(Token) end, Tokens).
+
+take_shebang_comments([{white_space, _, _}, {comment, _, "%%!" ++ _} = Comment0 | Rest]) ->
+    {Comment, []} = collect_comments([], Comment0),
+    {[Comment], drop_initial_white_space(Rest)};
+take_shebang_comments([
+    {white_space, _, _},
+    {comment, _, _} = Comment1,
+    {white_space, _, _},
+    {comment, _, "%%!" ++ _} = Comment2
+    | Rest
+]) ->
+    {Comment, []} = collect_comments([Comment2], Comment1),
+    {[Comment], drop_initial_white_space(Rest)};
+take_shebang_comments(Tokens) ->
+    {[], Tokens}.
+
+drop_initial_white_space([{white_space, _, _} | Rest]) ->
+    drop_initial_white_space(Rest);
+drop_initial_white_space(Rest) ->
+    Rest.
 
 stringify_tokens(Tokens) ->
     lists:map(fun erl_scan:text/1, Tokens).
