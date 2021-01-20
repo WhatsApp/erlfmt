@@ -1476,14 +1476,11 @@ fun_expression(Config) when is_list(Config) ->
         "%% comment 5\n"
         "end.\n"
     ),
-    ?assertFormat(
+    ?assertSame(
         "fun(X) when\n"
         "    is_integer(X);\n"
         "    is_string(X)\n"
         "->\n"
-        "    X\n"
-        "end\n",
-        "fun(X) when is_integer(X); is_string(X) ->\n"
         "    X\n"
         "end\n"
     ).
@@ -1592,6 +1589,17 @@ case_expression(Config) when is_list(Config) ->
         "of\n"
         "    _ -> ok\n"
         "end.\n"
+    ),
+    ?assertSame(
+        "case X of\n"
+        "    _ when\n"
+        "        X;\n"
+        "        Y\n"
+        "    ->\n"
+        "        ok;\n"
+        "    _ ->\n"
+        "        error\n"
+        "end\n"
     ).
 
 receive_expression(Config) when is_list(Config) ->
