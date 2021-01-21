@@ -72,8 +72,9 @@ insert_node(Expr0, Comments) ->
 insert_expr(Node0, Comments) ->
     {PreComments, InnerComments, RestComments} =
         split_comments(element(2, Node0), Comments),
-    {Node1, []} = insert_nested(Node0, InnerComments),
-    Node = put_pre_comments(Node1, PreComments),
+    {Node1, PostComments} = insert_nested(Node0, InnerComments),
+    Node2 = put_pre_comments(Node1, PreComments),
+    Node = put_post_comments(Node2, PostComments),
     {Node, RestComments}.
 
 insert_expr_list(Exprs, Comments) -> insert_expr_list(Exprs, Comments, []).
@@ -219,13 +220,12 @@ insert_nested({'case', Meta, Expr0, Clauses0}, Comments0) ->
     Clauses = insert_expr_container(Clauses0, Comments1),
     {{'case', Meta, Expr, Clauses}, []};
 insert_nested({'receive', Meta, Clauses0}, Comments0) ->
-    Clauses = insert_expr_container(Clauses0, Comments0),
+    {Clauses, []} = insert_expr(Clauses0, Comments0),
     {{'receive', Meta, Clauses}, []};
-insert_nested({'receive', Meta, Clauses0, AfterExpr0, AfterBody0}, Comments0) ->
-    {Clauses, Comments1} = insert_expr_list(Clauses0, Comments0),
-    {AfterExpr, Comments2} = insert_expr(AfterExpr0, Comments1),
-    AfterBody = insert_expr_container(AfterBody0, Comments2),
-    {{'receive', Meta, Clauses, AfterExpr, AfterBody}, []};
+insert_nested({'receive', Meta, Clauses0, After0}, Comments0) ->
+    {Clauses, Comments1} = insert_expr_or_none(Clauses0, Comments0),
+    {After, Comments} = insert_expr(After0, Comments1),
+    {{'receive', Meta, Clauses, After}, Comments};
 insert_nested({'if', Meta, Clauses0}, Comments0) ->
     Clauses = insert_expr_container(Clauses0, Comments0),
     {{'if', Meta, Clauses}, []};

@@ -1617,8 +1617,19 @@ receive_expression(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "receive\n"
-        "%% comment\n"
+        "    %% comment\n"
         "after 0 -> ok\n"
+        "end\n"
+    ),
+    ?assertFormat(
+        "receive\n"
+        "after\n"
+        "    0 -> ok\n"
+        "    % receive post comment\n"
+        "end\n",
+        "receive\n"
+        "after 0 -> ok\n"
+        "% receive post comment\n"
         "end\n"
     ),
     ?assertSame(

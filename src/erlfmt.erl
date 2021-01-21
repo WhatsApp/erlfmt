@@ -356,14 +356,15 @@ has_empty_line_between(Left, Right) ->
     erlfmt_scan:get_end_line(Left) + 1 < erlfmt_scan:get_line(Right).
 
 verify_nodes(FileName, Nodes, Formatted) ->
-    case read_nodes_string(FileName, unicode:characters_to_list(Formatted)) of
+    Flattened = unicode:characters_to_list(Formatted),
+    case read_nodes_string(FileName, Flattened) of
         {ok, Nodes2, _} ->
             try
                 equivalent_list(Nodes, Nodes2)
             catch
                 {not_equivalent, Left, Right} ->
                     Location = try_location(Left, Right),
-                    Msg = {not_equivalent, Left, Right},
+                    Msg = {not_equivalent, Left, Right, Flattened},
                     throw({error, {FileName, Location, ?MODULE, Msg}})
             end;
         {error, _} ->
@@ -424,10 +425,10 @@ format_loc({Line, Col}) -> io_lib:format(":~B:~B", [Line, Col]);
 format_loc(#{location := {Line, Col}}) -> io_lib:format(":~B:~B", [Line, Col]);
 format_loc(Line) when is_integer(Line) -> io_lib:format(":~B", [Line]).
 
-format_error({not_equivalent, Node1, Node2}) ->
+format_error({not_equivalent, Node1, Node2, Formatted}) ->
     io_lib:format(
-        "formatter result not equivalent. Please report this bug.~n~n~p~n~n~p",
-        [Node1, Node2]
+        "formatter result not equivalent. Please report this bug.~n~n~ts~n~n~p~n~n~p",
+        [Formatted, Node1, Node2]
     );
 format_error(could_not_reparse) ->
     "formatter result invalid, could not reparse";

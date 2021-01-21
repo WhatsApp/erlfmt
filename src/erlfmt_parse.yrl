@@ -29,7 +29,7 @@ binary_comprehension
 tuple
 record_expr record_name record_field_name record_tuple record_field record_fields
 map_expr map_tuple
-if_expr if_clause if_clauses case_expr cr_clause cr_clauses receive_expr
+if_expr if_clause if_clauses case_expr cr_clause cr_clauses after_clause receive_expr
 fun_expr fun_clause fun_clauses
 atom_or_var atom_or_var_or_macro integer_or_var_or_macro
 try_expr try_catch try_clause try_clauses
@@ -397,11 +397,17 @@ cr_clause -> expr clause_guard clause_body :
     {clause, ?range_anno('$1', '$3'), '$1', '$2', ?val('$3')}.
 
 receive_expr -> 'receive' cr_clauses 'end' :
-        {'receive',?range_anno('$1', '$3'),'$2'}.
-receive_expr -> 'receive' 'after' expr clause_body 'end' :
-        {'receive',?range_anno('$1', '$5'),[],'$3',?val('$4')}.
-receive_expr -> 'receive' cr_clauses 'after' expr clause_body 'end' :
-        {'receive',?range_anno('$1', '$6'),'$2','$4',?val('$5')}.
+    Clauses = {clauses, ?range_anno('$1', '$3'), '$2'},
+    {'receive', ?range_anno('$1', '$3'), Clauses}.
+receive_expr -> 'receive' 'after' after_clause:
+    Clauses = {clauses, ?range_upto_anno('$1', '$2'), []},
+    {'receive',?range_anno('$1', '$3'), Clauses, '$3'}.
+receive_expr -> 'receive' cr_clauses 'after' after_clause:
+    Clauses = {clauses, ?range_anno('$1', '$3'), '$2'},
+    {'receive',?range_anno('$1', '$4'), Clauses, '$4'}.
+
+after_clause -> expr clause_body 'end' :
+    {clause, ?range_anno('$1', '$3'), '$1', empty, ?val('$2')}.
 
 fun_expr -> 'fun' atom_or_var_or_macro '/' integer_or_var_or_macro :
     Anno = ?range_anno('$1', '$4'),
