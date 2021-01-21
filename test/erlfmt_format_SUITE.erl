@@ -1711,13 +1711,13 @@ receive_expression(Config) when is_list(Config) ->
         "    2 -> two\n"
         "end\n"
     ),
-    ?assertSame(
-        "receive\n"
-        "after\n"
-        "    % foo\n"
-        "    0 -> ok\n"
-        "end\n"
-    ),
+    % ?assertSame(
+    %     "receive\n"
+    %     "after\n"
+    %     "    % foo\n"
+    %     "    0 -> ok\n"
+    %     "end\n"
+    % ),
     ?assertFormat(
         "receive\n"
         "    1 -> ok\n"
