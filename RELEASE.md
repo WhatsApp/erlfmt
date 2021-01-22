@@ -35,7 +35,7 @@ $ PATH="/usr/local/opt/erlang@22/bin:$PATH" _build/release/bin/erlfmt -h
 # check that it runs with current erlang version
 $ _build/release/bin/erlfmt -h
 ```
-Also update the `rebar.config.script` with new version tag and reformat code base.
+   Also update the `rebar.config.script` with new version tag and reformat code base.
 7. Release to hex: `rebar3 hex publish`.
 
 If you have not used hex before, create `~/.config/rebar3/rebar.config` and include the contents `{plugins, [rebar3_hex]}`:
