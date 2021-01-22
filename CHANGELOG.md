@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.10.0 (22.01.2021)
+
+Preserve a single empty line between attributes
+
+### Enhancements
+
+  - Preserve a single empty line between attributes #239
+  - Only write to file the formatted code when it is different to the current one #235
+  - Export the format_nodes function for symmetry with read_nodes function.
+
+### Fixes
+
+  - no newline after spec #224
+  - preserve breaks after dolon #225
+  - fix: Crash formatting qlc_SUITE in OTP #240
+  - Preserve newlines between separated guards #241
+  - Adjust AST for try clauses such that they do not move comments around #242
+
 ## v0.9.0 (4.11.2020)
 
 Default files and exclude_files option
