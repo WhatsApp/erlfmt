@@ -434,18 +434,21 @@ fun_clause -> var pat_argument_list clause_guard clause_body :
     {clause, ?range_anno('$1', '$4'), Head, '$3', ?val('$4')}.
 
 try_expr -> 'try' exprs 'of' cr_clauses try_catch :
-    {TryClauses, _, After} = '$5',
-    {'try', ?range_anno('$1', '$5'), '$2', '$4', TryClauses, After}.
+    {TryClauses, _, NextToken, After} = '$5',
+    OfClauses = {clauses, ?range_upto_anno('$3', NextToken), '$4'},
+    Body = {body, ?range_upto_anno('$1', '$3'), '$2'},
+    {'try', ?range_anno('$1', '$5'), Body, OfClauses, TryClauses, After}.
 try_expr -> 'try' exprs try_catch :
-    {TryClauses, _, After} = '$3',
-    {'try', ?range_anno('$1', '$3'), '$2', [], TryClauses, After}.
+    {TryClauses, _, NextToken, After} = '$3',
+    Body = {body, ?range_upto_anno('$1', NextToken), '$2'},
+    {'try', ?range_anno('$1', '$3'), Body, none, TryClauses, After}.
 
 try_catch -> 'catch' try_clauses 'end' :
-        {'$2', ?anno('$3'), []}.
+        {{clauses, ?range_anno('$1', '$3'), '$2'}, ?anno('$3'), '$1', []}.
 try_catch -> 'catch' try_clauses 'after' exprs 'end' :
-        {'$2', ?anno('$5'), '$4'}.
+        {{clauses, ?range_anno('$1', '$3'), '$2'}, ?anno('$5'), '$1', '$4'}.
 try_catch -> 'after' exprs 'end' :
-        {[], ?anno('$3'), '$2'}.
+        {none, ?anno('$3'), '$1', '$2'}.
 
 try_clauses -> try_clause : ['$1'].
 try_clauses -> try_clause ';' try_clauses : ['$1' | '$3'].
@@ -979,6 +982,11 @@ Erlang code.
     end_location => map_get(end_location, ?anno(Tok2))
 }).
 
+-define(range_upto_anno(Tok1, Tok2), #{
+    location => map_get(location, ?anno(Tok1)),
+    end_location => decrement_location(map_get(location, ?anno(Tok2)))
+}).
+
 %% Entry points compatible to old erl_parse.
 
 -spec parse_node(Tokens) -> {ok, AbsNode} | {error, ErrorInfo} when
@@ -1053,3 +1061,5 @@ ret_err(Anno, S) ->
 set_parens(Expr) -> erlfmt_scan:put_anno(parens, true, Expr).
 
 delete_parens(Expr) -> erlfmt_scan:delete_anno(parens, Expr).
+
+decrement_location({Line, Col}) -> {Line, Col - 1}.

@@ -229,17 +229,17 @@ insert_nested({'receive', Meta, Clauses0, AfterExpr0, AfterBody0}, Comments0) ->
 insert_nested({'if', Meta, Clauses0}, Comments0) ->
     Clauses = insert_expr_container(Clauses0, Comments0),
     {{'if', Meta, Clauses}, []};
-insert_nested({'try', Meta, Exprs0, OfClauses0, CatchClauses0, []}, Comments0) ->
-    {Exprs, Comments1} = insert_expr_list(Exprs0, Comments0),
-    {OfClauses, Comments2} = insert_expr_list(OfClauses0, Comments1),
-    CatchClauses = insert_expr_container(CatchClauses0, Comments2),
-    {{'try', Meta, Exprs, OfClauses, CatchClauses, []}, []};
-insert_nested({'try', Meta, Exprs0, OfClauses0, CatchClauses0, After0}, Comments0) ->
-    {Exprs, Comments1} = insert_expr_list(Exprs0, Comments0),
-    {OfClauses, Comments2} = insert_expr_list(OfClauses0, Comments1),
-    {CatchClauses, Comments3} = insert_expr_list(CatchClauses0, Comments2),
+insert_nested({'try', Meta, Body0, OfClauses0, CatchClauses0, []}, Comments0) ->
+    {Body, Comments1} = insert_expr(Body0, Comments0),
+    {OfClauses, Comments2} = insert_expr_or_none(OfClauses0, Comments1),
+    {CatchClauses, []} = insert_expr_or_none(CatchClauses0, Comments2),
+    {{'try', Meta, Body, OfClauses, CatchClauses, []}, []};
+insert_nested({'try', Meta, Body0, OfClauses0, CatchClauses0, After0}, Comments0) ->
+    {Body, Comments1} = insert_expr(Body0, Comments0),
+    {OfClauses, Comments2} = insert_expr_or_none(OfClauses0, Comments1),
+    {CatchClauses, Comments3} = insert_expr_or_none(CatchClauses0, Comments2),
     After = insert_expr_container(After0, Comments3),
-    {{'try', Meta, Exprs, OfClauses, CatchClauses, After}, []};
+    {{'try', Meta, Body, OfClauses, CatchClauses, After}, []};
 insert_nested({spec, Meta, Name, Clauses0}, Comments0) ->
     Clauses = insert_expr_container(Clauses0, Comments0),
     {{spec, Meta, Name, Clauses}, []};
@@ -260,8 +260,17 @@ insert_nested({'catch', Meta, Args0}, Comments0) ->
 insert_nested({args, Meta, Args0}, Comments0) ->
     Args = insert_expr_container(Args0, Comments0),
     {{args, Meta, Args}, []};
+insert_nested({clauses, Meta, Clauses0}, Comments0) ->
+    Clauses = insert_expr_container(Clauses0, Comments0),
+    {{clauses, Meta, Clauses}, []};
+insert_nested({body, Meta, Exprs0}, Comments0) ->
+    Exprs = insert_expr_container(Exprs0, Comments0),
+    {{body, Meta, Exprs}, []};
 insert_nested({Name, Meta}, Comments) ->
     {{Name, Meta}, Comments}.
+
+insert_expr_or_none(none, Comments) -> {none, Comments};
+insert_expr_or_none(Expr, Comments) -> insert_expr(Expr, Comments).
 
 put_pre_dot_comments(NodeOrMeta, []) ->
     NodeOrMeta;

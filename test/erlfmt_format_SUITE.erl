@@ -1710,6 +1710,30 @@ receive_expression(Config) when is_list(Config) ->
         "    % two\n"
         "    2 -> two\n"
         "end\n"
+    ),
+    % ?assertSame(
+    %     "receive\n"
+    %     "after\n"
+    %     "    % foo\n"
+    %     "    0 -> ok\n"
+    %     "end\n"
+    % ),
+    ?assertFormat(
+        "receive\n"
+        "    1 -> ok\n"
+        "    %% after receive\n"
+        "after\n"
+        "    0 -> ok\n"
+        "    %% after after for receive\n"
+        "end\n",
+        "receive\n"
+        "    1 -> ok\n"
+        "%% after receive\n"
+        "\n"
+        "after 0 ->\n"
+        "    ok\n"
+        "    %% after after for receive\n"
+        "end\n"
     ).
 
 try_expression(Config) when is_list(Config) ->
@@ -1811,6 +1835,37 @@ try_expression(Config) when is_list(Config) ->
         "after\n"
         "    Expr1,\n"
         "    Expr2\n"
+        "end\n"
+    ),
+    ?assertSame(
+        "try\n"
+        "    2\n"
+        "catch\n"
+        "    _ ->\n"
+        "        undefined\n"
+        "    %% after catch\n"
+        "after\n"
+        "    ok\n"
+        "    %% after after\n"
+        "end\n"
+    ),
+    ?assertSame(
+        "try 2 of\n"
+        "    _ ->\n"
+        "        undefined\n"
+        "    %% after of\n"
+        "after\n"
+        "    ok\n"
+        "    %% after after\n"
+        "end\n"
+    ),
+    ?assertSame(
+        "try\n"
+        "    2\n"
+        "    % after expr\n"
+        "after\n"
+        "    ok\n"
+        "    %% after after\n"
         "end\n"
     ).
 
