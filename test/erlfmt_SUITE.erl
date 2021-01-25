@@ -99,6 +99,13 @@ end_per_group(_GroupName, _Config) ->
     ok.
 
 init_per_testcase(_TestCase, Config) ->
+    GroupProps = ?config(tc_group_properties, Config),
+    case proplists:get_bool(syntax_tools, GroupProps) of
+        true ->
+            put('$syntax_tools$', true);
+        false ->
+            erase('$syntax_tools$')
+    end,
     Config.
 
 end_per_testcase(_TestCase, _Config) ->
@@ -107,6 +114,24 @@ end_per_testcase(_TestCase, _Config) ->
 groups() ->
     [
         {parser, [parallel], [
+            records,
+            attributes,
+            specs,
+            macro_call_exprs,
+            macro_call_pats,
+            macro_call_types,
+            macro_definitions,
+            functions_and_funs,
+            operators,
+            lists,
+            binaries,
+            maps,
+            clauses,
+            types,
+            annos,
+            shebang
+        ]},
+        {parser_st, [parallel, syntax_tools], [
             records,
             attributes,
             specs,
@@ -176,6 +201,7 @@ all() ->
     [
         {group, smoke_tests},
         {group, parser},
+        {group, parser_st},
         {group, range_tests},
         {group, pragma_tests},
         {group, verbose_warning_tests}
@@ -736,12 +762,13 @@ clauses(Config) when is_list(Config) ->
                 {clause, _, {'catch', _, [{var, _, '_'}, {var, _, '_'}]}, empty, [
                     {atom, _, ok}
                 ]},
-                {clause, _, {'catch', _, [{var, _, '_'}, {var, _, '_'}, {var, _, '_'}]}, empty, [
+                {clause, _, {'catch', _, [{var, _, '_'}, {var, _, '_'}, {var, _, 'T'}]}, empty, [
                     {atom, _, ok}
                 ]}
             ]},
             []},
-        parse_expr("try ok of _ -> ok catch _ -> ok; _:_ -> ok; _:_:_ -> ok end")
+        %% Note: formatting may drop the Trace part if it's just an underscore
+        parse_expr("try ok of _ -> ok catch _ -> ok; _:_ -> ok; _:_:T -> ok end")
     ).
 
 types(Config) when is_list(Config) ->
@@ -952,7 +979,7 @@ parse_type(String) ->
 parse_form(String) ->
     case erlfmt:read_nodes_string("nofile", String) of
         {ok, [Form], []} ->
-            Form;
+            maybe_roundtrip(Form);
         {ok, _, [Warning | _]} ->
             ct:fail(
                 "Expected successful parse: \n~ts\n for warning: ~ts",
@@ -968,7 +995,7 @@ parse_form(String) ->
 parse_forms(String) ->
     case erlfmt:read_nodes_string("nofile", String) of
         {ok, Forms, []} ->
-            Forms;
+            maybe_roundtrip_list(Forms);
         {ok, _, [Warning | _]} ->
             ct:fail(
                 "Expected successful parse: \n~ts\n for warning: ~ts",
@@ -979,6 +1006,22 @@ parse_forms(String) ->
                 "Expected successful parse:\n~ts\ngot: ~ts",
                 [String, Mod:format_error(Reason)]
             )
+    end.
+
+maybe_roundtrip_list(Nodes) ->
+    case get('$syntax_tools$') of
+        true ->
+            [erlfmt_ast:st_to_erlfmt(erlfmt_ast:erlfmt_to_st(N)) || N <- Nodes];
+        _ ->
+            Nodes
+    end.
+
+maybe_roundtrip(Node) ->
+    case get('$syntax_tools$') of
+        true ->
+            erlfmt_ast:st_to_erlfmt(erlfmt_ast:erlfmt_to_st(Node));
+        _ ->
+            Node
     end.
 
 smoke_test_cli(Config) when is_list(Config) ->
