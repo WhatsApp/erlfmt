@@ -172,8 +172,9 @@ erlfmt_to_st(Node) ->
                         Pos
                     )
             end;
-        {'try', Pos, Body, Clauses, Handlers, After} ->
-            Body1 = [erlfmt_to_st(E) || E <- Body],
+        {'try', Pos, {body, _, _} = Body, {clauses, _, Clauses}, {clauses, _, Handlers}, After} ->
+            %% TODO: preserving annotations on bodies and clause groups
+            Body1 = [erlfmt_to_st(Body)],
             Clauses1 = [erlfmt_clause_to_st(C) || C <- Clauses],
             Handlers1 = [erlfmt_clause_to_st(C) || C <- Handlers],
             After1 = [erlfmt_to_st(E) || E <- After],
@@ -352,21 +353,25 @@ erlfmt_to_st(Node) ->
             );
         %% ---------------------------------------------------------------------
         %% The remaining cases have been added by erlfmt and need special handling
+        %% (many are represented as magically-tagged tuples for now)
 
         %% A new operator node `{op, Anno, 'when', Expr, Guard}` is
         %% introduced, which can occur as a body of a macro. It represents
         %% "free-standing" `Expr when Guard` expressions as used, for
         %% example, in the `assertMatch` macro.
         {op, Pos, 'when', Expr, Guard} ->
-            %% represent this as a magically-tagged tuple for now
             AAnno = dummy_anno(),
             erlfmt_to_st_1({tuple, Pos, [{atom, AAnno, '*when*'}, Expr, Guard]});
         %% A new node `{exprs, Anno, Exprs}` represents a
         %% "free-standing" comma separated sequence of expressions
         {exprs, Pos, Exprs} ->
-            %% represent this as a magically-tagged tuple
             AAnno = dummy_anno(),
             erlfmt_to_st_1({tuple, Pos, [{atom, AAnno, '*exprs*'} | Exprs]});
+        %% A new node `{body, Anno, Exprs}` represents a comma separated
+        %% sequence of expressions as in 'try ... of/catch'
+        {body, Pos, Exprs} ->
+            AAnno = dummy_anno(),
+            erlfmt_to_st_1({tuple, Pos, [{atom, AAnno, '*body*'} | Exprs]});
         %% The erlfmt parser also accepts general guards (comma and
         %% semicolon separated sequences of guard expressions) as the body
         %% of a macro
@@ -384,13 +389,11 @@ erlfmt_to_st(Node) ->
         %% list of `string`, `var`, and `macro_call` nodes. This is used to
         %% represent implicit string concatenation, for example `"foo" "bar"`.
         {concat, Pos, Subtrees} ->
-            %% represent this as a magically-tagged tuple for now
             AAnno = dummy_anno(),
             erlfmt_to_st_1({tuple, Pos, [{atom, AAnno, '*concat*'} | Subtrees]});
         %% A new node `{macro_string, Anno, Name}` is introduced, where `Name`
         %% is either an `atom` or a `var` node. It represents `??Name`.
         {macro_string, Pos, Name} ->
-            %% represent this as a magically-tagged tuple for now
             AAnno = dummy_anno(),
             erlfmt_to_st_1({tuple, Pos, [{atom, AAnno, '*stringify*'}, Name]});
         %% erlfmt preserves '...' tokens as nodes (which erl_parse doesn't)
@@ -667,6 +670,9 @@ st_to_erlfmt(Node) ->
                                 '*exprs*' ->
                                     Exprs = [st_to_erlfmt(E) || E <- Rest],
                                     {exprs, Pos, Exprs};
+                                '*body*' ->
+                                    Exprs = [st_to_erlfmt(E) || E <- Rest],
+                                    {body, Pos, Exprs};
                                 '*args*' ->
                                     Exprs = [st_to_erlfmt(E) || E <- Rest],
                                     {args, Pos, Exprs};
@@ -828,10 +834,8 @@ st_to_erlfmt(Node) ->
                     {'receive', Pos, Clauses, st_to_erlfmt(Timeout), TBody}
             end;
         try_expr ->
-            Body = [
-                st_to_erlfmt(E)
-                || E <- erl_syntax:try_expr_body(Node)
-            ],
+            [Body0] = erl_syntax:try_expr_body(Node),
+            Body = st_to_erlfmt(Body0),
             Clauses = [
                 st_clause_to_erlfmt(C, 'case')
                 || C <- erl_syntax:try_expr_clauses(Node)
@@ -844,7 +848,8 @@ st_to_erlfmt(Node) ->
                 st_to_erlfmt(E)
                 || E <- erl_syntax:try_expr_after(Node)
             ],
-            {'try', Pos, Body, Clauses, Handlers, After};
+            CAnno = dummy_anno(),
+            {'try', Pos, Body, {clauses, CAnno, Clauses}, {clauses, CAnno, Handlers}, After};
         comment ->
             {comment, Pos, erl_syntax:comment_text(Node)};
         _ ->
