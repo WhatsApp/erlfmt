@@ -498,7 +498,7 @@ erlfmt_clause_to_st(Pos, Patterns, Guard, Body) ->
     erl_syntax:set_pos(erl_syntax:make_tree(clause, Groups), Pos).
 
 %% New `{guard_or, Anno, GuardAndList}` and `{guard_and, Anno, Exprs}` nodes
-%% are introduced to support annotating guard sequences, insted of a plain
+%% are introduced to support annotating guard sequences, instead of a plain
 %% nested list of lists structure.
 
 erlfmt_guard_to_st(empty) ->
@@ -1021,7 +1021,6 @@ st_typedecl_to_erlfmt({atom, _, type} = Tag, [Term], Pos) ->
     {Name, Type, Args} = erl_syntax:concrete(Term),
     Name1 = {atom, dummy_anno(Name), Name},
     Type1 = st_to_erlfmt(Type),
-    %exit({Name1, Type, Type1}),
     Args1 = [st_to_erlfmt(A) || A <- Args],
     Def = {op, dummy_anno(), '::', {call, dummy_anno(), Name1, Args1}, Type1},
     {attribute, Pos, Tag, [Def]}.
