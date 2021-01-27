@@ -319,9 +319,15 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     RightD = binary_operand_to_algebra(Op, Right, 0),
     Doc =
         case Op of
-            '::' -> dolon_to_algebra(Left, Right, LeftD, RightD, Indent);
-            '=' -> field_to_algebra(<<"=">>, Left, Right, LeftD, RightD, Indent);
-            _ -> breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent)
+            '::' ->
+                dolon_to_algebra(Left, Right, LeftD, RightD, Indent);
+            %% when a pattern is in a clause and it breaks we want to prevent issue #211
+            'clause_pattern' ->
+                field_to_algebra(<<"=">>, Left, Right, LeftD, RightD, Indent + ?INDENT);
+            '=' ->
+                field_to_algebra(<<"=">>, Left, Right, LeftD, RightD, Indent);
+            _ ->
+                breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent)
         end,
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
 
@@ -642,7 +648,7 @@ clause_expr_to_algebra(Clause) ->
     combine_comments_no_force(Meta, ClauseD).
 
 clause_to_algebra({clause, _Meta, Head, empty, Body}) ->
-    HeadD = expr_to_algebra(Head),
+    HeadD = clause_head_to_algebra(Head),
     BodyD = block_to_algebra(Body),
     space(HeadD, nest(break(<<"->">>, BodyD), ?INDENT));
 clause_to_algebra({clause, _Meta, empty, Guards, Body}) ->
@@ -650,7 +656,7 @@ clause_to_algebra({clause, _Meta, empty, Guards, Body}) ->
     BodyD = block_to_algebra(Body),
     space(GuardsD, nest(break(<<"->">>, BodyD), ?INDENT));
 clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
-    HeadD = expr_to_algebra(Head),
+    HeadD = clause_head_to_algebra(Head),
     GuardsD = expr_to_algebra(Guards),
     BodyD = block_to_algebra(Meta, Body),
 
@@ -661,14 +667,14 @@ clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
         Nested(BodyD)
     );
 clause_to_algebra({spec_clause, _Meta, Head, [Body], empty}) ->
-    HeadD = expr_to_algebra(Head),
+    HeadD = clause_head_to_algebra(Head),
     BodyD = expr_to_algebra(Body),
     concat(
         space(HeadD, <<"->">>),
         group(nest(concat(break(<<" ">>), BodyD), ?INDENT))
     );
 clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
-    HeadD = expr_to_algebra(Head),
+    HeadD = clause_head_to_algebra(Head),
     GuardsD = spec_clause_gaurds_to_algebra(Guards),
     BodyD = expr_to_algebra(Body),
 
@@ -678,6 +684,11 @@ clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
         group(concat(Nested(BodyD), break(<<" ">>), <<"when">>)),
         Nested(GuardsD)
     ).
+
+clause_head_to_algebra({op, Meta, '=', Left, Right}) ->
+    expr_to_algebra({op, Meta, clause_pattern, Left, Right});
+clause_head_to_algebra(Head) ->
+    expr_to_algebra(Head).
 
 spec_clause_gaurds_to_algebra(Expr) ->
     Meta = element(2, Expr),
