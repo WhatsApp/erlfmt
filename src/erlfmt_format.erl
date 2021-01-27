@@ -552,9 +552,10 @@ comprehension_to_algebra(Expr, [LcExpr | _] = LcExprs, Left, Right) ->
     LcExprsD = lists:map(fun expr_to_algebra/1, LcExprs),
     LcExprD = fold_doc(fun(D, Acc) -> break(concat(D, <<",">>), Acc) end, LcExprsD),
     PostBreak = maybe_force_breaks(has_any_break_between(LcExprs)),
-    PreBreak = concat(maybe_force_breaks(has_break_between(Expr, LcExpr)), break(<<" ">>)),
-    Doc = concat([ExprD, PreBreak, <<"||">>, <<" ">>, nest(group(concat(PostBreak, LcExprD)), 3)]),
-    surround(Left, <<"">>, Doc, <<"">>, Right).
+    PreBreak = concat(maybe_force_breaks(has_break_between(Expr, LcExpr)), break(<<"">>)),
+    IndentExpr = nest(concat(break(<<"">>), ExprD), ?INDENT, break),
+    IdentLcs = nest(group(concat(PostBreak, LcExprD)), ?INDENT),
+    group(concat([Left, IndentExpr, PreBreak, <<" || ">>, IdentLcs, break(<<"">>), Right])).
 
 block_to_algebra([Expr]) ->
     expr_to_algebra(Expr);

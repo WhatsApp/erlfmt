@@ -470,8 +470,8 @@ binary_operator(Config) when is_list(Config) ->
     ?assertSame(
         "[\n"
         "    Foo\n"
-        "    || {Long, Pattern, YesVeryVeryLong, Pattern, EvenLonger, Longest} <-\n"
-        "           foo(1, 2)\n"
+        " || {Long, Pattern, YesVeryVeryLong, Pattern, EvenLonger, Longest} <-\n"
+        "        foo(1, 2)\n"
         "]\n",
         80
     ),
@@ -1082,7 +1082,7 @@ list_comprehension(Config) when is_list(Config) ->
         "        Long,\n"
         "        Expression\n"
         "    ]\n"
-        "    || X <- Y, X < 10\n"
+        " || X <- Y, X < 10\n"
         "]\n",
         25
     ),
@@ -1092,9 +1092,9 @@ list_comprehension(Config) when is_list(Config) ->
         "]",
         "[\n"
         "    X\n"
-        "    || X <- Y,\n"
-        "       X < 10\n"
-        "       % trailing comment\n"
+        " || X <- Y,\n"
+        "    X < 10\n"
+        "    % trailing comment\n"
         "]\n"
     ),
     ?assertFormat(
@@ -1102,16 +1102,16 @@ list_comprehension(Config) when is_list(Config) ->
         "[\n"
         "    {Very, Long,\n"
         "        Expression}\n"
-        "    || X <- Y, X < 10\n"
+        " || X <- Y, X < 10\n"
         "]\n",
         25
     ),
     ?assertFormat(
-        "[X || X <- LongExpr, X < 10]",
+        "[X || X <- LongExpr123, X < 10]",
         "[\n"
         "    X\n"
-        "    || X <- LongExpr,\n"
-        "       X < 10\n"
+        " || X <- LongExpr123,\n"
+        "    X < 10\n"
         "]\n",
         25
     ),
@@ -1119,9 +1119,9 @@ list_comprehension(Config) when is_list(Config) ->
         "[X || X <- VeryLongExpression, X < 10]",
         "[\n"
         "    X\n"
-        "    || X <-\n"
-        "           VeryLongExpression,\n"
-        "       X < 10\n"
+        " || X <-\n"
+        "        VeryLongExpression,\n"
+        "    X < 10\n"
         "]\n",
         25
     ),
@@ -1129,33 +1129,33 @@ list_comprehension(Config) when is_list(Config) ->
         "lists:unzip([{ALong, B}|| ALong = {_, _, _, {B, _}} <- All, lists:member(B, Keep)])",
         "lists:unzip([\n"
         "    {ALong, B}\n"
-        "    || ALong = {_, _, _, {B, _}} <- All, lists:member(B, Keep)\n"
+        " || ALong = {_, _, _, {B, _}} <- All, lists:member(B, Keep)\n"
         "])\n"
     ),
     ?assertSame(
         "[\n"
         "    a\n"
-        "    || {a, b} <- es\n"
+        " || {a, b} <- es\n"
         "].\n"
     ),
     ?assertSame(
         "[\n"
         "    X\n"
-        "    || true, true, true\n"
+        " || true, true, true\n"
         "].\n"
     ),
     ?assertSame(
         "A = [\n"
         "    a\n"
-        "    || {a, b} <- es,\n"
-        "       filter(b)\n"
+        " || {a, b} <- es,\n"
+        "    filter(b)\n"
         "]\n"
     ),
     ?assertFormat(
         "string:equal([Value || {string, _, Value} <- ValuesL], [Value || {string, _, Value} <- ValuesR]).\n",
         "string:equal([Value || {string, _, Value} <- ValuesL], [\n"
         "    Value\n"
-        "    || {string, _, Value} <- ValuesR\n"
+        " || {string, _, Value} <- ValuesR\n"
         "]).\n"
     ).
 
@@ -1165,24 +1165,24 @@ binary_comprehension(Config) when is_list(Config) ->
     ?assertSame(
         "<<\n"
         "    X\n"
-        "    || <<X, Y>> <= Results,\n"
-        "       X >= Y\n"
+        " || <<X, Y>> <= Results,\n"
+        "    X >= Y\n"
         ">>\n"
     ),
     ?assertFormat(
         "<<(Long + Expression) || X <- Y, X < 10>>",
         "<<\n"
         "    (Long + Expression)\n"
-        "    || X <- Y, X < 10\n"
+        " || X <- Y, X < 10\n"
         ">>\n",
         25
     ),
     ?assertFormat(
-        "<<X || <<X>> <= LongExpr, X < 10>>",
+        "<<X || <<X>> <= LongExpr123, X < 10>>",
         "<<\n"
         "    X\n"
-        "    || <<X>> <= LongExpr,\n"
-        "       X < 10\n"
+        " || <<X>> <= LongExpr123,\n"
+        "    X < 10\n"
         ">>\n",
         25
     ),
@@ -1190,9 +1190,9 @@ binary_comprehension(Config) when is_list(Config) ->
         "<<X || <<X>> <= VeryLongExpression, X < 10>>",
         "<<\n"
         "    X\n"
-        "    || <<X>> <=\n"
-        "           VeryLongExpression,\n"
-        "       X < 10\n"
+        " || <<X>> <=\n"
+        "        VeryLongExpression,\n"
+        "    X < 10\n"
         ">>\n",
         25
     ),
@@ -1200,7 +1200,7 @@ binary_comprehension(Config) when is_list(Config) ->
         "lists:unzip(<<<<ALong, B>>|| ALong = {_, _, _, {B, _}} <- All, lists:member(B, Keep)>>)",
         "lists:unzip(<<\n"
         "    <<ALong, B>>\n"
-        "    || ALong = {_, _, _, {B, _}} <- All, lists:member(B, Keep)\n"
+        " || ALong = {_, _, _, {B, _}} <- All, lists:member(B, Keep)\n"
         ">>)\n"
     ).
 

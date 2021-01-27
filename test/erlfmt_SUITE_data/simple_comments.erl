@@ -109,13 +109,13 @@ comprehension() ->
             %% comment 1
             X
         ]
-        || %% comment 2
-           X <-
-               %% comment 4
-               [
-                   %% comment 4
-               ]
-           %% comment 5
+     || %% comment 2
+        X <-
+            %% comment 4
+            [
+                %% comment 4
+            ]
+        %% comment 5
     ].
 
 call() ->

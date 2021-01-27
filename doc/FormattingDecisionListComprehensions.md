@@ -17,6 +17,7 @@ We will choose a format that best conforms to our goals:
   - Create/keep differentiation between the generator, body and filters.
   - Consistent with formatting of [Lists](./FormattingDecisionLists.md)
   - Handles multiline expressions consistently.
+  - Indenting by a number other than 4
 
 Here you can see all the other candidates we evaluated against our goals.
 
@@ -25,10 +26,11 @@ Here you can see all the other candidates we evaluated against our goals.
   - ✅ Differentiating
   - ✅ Consistent Lists
   - ✅ Multiline expressions
+  - ❌ Indenting by 4
 
-This is how `erlfmt` formats a multiline list comprehension today:
+We considered indenting the filter expressions by 3.
 
-```erlang formatted list_comp
+```erlang
 [
     function_with_long_name(A)
     || {A, B} <- Cs,
@@ -36,9 +38,9 @@ This is how `erlfmt` formats a multiline list comprehension today:
 ]
 ```
 
-`erlfmt` does allow you to move some parts onto the same line, if they fit `erlfmt` will keep them there:
+This does allow you to move some parts onto the same line, if they fit they will be kept there:
 
-```erlang formatted list_comp_2
+```erlang
 [
     function_with_long_name(A)
     || {A, B} <- Cs, filter(B)
@@ -47,7 +49,7 @@ This is how `erlfmt` formats a multiline list comprehension today:
 
 Here is an example with a multiline expression, that shows what a long argument in the function would look like:
 
-```erlang formatted list_comp_3
+```erlang
 [
     function_with_long_name(
         A,
@@ -63,6 +65,7 @@ Here is an example with a multiline expression, that shows what a long argument 
   - ✅ Differentiating
   - ✅ Consistent with lists
   - ✅ Handles multiline expression consistently
+  - ❌ Indenting by 4
 
 The one negative in the previous example is inconsistent indentation, where `filter(B)` was indented by 3 spaces.
 This alternative tries to correct that, but now we have a misalignment between `{A, B}` and `filter(B)` by a single space.
@@ -80,6 +83,7 @@ This alternative tries to correct that, but now we have a misalignment between `
   - ✅ Differentiating
   - ❌ Consistent with lists
   - ✅ Handles multiline expression consistently
+  - ✅ Indenting by 4
 
 We also considered dedenting the double pipes to the left.
 
@@ -100,11 +104,51 @@ This doesn't seem very consistent with how lists are formatted.
 ]
 ```
 
+## Dedent double pipes, just a little
+
+  - ✅ Differentiating
+  - ✅ Consistent with lists
+  - ✅ Handles multiline expression consistently
+  - ✅ Indenting by 4
+
+`erlfmt` formats by dedenting the double pipes to the left, but just a little:
+
+```erlang formatted list_comp_1
+[
+    function_with_long_name(A)
+ || {A, B} <- Cs, filter(B)
+]
+```
+
+All parts of the list comprehension stay aligned if they are broken apart at a consistent 4 spaces:
+
+```erlang formatted list_comp
+[
+    function_with_long_name(A)
+ || {A, B} <- Cs,
+    filter(B)
+]
+```
+
+Here is an example with a multiline expression, that shows what a long argument in the function would look like:
+
+```erlang formatted list_comp_3
+[
+    function_with_long_name(
+        A,
+        ALongArgument
+    )
+ || {A, B} <- Cs,
+    filter(B)
+]
+```
+
 ## Double pipes on their own line
 
   - ✅ Differentiating
   - ❌ Consistent with lists
   - ✅ Handles multiline expression consistently
+  - ✅ Indenting by 4
 
 We also considered giving the double pipes their own line.
 
@@ -130,6 +174,7 @@ We also considered giving the double pipes their own line.
   - ✅ Differentiating
   - ❌ Consistent with lists
   - ❌ Handles multiline expression consistently
+  - ✅ Indenting by 4
 
 The compressed option is inconsistent with how `erlfmt` formats lists,
 but does make differentiation clear.
@@ -156,6 +201,7 @@ There is also a problem with how to indent multiline expressions consistently:
   - ✅ Differentiating
   - ❌ Consistent with lists
   - ❌ Handles multiline expression consistently
+  - ✅ Indenting by 4
 
 We could also consider an option where indentations are made with four spaces.
 
