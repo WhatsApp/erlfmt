@@ -326,7 +326,7 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
 
 dolon_to_algebra(Left, Right, LeftD, RightD, Indent) ->
-    case (not has_break_between(Left, Right)) andalso is_next_break_fits(Right) of
+    case not has_break_between(Left, Right) of
         true ->
             with_next_break_fits(true, RightD, fun(R) ->
                 concat(group(LeftD), <<" :: ">>, group(R))
@@ -671,7 +671,6 @@ clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
     HeadD = expr_to_algebra(Head),
     GuardsD = spec_clause_gaurds_to_algebra(Guards),
     BodyD = expr_to_algebra(Body),
-
     Nested = fun(Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
     concat(
         space(HeadD, <<"->">>),

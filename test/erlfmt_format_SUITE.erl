@@ -2378,6 +2378,27 @@ spec(Config) when is_list(Config) ->
         "-else.\n"
         "do_stuff(_Arg) -> <<\"ok\">>.\n"
         "-endif.\n"
+    ),
+    ?assertSame(
+        "-spec fits(Width :: integer(), Column :: integer(), HasBreaks :: boolean(), Entries) ->\n"
+        "    boolean()\n"
+        "when\n"
+        "    Entries ::\n"
+        "        maybe_improper_list(\n"
+        "            {integer(), mode(), doc()},\n"
+        "            {tail, boolean(), Entries} | []\n"
+        "        ).\n",
+        100
+    ),
+    ?assertSame(
+        "-spec fits(Width :: integer(), Column :: integer(), HasBreaks :: boolean(), Entries) ->\n"
+        "    boolean()\n"
+        "when\n"
+        "    Entries :: maybe_improper_list(\n"
+        "        {integer(), mode(), doc()},\n"
+        "        {tail, boolean(), Entries} | []\n"
+        "    ).\n",
+        100
     ).
 
 define(Config) when is_list(Config) ->

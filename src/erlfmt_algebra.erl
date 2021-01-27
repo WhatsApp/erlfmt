@@ -443,11 +443,10 @@ format(Doc, Width) when ?is_doc(Doc) andalso (Width == infinity orelse Width >= 
 -spec fits(Width :: integer(), Column :: integer(), HasBreaks :: boolean(), Entries) ->
     boolean()
 when
-    Entries ::
-        maybe_improper_list(
-            {integer(), mode(), doc()},
-            {tail, boolean(), Entries} | []
-        ).
+    Entries :: maybe_improper_list(
+        {integer(), mode(), doc()},
+        {tail, boolean(), Entries} | []
+    ).
 % We need at least a break to consider the document does not fit since a
 % large document without breaks has no option but fitting its current line.
 %
