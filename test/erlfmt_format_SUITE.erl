@@ -1634,6 +1634,13 @@ receive_expression(Config) when is_list(Config) ->
         "after 0 -> ok\n"
         "end\n"
     ),
+    ?assertSame(
+        "receive\n"
+        "    1 -> ok\n"
+        "after 0 ->\n"
+        "    ok\n"
+        "end\n"
+    ),
     ?assertFormat(
         "receive {Long} -> Expression end",
         "receive\n"
