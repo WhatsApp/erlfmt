@@ -111,7 +111,7 @@ This doesn't seem very consistent with how lists are formatted.
   - ✅ Handles multiline expression consistently
   - ✅ Indenting by 4
 
-`erlfmt` formats by dedenting the double pipes to the left, but just a little:
+Another alternative is dedenting the double pipes to the left, but just a little:
 
 ```erlang formatted list_comp_1
 [
@@ -139,6 +139,45 @@ Here is an example with a multiline expression, that shows what a long argument 
         ALongArgument
     )
  || {A, B} <- Cs,
+    filter(B)
+]
+```
+
+## Two spaces after double pipes
+
+  - ✅ Differentiating
+  - ✅ Consistent with lists
+  - ✅ Handles multiline expression consistently
+  - ✅ Indenting by 4
+
+We can also considered dedenting the pipes, with two spaces after, to keep expressions aligned:
+
+```erlang
+[
+    function_with_long_name(A)
+||  {A, B} <- Cs, filter(B)
+]
+```
+
+All parts of the list comprehension stay aligned if they are broken apart at a consistent 4 spaces:
+
+```erlang
+[
+    function_with_long_name(A)
+||  {A, B} <- Cs,
+    filter(B)
+]
+```
+
+Here is an example with a multiline expression, that shows what a long argument in the function would look like:
+
+```erlang
+[
+    function_with_long_name(
+        A,
+        ALongArgument
+    )
+||  {A, B} <- Cs,
     filter(B)
 ]
 ```
