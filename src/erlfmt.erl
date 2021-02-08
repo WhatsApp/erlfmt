@@ -497,9 +497,9 @@ check_line_lengths(FileName, Width, String, {FirstLineNo, _}) ->
     LastLineNo = FirstLineNo + length(Lines) - 1,
     [
         {FileName, LineNo, ?MODULE, {long_line, string:length(Line), Width}}
-        || {LineNo, Line} <- lists:zip(
-               lists:seq(FirstLineNo, LastLineNo),
-               Lines
-           ),
-           string:length(Line) > Width
+     || {LineNo, Line} <- lists:zip(
+            lists:seq(FirstLineNo, LastLineNo),
+            Lines
+        ),
+        string:length(Line) > Width
     ].

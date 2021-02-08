@@ -1371,7 +1371,7 @@ overlong_warning(Config) when is_list(Config) ->
     FileLongLines = [{LineNo, Length} || {_, LineNo, _, {long_line, Length, _}} <- FileWarnings],
     StringLongLines = [
         {LineNo, Length}
-        || {_, LineNo, _, {long_line, Length, _}} <- StringWarnings
+     || {_, LineNo, _, {long_line, Length, _}} <- StringWarnings
     ],
     RangeLongLines = [{LineNo, Length} || {_, LineNo, _, {long_line, Length, _}} <- RangeWarnings],
     % Line 6 is an overlong comment
