@@ -1624,6 +1624,48 @@ case_expression(Config) when is_list(Config) ->
         "            {reply, ok, State}\n"
         "    end.\n",
         100
+    ),
+    ?assertSame(
+        "handle_call({start_abcdefgh, AbcdefghId}, _From, #state{abcdefghs = Abcdefghs0} = State0) ->\n"
+        "    case maps:get(AbcdefghId, Abcdefghs0, undefined) of\n"
+        "        undefined ->\n"
+        "            {reply, {error, {unknown, \"Unknown abcdefgh id\"}}, State0};\n"
+        "        #abcdefgh{\n"
+        "            abcdefgh_type = AbcdefghType\n"
+        "        } =\n"
+        "                Abcdefgh ->\n"
+        "            {reply, ok, State}\n"
+        "    end.\n",
+        100
+    ),
+    ?assertSame(
+        "handle_call({start_abcdefgh, AbcdefghId}, _From, #state{abcdefghs = Abcdefghs0} = State0) ->\n"
+        "    case maps:get(AbcdefghId, Abcdefghs0, undefined) of\n"
+        "        undefined ->\n"
+        "            {reply, {error, {unknown, \"Unknown abcdefgh id\"}}, State0};\n"
+        "        Abcdefgh =\n"
+        "                #abcdefgh{\n"
+        "                    abcdefgh_type = AbcdefghType,\n"
+        "                    specs = Specs,\n"
+        "                    abc_de_abcde = [AbcdefgId | Rest]\n"
+        "                } ->\n"
+        "            {reply, ok, State}\n"
+        "    end.\n",
+        100
+    ),
+    ?assertSame(
+        "handle_call({start_abcdefgh, AbcdefghId}, _From, #state{abcdefghs = Abcdefghs0} = State0) ->\n"
+        "    case maps:get(AbcdefghId, Abcdefghs0, undefined) of\n"
+        "        undefined ->\n"
+        "            {reply, {error, {unknown, \"Unknown abcdefgh id\"}}, State0};\n"
+        "        Abcdefgh = #abcdefgh{\n"
+        "            abcdefgh_type = AbcdefghType,\n"
+        "            specs = Specs,\n"
+        "            abc_de_abcde = [AbcdefgId | Rest]\n"
+        "        } ->\n"
+        "            {reply, ok, State}\n"
+        "    end.\n",
+        100
     ).
 
 receive_expression(Config) when is_list(Config) ->
