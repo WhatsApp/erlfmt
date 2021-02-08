@@ -47,7 +47,6 @@
 
 -define(INDENT, 4).
 -define(NEXT_BREAK_FITS, [map, list, record, block, 'fun', lc, bc]).
--define(NEXT_BREAK_FITS_OPS, ['=', '::']).
 
 -spec to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:doc().
 to_algebra({shebang, Meta, String}) ->
@@ -336,8 +335,10 @@ dolon_to_algebra(Left, Right, LeftD, RightD, Indent) ->
     end.
 
 field_to_algebra(OpD, Left, Right, LeftD, RightD, Indent) ->
-    DontBreakCalls = is_call(Right) andalso not has_break_between(Left, Right),
-    case DontBreakCalls orelse is_next_break_fits(Right) of
+    case
+        (is_call(Right) orelse is_next_break_fits(Right)) andalso
+            not has_break_between(Left, Right)
+    of
         true ->
             with_next_break_fits(true, RightD, fun(R) ->
                 concat([group(LeftD), <<" ">>, OpD, <<" ">>, group(R)])
@@ -708,13 +709,12 @@ single_clause_spec_to_algebra(Name, {spec_clause, CMeta, Head, Body, Guards}) ->
     {args, AMeta, Args} = Head,
     clauses_to_algebra([{spec_clause, CMeta, {call, AMeta, Name, Args}, Body, Guards}]).
 
-receive_after_to_algebra(Expr, Body) ->
+receive_after_to_algebra(Expr, [HBody | _] = Body) ->
     ExprD = do_expr_to_algebra(Expr),
     BodyD = block_to_algebra(Body),
-
     HeadD = concat([<<"after ">>, ExprD, <<" ->">>]),
-    Doc = group(nest(break(HeadD, BodyD), ?INDENT)),
-    combine_comments(element(2, Expr), Doc).
+    Doc = concat([HeadD, break(), maybe_force_breaks(has_break_between(Expr, HBody)), BodyD]),
+    combine_comments(element(2, Expr), group(nest(Doc, ?INDENT))).
 
 try_to_algebra(Body, OfClauses, CatchClauses, After) ->
     Clauses =
