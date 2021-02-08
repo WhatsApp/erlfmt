@@ -328,7 +328,7 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
 dolon_to_algebra(Left, Right, LeftD, RightD, Indent) ->
     case not has_break_between(Left, Right) of
         true ->
-            with_next_break_fits(true, RightD, fun(R) ->
+            with_next_break_fits(is_next_break_fits(Right), RightD, fun(R) ->
                 concat(group(LeftD), <<" :: ">>, group(R))
             end);
         false ->

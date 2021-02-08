@@ -2399,6 +2399,15 @@ spec(Config) when is_list(Config) ->
         "        {tail, boolean(), Entries} | []\n"
         "    ).\n",
         100
+    ),
+    ?assertFormat(
+        "-spec fits() -> boolean() when\n"
+        "    Entries :: {VeryLongTuple, EvenLonger}.\n",
+        "-spec fits() -> boolean() when\n"
+        "    Entries ::\n"
+        "        {VeryLongTuple,\n"
+        "            EvenLonger}.\n",
+        30
     ).
 
 define(Config) when is_list(Config) ->
