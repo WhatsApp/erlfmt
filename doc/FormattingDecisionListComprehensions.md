@@ -111,6 +111,7 @@ This doesn't seem very consistent with how lists are formatted.
   - ✅ Handles multiline expression consistently
   - ✅ Indenting by 4
 
+This is the formatting `erlfmt` chose.
 Another alternative is dedenting the double pipes to the left, but just a little:
 
 ```erlang formatted list_comp_1
@@ -150,6 +151,7 @@ Here is an example with a multiline expression, that shows what a long argument 
   - ✅ Handles multiline expression consistently
   - ✅ Indenting by 4
 
+`erlfmt` chose the above format over this one, purely because this alternative had much larger complexity and seems to require inventing a new operator in the algebra.
 We can also considered dedenting the pipes, with two spaces after, to keep expressions aligned:
 
 ```erlang
