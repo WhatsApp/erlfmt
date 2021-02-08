@@ -434,14 +434,33 @@ binary_operator(Config) when is_list(Config) ->
         "    a := integer()\n"
         "}\n"
     ),
-    ?assertFormat(
+    ?assertSame(
         "Foo =\n"
-        "   [\n"
-        "       1\n"
-        "   ]\n",
+        "    [\n"
+        "        1\n"
+        "    ]\n"
+    ),
+    ?assertSame(
         "Foo = [\n"
         "    1\n"
         "]\n"
+    ),
+    ?assertSame(
+        "cl(Opts) ->\n"
+        "    F = fun() ->\n"
+        "        {Ret, _Warnings} = dialyzer_cl:start(Opts),\n"
+        "        Ret\n"
+        "    end,\n"
+        "    doit(F).\n"
+    ),
+    ?assertSame(
+        "cl(Opts) ->\n"
+        "    F =\n"
+        "        fun() ->\n"
+        "            {Ret, _Warnings} = dialyzer_cl:start(Opts),\n"
+        "            Ret\n"
+        "        end,\n"
+        "    doit(F).\n"
     ),
     ?assertSame(
         "Foo = {\n"
@@ -484,10 +503,25 @@ binary_operator(Config) when is_list(Config) ->
         "    baz\n"
         "}\n"
     ),
-    ?assertFormat(
+    ?assertSame(
         "Foo =\n"
         "    {\n"
-        "        foo, bar,\n"
+        "        foo,\n"
+        "        bar,\n"
+        "        baz\n"
+        "    }\n"
+    ),
+    ?assertSame(
+        "Foo = {\n"
+        "    foo,\n"
+        "    bar,\n"
+        "    baz\n"
+        "}\n"
+    ),
+    ?assertFormat(
+        "Foo = {\n"
+        "        foo,\n"
+        "        bar,\n"
         "        baz\n"
         "    }\n",
         "Foo = {\n"

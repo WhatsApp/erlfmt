@@ -47,7 +47,6 @@
 
 -define(INDENT, 4).
 -define(NEXT_BREAK_FITS, [map, list, record, block, 'fun', lc, bc]).
--define(NEXT_BREAK_FITS_OPS, ['=', '::']).
 
 -spec to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:doc().
 to_algebra({shebang, Meta, String}) ->
@@ -336,8 +335,10 @@ dolon_to_algebra(Left, Right, LeftD, RightD, Indent) ->
     end.
 
 field_to_algebra(OpD, Left, Right, LeftD, RightD, Indent) ->
-    DontBreakCalls = is_call(Right) andalso not has_break_between(Left, Right),
-    case DontBreakCalls orelse is_next_break_fits(Right) of
+    case
+        (is_call(Right) orelse is_next_break_fits(Right)) andalso
+            not has_break_between(Left, Right)
+    of
         true ->
             with_next_break_fits(true, RightD, fun(R) ->
                 concat([group(LeftD), <<" ">>, OpD, <<" ">>, group(R)])
