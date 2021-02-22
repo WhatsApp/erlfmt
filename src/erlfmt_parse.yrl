@@ -109,7 +109,7 @@ type_spec -> spec_fun type_sigs : {spec, ?range_anno('$1', '$2'), '$1', ?val('$2
 type_spec -> '(' spec_fun type_sigs ')' : {spec, ?range_anno('$2', '$3'), '$2', ?val('$3')}.
 
 spec_fun -> atom_or_var_or_macro : '$1'.
-spec_fun -> atom ':' atom : {remote, ?range_anno('$1', '$3'), '$1', '$3'}.
+spec_fun -> atom_or_var_or_macro ':' atom_or_var_or_macro : {remote, ?range_anno('$1', '$3'), '$1', '$3'}.
 
 type_sigs -> type_sig : {['$1'], ?anno('$1')}.
 type_sigs -> type_sig ';' type_sigs : {['$1' | ?val('$3')], ?anno('$3')}.
@@ -153,9 +153,9 @@ type -> integer : '$1'.
 type -> char : '$1'.
 type -> fun_type : '$1'.
 
-type_call -> atom type_argument_list :
+type_call -> atom_or_var type_argument_list :
     {call, ?range_anno('$1', '$2'), '$1', ?val('$2')}.
-type -> atom ':' atom type_argument_list :
+type -> atom_or_var_or_macro ':' atom_or_var_or_macro type_argument_list :
     {call, ?range_anno('$1', '$4'), {remote, ?range_anno('$1', '$3'), '$1', '$3'}, ?val('$4')}.
 
 fun_type -> 'fun' '(' ')' :
