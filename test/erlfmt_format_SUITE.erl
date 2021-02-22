@@ -2419,6 +2419,12 @@ spec(Config) when is_list(Config) ->
         "-else.\n"
         "do_stuff(_Arg) -> <<\"ok\">>.\n"
         "-endif.\n"
+    ),
+    ?assertSame(
+        "-spec ?MODULE:foo() -> ok.\n"
+    ),
+    ?assertSame(
+        "-spec foo:?BAR() -> ok.\n"
     ).
 
 define(Config) when is_list(Config) ->
@@ -2609,6 +2615,12 @@ type(Config) when is_list(Config) ->
     ?assertSame(
         "-type ps() ::\n"
         "    [p()].\n"
+    ),
+    ?assertSame(
+        "-type foo() :: ?FOO().\n"
+    ),
+    ?assertSame(
+        "-type foo() :: ?FOO:?BAR().\n"
     ).
 
 exprs(Config) when is_list(Config) ->
