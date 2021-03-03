@@ -43,7 +43,7 @@ opts() ->
         {require_pragma, undefined, "require-pragma", undefined,
             "Require a special comment @format, called a pragma, "
             "to be present in the file's first docblock comment in order for prettier to format it."},
-        {insert_pragma, undefined, "insert-pragma", undefined,
+        {insert_pragma, $i, "insert-pragma", undefined,
             "Insert a @format pragma to the top of formatted files when pragma is absent. "
             "Works well when used in tandem with --require-pragma, "
             "but it is not allowed to use require-pragma and insert-pragma at the same time."},
