@@ -17,7 +17,7 @@ We will choose a format that best conforms to our goals:
   - Create/keep differentiation between the generator, body and filters.
   - Consistent with formatting of [Lists](./FormattingDecisionLists.md)
   - Handles multiline expressions consistently.
-  - Indenting by a number other than 4
+  - Consistent indenting by 4, to aid writability
 
 Here you can see all the other candidates we evaluated against our goals.
 

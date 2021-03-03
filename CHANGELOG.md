@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.11.0 (12.02.2021)
+
+List comprehensions revisited
+
+### Enhancements
+
+ - Updated formatting for list comprehensions #249
+ - preserve newline after's arrow #245
+ - preserve newlines after equal #248
+
 ## v0.10.0 (22.01.2021)
 
 Preserve a single empty line between attributes
