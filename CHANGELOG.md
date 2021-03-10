@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.11.1 (10.03.2021)
+
+Support macros in type and spec names
+
+### Enhancements
+
+ - Added shorthand `-i` for `--insert-pragma` #256
+
+### Fixes
+
+ - Support macros in type and spec names #254
+
 ## v0.11.0 (12.02.2021)
 
 List comprehensions revisited
