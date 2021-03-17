@@ -1700,6 +1700,17 @@ case_expression(Config) when is_list(Config) ->
         "            {reply, ok, State}\n"
         "    end.\n",
         100
+    ),
+    ?assertSame(
+        "handle_call({start_abcdefgh, AbcdefghId}, _From, #state{abcdefghs = Abcdefghs0} = State0) ->\n"
+        "    case maps:get(AbcdefghId, Abcdefghs0, undefined) of\n"
+        "        undefined ->\n"
+        "            {reply, {error, {unknown, \"Unknown abcdefgh id\"}}, State0};\n"
+        "        \"abcdefgh{abcdefgh_type = AbcdefghType, specs = Specs, abc_de_abcde = AbcdefgId | Rest\" ++\n"
+        "                Abcdefgh ->\n"
+        "            {reply, ok, State}\n"
+        "    end.\n",
+        100
     ).
 
 receive_expression(Config) when is_list(Config) ->

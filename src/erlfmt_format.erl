@@ -313,7 +313,6 @@ binary_op_to_algebra(Op, Meta0, Left, Right) ->
     binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT).
 
 binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
-    OpD = string(atom_to_binary(Op, utf8)),
     LeftD = binary_operand_to_algebra(Op, Left, Indent),
     RightD = binary_operand_to_algebra(Op, Right, 0),
     Doc =
@@ -323,9 +322,13 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
             '=' ->
                 field_to_algebra(<<"=">>, Left, Right, LeftD, RightD, Indent);
             %% when a pattern is in a clause and it breaks we want to prevent issue #211
-            'clause_pattern' ->
+            {clause_op, '='} ->
                 field_to_algebra(<<"=">>, Left, Right, LeftD, RightD, Indent + ?INDENT);
+            {clause_op, ClauseOp} ->
+                OpD = string(atom_to_binary(ClauseOp, utf8)),
+                breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent + ?INDENT);
             _ ->
+                OpD = string(atom_to_binary(Op, utf8)),
                 breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent)
         end,
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
@@ -676,8 +679,8 @@ clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
         Nested(GuardsD)
     ).
 
-clause_head_to_algebra({op, Meta, '=', Left, Right}) ->
-    expr_to_algebra({op, Meta, clause_pattern, Left, Right});
+clause_head_to_algebra({op, Meta, Op, Left, Right}) ->
+    expr_to_algebra({op, Meta, {clause_op, Op}, Left, Right});
 clause_head_to_algebra(Head) ->
     expr_to_algebra(Head).
 
