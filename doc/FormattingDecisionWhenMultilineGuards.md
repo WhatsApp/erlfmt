@@ -11,6 +11,7 @@ Goals:
   - Create/keep differentiation between the guards and the body of the function.
   - Minimize diff when changing a single line, impacts surrounding context.
   - Minimize indentation, as this causes more lines not to fit and more line breaks.
+  - Consistent indenting by 4, to aid writability
 
 Here you can see all the other candidates we evaluated against our goals.
 
@@ -22,6 +23,7 @@ This worked well, except for the case of extremely small functions and multiline
  - ✅ Differentiation between guards and body
  - ✅ Minimize diff when changing a single line
  - ❌ Minimize indentation
+ - ❌ Indenting by 4
 
 ```erlang
 bar(X)
@@ -49,6 +51,7 @@ This is good in for multiline guards, but fails the guard-body distinction check
  - ❌ Differentiation between guards and body
  - ✅ Minimize diff when changing a single line
  - ✅ Minimize indentation
+ - ✅ Indenting by 4
 
 ```erlang
 bar(Some, Very, Long, Arguments)
@@ -65,6 +68,7 @@ We find this rather awkward as we don't use half-indentation anywhere else in th
  - ✅ Differentiation between guards and body
  - ✅ Minimize diff when changing a single line
  - ✅ Minimize indentation
+ - ❌ Indenting by 4
 
 ```erlang
 bar(X)
@@ -92,6 +96,7 @@ This creates relatively little differentiation between guards and body of the fu
  - ❌ Differentiation between guards and body
  - ✅ Minimize diff when changing a single line
  - ✅ Minimize indentation
+ - ❌ Indenting by 4
 
 ```erlang
 bar(X)
@@ -108,6 +113,7 @@ Small functions and multiline guards look great with "floating" guards.
  - ✅ Differentiation between guards and body
  - ❌ Minimize diff when changing a single line
  - ❌ Minimize indentation
+ - ❌ Indenting by 4
 
 ```erlang
 bar(X) when is_tuple(X);
@@ -147,6 +153,7 @@ This preserves clarity, by creating differentiation between guards and body of t
  - ✅ Differentiation between guards and body
  - ✅ Minimize diff when changing a single line
  - ✅ Minimize indentation
+ - ✅ Indenting by 4
 
 ```erlang formatted newlinewhen
 bar(X) when
@@ -178,6 +185,7 @@ but this loses the differentiation between guards and body.
  - ❌ Differentiation between guards and body
  - ✅ Minimize diff when changing a single line
  - ✅ Minimize indentation
+ - ✅ Indenting by 4
 
 ```erlang unformatted newlinewhen
 bar(X) when
@@ -195,6 +203,7 @@ but this also loses the differentiation between guards and body.
  - ❌ Differentiation between guards and body
  - ✅ Minimize diff when changing a single line
  - ✅ Minimize indentation
+ - ✅ Indenting by 4
 
 ```erlang
 bar(X) when
@@ -202,6 +211,83 @@ bar(X) when
     % some comment
     is_list(X)
 -> body.
+```
+
+## When on same line as guards
+
+We can move `when` to the same line as guards and still keep the `->` on a separate line.
+This creates an even greater differentiation between guards and body, than when only the `->` is on a separate line.
+We find this rather awkward to type when we have multiline guards:
+
+ - ✅ Differentiation between guards and body
+ - ✅ Minimize diff when changing a single line
+ - ❌ Minimize indentation
+ - ❌ Indenting by 4
+
+```erlang
+post({Generate, _L, _Pattern, _Expr}, St, expr)
+    when Generate =:= generate; Generate =:= b_generate
+->
+    body.
+```
+
+```erlang
+bar(X)
+    when is_tuple(X);
+         % some comment
+         is_list(X)
+->
+    body.
+```
+
+```erlang
+insert_nested({Field, Meta, Key0, Value0}, Comments0)
+    when Field =:= map_field_assoc;
+         Field =:= map_field_exact;
+         Field =:= record_field;
+         Field =:= generate;
+         Field =:= b_generate
+->
+    body.
+```
+
+## When indented by 3
+
+We can indent `when` by 3 to cause constant indentation by 4 for the other multiline guards.
+This creates an even greater differentiation between guards and body, than when only the `->` is on a separate line.
+
+ - ✅ Differentiation between guards and body
+ - ✅ Minimize diff when changing a single line
+ - ✅ Minimize indentation
+ - ✅ Indenting by 4
+
+```erlang
+insert_nested({Field, Meta, Key0, Value0}, Comments0)
+   when Field =:= map_field_assoc;
+        Field =:= map_field_exact;
+        Field =:= record_field;
+        Field =:= generate;
+        Field =:= b_generate
+->
+    body.
+```
+
+❌ We don't have a measurable goal that disqualifies this option, but it tends to look rather awkward, in the case for single line guards.
+
+```erlang
+post({Generate, _L, _Pattern, _Expr}, St, expr)
+   when Generate =:= generate; Generate =:= b_generate
+->
+    body.
+```
+
+```erlang
+bar(X)
+   when is_tuple(X);
+        % some comment
+        is_list(X)
+->
+    body.
 ```
 
 ## References
