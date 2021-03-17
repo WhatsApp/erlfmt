@@ -2425,6 +2425,36 @@ spec(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "-spec foo:?BAR() -> ok.\n"
+    ),
+    ?assertSame(
+        "-spec fits(Width :: integer(), Column :: integer(), HasBreaks :: boolean(), Entries) ->\n"
+        "    boolean()\n"
+        "when\n"
+        "    Entries ::\n"
+        "        maybe_improper_list(\n"
+        "            {integer(), mode(), doc()},\n"
+        "            {tail, boolean(), Entries} | []\n"
+        "        ).\n",
+        100
+    ),
+    ?assertSame(
+        "-spec fits(Width :: integer(), Column :: integer(), HasBreaks :: boolean(), Entries) ->\n"
+        "    boolean()\n"
+        "when\n"
+        "    Entries :: maybe_improper_list(\n"
+        "        {integer(), mode(), doc()},\n"
+        "        {tail, boolean(), Entries} | []\n"
+        "    ).\n",
+        100
+    ),
+    ?assertFormat(
+        "-spec fits() -> boolean() when\n"
+        "    Entries :: {VeryLongTuple, EvenLonger}.\n",
+        "-spec fits() -> boolean() when\n"
+        "    Entries ::\n"
+        "        {VeryLongTuple,\n"
+        "            EvenLonger}.\n",
+        30
     ).
 
 define(Config) when is_list(Config) ->
