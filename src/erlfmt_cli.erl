@@ -68,8 +68,11 @@ do(Name, PreferOpts, DefaultOpts) ->
     SpecifiedFiles = specified_files(PreferOpts) ++ specified_files(DefaultOpts),
     Parsed =
         case {PreferParsed, DefaultParsed, SpecifiedFiles} of
-            {{format, _, _, #config{out = standard_out}},
-                {format, _, _, #config{out = standard_out}}, _} ->
+            {
+                {format, _, _, #config{out = standard_out}},
+                {format, _, _, #config{out = standard_out}},
+                _
+            } ->
                 %% Do not provide default files if we are writing to stdout
                 resolve_parsed(PreferParsed, DefaultParsed);
             {{format, [], _, _}, {format, [], _, _}, _} when SpecifiedFiles =/= [] ->
@@ -328,8 +331,10 @@ resolve_parsed(PreferParsed, DefaultParsed) ->
             version;
         {_, version} ->
             version;
-        {{format, PreferFiles, PreferExclude, PreferConfig},
-            {format, DefaultFiles, DefaultExclude, DefaultConfig}} ->
+        {
+            {format, PreferFiles, PreferExclude, PreferConfig},
+            {format, DefaultFiles, DefaultExclude, DefaultConfig}
+        } ->
             {format, resolve_files(PreferFiles, DefaultFiles),
                 resolve_files(PreferExclude, DefaultExclude),
                 resolve_config(PreferConfig, DefaultConfig)}

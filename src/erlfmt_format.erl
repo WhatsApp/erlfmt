@@ -407,7 +407,7 @@ container_common(Meta, Values, Left, Right, BreakKind0, LastFits0) ->
     Surrounded = surround_container(BreakKind, Left, Doc, Right),
     LastFitsFun(Surrounded, disabled).
 
--type break_kind() :: break | flex_break | line.
+-type break_kind() :: break | flex_break | line | no_break.
 
 break_behaviour(Meta, Values, BreakKind) ->
     case
@@ -415,14 +415,50 @@ break_behaviour(Meta, Values, BreakKind) ->
             has_trailing_comments(Values) orelse
             (BreakKind =:= break andalso has_any_break_between(Values))
     of
-        true -> line;
-        _ -> BreakKind
+        true ->
+            line;
+        false ->
+            case {BreakKind, Values} of
+                {flex_break, [SoleElement]} ->
+                    case is_breakable_container(SoleElement) of
+                        true -> no_break;
+                        false -> break
+                    end;
+                {flex_break, [First | _]} ->
+                    case is_breakable_container(First) of
+                        true -> break;
+                        false -> BreakKind
+                    end;
+                _ ->
+                    BreakKind
+            end
     end.
+
+%% bin with concat inside erl/wa/test/configerator_validators_SUITE.erl
+
+%% Allow inilining containers and calls without elements/args
+is_breakable_container({Container, _, []}) when
+    Container =:= tuple; Container =:= bin; Container =:= list; Container =:= map
+->
+    false;
+is_breakable_container({Container, _, _, []}) when
+    Container =:= record; Container =:= call; Container =:= macro_call
+->
+    false;
+is_breakable_container({macro_call, _, _, none}) ->
+    false;
+%% Allow inlining binary literals
+is_breakable_container({bin, _, [_]}) ->
+    false;
+is_breakable_container(Expr) ->
+    lists:member(element(1, Expr), [tuple, bin, call, macro_call | ?NEXT_BREAK_FITS]).
 
 surround_container(line, Left, Doc, Right) ->
     surround(Left, <<"">>, concat(force_breaks(), Doc), <<"">>, Right);
 surround_container(break, Left, Doc, Right) ->
     surround(Left, <<"">>, Doc, <<"">>, Right);
+surround_container(no_break, Left, Doc, Right) ->
+    concat(Left, Doc, Right);
 surround_container(flex_break, Left, Doc, Right) ->
     group(concat(nest(concat(Left, Doc), ?INDENT, break), Right)).
 
@@ -463,7 +499,8 @@ has_any_break_between(_) ->
 -spec break_fun(break_kind()) -> erlfmt_algebra:append_fun().
 break_fun(line) -> fun erlfmt_algebra:line/2;
 break_fun(break) -> fun erlfmt_algebra:break/2;
-break_fun(flex_break) -> fun erlfmt_algebra:flex_break/2.
+break_fun(flex_break) -> fun erlfmt_algebra:flex_break/2;
+break_fun(no_break) -> fun(_, _) -> error(unreachable) end.
 
 -type value_doc_pair() :: {erlfmt_parse:abstract_form(), erlfmt_algebra:doc()}.
 
@@ -762,10 +799,14 @@ has_inner_break(Outer, Inner) ->
 is_next_break_fits({FlexContainer, Meta, Values} = Expr) when
     FlexContainer =:= tuple; FlexContainer =:= bin
 ->
-    (has_opening_line_break(Meta, Values) orelse has_trailing_comments(Values)) andalso
+    (has_opening_line_break(Meta, Values) orelse
+        has_trailing_comments(Values) orelse first_is_breakable_container(Values)) andalso
         has_no_comments_or_parens(Expr);
 is_next_break_fits(Expr) ->
     lists:member(element(1, Expr), ?NEXT_BREAK_FITS) andalso has_no_comments_or_parens(Expr).
+
+first_is_breakable_container([First | _]) -> is_breakable_container(First);
+first_is_breakable_container(_) -> false.
 
 has_no_comments_or_parens(Meta) ->
     {Pre, Post} = comments(Meta),
@@ -824,8 +865,11 @@ comment_to_algebra({comment, _Meta, Lines}) ->
     fold_doc(fun erlfmt_algebra:line/2, LinesD).
 
 comments_with_pre_dot(Meta) ->
-    {erlfmt_scan:get_anno(pre_comments, Meta, []), erlfmt_scan:get_anno(pre_dot_comments, Meta, []),
-        erlfmt_scan:get_anno(post_comments, Meta, [])}.
+    {
+        erlfmt_scan:get_anno(pre_comments, Meta, []),
+        erlfmt_scan:get_anno(pre_dot_comments, Meta, []),
+        erlfmt_scan:get_anno(post_comments, Meta, [])
+    }.
 
 comments(Meta) ->
     [] = erlfmt_scan:get_anno(pre_dot_comments, Meta, []),
