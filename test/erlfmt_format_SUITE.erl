@@ -1634,6 +1634,83 @@ case_expression(Config) when is_list(Config) ->
         "    _ ->\n"
         "        error\n"
         "end\n"
+    ),
+    %% when a pattern is in a clause and it breaks we want to prevent issue #211
+    ?assertSame(
+        "handle_call({start_abcdefgh, AbcdefghId}, _From, #state{abcdefghs = Abcdefghs0} = State0) ->\n"
+        "    case maps:get(AbcdefghId, Abcdefghs0, undefined) of\n"
+        "        undefined ->\n"
+        "            {reply, {error, {unknown, \"Unknown abcdefgh id\"}}, State0};\n"
+        "        #abcdefgh{abcdefgh_type = AbcdefghType, specs = Specs, abc_de_abcde = [AbcdefgId | Rest]} =\n"
+        "                Abcdefgh ->\n"
+        "            {reply, ok, State}\n"
+        "    end.\n",
+        100
+    ),
+    ?assertSame(
+        "handle_call({start_abcdefgh, AbcdefghId}, _From, #state{abcdefghs = Abcdefghs0} = State0) ->\n"
+        "    case maps:get(AbcdefghId, Abcdefghs0, undefined) of\n"
+        "        undefined ->\n"
+        "            {reply, {error, {unknown, \"Unknown abcdefgh id\"}}, State0};\n"
+        "        #abcdefgh{abcdefgh_type = AbcdefghType, specs = Specs, abc_de_abcde = [AbcdefgId | Rest]} =\n"
+        "                Abcdefgh =\n"
+        "                    Bcdef123123123123123123123123123123123123123123123123123123123123123123123123 ->\n"
+        "            {reply, ok, State}\n"
+        "    end.\n",
+        100
+    ),
+    ?assertSame(
+        "handle_call({start_abcdefgh, AbcdefghId}, _From, #state{abcdefghs = Abcdefghs0} = State0) ->\n"
+        "    case maps:get(AbcdefghId, Abcdefghs0, undefined) of\n"
+        "        undefined ->\n"
+        "            {reply, {error, {unknown, \"Unknown abcdefgh id\"}}, State0};\n"
+        "        #abcdefgh{\n"
+        "            abcdefgh_type = AbcdefghType\n"
+        "        } =\n"
+        "                Abcdefgh ->\n"
+        "            {reply, ok, State}\n"
+        "    end.\n",
+        100
+    ),
+    ?assertSame(
+        "handle_call({start_abcdefgh, AbcdefghId}, _From, #state{abcdefghs = Abcdefghs0} = State0) ->\n"
+        "    case maps:get(AbcdefghId, Abcdefghs0, undefined) of\n"
+        "        undefined ->\n"
+        "            {reply, {error, {unknown, \"Unknown abcdefgh id\"}}, State0};\n"
+        "        Abcdefgh =\n"
+        "                #abcdefgh{\n"
+        "                    abcdefgh_type = AbcdefghType,\n"
+        "                    specs = Specs,\n"
+        "                    abc_de_abcde = [AbcdefgId | Rest]\n"
+        "                } ->\n"
+        "            {reply, ok, State}\n"
+        "    end.\n",
+        100
+    ),
+    ?assertSame(
+        "handle_call({start_abcdefgh, AbcdefghId}, _From, #state{abcdefghs = Abcdefghs0} = State0) ->\n"
+        "    case maps:get(AbcdefghId, Abcdefghs0, undefined) of\n"
+        "        undefined ->\n"
+        "            {reply, {error, {unknown, \"Unknown abcdefgh id\"}}, State0};\n"
+        "        Abcdefgh = #abcdefgh{\n"
+        "            abcdefgh_type = AbcdefghType,\n"
+        "            specs = Specs,\n"
+        "            abc_de_abcde = [AbcdefgId | Rest]\n"
+        "        } ->\n"
+        "            {reply, ok, State}\n"
+        "    end.\n",
+        100
+    ),
+    ?assertSame(
+        "handle_call({start_abcdefgh, AbcdefghId}, _From, #state{abcdefghs = Abcdefghs0} = State0) ->\n"
+        "    case maps:get(AbcdefghId, Abcdefghs0, undefined) of\n"
+        "        undefined ->\n"
+        "            {reply, {error, {unknown, \"Unknown abcdefgh id\"}}, State0};\n"
+        "        \"abcdefgh{abcdefgh_type = AbcdefghType, specs = Specs, abc_de_abcde = AbcdefgId | Rest\" ++\n"
+        "                Abcdefgh ->\n"
+        "            {reply, ok, State}\n"
+        "    end.\n",
+        100
     ).
 
 receive_expression(Config) when is_list(Config) ->
