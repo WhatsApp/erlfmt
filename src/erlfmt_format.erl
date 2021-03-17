@@ -318,21 +318,11 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     RightD = binary_operand_to_algebra(Op, Right, 0),
     Doc =
         case Op of
-            '::' -> dolon_to_algebra(Left, Right, LeftD, RightD, Indent);
+            '::' -> field_to_algebra(<<"::">>, Left, Right, LeftD, RightD, Indent);
             '=' -> field_to_algebra(<<"=">>, Left, Right, LeftD, RightD, Indent);
             _ -> breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent)
         end,
     combine_comments(Meta, maybe_wrap_in_parens(Meta, Doc)).
-
-dolon_to_algebra(Left, Right, LeftD, RightD, Indent) ->
-    case not has_break_between(Left, Right) of
-        true ->
-            with_next_break_fits(is_next_break_fits(Right), RightD, fun(R) ->
-                concat(group(LeftD), <<" :: ">>, group(R))
-            end);
-        false ->
-            breakable_binary_op_to_algebra(<<"::">>, Left, Right, LeftD, RightD, Indent)
-    end.
 
 field_to_algebra(OpD, Left, Right, LeftD, RightD, Indent) ->
     case
