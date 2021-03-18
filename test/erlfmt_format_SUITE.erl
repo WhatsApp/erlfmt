@@ -572,10 +572,12 @@ tuple(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "{{a,long,tuple},{nested,1,long,tuple}}",
-        "{{a, long, tuple},\n"
+        "{\n"
+        "    {a, long,\n"
+        "        tuple},\n"
         "    {nested, 1,\n"
-        "        long,\n"
-        "        tuple}}\n",
+        "        long, tuple}\n"
+        "}\n",
         20
     ),
     ?assertFormat(
@@ -590,26 +592,34 @@ tuple(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "{{a,long,tuple},{another,tuple},[nested,1,long,list]}",
-        "{{a, long, tuple},\n"
-        "    {another, tuple}, [\n"
+        "{\n"
+        "    {a, long, tuple},\n"
+        "    {another, tuple},\n"
+        "    [\n"
         "        nested,\n"
         "        1,\n"
         "        long,\n"
         "        list\n"
-        "    ]}\n",
+        "    ]\n"
+        "}\n",
         25
     ),
     ?assertFormat(
         "{{a,long,tuple},bare,atoms,[nested,long,list],bare,atoms,this_does_not_fit}",
-        "{{a, long, tuple},\n"
-        "    bare, atoms,\n"
+        "{\n"
+        "    {a, long,\n"
+        "        tuple},\n"
+        "    bare,\n"
+        "    atoms,\n"
         "    [\n"
         "        nested,\n"
         "        long,\n"
         "        list\n"
         "    ],\n"
-        "    bare, atoms,\n"
-        "    this_does_not_fit}\n",
+        "    bare,\n"
+        "    atoms,\n"
+        "    this_does_not_fit\n"
+        "}\n",
         20
     ),
     ?assertFormat(
