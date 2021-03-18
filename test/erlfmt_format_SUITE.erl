@@ -36,6 +36,7 @@
     unary_operator/1,
     binary_operator/1,
     tuple/1,
+    untagged_tuple/1,
     list/1,
     binary/1,
     map_create/1,
@@ -122,6 +123,7 @@ groups() ->
         ]},
         {containers, [parallel], [
             tuple,
+            untagged_tuple,
             list,
             binary,
             map_create,
@@ -650,6 +652,148 @@ tuple(Config) when is_list(Config) ->
         "            line(expr_to_algebra(Value), comments_to_algebra(Comments))\n"
         "        )\n"
         "    ])}\n"
+    ).
+
+%% tagged vs untagged tuples
+untagged_tuple(Config) when is_list(Config) ->
+    ?assertSame(
+        "{foo(A), B}.\n"
+    ),
+    ?assertSame(
+        "{ajshdjkasdjkasdhkafoo(\n"
+        "    A\n"
+        "), abc}.\n"
+    ),
+    ?assertSame(
+        "{a(\n"
+        "    A\n"
+        "), abc}.\n"
+    ),
+    ?assertSame(
+        "{#{\n"
+        "    a => b\n"
+        "}, abc}.\n"
+    ),
+    ?assertSame(
+        "{[\n"
+        "    A\n"
+        "], abc}.\n"
+    ),
+    ?assertSame(
+        "{{\n"
+        "    A\n"
+        "}, abc}.\n"
+    ),
+    ?assertSame(
+        "{{A,\n"
+        "[\n"
+        "A\n"
+        "]},\n"
+        "abc}.\n"
+    ),
+    ?assertSame(
+        "{\n"
+        "{A,\n"
+        "[\n"
+        "A\n"
+        "]},\n"
+        "abc}.\n"
+    ),
+    ?assertSame(
+        "{{A, B,\n"
+        "% a\n"
+        "    C\n"
+        "}}.\n"
+    ),
+    ?assertSame(
+        "{\n"
+        "{A, B,\n"
+        "% a\n"
+        "    C\n"
+        "}}.\n"
+    ),
+    ?assertSame(
+        "{ajdsdjhasd, askjdasjkd, [\n"
+        "A, B\n"
+        "], c}.\n"
+    ),
+    ?assertSame(
+        "{A,\n"
+        "%foo\n"
+        "B,\n"
+        "[\n"
+        "A,\n"
+        "B\n"
+        "],\n"
+        "c}.\n"
+    ),
+    ?assertSame(
+        "{foo(A),\n"
+        "[\n"
+        "A,\n"
+        "B]}.\n"
+    ),
+    ?assertSame(
+        "{foo(A),\n"
+        "    [\n"
+        "        A,\n"
+        "        B\n"
+        "    ],\n"
+        "ghi}.\n"
+    ),
+    ?assertSame(
+        "{foo(A), aksjhdaksjhdas, askjdhaskjdhaskjdhas, askjhdaskjdhkajshdas, askjdhakjhdkjashd,\n"
+        "    askjhdasjkhdjsakhd}.\n"
+    ),
+    ?assertSame(
+        "{foo(), ajkshdjkasdhas, aksjhdakjdhkasj, askjhdajkshdkajsdh, bkadajkshdkasjhdaskh,\n"
+        "    asjdhakjshdaskjhdask}.\n"
+    ),
+    ?assertSame(
+        "{?FOO,\n"
+        "    [\n"
+        "A,\n"
+        "B\n"
+        "]}.\n"
+    ),
+    ?assertSame(
+        "{[],\n"
+        "[\n"
+        "A,\n"
+        "B\n"
+        "]}.\n"
+    ),
+    ?assertSame(
+        "{[\n"
+        "    A,\n"
+        "    B\n"
+        "]}.\n"
+    ),
+    ?assertSame(
+        "{{A,\n"
+        "    [\n"
+        "        A,\n"
+        "        B\n"
+        "    ],\n"
+        "    B}}.\n"
+    ),
+    ?assertSame(
+        "foo(A, B, {foo(A),\n"
+        "%foo\n"
+        "A,\n"
+        "B\n"
+        "}).\n"
+    ),
+    ?assertSame(
+        "{<<\"foo\">>,\n"
+        "[\n"
+        "A,\n"
+        "B\n"
+        "], a}.\n"
+    ),
+    ?assertSame(
+        "<<\"abc\"\n"
+        "    \"def\">>.\n"
     ).
 
 list(Config) when is_list(Config) ->
