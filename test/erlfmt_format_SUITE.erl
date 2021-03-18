@@ -659,65 +659,121 @@ untagged_tuple(Config) when is_list(Config) ->
     ?assertSame(
         "{foo(A), B}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{ajshdjkasdjkasdhkafoo(\n"
         "    A\n"
-        "), abc}.\n"
+        "), abc}.\n",
+        "{\n"
+        "    ajshdjkasdjkasdhkafoo(\n"
+        "        A\n"
+        "    ),\n"
+        "    abc\n"
+        "}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{a(\n"
         "    A\n"
-        "), abc}.\n"
+        "), abc}.\n",
+        "{\n"
+        "    a(\n"
+        "        A\n"
+        "    ),\n"
+        "    abc\n"
+        "}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{#{\n"
         "    a => b\n"
-        "}, abc}.\n"
+        "}, abc}.\n",
+        "{\n"
+        "    #{\n"
+        "        a => b\n"
+        "    },\n"
+        "    abc\n"
+        "}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{[\n"
         "    A\n"
-        "], abc}.\n"
+        "], abc}.\n",
+        "{\n"
+        "    [\n"
+        "        A\n"
+        "    ],\n"
+        "    abc\n"
+        "}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{{\n"
         "    A\n"
-        "}, abc}.\n"
+        "}, abc}.\n",
+        "{\n"
+        "    {\n"
+        "        A\n"
+        "    },\n"
+        "    abc\n"
+        "}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{{A,\n"
         "[\n"
         "A\n"
         "]},\n"
-        "abc}.\n"
+        "abc}.\n",
+        "{\n"
+        "    {A, [\n"
+        "        A\n"
+        "    ]},\n"
+        "    abc\n"
+        "}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{\n"
         "{A,\n"
         "[\n"
         "A\n"
         "]},\n"
-        "abc}.\n"
+        "abc}.\n",
+        "{\n"
+        "    {A, [\n"
+        "        A\n"
+        "    ]},\n"
+        "    abc\n"
+        "}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{{A, B,\n"
         "% a\n"
         "    C\n"
-        "}}.\n"
+        "}}.\n",
+        "{{A, B,\n"
+        "    % a\n"
+        "    C}}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{\n"
         "{A, B,\n"
         "% a\n"
         "    C\n"
-        "}}.\n"
+        "}}.\n",
+        "{\n"
+        "    {A, B,\n"
+        "        % a\n"
+        "        C}\n"
+        "}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{ajdsdjhasd, askjdasjkd, [\n"
         "A, B\n"
-        "], c}.\n"
+        "], c}.\n",
+        "{ajdsdjhasd, askjdasjkd,\n"
+        "    [\n"
+        "        A,\n"
+        "        B\n"
+        "    ],\n"
+        "    c}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{A,\n"
         "%foo\n"
         "B,\n"
@@ -725,42 +781,80 @@ untagged_tuple(Config) when is_list(Config) ->
         "A,\n"
         "B\n"
         "],\n"
-        "c}.\n"
+        "c}.\n",
+        "{A,\n"
+        "    %foo\n"
+        "    B,\n"
+        "    [\n"
+        "        A,\n"
+        "        B\n"
+        "    ],\n"
+        "    c}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{foo(A),\n"
         "[\n"
         "A,\n"
-        "B]}.\n"
+        "B]}.\n",
+        "{foo(A), [\n"
+        "    A,\n"
+        "    B\n"
+        "]}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{foo(A),\n"
         "    [\n"
         "        A,\n"
         "        B\n"
         "    ],\n"
-        "ghi}.\n"
+        "ghi}.\n",
+        "{\n"
+        "    foo(A),\n"
+        "    [\n"
+        "        A,\n"
+        "        B\n"
+        "    ],\n"
+        "    ghi\n"
+        "}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{foo(A), aksjhdaksjhdas, askjdhaskjdhaskjdhas, askjhdaskjdhkajshdas, askjdhakjhdkjashd,\n"
-        "    askjhdasjkhdjsakhd}.\n"
+        "    askjhdasjkhdjsakhd}.\n",
+        "{\n"
+        "    foo(A),\n"
+        "    aksjhdaksjhdas,\n"
+        "    askjdhaskjdhaskjdhas,\n"
+        "    askjhdaskjdhkajshdas,\n"
+        "    askjdhakjhdkjashd,\n"
+        "    askjhdasjkhdjsakhd\n"
+        "}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{foo(), ajkshdjkasdhas, aksjhdakjdhkasj, askjhdajkshdkajsdh, bkadajkshdkasjhdaskh,\n"
-        "    asjdhakjshdaskjhdask}.\n"
+        "    asjdhakjshdaskjhdask}.\n",
+        "{foo(), ajkshdjkasdhas, aksjhdakjdhkasj, askjhdajkshdkajsdh,\n"
+        "    bkadajkshdkasjhdaskh, asjdhakjshdaskjhdask}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{?FOO,\n"
         "    [\n"
         "A,\n"
         "B\n"
+        "]}.\n",
+        "{?FOO, [\n"
+        "    A,\n"
+        "    B\n"
         "]}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{[],\n"
         "[\n"
         "A,\n"
         "B\n"
+        "]}.\n",
+        "{[], [\n"
+        "    A,\n"
+        "    B\n"
         "]}.\n"
     ),
     ?assertSame(
@@ -777,23 +871,39 @@ untagged_tuple(Config) when is_list(Config) ->
         "    ],\n"
         "    B}}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "foo(A, B, {foo(A),\n"
         "%foo\n"
         "A,\n"
         "B\n"
+        "}).\n",
+        "foo(A, B, {\n"
+        "    foo(A),\n"
+        "    %foo\n"
+        "    A,\n"
+        "    B\n"
         "}).\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "{<<\"foo\">>,\n"
         "[\n"
         "A,\n"
         "B\n"
-        "], a}.\n"
+        "], a}.\n",
+        "{<<\"foo\">>,\n"
+        "    [\n"
+        "        A,\n"
+        "        B\n"
+        "    ],\n"
+        "    a}.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "<<\"abc\"\n"
-        "    \"def\">>.\n"
+        "    \"def\">>.\n",
+        "<<\n"
+        "    \"abc\"\n"
+        "    \"def\"\n"
+        ">>.\n"
     ).
 
 list(Config) when is_list(Config) ->
