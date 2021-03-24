@@ -64,7 +64,8 @@
     type/1,
     exprs/1,
     comment/1,
-    force_break/1
+    force_break/1,
+    binary_operator_more/1
 ]).
 
 suite() ->
@@ -118,7 +119,8 @@ groups() ->
         ]},
         {operators, [parallel], [
             unary_operator,
-            binary_operator
+            binary_operator,
+            binary_operator_more
         ]},
         {containers, [parallel], [
             tuple,
@@ -323,8 +325,8 @@ binary_operator(Config) when is_list(Config) ->
     ?assertSame("Foo ++ Bar ++ Baz\n"),
     ?assertFormat(
         "Foo ++ Bar ++ Baz",
-        "Foo ++\n"
-        "    Bar ++ Baz\n",
+        "Foo ++ Bar ++\n"
+        "    Baz\n",
         15
     ),
     ?assertFormat(
@@ -543,6 +545,53 @@ binary_operator(Config) when is_list(Config) ->
         "Foo andalso\n"
         "    Bar andalso\n"
         "    Baz\n"
+    ).
+
+binary_operator_more(Config) when is_list(Config) ->
+    %% More next break fits
+    ?assertFormat(
+        "Foo orelse Bar orelse Baz\n",
+        "Foo orelse\n"
+        "    Bar orelse\n"
+        "    Baz\n",
+        10
+    ),
+    ?assertFormat(
+        "Foo orelse Bar orelse Baz\n",
+        "Foo orelse Bar orelse\n"
+        "    Baz\n",
+        23
+    ),
+    ?assertFormat(
+        "Foo orelse Bar orelse Baz orelse Abc orelse Cde\n",
+        "Foo orelse Bar orelse\n"
+        "    Baz orelse Abc orelse Cde\n",
+        30
+    ),
+    ?assertSame(
+        "Foo andalso\n"
+        "    Bar andalso Baz\n"
+    ),
+    ?assertSame(
+        "s2c(<<C, Rest/binary>>, Acc) when\n"
+        "    C == $\; orelse\n"
+        "        C == $\$ orelse\n"
+        "        C == $\> orelse\n"
+        "        C == $\< orelse\n"
+        "        C == $\/\n"
+        "->\n"
+        "    ok.\n"
+    ),
+    ?assertSame(
+        "[\n"
+        "    Slash ++\n"
+        "        binary_to_list(A2) ++\n"
+        "        SlashArraySlash ++\n"
+        "        binary_to_list(A1) ++\n"
+        "        Slash ++\n"
+        "        graphviz_edge_label(L)\n"
+        " || {_, A1, A2, L} <- Es\n"
+        "].\n"
     ).
 
 tuple(Config) when is_list(Config) ->

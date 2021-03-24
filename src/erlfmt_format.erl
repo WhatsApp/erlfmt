@@ -307,10 +307,19 @@ binary_op_to_algebra('/', _Meta, {atom, _, _} = Left, {integer, _, _} = Right) -
 binary_op_to_algebra('|', Meta, Left, Right) ->
     %% | does not increase indentation and breaks as a whole
     union_to_algebra(Meta, Left, Right);
-binary_op_to_algebra(Op, Meta0, Left, Right) ->
+binary_op_to_algebra(Op, Meta0, Left0, Right0) ->
     %% don't print parens and comments twice - expr_to_algebra took care of it already
     Meta = erlfmt_scan:delete_annos([parens, pre_comments, post_comments], Meta0),
+    {op, _, _Meta, Left, Right} = rewrite_assoc(Op, Meta, Left0, Right0),
     binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT).
+
+rewrite_assoc(Op, MetaA, A, {op, MetaBC, Op, B, C} = BC) ->
+    case erlfmt_scan:get_anno(parens, MetaBC, false) of
+        true -> {op, MetaA, Op, A, BC};
+        _ -> {op, MetaA, Op, rewrite_assoc(Op, MetaBC, A, B), C}
+    end;
+rewrite_assoc(Op, Meta, Left, Right) ->
+    {op, Meta, Op, Left, Right}.
 
 binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     LeftD = binary_operand_to_algebra(Op, Left, Indent),
