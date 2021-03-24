@@ -310,13 +310,14 @@ binary_op_to_algebra('|', Meta, Left, Right) ->
 binary_op_to_algebra(Op, Meta0, Left0, Right0) ->
     %% don't print parens and comments twice - expr_to_algebra took care of it already
     Meta = erlfmt_scan:delete_annos([parens, pre_comments, post_comments], Meta0),
-    {op, _, _Meta, Left, Right} = rewrite_assoc(Op, Meta, Left0, Right0),
+    {op, _Meta, Op, Left, Right} = rewrite_assoc(Op, Meta, Left0, Right0),
     binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT).
 
 rewrite_assoc(Op, MetaA, A, {op, MetaBC, Op, B, C} = BC) ->
     case erlfmt_scan:get_anno(parens, MetaBC, false) of
         true -> {op, MetaA, Op, A, BC};
-        _ -> {op, MetaA, Op, rewrite_assoc(Op, MetaBC, A, B), C}
+        _ ->
+            rewrite_assoc(Op, MetaA, rewrite_assoc(Op, MetaBC, A, B), C)
     end;
 rewrite_assoc(Op, Meta, Left, Right) ->
     {op, Meta, Op, Left, Right}.

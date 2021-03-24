@@ -565,8 +565,8 @@ binary_operator_more(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "Foo orelse Bar orelse Baz orelse Abc orelse Cde\n",
-        "Foo orelse Bar orelse\n"
-        "    Baz orelse Abc orelse Cde\n",
+        "Foo orelse Bar orelse Baz orelse\n"
+        "    Abc orelse Cde\n",
         30
     ),
     ?assertSame(
@@ -579,13 +579,19 @@ binary_operator_more(Config) when is_list(Config) ->
         "->\n"
         "    ok.\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "s2c(<<C, Rest/binary>>, Acc) when\n"
         "    C == $\; orelse\n"
         "        C == $\$ orelse\n"
         "        C == $\> orelse\n"
         "        C == $\< orelse\n"
         "        C == $\/\n"
+        "->\n"
+        "    ok.\n",
+        %% TODO: This was assertSame, but now weirdly preserves only the first newline
+        "s2c(<<C, Rest/binary>>, Acc) when\n"
+        "    C == $\; orelse\n"
+        "        C == $\$ orelse C == $\> orelse C == $\< orelse C == $\/\n"
         "->\n"
         "    ok.\n"
     ),
@@ -594,10 +600,8 @@ binary_operator_more(Config) when is_list(Config) ->
         "    C == $\; orelse C == $\$ orelse C == $\> orelse C == $\< orelse C == $\/\n"
         "->\n"
         "    ok.\n",
-        %% TODO: It now looks pretty weird that the last line is longer than the line before
         "s2c(<<C, Rest/binary>>, Acc) when\n"
-        "    C == $\; orelse C == $\$ orelse\n"
-        "        C == $\> orelse\n"
+        "    C == $\; orelse C == $\$ orelse C == $\> orelse\n"
         "        C == $\< orelse C == $\/\n"
         "->\n"
         "    ok.\n",
@@ -608,36 +612,26 @@ binary_operator_more(Config) when is_list(Config) ->
         "    Slash ++ binary_to_list(A2) ++ SlashArraySlash ++ binary_to_list(A1) ++ Slash ++ graphviz_edge_label(L)\n"
         " || {_, A1, A2, L} <- Es\n"
         "].\n",
-        %% TODO: not sure if this is ideal
-        "[\n"
-        "    Slash ++ binary_to_list(A2) ++\n"
-        "        SlashArraySlash ++ binary_to_list(A1) ++ Slash ++ graphviz_edge_label(L)\n"
-        " || {_, A1, A2, L} <- Es\n"
-        "].\n"
-    ),
-    ?assertFormat(
         "[\n"
         "    Slash ++ binary_to_list(A2) ++ SlashArraySlash ++ binary_to_list(A1) ++\n"
         "        Slash ++ graphviz_edge_label(L)\n"
         " || {_, A1, A2, L} <- Es\n"
-        "].\n",
-        %% TODO: not sure if this is ideal
-        "[\n"
-        "    Slash ++ binary_to_list(A2) ++\n"
-        "        SlashArraySlash ++\n"
-        "        binary_to_list(A1) ++\n"
-        "        Slash ++ graphviz_edge_label(L)\n"
-        " || {_, A1, A2, L} <- Es\n"
-        "].\n",
-        100
+        "].\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "[\n"
         "    Slash ++\n"
         "        binary_to_list(A2) ++\n"
         "        SlashArraySlash ++\n"
         "        binary_to_list(A1) ++\n"
         "        Slash ++\n"
+        "        graphviz_edge_label(L)\n"
+        " || {_, A1, A2, L} <- Es\n"
+        "].\n",
+        %% TODO: This was assertSame, but now weirdly preserves the first newline
+        "[\n"
+        "    Slash ++\n"
+        "        binary_to_list(A2) ++ SlashArraySlash ++ binary_to_list(A1) ++ Slash ++\n"
         "        graphviz_edge_label(L)\n"
         " || {_, A1, A2, L} <- Es\n"
         "].\n"
