@@ -1047,8 +1047,6 @@ record_fields([{macro_call, A, Name, Args}|Fields]) ->
     [{record_field,Name,{macro_call, A, Name, Args}}|record_fields(Fields)];
 record_fields([{atom,Aa,A}|Fields]) ->
     [{record_field,Aa,{atom,Aa,A}}|record_fields(Fields)];
-record_fields([{atom,Aa,A}|Fields]) ->
-    [{record_field,Aa,{atom,Aa,A}}|record_fields(Fields)];
 record_fields([{op,Am,'=',FieldValue,Expr}|Fields]) ->
     [{record_field,Am,FieldValue,Expr}|record_fields(Fields)];
 record_fields([{op,Am,'::',Expr,TypeInfo}|Fields]) ->
