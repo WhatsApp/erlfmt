@@ -1387,11 +1387,12 @@ overlong_warning(Config) when is_list(Config) ->
 
 do_not_crash_on_bad_record(Config) when is_list(Config) ->
     %% bad record declaration
-    {ok, _, _} = erlfmt:read_nodes_string("nofile","-record(r, [1])."),
+    {ok, _, _} = erlfmt:read_nodes_string("nofile", "-record(r, [1])."),
     %% bad record field
-    {ok, _, _} = erlfmt:read_nodes_string("nofile","-record(r, {2})."),
+    {ok, _, _} = erlfmt:read_nodes_string("nofile", "-record(r, {2})."),
     %% bad record macro field
-    {ok, _, _} = erlfmt:read_nodes_string("nofile",
+    {ok, _, _} = erlfmt:read_nodes_string(
+        "nofile",
         "-define(F1, field1).\n"
         "-record(r, {?F1}).\n"
     ).
