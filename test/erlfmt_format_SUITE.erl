@@ -541,6 +541,7 @@ binary_operator(Config) when is_list(Config) ->
     ),
 
     %% Keeps existing breaks
+    %% TODO: Currently this test breaks and not preserve the newline after `Bar andalso`
     ?assertSame(
         "Foo andalso\n"
         "    Bar andalso\n"
@@ -574,6 +575,12 @@ binary_operator_more(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "s2c(<<C, Rest/binary>>, Acc) when\n"
+        "    C == $\; orelse C == $\$ orelse C == $\> orelse C == $\< orelse C == $\/\n"
+        "->\n"
+        "    ok.\n"
+    ),
+    ?assertSame(
+        "s2c(<<C, Rest/binary>>, Acc) when\n"
         "    C == $\; orelse\n"
         "        C == $\$ orelse\n"
         "        C == $\> orelse\n"
@@ -581,6 +588,48 @@ binary_operator_more(Config) when is_list(Config) ->
         "        C == $\/\n"
         "->\n"
         "    ok.\n"
+    ),
+    ?assertFormat(
+        "s2c(<<C, Rest/binary>>, Acc) when\n"
+        "    C == $\; orelse C == $\$ orelse C == $\> orelse C == $\< orelse C == $\/\n"
+        "->\n"
+        "    ok.\n",
+        %% TODO: It now looks pretty weird that the last line is longer than the line before
+        "s2c(<<C, Rest/binary>>, Acc) when\n"
+        "    C == $\; orelse C == $\$ orelse\n"
+        "        C == $\> orelse\n"
+        "        C == $\< orelse C == $\/\n"
+        "->\n"
+        "    ok.\n",
+        42
+    ),
+    ?assertFormat(
+        "[\n"
+        "    Slash ++ binary_to_list(A2) ++ SlashArraySlash ++ binary_to_list(A1) ++ Slash ++ graphviz_edge_label(L)\n"
+        " || {_, A1, A2, L} <- Es\n"
+        "].\n",
+        %% TODO: not sure if this is ideal
+        "[\n"
+        "    Slash ++ binary_to_list(A2) ++\n"
+        "        SlashArraySlash ++ binary_to_list(A1) ++ Slash ++ graphviz_edge_label(L)\n"
+        " || {_, A1, A2, L} <- Es\n"
+        "].\n"
+    ),
+    ?assertFormat(
+        "[\n"
+        "    Slash ++ binary_to_list(A2) ++ SlashArraySlash ++ binary_to_list(A1) ++\n"
+        "        Slash ++ graphviz_edge_label(L)\n"
+        " || {_, A1, A2, L} <- Es\n"
+        "].\n",
+        %% TODO: not sure if this is ideal
+        "[\n"
+        "    Slash ++ binary_to_list(A2) ++\n"
+        "        SlashArraySlash ++\n"
+        "        binary_to_list(A1) ++\n"
+        "        Slash ++ graphviz_edge_label(L)\n"
+        " || {_, A1, A2, L} <- Es\n"
+        "].\n",
+        100
     ),
     ?assertSame(
         "[\n"
