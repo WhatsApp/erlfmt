@@ -80,7 +80,8 @@
     broken_range/1,
     contains_pragma/1,
     insert_pragma/1,
-    overlong_warning/1
+    overlong_warning/1,
+    do_not_crash_on_bad_record/1
 ]).
 
 suite() ->
@@ -122,7 +123,8 @@ groups() ->
             clauses,
             types,
             annos,
-            shebang
+            shebang,
+            do_not_crash_on_bad_record
         ]},
         {smoke_tests, [parallel], [
             {group, snapshot_tests},
@@ -1382,3 +1384,14 @@ overlong_warning(Config) when is_list(Config) ->
     ?assertEqual([], [Line || {8, _} = Line <- StringLongLines]),
     ?assert(lists:member({6, 121}, RangeLongLines)),
     ?assertEqual([], [Line || {8, _} = Line <- RangeLongLines]).
+
+do_not_crash_on_bad_record(Config) when is_list(Config) ->
+    %% bad record declaration
+    {ok, _, _} = erlfmt:read_nodes_string("nofile","-record(r, [1])."),
+    %% bad record field
+    {ok, _, _} = erlfmt:read_nodes_string("nofile","-record(r, {2})."),
+    %% bad record macro field
+    {ok, _, _} = erlfmt:read_nodes_string("nofile",
+        "-define(F1, field1).\n"
+        "-record(r, {?F1}).\n"
+    ).

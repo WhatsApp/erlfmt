@@ -964,7 +964,7 @@ Erlang code.
 %% XXX. To be refined.
 -type error_description() :: term().
 -type error_info() :: {erl_anno:line(), module(), error_description()}.
--type token() :: erl_scan:token().
+-type token() :: erlfmt_scan:token().
 
 %% mkop(Op, Arg) -> {op,Anno,Op,Arg}.
 %% mkop(Left, Op, Right) -> {op,Anno,Op,Left,Right}.
@@ -1056,7 +1056,7 @@ record_fields([]) -> [].
 
 -spec ret_err(_, _) -> no_return().
 ret_err(Anno, S) ->
-    return_error(erl_anno:location(Anno), S).
+    return_error(erlfmt_scan:get_anno(location, Anno), S).
 
 set_parens(Expr) -> erlfmt_scan:put_anno(parens, true, Expr).
 
