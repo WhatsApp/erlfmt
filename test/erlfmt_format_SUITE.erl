@@ -401,6 +401,7 @@ binary_operator(Config) when is_list(Config) ->
         "    D\n",
         12
     ),
+    %% TODO: This goes back and forth
     ?assertFormat(
         "One * (Two + Three + Four) * Five",
         "One *\n"
@@ -541,7 +542,6 @@ binary_operator(Config) when is_list(Config) ->
     ),
 
     %% Keeps existing breaks
-    %% TODO: Currently this test breaks and not preserve the newline after `Bar andalso`
     ?assertSame(
         "Foo andalso\n"
         "    Bar andalso\n"
@@ -569,9 +569,12 @@ binary_operator_more(Config) when is_list(Config) ->
         "    Abc orelse Cde\n",
         30
     ),
-    ?assertSame(
+    ?assertFormat(
         "Foo andalso\n"
-        "    Bar andalso Baz\n"
+        "    Bar andalso Baz\n",
+        "Foo andalso\n"
+        "    Bar andalso\n"
+        "    Baz\n"
     ),
     ?assertSame(
         "s2c(<<C, Rest/binary>>, Acc) when\n"
@@ -579,19 +582,13 @@ binary_operator_more(Config) when is_list(Config) ->
         "->\n"
         "    ok.\n"
     ),
-    ?assertFormat(
+    ?assertSame(
         "s2c(<<C, Rest/binary>>, Acc) when\n"
         "    C == $\; orelse\n"
         "        C == $\$ orelse\n"
         "        C == $\> orelse\n"
         "        C == $\< orelse\n"
         "        C == $\/\n"
-        "->\n"
-        "    ok.\n",
-        %% TODO: This was assertSame, but now weirdly preserves only the first newline
-        "s2c(<<C, Rest/binary>>, Acc) when\n"
-        "    C == $\; orelse\n"
-        "        C == $\$ orelse C == $\> orelse C == $\< orelse C == $\/\n"
         "->\n"
         "    ok.\n"
     ),
@@ -618,20 +615,13 @@ binary_operator_more(Config) when is_list(Config) ->
         " || {_, A1, A2, L} <- Es\n"
         "].\n"
     ),
-    ?assertFormat(
+    ?assertSame(
         "[\n"
         "    Slash ++\n"
         "        binary_to_list(A2) ++\n"
         "        SlashArraySlash ++\n"
         "        binary_to_list(A1) ++\n"
         "        Slash ++\n"
-        "        graphviz_edge_label(L)\n"
-        " || {_, A1, A2, L} <- Es\n"
-        "].\n",
-        %% TODO: This was assertSame, but now weirdly preserves the first newline
-        "[\n"
-        "    Slash ++\n"
-        "        binary_to_list(A2) ++ SlashArraySlash ++ binary_to_list(A1) ++ Slash ++\n"
         "        graphviz_edge_label(L)\n"
         " || {_, A1, A2, L} <- Es\n"
         "].\n"

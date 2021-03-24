@@ -361,9 +361,20 @@ is_call({macro_call, _, _, _}) -> true;
 is_call(_) -> false.
 
 breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent) ->
-    HasBreak = has_break_between(Left, Right),
+    HasBreak = has_break_between_op(OpD, Left, Right),
     RightOpD = nest(break(concat(<<" ">>, OpD), group(RightD)), Indent, break),
     concat(group(LeftD), group(concat(maybe_force_breaks(HasBreak), RightOpD))).
+
+has_break_between_op(OpD, {op, Meta, Op, A, B} = AB, C) ->
+    case OpD == string(atom_to_binary(Op, utf8)) of
+        true -> case erlfmt_scan:get_anno(parens, Meta, false) of
+            false -> has_break_between_op(OpD, A, B);
+            _ -> has_break_between(AB, C)
+        end;
+        false -> has_break_between(AB, C)
+    end;
+has_break_between_op(_OpD, Left, Right) ->
+    has_break_between(Left, Right).
 
 union_to_algebra(Meta, Left, Right) ->
     Doc = break(expr_to_algebra(Left), fold_unions(Right)),
