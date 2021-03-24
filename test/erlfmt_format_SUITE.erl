@@ -2360,6 +2360,10 @@ record_definition(Config) when is_list(Config) ->
         "        key2 => []\n"
         "    } :: type()\n"
         "}).\n"
+    ),
+    %% bad record should not crash during formatting
+    ?assertSame(
+        "-record(foo, {?FOO}).\n"
     ).
 
 spec(Config) when is_list(Config) ->
