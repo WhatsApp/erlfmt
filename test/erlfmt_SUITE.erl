@@ -1395,4 +1395,9 @@ do_not_crash_on_bad_record(Config) when is_list(Config) ->
         "nofile",
         "-define(F1, field1).\n"
         "-record(r, {?F1}).\n"
+    ),
+    %% bad record macro field 2
+    {ok, _, _} = erlfmt:read_nodes_string(
+        "nofile",
+        "-record(foo, {?FOO, b :: any()})."
     ).

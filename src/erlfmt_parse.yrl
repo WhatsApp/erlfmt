@@ -1045,8 +1045,8 @@ record_tuple(Other) ->
 
 record_fields([{atom,Aa,A}|Fields]) ->
     [{record_field,Aa,{atom,Aa,A}}|record_fields(Fields)];
-record_fields([{op,Am,'=',{atom,Aa,A},Expr}|Fields]) ->
-    [{record_field,Am,{atom,Aa,A},Expr}|record_fields(Fields)];
+record_fields([{op,Am,'=',FieldName,Expr}|Fields]) ->
+    [{record_field,Am,FieldName,Expr}|record_fields(Fields)];
 record_fields([{op,Am,'::',Expr,TypeInfo}|Fields]) ->
     [Field] = record_fields([Expr]),
     [{op,Am,'::',Field,TypeInfo}|record_fields(Fields)];
