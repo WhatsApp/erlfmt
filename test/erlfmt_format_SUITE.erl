@@ -753,6 +753,20 @@ binary_operator_more(Config) when is_list(Config) ->
         "    %% orelse comment\n"
         "    Bar orelse\n"
         "        Baz\n"
+    ),
+    ?assertFormat(
+        "equivalent(L1, R1) andalso %% checking L1 and R1\n"
+        "equivalent(L2, R2) andalso %% checking L2 and R2\n"
+        "equivalent(L3, R3) andalso %% checking L3 and R3\n"
+        "equivalent(L4, R4) %% checking L4 and R4\n",
+        "%% checking L1 and R1\n"
+        "equivalent(L1, R1) andalso\n"
+        "    %% checking L2 and R2\n"
+        "    equivalent(L2, R2) andalso\n"
+        "        %% checking L3 and R3\n"
+        "        equivalent(L3, R3) andalso\n"
+        "            %% checking L4 and R4\n"
+        "            equivalent(L4, R4)\n"
     ).
 
 tuple(Config) when is_list(Config) ->
