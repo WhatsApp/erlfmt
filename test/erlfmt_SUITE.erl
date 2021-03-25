@@ -80,7 +80,8 @@
     broken_range/1,
     contains_pragma/1,
     insert_pragma/1,
-    overlong_warning/1
+    overlong_warning/1,
+    do_not_crash_on_bad_record/1
 ]).
 
 suite() ->
@@ -122,7 +123,8 @@ groups() ->
             clauses,
             types,
             annos,
-            shebang
+            shebang,
+            do_not_crash_on_bad_record
         ]},
         {smoke_tests, [parallel], [
             {group, snapshot_tests},
@@ -1382,3 +1384,44 @@ overlong_warning(Config) when is_list(Config) ->
     ?assertEqual([], [Line || {8, _} = Line <- StringLongLines]),
     ?assert(lists:member({6, 121}, RangeLongLines)),
     ?assertEqual([], [Line || {8, _} = Line <- RangeLongLines]).
+
+do_not_crash_on_bad_record(Config) when is_list(Config) ->
+    %% normal record
+    ?assertMatch(
+        {ok, [{attribute, _, {atom, _, record}, _}], _},
+        erlfmt:read_nodes_string("nofile", "-record(r, { field :: string() }).")
+    ),
+    %% bad record declaration
+    {ok, [{exprs, _, _}], _} = erlfmt:read_nodes_string("nofile", "-record(r, [1])."),
+    %% bad record field
+    {ok, [{exprs, _, _}], _} = erlfmt:read_nodes_string("nofile", "-record(r, {2})."),
+    %% bad record macro field
+    {ok, [_, Attr], _} = erlfmt:read_nodes_string(
+        "nofile",
+        "-define(F1, field1).\n"
+        "-record(r, {?F1}).\n"
+    ),
+    ?assertMatch(
+        {attribute, _, {atom, _, record}, [
+            {atom, _, r},
+            {tuple, _, [
+                {record_field, _, {macro_call, _, _, _}}
+            ]}
+        ]},
+        Attr
+    ),
+    %% bad record macro field 2
+    {ok, [Attr2], _} = erlfmt:read_nodes_string(
+        "nofile",
+        "-record(foo, {?FOO, b :: any()})."
+    ),
+    ?assertMatch(
+        {attribute, _, {atom, _, record}, [
+            {atom, _, foo},
+            {tuple, _, [
+                {record_field, _, {macro_call, _, _, _}},
+                {op, _, _, {record_field, _, _}, {call, _, _, _}}
+            ]}
+        ]},
+        Attr2
+    ).

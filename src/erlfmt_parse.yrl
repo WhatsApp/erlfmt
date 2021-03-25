@@ -964,7 +964,7 @@ Erlang code.
 %% XXX. To be refined.
 -type error_description() :: term().
 -type error_info() :: {erl_anno:line(), module(), error_description()}.
--type token() :: erl_scan:token().
+-type token() :: erlfmt_scan:token().
 
 %% mkop(Op, Arg) -> {op,Anno,Op,Arg}.
 %% mkop(Left, Op, Right) -> {op,Anno,Op,Left,Right}.
@@ -1043,10 +1043,12 @@ record_tuple({tuple,At,Fields}) ->
 record_tuple(Other) ->
     ret_err(?anno(Other), "bad record declaration").
 
+record_fields([{macro_call, A, Name, Args}|Fields]) ->
+    [{record_field,A,{macro_call, A, Name, Args}}|record_fields(Fields)];
 record_fields([{atom,Aa,A}|Fields]) ->
     [{record_field,Aa,{atom,Aa,A}}|record_fields(Fields)];
-record_fields([{op,Am,'=',{atom,Aa,A},Expr}|Fields]) ->
-    [{record_field,Am,{atom,Aa,A},Expr}|record_fields(Fields)];
+record_fields([{op,Am,'=',FieldValue,Expr}|Fields]) ->
+    [{record_field,Am,FieldValue,Expr}|record_fields(Fields)];
 record_fields([{op,Am,'::',Expr,TypeInfo}|Fields]) ->
     [Field] = record_fields([Expr]),
     [{op,Am,'::',Field,TypeInfo}|record_fields(Fields)];
@@ -1056,7 +1058,7 @@ record_fields([]) -> [].
 
 -spec ret_err(_, _) -> no_return().
 ret_err(Anno, S) ->
-    return_error(erl_anno:location(Anno), S).
+    return_error(erlfmt_scan:get_anno(location, Anno), S).
 
 set_parens(Expr) -> erlfmt_scan:put_anno(parens, true, Expr).
 
