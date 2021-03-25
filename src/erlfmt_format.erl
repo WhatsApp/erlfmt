@@ -316,8 +316,7 @@ binary_op_to_algebra(Op, Meta0, Left0, Right0) ->
 rewrite_assoc(Op, MetaA, A, {op, MetaBC, Op, B, C} = BC) ->
     case erlfmt_scan:get_anno(parens, MetaBC, false) of
         true -> {op, MetaA, Op, A, BC};
-        _ ->
-            rewrite_assoc(Op, MetaA, rewrite_assoc(Op, MetaBC, A, B), C)
+        _ -> rewrite_assoc(Op, MetaA, rewrite_assoc(Op, MetaBC, A, B), C)
     end;
 rewrite_assoc(Op, Meta, Left, Right) ->
     {op, Meta, Op, Left, Right}.
@@ -378,11 +377,13 @@ breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent) ->
 %% then we want to check for a break between 3 and 4 not between 1 and 4
 has_break_between_op(OpD, {op, Meta, Op, _A, B} = AB, C) ->
     case OpD == string(atom_to_binary(Op, utf8)) of
-        true -> case erlfmt_scan:get_anno(parens, Meta, false) of
-            false -> has_break_between_op(OpD, B, C);
-            _ -> has_break_between(AB, C)
-        end;
-        false -> has_break_between(AB, C)
+        true ->
+            case erlfmt_scan:get_anno(parens, Meta, false) of
+                false -> has_break_between_op(OpD, B, C);
+                _ -> has_break_between(AB, C)
+            end;
+        false ->
+            has_break_between(AB, C)
     end;
 has_break_between_op(_OpD, Left, Right) ->
     has_break_between(Left, Right).
