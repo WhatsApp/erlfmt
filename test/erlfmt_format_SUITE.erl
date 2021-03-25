@@ -625,6 +625,101 @@ binary_operator_more(Config) when is_list(Config) ->
         "        graphviz_edge_label(L)\n"
         " || {_, A1, A2, L} <- Es\n"
         "].\n"
+    ),
+    ?assertFormat(
+        "AVariable andalso AnotherVariable andalso AnotherVariableMore andalso AnotherVariableExtra\n",
+        "AVariable andalso AnotherVariable andalso\n"
+        "    AnotherVariableMore andalso\n"
+        "    AnotherVariableExtra\n",
+        40
+    ),
+    ?assertFormat(
+        "is_registered(User)\n"
+        "    andalso password_matches(User, Password)\n"
+        "    andalso (has_active_session(User) orelse is_admin(User))\n"
+        "    andalso\n"
+        "        begin\n"
+        "             register_login(User, dates:now()),\n"
+        "             [ open_admin_session(User) || is_admin(User) ]\n"
+        "        end\n",
+        "is_registered(User) andalso\n"
+        "    password_matches(User, Password) andalso\n"
+        "    (has_active_session(User) orelse is_admin(User)) andalso\n"
+        "    begin\n"
+        "        register_login(User, dates:now()),\n"
+        "        [open_admin_session(User) || is_admin(User)]\n"
+        "    end\n"
+    ),
+    ?assertSame(
+        "{B, C} =\n"
+        "    case X of\n"
+        "        true -> f();\n"
+        "        _ -> g()\n"
+        "    end\n"
+    ),
+    ?assertSame(
+        "A = {B, C} =\n"
+        "    case X of\n"
+        "        true -> f();\n"
+        "        _ -> g()\n"
+        "    end.\n"
+    ),
+    ?assertSame(
+        "A = {{B1, B2}, C} = {B, C} =\n"
+        "    case X of\n"
+        "        true -> f();\n"
+        "        _ -> g()\n"
+        "    end.\n"
+    ),
+    ?assertSame(
+        "A =\n"
+        "    ({{B1, B2}, C} =\n"
+        "        ({B, C} =\n"
+        "            case X of\n"
+        "                true -> f();\n"
+        "                _ -> g()\n"
+        "            end)).\n"
+    ),
+    ?assertSame(
+        "convert_meta(Key, Value) when\n"
+        "    is_list(Key) orelse is_binary(Key),\n"
+        "    is_list(Key) orelse\n"
+        "        is_binary(Value) orelse\n"
+        "        is_atom(Value) orelse\n"
+        "        is_integer(Value)\n"
+        "->\n"
+        "    ok.\n"
+    ),
+    ?assertSame(
+        "equivalent(L1, R1) andalso equivalent(L2, R2) andalso equivalent(L3, R3) andalso\n"
+        "    equivalent(L4, R4)\n"
+    ),
+    ?assertFormat(
+        "equivalent(L1, R1) andalso\n"
+        "    equivalent(L2, R2) andalso equivalent(L3, R3) andalso equivalent(L4, R4)\n",
+        "equivalent(L1, R1) andalso\n"
+        "    equivalent(L2, R2) andalso\n"
+        "    equivalent(L3, R3) andalso\n"
+        "    equivalent(L4, R4)\n"
+    ),
+    %% TODO: This one also goes back and forth between with and without the last newline
+    ?assertFormat(
+        "the:ever(funny) andalso begin blocksof:my(code), that:appear(between), your:boolean(expressions) end andalso are:terrible(things, to, debug)\n",
+        "the:ever(funny) andalso\n"
+        "    begin\n"
+        "        blocksof:my(code),\n"
+        "        that:appear(between),\n"
+        "        your:boolean(expressions)\n"
+        "    end andalso\n"
+        "    are:terrible(things, to, debug)\n"
+    ),
+    %% TODO: This one also goes back and forth between several formats
+    ?assertFormat(
+        "a_function:with_a(<<\"very\">>, Long, list, \"of\", <<\"attributes\">>) andalso a:short(one) andalso another:very_very_long_one() andalso Another\n",
+        "a_function:with_a(<<\"very\">>, Long, list, \"of\", <<\"attributes\">>) andalso\n"
+        "    a:short(one) andalso\n"
+        "    another:very_very_long_one() andalso\n"
+        "    Another\n"
     ).
 
 tuple(Config) when is_list(Config) ->
