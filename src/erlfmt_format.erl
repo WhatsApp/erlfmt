@@ -314,8 +314,8 @@ binary_op_to_algebra(Op, Meta0, Left0, Right0) ->
     binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT).
 
 rewrite_assoc(Op, MetaA, A, {op, MetaBC, Op, B, C} = BC) ->
-    case erlfmt_scan:get_anno(parens, MetaBC, false) of
-        true ->
+    case has_no_comments_or_parens(MetaBC) of
+        false ->
             {op, MetaA, Op, A, BC};
         _ ->
             AB = rewrite_assoc(Op, update_meta_location(MetaBC, A, B), A, B),

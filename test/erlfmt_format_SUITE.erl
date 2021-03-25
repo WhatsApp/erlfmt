@@ -744,6 +744,15 @@ binary_operator_more(Config) when is_list(Config) ->
         "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa andalso\n"
         "    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) orelse\n"
         "    cccccccccccccccccccccccccccccccccc.\n"
+    ),
+    ?assertFormat(
+        "Foo orelse\n"
+        "    Bar orelse %% orelse comment\n"
+        "    Baz\n",
+        "Foo orelse\n"
+        "    %% orelse comment\n"
+        "    Bar orelse\n"
+        "        Baz\n"
     ).
 
 tuple(Config) when is_list(Config) ->
