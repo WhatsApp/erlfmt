@@ -724,6 +724,21 @@ binary_operator_more(Config) when is_list(Config) ->
         "a_function:with_a(<<\"very\">>, Long, list, \"of\", <<\"attributes\">>) andalso a:short(one) andalso another:very_very_long_one() andalso Another\n",
         "a_function:with_a(<<\"very\">>, Long, list, \"of\", <<\"attributes\">>) andalso\n"
         "    a:short(one) andalso another:very_very_long_one() andalso Another\n"
+    ),
+    ?assertSame(
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA orelse\n"
+        "    BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB andalso\n"
+        "        CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC.\n"
+    ),
+    ?assertSame(
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa andalso\n"
+        "    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb orelse\n"
+        "    cccccccccccccccccccccccccccccccccc.\n"
+    ),
+    ?assertSame(
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa andalso\n"
+        "    (bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb orelse\n"
+        "        cccccccccccccccccccccccccccccccccc).\n"
     ).
 
 tuple(Config) when is_list(Config) ->
