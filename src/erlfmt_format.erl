@@ -365,10 +365,21 @@ breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent) ->
     RightOpD = nest(break(concat(<<" ">>, OpD), group(RightD)), Indent, break),
     concat(group(LeftD), group(concat(maybe_force_breaks(HasBreak), RightOpD))).
 
-has_break_between_op(OpD, {op, Meta, Op, A, B} = AB, C) ->
+%% has_break_between_op has to do a special check for a break between binary operators,
+%% since by this time the binary operator's in the AST has been rewritten:
+%% from `(1 + (2 + (3 + 4)))` to `(((1 + 2) + 3) + 4)`
+%% which means when we check for a break in
+%% (((1 +
+%%    2) + 3) + 4)
+%% when we get the left as
+%% ((1 +
+%%    2) + 3)
+%% and the right is 4
+%% then we want to check for a break between 3 and 4 not between 1 and 4
+has_break_between_op(OpD, {op, Meta, Op, _A, B} = AB, C) ->
     case OpD == string(atom_to_binary(Op, utf8)) of
         true -> case erlfmt_scan:get_anno(parens, Meta, false) of
-            false -> has_break_between_op(OpD, A, B);
+            false -> has_break_between_op(OpD, B, C);
             _ -> has_break_between(AB, C)
         end;
         false -> has_break_between(AB, C)
