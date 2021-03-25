@@ -316,10 +316,18 @@ binary_op_to_algebra(Op, Meta0, Left0, Right0) ->
 rewrite_assoc(Op, MetaA, A, {op, MetaBC, Op, B, C} = BC) ->
     case erlfmt_scan:get_anno(parens, MetaBC, false) of
         true -> {op, MetaA, Op, A, BC};
-        _ -> rewrite_assoc(Op, MetaA, rewrite_assoc(Op, MetaBC, A, B), C)
+        _ ->
+            AB = rewrite_assoc(Op, update_meta_location(MetaBC, A, B), A, B),
+            rewrite_assoc(Op, update_meta_location(MetaA, AB, C), AB, C)
     end;
 rewrite_assoc(Op, Meta, Left, Right) ->
     {op, Meta, Op, Left, Right}.
+
+update_meta_location(Meta, First, Last) ->
+    Meta#{
+        location := erlfmt_scan:get_anno(location, First),
+        end_location := erlfmt_scan:get_anno(end_location, Last)
+    }.
 
 binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     LeftD = expr_to_algebra(Left),
@@ -360,33 +368,9 @@ is_call({macro_call, _, _, _}) -> true;
 is_call(_) -> false.
 
 breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent) ->
-    HasBreak = has_break_between_op(OpD, Left, Right),
+    HasBreak = has_break_between(Left, Right),
     RightOpD = nest(break(concat(<<" ">>, OpD), group(RightD)), Indent, break),
     concat(group(LeftD), group(concat(maybe_force_breaks(HasBreak), RightOpD))).
-
-%% has_break_between_op has to do a special check for a break between binary operators,
-%% since by this time the binary operator's in the AST has been rewritten:
-%% from `(1 + (2 + (3 + 4)))` to `(((1 + 2) + 3) + 4)`
-%% which means when we check for a break in
-%% (((1 +
-%%    2) + 3) + 4)
-%% when we get the left as
-%% ((1 +
-%%    2) + 3)
-%% and the right is 4
-%% then we want to check for a break between 3 and 4 not between 1 and 4
-has_break_between_op(OpD, {op, Meta, Op, _A, B} = AB, C) ->
-    case OpD == string(atom_to_binary(Op, utf8)) of
-        true ->
-            case erlfmt_scan:get_anno(parens, Meta, false) of
-                false -> has_break_between_op(OpD, B, C);
-                _ -> has_break_between(AB, C)
-            end;
-        false ->
-            has_break_between(AB, C)
-    end;
-has_break_between_op(_OpD, Left, Right) ->
-    has_break_between(Left, Right).
 
 union_to_algebra(Meta, Left, Right) ->
     Doc = break(expr_to_algebra(Left), fold_unions(Right)),
