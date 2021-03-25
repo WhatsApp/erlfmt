@@ -401,7 +401,6 @@ binary_operator(Config) when is_list(Config) ->
         "    D\n",
         12
     ),
-    %% TODO: This goes back and forth
     ?assertFormat(
         "One * (Two + Three + Four) * Five",
         "One *\n"
@@ -549,7 +548,19 @@ binary_operator(Config) when is_list(Config) ->
     ).
 
 binary_operator_more(Config) when is_list(Config) ->
-    %% More next break fits
+    ?assertSame(
+        "a_function_abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc andalso\n"
+        "    a_short_one andalso another_very_very_long_one andalso and_another\n"
+    ),
+    ?assertSame(
+        "((a_function_abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc andalso\n"
+        "    a_short_one) andalso another_very_very_long_one) andalso and_another\n"
+    ),
+    ?assertFormat(
+        "a_function_abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc andalso a_short_one andalso another_very_very_long_one andalso and_another\n",
+        "a_function_abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc andalso\n"
+        "    a_short_one andalso another_very_very_long_one andalso and_another\n"
+    ),
     ?assertFormat(
         "Foo orelse Bar orelse Baz\n",
         "Foo orelse\n"
@@ -569,12 +580,9 @@ binary_operator_more(Config) when is_list(Config) ->
         "    Abc orelse Cde\n",
         30
     ),
-    ?assertFormat(
+    ?assertSame(
         "Foo andalso\n"
-        "    Bar andalso Baz\n",
-        "Foo andalso\n"
-        "    Bar andalso\n"
-        "    Baz\n"
+        "    Bar andalso Baz\n"
     ),
     ?assertSame(
         "s2c(<<C, Rest/binary>>, Acc) when\n"
@@ -694,15 +702,15 @@ binary_operator_more(Config) when is_list(Config) ->
         "equivalent(L1, R1) andalso equivalent(L2, R2) andalso equivalent(L3, R3) andalso\n"
         "    equivalent(L4, R4)\n"
     ),
+    ?assertSame(
+        "equivalent(L1, R1) andalso\n"
+        "    equivalent(L2, R2) andalso equivalent(L3, R3) andalso equivalent(L4, R4)\n"
+    ),
     ?assertFormat(
-        "equivalent(L1, R1) andalso\n"
-        "    equivalent(L2, R2) andalso equivalent(L3, R3) andalso equivalent(L4, R4)\n",
-        "equivalent(L1, R1) andalso\n"
-        "    equivalent(L2, R2) andalso\n"
-        "    equivalent(L3, R3) andalso\n"
+        "equivalent(L1, R1) andalso equivalent(L2, R2) andalso equivalent(L3, R3) andalso equivalent(L4, R4)\n",
+        "equivalent(L1, R1) andalso equivalent(L2, R2) andalso equivalent(L3, R3) andalso\n"
         "    equivalent(L4, R4)\n"
     ),
-    %% TODO: This one also goes back and forth between with and without the last newline
     ?assertFormat(
         "the:ever(funny) andalso begin blocksof:my(code), that:appear(between), your:boolean(expressions) end andalso are:terrible(things, to, debug)\n",
         "the:ever(funny) andalso\n"
@@ -710,16 +718,12 @@ binary_operator_more(Config) when is_list(Config) ->
         "        blocksof:my(code),\n"
         "        that:appear(between),\n"
         "        your:boolean(expressions)\n"
-        "    end andalso\n"
-        "    are:terrible(things, to, debug)\n"
+        "    end andalso are:terrible(things, to, debug)\n"
     ),
-    %% TODO: This one also goes back and forth between several formats
     ?assertFormat(
         "a_function:with_a(<<\"very\">>, Long, list, \"of\", <<\"attributes\">>) andalso a:short(one) andalso another:very_very_long_one() andalso Another\n",
         "a_function:with_a(<<\"very\">>, Long, list, \"of\", <<\"attributes\">>) andalso\n"
-        "    a:short(one) andalso\n"
-        "    another:very_very_long_one() andalso\n"
-        "    Another\n"
+        "    a:short(one) andalso another:very_very_long_one() andalso Another\n"
     ).
 
 tuple(Config) when is_list(Config) ->
