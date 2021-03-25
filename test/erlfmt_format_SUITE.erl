@@ -739,6 +739,11 @@ binary_operator_more(Config) when is_list(Config) ->
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa andalso\n"
         "    (bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb orelse\n"
         "        cccccccccccccccccccccccccccccccccc).\n"
+    ),
+    ?assertSame(
+        "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa andalso\n"
+        "    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) orelse\n"
+        "    cccccccccccccccccccccccccccccccccc.\n"
     ).
 
 tuple(Config) when is_list(Config) ->
