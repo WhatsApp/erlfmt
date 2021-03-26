@@ -307,14 +307,32 @@ binary_op_to_algebra('/', _Meta, {atom, _, _} = Left, {integer, _, _} = Right) -
 binary_op_to_algebra('|', Meta, Left, Right) ->
     %% | does not increase indentation and breaks as a whole
     union_to_algebra(Meta, Left, Right);
-binary_op_to_algebra(Op, Meta0, Left, Right) ->
+binary_op_to_algebra(Op, Meta0, Left0, Right0) ->
     %% don't print parens and comments twice - expr_to_algebra took care of it already
     Meta = erlfmt_scan:delete_annos([parens, pre_comments, post_comments], Meta0),
+    {op, _Meta, Op, Left, Right} = rewrite_assoc(Op, Meta, Left0, Right0),
     binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT).
 
+rewrite_assoc(Op, MetaA, A, {op, MetaBC, Op, B, C} = BC) ->
+    case has_no_comments_or_parens(MetaBC) of
+        false ->
+            {op, MetaA, Op, A, BC};
+        _ ->
+            AB = rewrite_assoc(Op, update_meta_location(MetaBC, A, B), A, B),
+            rewrite_assoc(Op, update_meta_location(MetaA, AB, C), AB, C)
+    end;
+rewrite_assoc(Op, Meta, Left, Right) ->
+    {op, Meta, Op, Left, Right}.
+
+update_meta_location(Meta, First, Last) ->
+    Meta#{
+        location := erlfmt_scan:get_anno(location, First),
+        end_location := erlfmt_scan:get_anno(end_location, Last)
+    }.
+
 binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
-    LeftD = binary_operand_to_algebra(Op, Left, Indent),
-    RightD = binary_operand_to_algebra(Op, Right, 0),
+    LeftD = expr_to_algebra(Left),
+    RightD = expr_to_algebra(Right),
     Doc =
         case Op of
             '::' ->
@@ -377,15 +395,6 @@ with_next_break_fits(true, Doc, Fun) ->
     next_break_fits(Fun(next_break_fits(Doc, enabled)), disabled);
 with_next_break_fits(false, Doc, Fun) ->
     Fun(Doc).
-
-binary_operand_to_algebra(Op, {op, Meta, Op, Left, Right}, Indent) ->
-    %% Same operator, no parens, means correct side and no repeated nesting
-    case erlfmt_scan:get_anno(parens, Meta, false) of
-        false -> binary_op_to_algebra(Op, Meta, Left, Right, Indent);
-        _ -> binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT)
-    end;
-binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
-    expr_to_algebra(Expr).
 
 container(Meta, Values, Left, Right) ->
     container_common(Meta, Values, Left, Right, break, last_normal).

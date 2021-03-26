@@ -64,7 +64,8 @@
     type/1,
     exprs/1,
     comment/1,
-    force_break/1
+    force_break/1,
+    binary_operator_more/1
 ]).
 
 suite() ->
@@ -118,7 +119,8 @@ groups() ->
         ]},
         {operators, [parallel], [
             unary_operator,
-            binary_operator
+            binary_operator,
+            binary_operator_more
         ]},
         {containers, [parallel], [
             tuple,
@@ -323,8 +325,8 @@ binary_operator(Config) when is_list(Config) ->
     ?assertSame("Foo ++ Bar ++ Baz\n"),
     ?assertFormat(
         "Foo ++ Bar ++ Baz",
-        "Foo ++\n"
-        "    Bar ++ Baz\n",
+        "Foo ++ Bar ++\n"
+        "    Baz\n",
         15
     ),
     ?assertFormat(
@@ -543,6 +545,228 @@ binary_operator(Config) when is_list(Config) ->
         "Foo andalso\n"
         "    Bar andalso\n"
         "    Baz\n"
+    ).
+
+binary_operator_more(Config) when is_list(Config) ->
+    ?assertSame(
+        "a_function_abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc andalso\n"
+        "    a_short_one andalso another_very_very_long_one andalso and_another\n"
+    ),
+    ?assertSame(
+        "((a_function_abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc andalso\n"
+        "    a_short_one) andalso another_very_very_long_one) andalso and_another\n"
+    ),
+    ?assertFormat(
+        "a_function_abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc andalso a_short_one andalso another_very_very_long_one andalso and_another\n",
+        "a_function_abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc andalso\n"
+        "    a_short_one andalso another_very_very_long_one andalso and_another\n"
+    ),
+    ?assertFormat(
+        "Foo orelse Bar orelse Baz\n",
+        "Foo orelse\n"
+        "    Bar orelse\n"
+        "    Baz\n",
+        10
+    ),
+    ?assertFormat(
+        "Foo orelse Bar orelse Baz\n",
+        "Foo orelse Bar orelse\n"
+        "    Baz\n",
+        23
+    ),
+    ?assertFormat(
+        "Foo orelse Bar orelse Baz orelse Abc orelse Cde\n",
+        "Foo orelse Bar orelse Baz orelse\n"
+        "    Abc orelse Cde\n",
+        30
+    ),
+    ?assertSame(
+        "Foo andalso\n"
+        "    Bar andalso Baz\n"
+    ),
+    ?assertSame(
+        "s2c(<<C, Rest/binary>>, Acc) when\n"
+        "    C == $\; orelse C == $\$ orelse C == $\> orelse C == $\< orelse C == $\/\n"
+        "->\n"
+        "    ok.\n"
+    ),
+    ?assertSame(
+        "s2c(<<C, Rest/binary>>, Acc) when\n"
+        "    C == $\; orelse\n"
+        "        C == $\$ orelse\n"
+        "        C == $\> orelse\n"
+        "        C == $\< orelse\n"
+        "        C == $\/\n"
+        "->\n"
+        "    ok.\n"
+    ),
+    ?assertFormat(
+        "s2c(<<C, Rest/binary>>, Acc) when\n"
+        "    C == $\; orelse C == $\$ orelse C == $\> orelse C == $\< orelse C == $\/\n"
+        "->\n"
+        "    ok.\n",
+        "s2c(<<C, Rest/binary>>, Acc) when\n"
+        "    C == $\; orelse C == $\$ orelse C == $\> orelse\n"
+        "        C == $\< orelse C == $\/\n"
+        "->\n"
+        "    ok.\n",
+        42
+    ),
+    ?assertFormat(
+        "[\n"
+        "    Slash ++ binary_to_list(A2) ++ SlashArraySlash ++ binary_to_list(A1) ++ Slash ++ graphviz_edge_label(L)\n"
+        " || {_, A1, A2, L} <- Es\n"
+        "].\n",
+        "[\n"
+        "    Slash ++ binary_to_list(A2) ++ SlashArraySlash ++ binary_to_list(A1) ++\n"
+        "        Slash ++ graphviz_edge_label(L)\n"
+        " || {_, A1, A2, L} <- Es\n"
+        "].\n"
+    ),
+    ?assertSame(
+        "[\n"
+        "    Slash ++\n"
+        "        binary_to_list(A2) ++\n"
+        "        SlashArraySlash ++\n"
+        "        binary_to_list(A1) ++\n"
+        "        Slash ++\n"
+        "        graphviz_edge_label(L)\n"
+        " || {_, A1, A2, L} <- Es\n"
+        "].\n"
+    ),
+    ?assertFormat(
+        "AVariable andalso AnotherVariable andalso AnotherVariableMore andalso AnotherVariableExtra\n",
+        "AVariable andalso AnotherVariable andalso\n"
+        "    AnotherVariableMore andalso\n"
+        "    AnotherVariableExtra\n",
+        40
+    ),
+    ?assertFormat(
+        "is_registered(User)\n"
+        "    andalso password_matches(User, Password)\n"
+        "    andalso (has_active_session(User) orelse is_admin(User))\n"
+        "    andalso\n"
+        "        begin\n"
+        "             register_login(User, dates:now()),\n"
+        "             [ open_admin_session(User) || is_admin(User) ]\n"
+        "        end\n",
+        "is_registered(User) andalso\n"
+        "    password_matches(User, Password) andalso\n"
+        "    (has_active_session(User) orelse is_admin(User)) andalso\n"
+        "    begin\n"
+        "        register_login(User, dates:now()),\n"
+        "        [open_admin_session(User) || is_admin(User)]\n"
+        "    end\n"
+    ),
+    ?assertSame(
+        "{B, C} =\n"
+        "    case X of\n"
+        "        true -> f();\n"
+        "        _ -> g()\n"
+        "    end\n"
+    ),
+    ?assertSame(
+        "A = {B, C} =\n"
+        "    case X of\n"
+        "        true -> f();\n"
+        "        _ -> g()\n"
+        "    end.\n"
+    ),
+    ?assertSame(
+        "A = {{B1, B2}, C} = {B, C} =\n"
+        "    case X of\n"
+        "        true -> f();\n"
+        "        _ -> g()\n"
+        "    end.\n"
+    ),
+    ?assertSame(
+        "A =\n"
+        "    ({{B1, B2}, C} =\n"
+        "        ({B, C} =\n"
+        "            case X of\n"
+        "                true -> f();\n"
+        "                _ -> g()\n"
+        "            end)).\n"
+    ),
+    ?assertSame(
+        "convert_meta(Key, Value) when\n"
+        "    is_list(Key) orelse is_binary(Key),\n"
+        "    is_list(Key) orelse\n"
+        "        is_binary(Value) orelse\n"
+        "        is_atom(Value) orelse\n"
+        "        is_integer(Value)\n"
+        "->\n"
+        "    ok.\n"
+    ),
+    ?assertSame(
+        "equivalent(L1, R1) andalso equivalent(L2, R2) andalso equivalent(L3, R3) andalso\n"
+        "    equivalent(L4, R4)\n"
+    ),
+    ?assertSame(
+        "equivalent(L1, R1) andalso\n"
+        "    equivalent(L2, R2) andalso equivalent(L3, R3) andalso equivalent(L4, R4)\n"
+    ),
+    ?assertFormat(
+        "equivalent(L1, R1) andalso equivalent(L2, R2) andalso equivalent(L3, R3) andalso equivalent(L4, R4)\n",
+        "equivalent(L1, R1) andalso equivalent(L2, R2) andalso equivalent(L3, R3) andalso\n"
+        "    equivalent(L4, R4)\n"
+    ),
+    ?assertFormat(
+        "the:ever(funny) andalso begin blocksof:my(code), that:appear(between), your:boolean(expressions) end andalso are:terrible(things, to, debug)\n",
+        "the:ever(funny) andalso\n"
+        "    begin\n"
+        "        blocksof:my(code),\n"
+        "        that:appear(between),\n"
+        "        your:boolean(expressions)\n"
+        "    end andalso are:terrible(things, to, debug)\n"
+    ),
+    ?assertFormat(
+        "a_function:with_a(<<\"very\">>, Long, list, \"of\", <<\"attributes\">>) andalso a:short(one) andalso another:very_very_long_one() andalso Another\n",
+        "a_function:with_a(<<\"very\">>, Long, list, \"of\", <<\"attributes\">>) andalso\n"
+        "    a:short(one) andalso another:very_very_long_one() andalso Another\n"
+    ),
+    ?assertSame(
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA orelse\n"
+        "    BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB andalso\n"
+        "        CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC.\n"
+    ),
+    ?assertSame(
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa andalso\n"
+        "    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb orelse\n"
+        "    cccccccccccccccccccccccccccccccccc.\n"
+    ),
+    ?assertSame(
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa andalso\n"
+        "    (bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb orelse\n"
+        "        cccccccccccccccccccccccccccccccccc).\n"
+    ),
+    ?assertSame(
+        "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa andalso\n"
+        "    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb) orelse\n"
+        "    cccccccccccccccccccccccccccccccccc.\n"
+    ),
+    ?assertFormat(
+        "Foo orelse\n"
+        "    Bar orelse %% orelse comment\n"
+        "    Baz\n",
+        "Foo orelse\n"
+        "    %% orelse comment\n"
+        "    Bar orelse\n"
+        "        Baz\n"
+    ),
+    ?assertFormat(
+        "equivalent(L1, R1) andalso %% checking L1 and R1\n"
+        "equivalent(L2, R2) andalso %% checking L2 and R2\n"
+        "equivalent(L3, R3) andalso %% checking L3 and R3\n"
+        "equivalent(L4, R4) %% checking L4 and R4\n",
+        "%% checking L1 and R1\n"
+        "equivalent(L1, R1) andalso\n"
+        "    %% checking L2 and R2\n"
+        "    equivalent(L2, R2) andalso\n"
+        "        %% checking L3 and R3\n"
+        "        equivalent(L3, R3) andalso\n"
+        "            %% checking L4 and R4\n"
+        "            equivalent(L4, R4)\n"
     ).
 
 tuple(Config) when is_list(Config) ->
