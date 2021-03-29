@@ -864,6 +864,40 @@ binary_operator_more(Config) when is_list(Config) ->
         "    ).\n"
     ),
     ?assertSame(
+        "A ::\n"
+        "    B ::\n"
+        "    c(\n"
+        "        D,\n"
+        "        E\n"
+        "    ).\n"
+    ),
+    ?assertFormat(
+        "\"abc\" ++\n"
+        "    B ++ c(\n"
+        "        A,\n"
+        "        B\n"
+        "    ).\n",
+        "\"abc\" ++\n"
+        "    B ++\n"
+        "    c(\n"
+        "        A,\n"
+        "        B\n"
+        "    ).\n"
+    ),
+    ?assertFormat(
+        "\"abc\" ++\n"
+        "    B = c(\n"
+        "        A,\n"
+        "        B\n"
+        "    ).\n",
+        "\"abc\" ++\n"
+        "    B =\n"
+        "    c(\n"
+        "        A,\n"
+        "        B\n"
+        "    ).\n"
+    ),
+    ?assertSame(
         "A =\n"
         "    B =\n"
         "    #c{\n"
