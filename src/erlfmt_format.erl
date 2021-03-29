@@ -336,13 +336,14 @@ update_meta_location(Meta, First, Last) ->
 binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     LeftD = expr_to_algebra(Left),
     RightD = expr_to_algebra(Right),
-    OpChain = case Left of
-        {op, _, _, _, _} -> true;
-        _ -> false
-    end,
+    OpChain =
+        case Left of
+            {op, _, _, _, _} -> true;
+            _ -> false
+        end,
     Doc =
         case Op of
-            '::'when OpChain =:= false  ->
+            '::' when OpChain =:= false ->
                 field_to_algebra(<<"::">>, Left, Right, LeftD, RightD, Indent);
             '=' when OpChain =:= false ->
                 field_to_algebra(<<"=">>, Left, Right, LeftD, RightD, Indent);
