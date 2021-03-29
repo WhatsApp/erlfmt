@@ -427,8 +427,8 @@ break_behaviour(Meta, Values, BreakKind) ->
                     end;
                 [First | _] ->
                     case is_tag(First) of
-                        false -> break;
-                        true -> BreakKind
+                        true -> BreakKind;
+                        false -> break
                     end;
                 _ ->
                     BreakKind
@@ -436,8 +436,6 @@ break_behaviour(Meta, Values, BreakKind) ->
         false ->
             BreakKind
     end.
-
-%% special-case binary literals
 
 %% Allow inlining binary literals
 is_tag({bin, _, [{bin_element, _, {string, _, _}, _, _}]}) ->
@@ -804,7 +802,8 @@ is_next_break_fits({FlexContainer, Meta, Values}) when
     BreakBehaviour = break_behaviour(Meta, Values, flex_break),
     BreakBehaviour =:= break orelse BreakBehaviour =:= line;
 is_next_break_fits(Expr) ->
-    lists:member(element(1, Expr), [map, list, record, block, 'fun', lc, bc]) andalso has_no_comments_or_parens(Expr).
+    lists:member(element(1, Expr), [map, list, record, block, 'fun', lc, bc]) andalso
+        has_no_comments_or_parens(Expr).
 
 has_no_comments_or_parens(Meta) ->
     {Pre, Post} = comments(Meta),
