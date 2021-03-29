@@ -754,7 +754,14 @@ binary_operator_more(Config) when is_list(Config) ->
         "Foo orelse\n"
         "    %% orelse comment\n"
         "    Bar orelse\n"
-        "        Baz\n"
+        "    Baz\n"
+    ),
+    ?assertSame(
+        "Foo orelse\n"
+        "    %% orelse comment\n"
+        "    Bar orelse\n"
+        "    %% orelse comment\n"
+        "    Baz\n"
     ),
     ?assertFormat(
         "equivalent(L1, R1) andalso %% checking L1 and R1\n"
@@ -765,10 +772,10 @@ binary_operator_more(Config) when is_list(Config) ->
         "equivalent(L1, R1) andalso\n"
         "    %% checking L2 and R2\n"
         "    equivalent(L2, R2) andalso\n"
-        "        %% checking L3 and R3\n"
-        "        equivalent(L3, R3) andalso\n"
-        "            %% checking L4 and R4\n"
-        "            equivalent(L4, R4)\n"
+        "    %% checking L3 and R3\n"
+        "    equivalent(L3, R3) andalso\n"
+        "    %% checking L4 and R4\n"
+        "    equivalent(L4, R4)\n"
     ).
 
 tuple(Config) when is_list(Config) ->
@@ -3371,6 +3378,11 @@ comment(Config) when is_list(Config) ->
         "a,\n"
         "%% post comment\n"
         "b.\n"
+    ),
+    ?assertSame(
+        "a\n"
+        "%% post comment\n"
+        ".\n"
     ),
     ?assertFormat(
         "\"a,\n"
