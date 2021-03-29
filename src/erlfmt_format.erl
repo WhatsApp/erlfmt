@@ -349,16 +349,11 @@ binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
 binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
     LeftD = binary_operand_to_algebra(Op, Left, Indent),
     RightD = binary_operand_to_algebra(Op, Right, 0),
-    OpChain =
-        case Left of
-            {op, _, _, _, _} -> true;
-            _ -> false
-        end,
     Doc =
         case Op of
-            '::' when OpChain =:= false ->
+            '::' ->
                 field_to_algebra(<<"::">>, Left, Right, LeftD, RightD, Indent);
-            '=' when OpChain =:= false ->
+            '=' ->
                 field_to_algebra(<<"=">>, Left, Right, LeftD, RightD, Indent);
             %% when a pattern is in a clause and it breaks we want to prevent issue #211
             {clause_op, '='} ->
