@@ -800,8 +800,7 @@ binary_operator_more(Config) when is_list(Config) ->
         "    ).\n"
     ),
     ?assertSame(
-        "A = B =\n"
-        "    c(\n"
+        "A = B = c(\n"
         "        D,\n"
         "        E\n"
         "    ).\n"
@@ -850,41 +849,25 @@ binary_operator_more(Config) when is_list(Config) ->
         "    ).\n",
         5
     ),
-    ?assertFormat(
+    ?assertSame(
         "A =\n"
         "    B = c(\n"
         "        D,\n"
         "        E\n"
-        "    ).\n",
-        "A =\n"
-        "    B =\n"
-        "    c(\n"
-        "        D,\n"
-        "        E\n"
         "    ).\n"
     ),
-    ?assertFormat(
+    ?assertSame(
         "A =\n"
         "    B = c(\n"
         "        D,\n"
         "        E\n"
         "    ) = f(\n"
         "        G\n"
-        "    ).\n",
-        "A =\n"
-        "    B =\n"
-        "    c(\n"
-        "        D,\n"
-        "        E\n"
-        "    ) =\n"
-        "    f(\n"
-        "        G\n"
         "    ).\n"
     ),
     ?assertSame(
         "A ::\n"
-        "    B ::\n"
-        "    c(\n"
+        "    B :: c(\n"
         "        D,\n"
         "        E\n"
         "    ).\n"
@@ -909,8 +892,7 @@ binary_operator_more(Config) when is_list(Config) ->
         "        B\n"
         "    ).\n",
         "\"abc\" ++\n"
-        "    B =\n"
-        "    c(\n"
+        "    B = c(\n"
         "        A,\n"
         "        B\n"
         "    ).\n"
@@ -948,8 +930,7 @@ binary_operator_more(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "A =\n"
-        "    B =\n"
-        "    #c{\n"
+        "    B = #c{\n"
         "        d = D,\n"
         "        e = E\n"
         "    }.\n"
