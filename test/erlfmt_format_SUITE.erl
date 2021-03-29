@@ -36,6 +36,7 @@
     unary_operator/1,
     binary_operator/1,
     tuple/1,
+    untagged_tuple/1,
     list/1,
     binary/1,
     map_create/1,
@@ -124,6 +125,7 @@ groups() ->
         ]},
         {containers, [parallel], [
             tuple,
+            untagged_tuple,
             list,
             binary,
             map_create,
@@ -794,10 +796,12 @@ tuple(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "{{a,long,tuple},{nested,1,long,tuple}}",
-        "{{a, long, tuple},\n"
+        "{\n"
+        "    {a, long,\n"
+        "        tuple},\n"
         "    {nested, 1,\n"
-        "        long,\n"
-        "        tuple}}\n",
+        "        long, tuple}\n"
+        "}\n",
         20
     ),
     ?assertFormat(
@@ -812,26 +816,34 @@ tuple(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "{{a,long,tuple},{another,tuple},[nested,1,long,list]}",
-        "{{a, long, tuple},\n"
-        "    {another, tuple}, [\n"
+        "{\n"
+        "    {a, long, tuple},\n"
+        "    {another, tuple},\n"
+        "    [\n"
         "        nested,\n"
         "        1,\n"
         "        long,\n"
         "        list\n"
-        "    ]}\n",
+        "    ]\n"
+        "}\n",
         25
     ),
     ?assertFormat(
         "{{a,long,tuple},bare,atoms,[nested,long,list],bare,atoms,this_does_not_fit}",
-        "{{a, long, tuple},\n"
-        "    bare, atoms,\n"
+        "{\n"
+        "    {a, long,\n"
+        "        tuple},\n"
+        "    bare,\n"
+        "    atoms,\n"
         "    [\n"
         "        nested,\n"
         "        long,\n"
         "        list\n"
         "    ],\n"
-        "    bare, atoms,\n"
-        "    this_does_not_fit}\n",
+        "    bare,\n"
+        "    atoms,\n"
+        "    this_does_not_fit\n"
+        "}\n",
         20
     ),
     ?assertFormat(
@@ -874,6 +886,301 @@ tuple(Config) when is_list(Config) ->
         "            line(expr_to_algebra(Value), comments_to_algebra(Comments))\n"
         "        )\n"
         "    ])}\n"
+    ).
+
+%% tagged vs untagged tuples
+untagged_tuple(Config) when is_list(Config) ->
+    ?assertSame(
+        "{foo(A), B}.\n"
+    ),
+    ?assertFormat(
+        "{ajshdjkasdjkasdhkafoo(\n"
+        "    A\n"
+        "), abc}.\n",
+        "{\n"
+        "    ajshdjkasdjkasdhkafoo(\n"
+        "        A\n"
+        "    ),\n"
+        "    abc\n"
+        "}.\n"
+    ),
+    ?assertFormat(
+        "{a(\n"
+        "    A\n"
+        "), abc}.\n",
+        "{\n"
+        "    a(\n"
+        "        A\n"
+        "    ),\n"
+        "    abc\n"
+        "}.\n"
+    ),
+    ?assertFormat(
+        "{#{\n"
+        "    a => b\n"
+        "}, abc}.\n",
+        "{\n"
+        "    #{\n"
+        "        a => b\n"
+        "    },\n"
+        "    abc\n"
+        "}.\n"
+    ),
+    ?assertFormat(
+        "{[\n"
+        "    A\n"
+        "], abc}.\n",
+        "{\n"
+        "    [\n"
+        "        A\n"
+        "    ],\n"
+        "    abc\n"
+        "}.\n"
+    ),
+    ?assertFormat(
+        "{{\n"
+        "    A\n"
+        "}, abc}.\n",
+        "{\n"
+        "    {\n"
+        "        A\n"
+        "    },\n"
+        "    abc\n"
+        "}.\n"
+    ),
+    ?assertFormat(
+        "{{A,\n"
+        "[\n"
+        "A\n"
+        "]},\n"
+        "abc}.\n",
+        "{\n"
+        "    {A, [\n"
+        "        A\n"
+        "    ]},\n"
+        "    abc\n"
+        "}.\n"
+    ),
+    ?assertFormat(
+        "{\n"
+        "{A,\n"
+        "[\n"
+        "A\n"
+        "]},\n"
+        "abc}.\n",
+        "{\n"
+        "    {A, [\n"
+        "        A\n"
+        "    ]},\n"
+        "    abc\n"
+        "}.\n"
+    ),
+    ?assertFormat(
+        "{{A, B,\n"
+        "% a\n"
+        "    C\n"
+        "}}.\n",
+        "{{A, B,\n"
+        "    % a\n"
+        "    C}}.\n"
+    ),
+    ?assertFormat(
+        "{\n"
+        "{A, B,\n"
+        "% a\n"
+        "    C\n"
+        "}}.\n",
+        "{\n"
+        "    {A, B,\n"
+        "        % a\n"
+        "        C}\n"
+        "}.\n"
+    ),
+    ?assertFormat(
+        "{ajdsdjhasd, askjdasjkd, [\n"
+        "A, B\n"
+        "], c}.\n",
+        "{ajdsdjhasd, askjdasjkd,\n"
+        "    [\n"
+        "        A,\n"
+        "        B\n"
+        "    ],\n"
+        "    c}.\n"
+    ),
+    ?assertFormat(
+        "{A,\n"
+        "%foo\n"
+        "B,\n"
+        "[\n"
+        "A,\n"
+        "B\n"
+        "],\n"
+        "c}.\n",
+        "{A,\n"
+        "    %foo\n"
+        "    B,\n"
+        "    [\n"
+        "        A,\n"
+        "        B\n"
+        "    ],\n"
+        "    c}.\n"
+    ),
+    ?assertFormat(
+        "{foo(A),\n"
+        "[\n"
+        "A,\n"
+        "B]}.\n",
+        "{foo(A), [\n"
+        "    A,\n"
+        "    B\n"
+        "]}.\n"
+    ),
+    ?assertFormat(
+        "{foo(A),\n"
+        "    [\n"
+        "        A,\n"
+        "        B\n"
+        "    ],\n"
+        "ghi}.\n",
+        "{\n"
+        "    foo(A),\n"
+        "    [\n"
+        "        A,\n"
+        "        B\n"
+        "    ],\n"
+        "    ghi\n"
+        "}.\n"
+    ),
+    ?assertFormat(
+        "{foo(A), aksjhdaksjhdas, askjdhaskjdhaskjdhas, askjhdaskjdhkajshdas, askjdhakjhdkjashd,\n"
+        "    askjhdasjkhdjsakhd}.\n",
+        "{\n"
+        "    foo(A),\n"
+        "    aksjhdaksjhdas,\n"
+        "    askjdhaskjdhaskjdhas,\n"
+        "    askjhdaskjdhkajshdas,\n"
+        "    askjdhakjhdkjashd,\n"
+        "    askjhdasjkhdjsakhd\n"
+        "}.\n"
+    ),
+    ?assertFormat(
+        "{foo(), ajkshdjkasdhas, aksjhdakjdhkasj, askjhdajkshdkajsdh, bkadajkshdkasjhdaskh,\n"
+        "    asjdhakjshdaskjhdask}.\n",
+        "{\n"
+        "    foo(),\n"
+        "    ajkshdjkasdhas,\n"
+        "    aksjhdakjdhkasj,\n"
+        "    askjhdajkshdkajsdh,\n"
+        "    bkadajkshdkasjhdaskh,\n"
+        "    asjdhakjshdaskjhdask\n"
+        "}.\n"
+    ),
+    ?assertFormat(
+        "{?FOO,\n"
+        "    [\n"
+        "A,\n"
+        "B\n"
+        "]}.\n",
+        "{?FOO, [\n"
+        "    A,\n"
+        "    B\n"
+        "]}.\n"
+    ),
+    ?assertFormat(
+        "{[],\n"
+        "[\n"
+        "A,\n"
+        "B\n"
+        "]}.\n",
+        "{[], [\n"
+        "    A,\n"
+        "    B\n"
+        "]}.\n"
+    ),
+    ?assertSame(
+        "{[\n"
+        "    A,\n"
+        "    B\n"
+        "]}.\n"
+    ),
+    ?assertSame(
+        "{{A,\n"
+        "    [\n"
+        "        A,\n"
+        "        B\n"
+        "    ],\n"
+        "    B}}.\n"
+    ),
+    ?assertFormat(
+        "foo(A, B, {foo(A),\n"
+        "%foo\n"
+        "A,\n"
+        "B\n"
+        "}).\n",
+        "foo(A, B, {\n"
+        "    foo(A),\n"
+        "    %foo\n"
+        "    A,\n"
+        "    B\n"
+        "}).\n"
+    ),
+    ?assertFormat(
+        "{<<\"foo\">>,\n"
+        "[\n"
+        "A,\n"
+        "B\n"
+        "], a}.\n",
+        "{<<\"foo\">>,\n"
+        "    [\n"
+        "        A,\n"
+        "        B\n"
+        "    ],\n"
+        "    a}.\n"
+    ),
+    ?assertFormat(
+        "<<\"abc\"\n"
+        "    \"def\">>.\n",
+        "<<\n"
+        "    \"abc\"\n"
+        "    \"def\"\n"
+        ">>.\n"
+    ),
+    ?assertFormat(
+        "{<<\"foo\"\n"
+        "   \"bar\">>, a}.\n",
+        "{\n"
+        "    <<\n"
+        "        \"foo\"\n"
+        "        \"bar\"\n"
+        "    >>,\n"
+        "    a\n"
+        "}.\n"
+    ),
+    ?assertFormat(
+        "foo({{A,\n"
+        "    %foo\n"
+        "    B}}).\n",
+        "foo(\n"
+        "    {{A,\n"
+        "        %foo\n"
+        "        B}}\n"
+        ").\n"
+    ),
+    ?assertSame(
+        "<<\"aaaaa\">>\n",
+        5
+    ),
+    ?assertFormat(
+        "{{<<\"key3\">>}, {[{<<\"true\">>, true}, {<<\"false\">>, false}, {<<\"nullqweqwewqdqwqdwqdq\">>, null}, {<<\"numberqweqwrqwdqd\">>, 1}]}}.\n",
+        "{\n"
+        "    {<<\"key3\">>},\n"
+        "    {[\n"
+        "        {<<\"true\">>, true},\n"
+        "        {<<\"false\">>, false},\n"
+        "        {<<\"nullqweqwewqdqwqdwqdq\">>, null},\n"
+        "        {<<\"numberqweqwrqwdqd\">>, 1}\n"
+        "    ]}\n"
+        "}.\n"
     ).
 
 list(Config) when is_list(Config) ->

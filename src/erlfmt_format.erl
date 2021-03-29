@@ -46,7 +46,6 @@
 ]).
 
 -define(INDENT, 4).
--define(NEXT_BREAK_FITS, [map, list, record, block, 'fun', lc, bc]).
 
 -spec to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:doc().
 to_algebra({shebang, Meta, String}) ->
@@ -416,7 +415,7 @@ container_common(Meta, Values, Left, Right, BreakKind0, LastFits0) ->
     Surrounded = surround_container(BreakKind, Left, Doc, Right),
     LastFitsFun(Surrounded, disabled).
 
--type break_kind() :: break | flex_break | line.
+-type break_kind() :: break | flex_break | line | no_break.
 
 break_behaviour(Meta, Values, BreakKind) ->
     case
@@ -424,14 +423,51 @@ break_behaviour(Meta, Values, BreakKind) ->
             has_trailing_comments(Values) orelse
             (BreakKind =:= break andalso has_any_break_between(Values))
     of
-        true -> line;
-        _ -> BreakKind
+        true ->
+            line;
+        false when BreakKind =:= flex_break ->
+            case Values of
+                [{bin_element, _, {string, _, _}, _, _}] ->
+                    no_break;
+                [SoleElement] ->
+                    case is_container(SoleElement) of
+                        true -> no_break;
+                        false -> break
+                    end;
+                [First | _] ->
+                    case is_tag(First) of
+                        true -> BreakKind;
+                        false -> break
+                    end;
+                _ ->
+                    BreakKind
+            end;
+        false ->
+            BreakKind
     end.
+
+%% Allow inlining binary literals
+is_tag({bin, _, [{bin_element, _, {string, _, _}, _, _}]}) ->
+    true;
+is_tag({bin, _, []}) ->
+    true;
+%% Allow inlining argless macros
+is_tag({macro_call, _, _, Args}) when Args =:= none; Args =:= [] ->
+    true;
+is_tag({bin_element, _, Elem, _, _}) ->
+    is_tag(Elem);
+is_tag(Expr) ->
+    lists:member(element(1, Expr), [atom, string, var, integer, float]).
+
+is_container(Expr) ->
+    lists:member(element(1, Expr), [tuple, bin, list, map, record, call, macro_call, lc, bc]).
 
 surround_container(line, Left, Doc, Right) ->
     surround(Left, <<"">>, concat(force_breaks(), Doc), <<"">>, Right);
 surround_container(break, Left, Doc, Right) ->
     surround(Left, <<"">>, Doc, <<"">>, Right);
+surround_container(no_break, Left, Doc, Right) ->
+    concat(Left, Doc, Right);
 surround_container(flex_break, Left, Doc, Right) ->
     group(concat(nest(concat(Left, Doc), ?INDENT, break), Right)).
 
@@ -472,7 +508,8 @@ has_any_break_between(_) ->
 -spec break_fun(break_kind()) -> erlfmt_algebra:append_fun().
 break_fun(line) -> fun erlfmt_algebra:line/2;
 break_fun(break) -> fun erlfmt_algebra:break/2;
-break_fun(flex_break) -> fun erlfmt_algebra:flex_break/2.
+break_fun(flex_break) -> fun erlfmt_algebra:flex_break/2;
+break_fun(no_break) -> fun(_, _) -> error(unreachable) end.
 
 -type value_doc_pair() :: {erlfmt_parse:abstract_form(), erlfmt_algebra:doc()}.
 
@@ -768,13 +805,14 @@ has_empty_line_between(Left, Right) ->
 has_inner_break(Outer, Inner) ->
     erlfmt_scan:get_inner_line(Outer) < erlfmt_scan:get_line(Inner).
 
-is_next_break_fits({FlexContainer, Meta, Values} = Expr) when
+is_next_break_fits({FlexContainer, Meta, Values}) when
     FlexContainer =:= tuple; FlexContainer =:= bin
 ->
-    (has_opening_line_break(Meta, Values) orelse has_trailing_comments(Values)) andalso
-        has_no_comments_or_parens(Expr);
+    BreakBehaviour = break_behaviour(Meta, Values, flex_break),
+    BreakBehaviour =:= break orelse BreakBehaviour =:= line;
 is_next_break_fits(Expr) ->
-    lists:member(element(1, Expr), ?NEXT_BREAK_FITS) andalso has_no_comments_or_parens(Expr).
+    lists:member(element(1, Expr), [map, list, record, block, 'fun', lc, bc]) andalso
+        has_no_comments_or_parens(Expr).
 
 has_no_comments_or_parens(Meta) ->
     {Pre, Post} = comments(Meta),
@@ -833,8 +871,11 @@ comment_to_algebra({comment, _Meta, Lines}) ->
     fold_doc(fun erlfmt_algebra:line/2, LinesD).
 
 comments_with_pre_dot(Meta) ->
-    {erlfmt_scan:get_anno(pre_comments, Meta, []), erlfmt_scan:get_anno(pre_dot_comments, Meta, []),
-        erlfmt_scan:get_anno(post_comments, Meta, [])}.
+    {
+        erlfmt_scan:get_anno(pre_comments, Meta, []),
+        erlfmt_scan:get_anno(pre_dot_comments, Meta, []),
+        erlfmt_scan:get_anno(post_comments, Meta, [])
+    }.
 
 comments(Meta) ->
     [] = erlfmt_scan:get_anno(pre_dot_comments, Meta, []),
