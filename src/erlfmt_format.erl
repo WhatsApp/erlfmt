@@ -46,7 +46,6 @@
 ]).
 
 -define(INDENT, 4).
--define(NEXT_BREAK_FITS, [map, list, record, block, 'fun', lc, bc]).
 
 -spec to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:doc().
 to_algebra({shebang, Meta, String}) ->
@@ -417,41 +416,44 @@ break_behaviour(Meta, Values, BreakKind) ->
     of
         true ->
             line;
-        false ->
-            case {BreakKind, Values} of
-                {flex_break, [SoleElement]} ->
-                    case is_breakable_container(SoleElement) of
+        false when BreakKind =:= flex_break ->
+            case Values of
+                [{bin_element, _, {string, _, _}, _, _}] ->
+                    no_break;
+                [SoleElement] ->
+                    case is_container(SoleElement) of
                         true -> no_break;
                         false -> break
                     end;
-                {flex_break, [First | _]} ->
-                    case is_breakable_container(First) of
-                        true -> break;
-                        false -> BreakKind
+                [First | _] ->
+                    case is_tag(First) of
+                        false -> break;
+                        true -> BreakKind
                     end;
                 _ ->
                     BreakKind
-            end
+            end;
+        false ->
+            BreakKind
     end.
 
-%% bin with concat inside erl/wa/test/configerator_validators_SUITE.erl
+%% special-case binary literals
 
-%% Allow inilining containers and calls without elements/args
-is_breakable_container({Container, _, []}) when
-    Container =:= tuple; Container =:= bin; Container =:= list; Container =:= map
-->
-    false;
-is_breakable_container({Container, _, _, []}) when
-    Container =:= record; Container =:= call; Container =:= macro_call
-->
-    false;
-is_breakable_container({macro_call, _, _, none}) ->
-    false;
 %% Allow inlining binary literals
-is_breakable_container({bin, _, [_]}) ->
-    false;
-is_breakable_container(Expr) ->
-    lists:member(element(1, Expr), [tuple, bin, call, macro_call | ?NEXT_BREAK_FITS]).
+is_tag({bin, _, [{bin_element, _, {string, _, _}, _, _}]}) ->
+    true;
+is_tag({bin, _, []}) ->
+    true;
+%% Allow inlining argless macros
+is_tag({macro_call, _, _, Args}) when Args =:= none; Args =:= [] ->
+    true;
+is_tag({bin_element, _, Elem, _, _}) ->
+    is_tag(Elem);
+is_tag(Expr) ->
+    lists:member(element(1, Expr), [atom, string, var, integer, float]).
+
+is_container(Expr) ->
+    lists:member(element(1, Expr), [tuple, bin, list, map, record, call, macro_call, lc, bc]).
 
 surround_container(line, Left, Doc, Right) ->
     surround(Left, <<"">>, concat(force_breaks(), Doc), <<"">>, Right);
@@ -796,17 +798,13 @@ has_empty_line_between(Left, Right) ->
 has_inner_break(Outer, Inner) ->
     erlfmt_scan:get_inner_line(Outer) < erlfmt_scan:get_line(Inner).
 
-is_next_break_fits({FlexContainer, Meta, Values} = Expr) when
+is_next_break_fits({FlexContainer, Meta, Values}) when
     FlexContainer =:= tuple; FlexContainer =:= bin
 ->
-    (has_opening_line_break(Meta, Values) orelse
-        has_trailing_comments(Values) orelse first_is_breakable_container(Values)) andalso
-        has_no_comments_or_parens(Expr);
+    BreakBehaviour = break_behaviour(Meta, Values, flex_break),
+    BreakBehaviour =:= break orelse BreakBehaviour =:= line;
 is_next_break_fits(Expr) ->
-    lists:member(element(1, Expr), ?NEXT_BREAK_FITS) andalso has_no_comments_or_parens(Expr).
-
-first_is_breakable_container([First | _]) -> is_breakable_container(First);
-first_is_breakable_container(_) -> false.
+    lists:member(element(1, Expr), [map, list, record, block, 'fun', lc, bc]) andalso has_no_comments_or_parens(Expr).
 
 has_no_comments_or_parens(Meta) ->
     {Pre, Post} = comments(Meta),

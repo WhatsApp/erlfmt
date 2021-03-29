@@ -842,8 +842,14 @@ untagged_tuple(Config) when is_list(Config) ->
     ?assertFormat(
         "{foo(), ajkshdjkasdhas, aksjhdakjdhkasj, askjhdajkshdkajsdh, bkadajkshdkasjhdaskh,\n"
         "    asjdhakjshdaskjhdask}.\n",
-        "{foo(), ajkshdjkasdhas, aksjhdakjdhkasj, askjhdajkshdkajsdh,\n"
-        "    bkadajkshdkasjhdaskh, asjdhakjshdaskjhdask}.\n"
+        "{\n"
+        "    foo(),\n"
+        "    ajkshdjkasdhas,\n"
+        "    aksjhdakjdhkasj,\n"
+        "    askjhdajkshdkajsdh,\n"
+        "    bkadajkshdkasjhdaskh,\n"
+        "    asjdhakjshdaskjhdask\n"
+        "}.\n"
     ),
     ?assertFormat(
         "{?FOO,\n"
@@ -914,6 +920,31 @@ untagged_tuple(Config) when is_list(Config) ->
         "    \"abc\"\n"
         "    \"def\"\n"
         ">>.\n"
+    ),
+    ?assertFormat(
+        "{<<\"foo\"\n"
+        "   \"bar\">>, a}.\n",
+        "{\n"
+        "    <<\n"
+        "        \"foo\"\n"
+        "        \"bar\"\n"
+        "    >>,\n"
+        "    a\n"
+        "}.\n"
+    ),
+    ?assertFormat(
+        "foo({{A,\n"
+        "    %foo\n"
+        "    B}}).\n",
+        "foo(\n"
+        "    {{A,\n"
+        "        %foo\n"
+        "        B}}\n"
+        ").\n"
+    ),
+    ?assertSame(
+        "<<\"aaaaa\">>\n",
+        5
     ).
 
 list(Config) when is_list(Config) ->
