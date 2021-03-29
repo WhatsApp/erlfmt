@@ -945,6 +945,18 @@ untagged_tuple(Config) when is_list(Config) ->
     ?assertSame(
         "<<\"aaaaa\">>\n",
         5
+    ),
+    ?assertFormat(
+        "{{<<\"key3\">>}, {[{<<\"true\">>, true}, {<<\"false\">>, false}, {<<\"nullqweqwewqdqwqdwqdq\">>, null}, {<<\"numberqweqwrqwdqd\">>, 1}]}}.\n",
+        "{\n"
+        "    {<<\"key3\">>},\n"
+        "    {[\n"
+        "        {<<\"true\">>, true},\n"
+        "        {<<\"false\">>, false},\n"
+        "        {<<\"nullqweqwewqdqwqdwqdq\">>, null},\n"
+        "        {<<\"numberqweqwrqwdqd\">>, 1}\n"
+        "    ]}\n"
+        "}.\n"
     ).
 
 list(Config) when is_list(Config) ->
