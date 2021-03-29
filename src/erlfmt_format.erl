@@ -312,13 +312,17 @@ binary_op_to_algebra(Op, Meta0, Left0, Right0) ->
     {op, _Meta, Op, Left, Right} = rewrite_assoc(Op, Meta, Left0, Right0),
     binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT).
 
-rewrite_assoc(Op, MetaA, A, {op, MetaBC, Op, B, C} = BC) ->
-    case has_no_comments_or_parens(MetaBC) of
-        false ->
-            {op, MetaA, Op, A, BC};
+rewrite_assoc(Op, MetaABC0, A, {op, MetaBC0, Op, B0, C} = BC) ->
+    case erlfmt_scan:get_anno(parens, MetaBC0, false) of
+        true ->
+            {op, MetaABC0, Op, A, BC};
         _ ->
+            {Pre, Post} = comments(MetaBC0),
+            MetaBC = erlfmt_scan:delete_annos([pre_comments, post_comments], MetaBC0),
+            B = erlfmt_recomment:put_pre_comments(B0, Pre),
             AB = rewrite_assoc(Op, update_meta_location(MetaBC, A, B), A, B),
-            rewrite_assoc(Op, update_meta_location(MetaA, AB, C), AB, C)
+            MetaABC = erlfmt_recomment:put_post_comments(MetaABC0, Post),
+            rewrite_assoc(Op, update_meta_location(MetaABC, AB, C), AB, C)
     end;
 rewrite_assoc(Op, Meta, Left, Right) ->
     {op, Meta, Op, Left, Right}.
