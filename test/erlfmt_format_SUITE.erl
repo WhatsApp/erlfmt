@@ -826,6 +826,13 @@ binary_operator_more(Config) when is_list(Config) ->
         10
     ),
     ?assertFormat(
+        "A = B = C =< D = E = F\n.",
+        "A = B =\n"
+        "    C =< D =\n"
+        "    E = F.\n",
+        10
+    ),
+    ?assertFormat(
         "A =\n"
         "    B = C = D = E = F\n.",
         "A =\n"
