@@ -312,6 +312,10 @@ binary_op_to_algebra(Op, Meta0, Left0, Right0) ->
     {op, _Meta, Op, Left, Right} = rewrite_assoc(Op, Meta, Left0, Right0),
     binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT).
 
+rewrite_assoc('=' = Op, Meta, Left, Right) ->
+    {op, Meta, Op, Left, Right};
+rewrite_assoc('::' = Op, Meta, Left, Right) ->
+    {op, Meta, Op, Left, Right};
 rewrite_assoc(Op, MetaABC0, A, {op, MetaBC0, Op, B0, C} = BC) ->
     case erlfmt_scan:get_anno(parens, MetaBC0, false) of
         true ->
@@ -333,9 +337,18 @@ update_meta_location(Meta, First, Last) ->
         end_location := erlfmt_scan:get_anno(end_location, Last)
     }.
 
+binary_operand_to_algebra(Op, {op, Meta, Op, Left, Right}, Indent) ->
+    %% Same operator, no parens, means correct side and no repeated nesting
+    case erlfmt_scan:get_anno(parens, Meta, false) of
+        false -> binary_op_to_algebra(Op, Meta, Left, Right, Indent);
+        _ -> binary_op_to_algebra(Op, Meta, Left, Right, ?INDENT)
+    end;
+binary_operand_to_algebra(_ParentOp, Expr, _Indent) ->
+    expr_to_algebra(Expr).
+
 binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
-    LeftD = expr_to_algebra(Left),
-    RightD = expr_to_algebra(Right),
+    LeftD = binary_operand_to_algebra(Op, Left, Indent),
+    RightD = binary_operand_to_algebra(Op, Right, 0),
     OpChain =
         case Left of
             {op, _, _, _, _} -> true;
