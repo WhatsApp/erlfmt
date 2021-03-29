@@ -776,6 +776,111 @@ binary_operator_more(Config) when is_list(Config) ->
         "    equivalent(L3, R3) andalso\n"
         "    %% checking L4 and R4\n"
         "    equivalent(L4, R4)\n"
+    ),
+    ?assertFormat(
+        "A orelse\n"
+        "    B orelse c(\n"
+        "        D,\n"
+        "        E\n"
+        "    ).\n",
+        "A orelse\n"
+        "    B orelse\n"
+        "    c(\n"
+        "        D,\n"
+        "        E\n"
+        "    ).\n"
+    ),
+    ?assertFormat(
+        "A orelse B orelse c(\n"
+        "D, E).\n",
+        "A orelse B orelse\n"
+        "    c(\n"
+        "        D,\n"
+        "        E\n"
+        "    ).\n"
+    ),
+    ?assertSame(
+        "A = B =\n"
+        "    c(\n"
+        "        D,\n"
+        "        E\n"
+        "    ).\n"
+    ),
+    ?assertSame(
+        "case maps:get(AbcdefghId, Abcdefghs0, undefined) of\n"
+        "    #abcdefgh{abcdefgh_type = AbcdefghType, specs = Specs, abc_de_abcde = [AbcdefgId | Rest]} =\n"
+        "            Abcdefgh = #abcdefgh{\n"
+        "                abcdefgh_type = AbcdefghType,\n"
+        "                specs = Specs,\n"
+        "                abc_de_abcde = [AbcdefgId | Rest]\n"
+        "            } ->\n"
+        "        {reply, ok, State}\n"
+        "end.\n",
+        100
+    ),
+    ?assertFormat(
+        "A = B = C = D = E = F\n.",
+        "A = B = C =\n"
+        "    D = E =\n"
+        "    F.\n",
+        10
+    ),
+    ?assertFormat(
+        "A =\n"
+        "    B = C = D = E = F\n.",
+        "A =\n"
+        "    B = C =\n"
+        "    D = E =\n"
+        "    F.\n",
+        10
+    ),
+    ?assertFormat(
+        "A = B = c(D, E).\n",
+        "A = B =\n"
+        "    c(\n"
+        "        D,\n"
+        "        E\n"
+        "    ).\n",
+        5
+    ),
+    ?assertFormat(
+        "A =\n"
+        "    B = c(\n"
+        "        D,\n"
+        "        E\n"
+        "    ).\n",
+        "A =\n"
+        "    B =\n"
+        "    c(\n"
+        "        D,\n"
+        "        E\n"
+        "    ).\n"
+    ),
+    ?assertSame(
+        "A =\n"
+        "    B =\n"
+        "    #c{\n"
+        "        d = D,\n"
+        "        e = E\n"
+        "    }.\n"
+    ),
+    ?assertSame(
+        "A = B =\n"
+        "    %% comment\n"
+        "    c(\n"
+        "        D,\n"
+        "        E\n"
+        "    ).\n"
+    ),
+    ?assertSame(
+        "A =\n"
+        "    %% comment\n"
+        "    B =\n"
+        "    %% comment\n"
+        "    c(\n"
+        "        D,\n"
+        "        E\n"
+        "    ).\n"
     ).
 
 tuple(Config) when is_list(Config) ->
