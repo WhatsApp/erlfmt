@@ -341,15 +341,15 @@ binary_op_to_algebra(Op, Meta, Left, Right, Indent) ->
         _ -> false
     end,
     Doc =
-        case {OpChain, Op} of
-            {false, '::'} ->
+        case Op of
+            '::' ->
                 field_to_algebra(<<"::">>, Left, Right, LeftD, RightD, Indent);
-            {false, '='} ->
+            '=' when OpChain =:= false ->
                 field_to_algebra(<<"=">>, Left, Right, LeftD, RightD, Indent);
             %% when a pattern is in a clause and it breaks we want to prevent issue #211
-            {_, {clause_op, '='}} ->
+            {clause_op, '='} ->
                 field_to_algebra(<<"=">>, Left, Right, LeftD, RightD, Indent + ?INDENT);
-            {_, {clause_op, ClauseOp}} ->
+            {clause_op, ClauseOp} ->
                 OpD = string(atom_to_binary(ClauseOp, utf8)),
                 breakable_binary_op_to_algebra(OpD, Left, Right, LeftD, RightD, Indent + ?INDENT);
             _ ->
