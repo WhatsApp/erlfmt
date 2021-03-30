@@ -33,31 +33,32 @@ recomment(Node, Comments) ->
 insert_node(Node, []) ->
     Node;
 insert_node({function, Meta0, Clauses0}, Comments0) ->
-    {PreComments, Comments} = split_pre_comments(Meta0, Comments0),
-    {Clauses, PostComments} = insert_expr_list(Clauses0, Comments),
+    {PreComments, InnerComments, PostComments} = split_comments(Meta0, Comments0),
+    {Clauses, RestComments} = insert_expr_list(Clauses0, InnerComments),
     Meta1 = put_pre_comments(Meta0, PreComments),
-    Meta = put_post_comments(Meta1, PostComments),
+    Meta2 = put_post_comments(Meta1, PostComments),
+    Meta = put_pre_dot_comments(Meta2, RestComments),
     {function, Meta, Clauses};
 insert_node({attribute, Meta0, {atom, _, RawName} = Name, Values0}, Comments) when
     RawName =:= spec; RawName =:= callback; RawName =:= type; RawName =:= opaque
 ->
-    {PreComments, InnerComments, PostCommennts} = split_comments(Meta0, Comments),
+    {PreComments, InnerComments, PostComments} = split_comments(Meta0, Comments),
     {Values, RestComments} = insert_expr_list(Values0, InnerComments),
     Meta1 = put_pre_comments(Meta0, PreComments),
-    Meta2 = put_post_comments(Meta1, PostCommennts),
+    Meta2 = put_post_comments(Meta1, PostComments),
     Meta = put_pre_dot_comments(Meta2, RestComments),
     {attribute, Meta, Name, Values};
 insert_node({attribute, Meta0, Name, Values0}, Comments) ->
-    {PreComments, InnerComments, PostCommennts} = split_comments(Meta0, Comments),
+    {PreComments, InnerComments, PostComments} = split_comments(Meta0, Comments),
     Values = insert_expr_container(Values0, InnerComments),
     Meta1 = put_pre_comments(Meta0, PreComments),
-    Meta = put_post_comments(Meta1, PostCommennts),
+    Meta = put_post_comments(Meta1, PostComments),
     {attribute, Meta, Name, Values};
 insert_node({exprs, Meta0, Exprs0}, Comments0) ->
-    {PreComments, InnerComments, PostCommennts} = split_comments(Meta0, Comments0),
+    {PreComments, InnerComments, PostComments} = split_comments(Meta0, Comments0),
     {Exprs, RestComments} = insert_expr_list(Exprs0, InnerComments),
     Meta1 = put_pre_comments(Meta0, PreComments),
-    Meta2 = put_post_comments(Meta1, PostCommennts),
+    Meta2 = put_post_comments(Meta1, PostComments),
     Meta = put_pre_dot_comments(Meta2, RestComments),
     {exprs, Meta, Exprs};
 insert_node(Expr0, Comments) ->
@@ -97,9 +98,6 @@ insert_expr_container([Expr0 | Exprs], Comments0) when is_tuple(Expr0) ->
 %% final comments in containers become standalone comment elements
 insert_expr_container([], Comments) ->
     Comments.
-
-split_pre_comments(#{location := {SLine, _}}, Comments) ->
-    take_comments(SLine, Comments).
 
 split_comments(#{location := {SLine, _}, end_location := {ELine, _}}, Comments0) ->
     {PreComments, Comments1} = take_comments(SLine, Comments0),
