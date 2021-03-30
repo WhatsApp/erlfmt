@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.12.0 (30.03.2021)
+
+Tuples that are not tagged tuples are formatted as lists
+
+### Enhancements
+
+  - Break untagged tuples #259
+  - rewrite some binary operators using associativity #262 #264 #265
+  - next break fits for dolon #246
+
+### Fixes
+
+  - double indent pattern matches in clauses #247
+  - fix parsing of bad records #261
+
 ## v0.11.1 (10.03.2021)
 
 Support macros in type and spec names
