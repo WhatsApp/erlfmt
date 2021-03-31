@@ -3468,6 +3468,33 @@ exprs(Config) when is_list(Config) ->
 
 comment(Config) when is_list(Config) ->
     ?assertSame(
+        "a\n"
+        "%% pre dot comment\n"
+        ".\n"
+    ),
+    ?assertFormat(
+        "a() ->\n"
+        "    b\n"
+        "    %% pre dot comment\n"
+        "    .\n",
+        "a() ->\n"
+        "    b\n"
+        "%% pre dot comment\n"
+        ".\n"
+    ),
+    ?assertFormat(
+        "a() ->\n"
+        "    b\n"
+        "    %% pre dot comment\n"
+        "    .\n"
+        "%% post comment\n",
+        "a() ->\n"
+        "    b\n"
+        "%% pre dot comment\n"
+        ".\n"
+        "%% post comment\n"
+    ),
+    ?assertSame(
         "A\n"
         "% comment\n"
         ".\n"
