@@ -772,7 +772,9 @@ binary_operator_more(Config) when is_list(Config) ->
         "    ).\n"
     ).
 
-%% TODO: Add link to doc explaining why these layouts might not be optimal
+%% These formattings might not be exactly what we want in some cases,
+%% see our reasoning for why we stuck to this format here:
+%% https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionAssociative.md
 binary_operator_equal(Config) when is_list(Config) ->
     ?assertFormat(
         "A = B = c(\n"
