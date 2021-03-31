@@ -8,21 +8,21 @@ We realize this solution is not perfect and in this document we hope to show why
 Binary operators are parsed as right associative by default: `A ++ B ++ C` is parsed as `A ++ (B ++ C)`
 The layout algorithm used for `erlfmt` is greedy, which means that when this expressions needs to break it will break as:
 
-```
+```erlang
 A ++
-     B ++ C
+    B ++ C
 ```
 
 We avoid this by rewriting the parsed AST as left associative `(A ++ B) ++ C` which results in the preferred format:
 
-```
+```erlang formatted plusplus
 A ++ B ++
     C
 ```
 
 This works for all binary operators, except `=` and `::` which are the only two operators than can be chained and also have next break fits behaviour if the container on the right is also next break fits, for example a list. Here is an example of how equal is formatted with next break fits with a list of the right side, given we had to break the line:
 
-```
+```erlang formatted nextbreakfits
 A = [
     1,
     2
@@ -31,7 +31,7 @@ A = [
 
 If this was not formatted with next break fits, we would have to break the line earlier, resulting in an extra line and an extra indentation:
 
-```
+```erlang formatted notnextbreakfits
 A =
     [
         1,
@@ -41,7 +41,7 @@ A =
 
 The problem with rewriting equal to left associativity is that when we need to break it could result in the following formatting, where the context of the indentation is totally lost and we dedent too much:
 
-```
+```erlang
 A =
     B = c(
     D,
@@ -55,7 +55,7 @@ We have also tried adding extra detection for binary operator chains, implementa
 
 ✅ want
 
-```
+```erlang
 A = {B, C} =
     case X of
         true -> f();
@@ -65,7 +65,7 @@ A = {B, C} =
 
 ⚠️ current
 
-```
+```erlang formatted case
 A =
     {B, C} =
     case X of
@@ -76,7 +76,7 @@ A =
 
 ✅ assoc
 
-```
+```erlang
 A = {B, C} =
     case X of
         true -> f();
@@ -86,7 +86,7 @@ A = {B, C} =
 
 ✅ opchain
 
-```
+```erlang
 A = {B, C} =
     case X of
         true -> f();
@@ -98,7 +98,7 @@ A = {B, C} =
 
 ⚠️ want
 
-```
+```erlang
 A =
     {B, C} =
     case X of
@@ -109,7 +109,7 @@ A =
 
 ⚠️ current
 
-```
+```erlang formatted case_with_new_line
 A =
     {B, C} =
     case X of
@@ -120,7 +120,7 @@ A =
 
 ⚠️ assoc
 
-```
+```erlang
 A =
     {B, C} =
     case X of
@@ -131,7 +131,7 @@ A =
 
 ⚠️ opchain
 
-```
+```erlang
 A =
     {B, C} =
     case X of
@@ -144,7 +144,7 @@ A =
 
 ✅ want
 
-```
+```erlang
 A = B = c(
     D,
     E
@@ -153,7 +153,7 @@ A = B = c(
 
 ⚠️ current
 
-```
+```erlang formatted call
 A =
     B = c(
         D,
@@ -163,7 +163,7 @@ A =
 
 ✅ assoc
 
-```
+```erlang
 A = B = c(
     D,
     E
@@ -172,7 +172,7 @@ A = B = c(
 
 ⚠️ opchain
 
-```
+```erlang
 A =
     B =
     c(
@@ -185,7 +185,7 @@ A =
 
 ✅ want
 
-```
+```erlang
 A =
     B = c(
         D,
@@ -195,7 +195,7 @@ A =
 
 ✅ current
 
-```
+```erlang formatted call_with_new_line
 A =
     B = c(
         D,
@@ -205,7 +205,7 @@ A =
 
 ❌ assoc
 
-```
+```erlang
 A =
     B = c(
     D,
@@ -215,7 +215,7 @@ A =
 
 ⚠️ opchain
 
-```
+```erlang
 A =
     B =
     c(
@@ -228,7 +228,7 @@ A =
 
 ✅ want
 
-```
+```erlang
 A = B = [
     a,
     b
@@ -237,7 +237,7 @@ A = B = [
 
 ⚠️ current
 
-```
+```erlang formatted list
 A =
     B = [
         a,
@@ -247,7 +247,7 @@ A =
 
 ✅  assoc
 
-```
+```erlang
 A = B = [
     a,
     b
@@ -256,7 +256,7 @@ A = B = [
 
 ⚠️ opchain
 
-```
+```erlang
 A = B =
     [
         a,
@@ -268,7 +268,7 @@ A = B =
 
 ✅ want
 
-```
+```erlang
 A =
     B = [
         a,
@@ -278,7 +278,7 @@ A =
 
 ✅ current
 
-```
+```erlang formatted list_with_new_line
 A =
     B = [
         a,
@@ -288,7 +288,7 @@ A =
 
 ❌ assoc
 
-```
+```erlang
 A =
     B = [
     a,
@@ -298,7 +298,7 @@ A =
 
 ⚠️ opchain
 
-```
+```erlang
 A =
     B =
     [
@@ -311,7 +311,7 @@ A =
 
 ### Next break fits vs not next break fits for equal in general
 
-```
+```erlang
 B = c(
     D,
     E
