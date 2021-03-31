@@ -88,6 +88,7 @@ suite() ->
     [{timetrap, {seconds, 10}}].
 
 init_per_suite(Config) ->
+    erlang:system_flag(backtrace_depth, 20),
     Config.
 
 end_per_suite(_Config) ->
