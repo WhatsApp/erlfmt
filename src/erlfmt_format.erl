@@ -189,13 +189,15 @@ do_expr_to_algebra({'case', _Meta, Expr, Clauses}) ->
     Prefix = surround(<<"case">>, <<" ">>, expr_to_algebra(Expr), <<" ">>, <<"of">>),
     surround_block(Prefix, clauses_to_algebra(Clauses), <<"end">>);
 do_expr_to_algebra({'receive', _Meta, Clauses}) ->
-    surround_block(<<"receive">>, clauses_to_algebra(Clauses), <<"end">>);
-do_expr_to_algebra({'receive', _Meta, [], AfterExpr, AfterBody}) ->
-    AfterD = receive_after_to_algebra(AfterExpr, AfterBody),
+    surround_block(<<"receive">>, expr_to_algebra(Clauses), <<"end">>);
+do_expr_to_algebra({'receive', _Meta, empty, After}) ->
+    AfterD = expr_to_algebra(After),
     concat(force_breaks(), (line(<<"receive">>, line(AfterD, <<"end">>))));
-do_expr_to_algebra({'receive', _Meta, Clauses, AfterExpr, AfterBody}) ->
-    AfterD = receive_after_to_algebra(AfterExpr, AfterBody),
-    surround_block(<<"receive">>, clauses_to_algebra(Clauses), line(AfterD, <<"end">>));
+do_expr_to_algebra({'receive', _Meta, Clauses, After}) ->
+    AfterD = expr_to_algebra(After),
+    surround_block(<<"receive">>, expr_to_algebra(Clauses), line(AfterD, <<"end">>));
+do_expr_to_algebra({after_clause, _Meta, Expr, Body}) ->
+    receive_after_to_algebra(Expr, Body);
 do_expr_to_algebra({'try', _Meta, Exprs, OfClauses, CatchClauses, After}) ->
     try_to_algebra(Exprs, OfClauses, CatchClauses, After);
 do_expr_to_algebra({'catch', _Meta, Exprs}) ->
@@ -776,11 +778,15 @@ single_clause_spec_to_algebra(Name, {spec_clause, CMeta, Head, Body, Guards}) ->
     clauses_to_algebra([{spec_clause, CMeta, {call, AMeta, Name, Args}, Body, Guards}]).
 
 receive_after_to_algebra(Expr, [HBody | _] = Body) ->
-    ExprD = do_expr_to_algebra(Expr),
+    ExprD = expr_to_algebra(Expr),
     BodyD = block_to_algebra(Body),
-    HeadD = concat([<<"after ">>, ExprD, <<" ->">>]),
+    HeadD = case comments(Expr) of
+        {[], []} -> concat([<<"after ">>, ExprD, <<" ->">>]);
+        _ ->
+            concat([<<"after">>, line(), ExprD, <<" ->">>])
+    end,
     Doc = concat([HeadD, break(), maybe_force_breaks(has_break_between(Expr, HBody)), BodyD]),
-    combine_comments(element(2, Expr), group(nest(Doc, ?INDENT))).
+    group(nest(Doc, ?INDENT)).
 
 try_to_algebra(Body, OfClauses, CatchClauses, After) ->
     Clauses =

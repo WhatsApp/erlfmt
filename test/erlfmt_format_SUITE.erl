@@ -2588,6 +2588,19 @@ receive_expression(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "receive\n"
+        "after\n"
+        "    % before zero\n"
+        "    0 -> ok\n"
+        "end\n",
+        "receive\n"
+        "after\n"
+        "    % before zero\n"
+        "    0 ->\n"
+        "    ok\n"
+        "end\n"
+    ),
+    ?assertFormat(
+        "receive\n"
         "    1 -> ok\n"
         "    %% after receive\n"
         "after\n"
@@ -2596,23 +2609,29 @@ receive_expression(Config) when is_list(Config) ->
         "end\n",
         "receive\n"
         "    1 -> ok\n"
-        "%% after receive\n"
-        "\n"
+        "    %% after receive\n"
         "after 0 ->\n"
         "    ok\n"
         "    %% after after for receive\n"
         "end\n"
     ),
-    %% TODO: We do not want this comment to move
     ?assertFormat(
         "receive\n"
+        "    1 -> ok\n"
+        "    %% after receive\n"
         "after\n"
-        "    % before zero\n"
+        "    %% before zero\n"
         "    0 -> ok\n"
+        "    %% after after for receive\n"
         "end\n",
         "receive\n"
-        "% before zero\n"
-        "after 0 -> ok\n"
+        "    1 -> ok\n"
+        "    %% after receive\n"
+        "after\n"
+        "    %% before zero\n"
+        "    0 ->\n"
+        "    ok\n"
+        "    %% after after for receive\n"
         "end\n"
     ).
 
