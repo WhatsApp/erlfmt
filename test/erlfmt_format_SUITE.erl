@@ -2586,17 +2586,21 @@ receive_expression(Config) when is_list(Config) ->
         "    % receive post comment\n"
         "end\n"
     ),
-    ?assertFormat(
-        "receive\n"
-        "after\n"
-        "    % before zero\n"
-        "    0 -> ok\n"
-        "end\n",
+    ?assertSame(
         "receive\n"
         "after\n"
         "    % before zero\n"
         "    0 -> ok\n"
         "end\n"
+    ),
+    %% TODO: This is not correct, concat needs to be indented
+    ?assertSame(
+        "receive\n"
+        "after\n"
+        "    %% foo\n"
+        "    0 -> \"abc\"\n"
+        "    \"def\"\n"
+        "end.\n"
     ),
     ?assertFormat(
         "receive\n"
