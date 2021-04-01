@@ -5,7 +5,8 @@ We realize this solution is not perfect and in this document we hope to show why
 
 ## Explanation
 
-Binary operators are parsed as right associative by default: `A ++ B ++ C` is parsed as `A ++ (B ++ C)`
+Binary operators which are parsed as right [associative](https://erlang.org/doc/reference_manual/expressions.html#operator-precedence)
+for example: `A ++ B ++ C` is parsed as `A ++ (B ++ C)`
 The layout algorithm used for `erlfmt` is greedy, which means that when this expressions needs to break it will break as:
 
 ```erlang
@@ -19,6 +20,9 @@ We avoid this by rewriting the parsed AST as left associative `(A ++ B) ++ C` wh
 A ++ B ++
     C
 ```
+
+This rewriting is only internal to `erlfmt` and does not affect the semantics of the code.
+`erlfmt` does not place any new parenthesis and the formatted code will be parsed as right associative again.
 
 This works for all binary operators, except `=` and `::` which are the only two operators than can be chained and also have next break fits behaviour if the container on the right is also next break fits, for example a list. Here is an example of how equal is formatted with next break fits with a list of the right side, given we had to break the line:
 
