@@ -34,7 +34,4 @@ As always, you can preferably provide feedback, by simply trying out the `erlfmt
   - [Multiline Lists](./FormattingDecisionLists.md)
   - [List Comprehensions](./FormattingDecisionListComprehensions.md)
   - [When with Multiline Guards](./FormattingDecisionWhenMultilineGuards.md)
-
-
-
-
+  - [Formatting Decision: Left Associative Equal and Dolon Operators](./FormattingDecisionAssociative.md)
