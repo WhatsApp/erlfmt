@@ -295,8 +295,8 @@ specs(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, {atom, _, spec}, [
             {spec, _, {atom, _, foo}, [
-                {spec_clause, _, {args, _, [{call, _, {atom, _, integer}, []}]},
-                    {atom, _, integer}, empty},
+                {spec_clause, _, {args, _, [{call, _, {atom, _, integer}, []}]}, {atom, _, integer},
+                    empty},
                 {spec_clause, _, {args, _, [{call, _, {atom, _, atom}, []}]}, {atom, _, atom},
                     empty}
             ]}
