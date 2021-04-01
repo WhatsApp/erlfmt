@@ -3256,6 +3256,88 @@ spec(Config) when is_list(Config) ->
         "        {VeryLongTuple,\n"
         "            EvenLonger}.\n",
         30
+    ),
+    ?assertSame(
+        "-spec foo(Int) -> atom() when\n"
+        "    %% comment\n"
+        "    Int :: integer().\n"
+    ),
+    ?assertFormat(
+        "-spec foo(Int) -> atom() when\n"
+        "    Int :: integer()\n"
+        "    %% after clause comment\n"
+        "    .\n",
+        "-spec foo(Int) -> atom() when Int :: integer()\n"
+        "%% after clause comment\n"
+        ".\n"
+    ),
+    ?assertFormat(
+        "-spec foo(Int) -> atom()\n"
+        "    %% before when comment\n"
+        "    when Int :: integer().\n",
+        "-spec foo(Int) -> atom() when\n"
+        "    %% before when comment\n"
+        "    Int :: integer().\n"
+    ),
+    ?assertFormat(
+        "-spec foo(Int) -> atom()\n"
+        "    %% before when comment\n"
+        "    when\n"
+        "    %% after when comment\n"
+        "    Int :: integer().\n",
+        "-spec foo(Int) -> atom() when\n"
+        "    %% before when comment\n"
+        "\n"
+        "    %% after when comment\n"
+        "    Int :: integer().\n"
+    ),
+    ?assertFormat(
+        "-spec to_atom\n"
+        "    %% int to atom\n"
+        "    (Int) -> atom() when\n"
+        "    %% int is integer\n"
+        "    Int :: integer();\n"
+        "    %% string to atom\n"
+        "    (String) -> atom() when\n"
+        "    %% string is string\n"
+        "    String :: string().\n",
+        "-spec to_atom\n"
+        "    %% int to atom\n"
+        "    (Int) -> atom() when\n"
+        "        %% int is integer\n"
+        "        Int :: integer();\n"
+        "    %% string to atom\n"
+        "    (String) -> atom() when\n"
+        "        %% string is string\n"
+        "        String :: string().\n"
+    ),
+    ?assertFormat(
+        "-spec to_atom\n"
+        "    %% int to atom\n"
+        "    (Int) -> atom() when\n"
+        "    %% int is integer\n"
+        "    Int :: integer()\n"
+        "    %% before semi colon\n"
+        "    ;\n"
+        "    %% string to atom\n"
+        "    (String) -> atom() when\n"
+        "    %% string is string\n"
+        "    String :: string()\n"
+        "    %% before dot\n"
+        "    .\n",
+        "-spec to_atom\n"
+        "    %% int to atom\n"
+        "    (Int) -> atom() when\n"
+        "        %% int is integer\n"
+        "        Int :: integer();\n"
+        "    %% before semi colon\n"
+        "\n"
+        "    %% string to atom\n"
+        "    (String) -> atom() when\n"
+        "        %% string is string\n"
+        "        String :: string()\n"
+        "%% before dot\n"
+        ".\n"
     ).
 
 define(Config) when is_list(Config) ->

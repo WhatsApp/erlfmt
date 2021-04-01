@@ -129,11 +129,11 @@ insert_nested({cons, Meta, Head0, Tail0}, Comments0) ->
     {{cons, Meta, Head, Tail}, Comments};
 insert_nested({spec_clause, Meta, Head0, Body0, empty}, Comments0) ->
     {Head, Comments1} = insert_expr(Head0, Comments0),
-    {Body, Comments} = insert_expr_list(Body0, Comments1),
+    {Body, Comments} = insert_expr(Body0, Comments1),
     {{spec_clause, Meta, Head, Body, empty}, Comments};
 insert_nested({spec_clause, Meta, Head0, Body0, Guards0}, Comments0) ->
     {Head, Comments1} = insert_expr(Head0, Comments0),
-    {Body, Comments2} = insert_expr_list(Body0, Comments1),
+    {Body, Comments2} = insert_expr(Body0, Comments1),
     {Guards, Comments} = insert_expr(Guards0, Comments2),
     {{spec_clause, Meta, Head, Body, Guards}, Comments};
 insert_nested({clause, Meta, Head0, empty, Body0}, Comments0) ->

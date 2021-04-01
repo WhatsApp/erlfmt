@@ -287,7 +287,7 @@ specs(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, {atom, _, spec}, [
             {spec, _, {remote, _, {atom, _, foo}, {atom, _, bar}}, [
-                {spec_clause, _, {args, _, []}, [{atom, _, ok}], empty}
+                {spec_clause, _, {args, _, []}, {atom, _, ok}, empty}
             ]}
         ]},
         parse_form("-spec foo:bar() -> ok.")
@@ -296,8 +296,8 @@ specs(Config) when is_list(Config) ->
         {attribute, _, {atom, _, spec}, [
             {spec, _, {atom, _, foo}, [
                 {spec_clause, _, {args, _, [{call, _, {atom, _, integer}, []}]},
-                    [{atom, _, integer}], empty},
-                {spec_clause, _, {args, _, [{call, _, {atom, _, atom}, []}]}, [{atom, _, atom}],
+                    {atom, _, integer}, empty},
+                {spec_clause, _, {args, _, [{call, _, {atom, _, atom}, []}]}, {atom, _, atom},
                     empty}
             ]}
         ]},
@@ -306,7 +306,7 @@ specs(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, {atom, _, callback}, [
             {spec, _, {atom, _, foo}, [
-                {spec_clause, _, {args, _, [{var, _, 'X'}]}, [{var, _, 'Y'}],
+                {spec_clause, _, {args, _, [{var, _, 'X'}]}, {var, _, 'Y'},
                     {guard_or, _, [
                         {guard_and, _, [
                             {op, _, '::', {var, _, 'X'}, {call, _, {atom, _, integer}, []}},
@@ -320,7 +320,7 @@ specs(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, {atom, _, spec}, [
             {spec, _, {macro_call, _, {atom, _, foo}, none}, [
-                {spec_clause, _, {args, _, []}, [{atom, _, ok}], empty}
+                {spec_clause, _, {args, _, []}, {atom, _, ok}, empty}
             ]}
         ]},
         parse_form("-spec ?foo() -> ok.")
@@ -328,7 +328,7 @@ specs(Config) when is_list(Config) ->
     ?assertMatch(
         {attribute, _, {atom, _, callback}, [
             {spec, _, {macro_call, _, {var, _, 'FOO'}, none}, [
-                {spec_clause, _, {args, _, []}, [{atom, _, ok}], empty}
+                {spec_clause, _, {args, _, []}, {atom, _, ok}, empty}
             ]}
         ]},
         parse_form("-callback ?FOO() -> ok.")

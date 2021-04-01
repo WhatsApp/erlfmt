@@ -116,11 +116,11 @@ type_sigs -> type_sig ';' type_sigs : {['$1' | ?val('$3')], ?anno('$3')}.
 
 type_sig -> type_argument_list '->' type :
     Head = {args, ?anno('$1'), ?val('$1')},
-    {spec_clause, ?range_anno('$1', '$3'), Head, ['$3'], empty}.
+    {spec_clause, ?range_anno('$1', '$3'), Head, '$3', empty}.
 type_sig -> type_argument_list '->' type 'when' anno_types :
     Head = {args, ?anno('$1'), ?val('$1')},
     Guard = {guard_or, ?anno('$5'), [{guard_and, ?anno('$5'), ?val('$5')}]},
-    {spec_clause, ?range_anno('$1', '$5'), Head, ['$3'], Guard}.
+    {spec_clause, ?range_anno('$1', '$5'), Head, '$3', Guard}.
 
 type -> type '::' type : ?mkop2('$1', '$2', '$3').
 type -> type '|' type : ?mkop2('$1', '$2', '$3').

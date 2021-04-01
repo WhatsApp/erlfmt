@@ -692,7 +692,7 @@ clause_has_break({clause, _Meta, empty, Guards, [Body | _]}) ->
     has_break_between(Guards, Body);
 clause_has_break({clause, _Meta, Head, _Guards, [Body | _]}) ->
     has_break_between(Head, Body);
-clause_has_break({spec_clause, _Meta, Head, [Body], _Guards}) ->
+clause_has_break({spec_clause, _Meta, Head, Body, _Guards}) ->
     has_break_between(Head, Body);
 clause_has_break({macro_call, _Meta, _Name, _Args}) ->
     false.
@@ -724,14 +724,14 @@ clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
         group(concat(Nested(GuardsD), break(<<" ">>), <<"->">>)),
         Nested(BodyD)
     );
-clause_to_algebra({spec_clause, _Meta, Head, [Body], empty}) ->
+clause_to_algebra({spec_clause, _Meta, Head, Body, empty}) ->
     HeadD = clause_head_to_algebra(Head),
     BodyD = expr_to_algebra(Body),
     concat(
         space(HeadD, <<"->">>),
         group(nest(concat(break(<<" ">>), BodyD), ?INDENT))
     );
-clause_to_algebra({spec_clause, _Meta, Head, [Body], Guards}) ->
+clause_to_algebra({spec_clause, _Meta, Head, Body, Guards}) ->
     HeadD = clause_head_to_algebra(Head),
     GuardsD = spec_clause_gaurds_to_algebra(Guards),
     BodyD = expr_to_algebra(Body),
