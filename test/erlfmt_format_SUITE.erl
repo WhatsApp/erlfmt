@@ -2574,13 +2574,18 @@ receive_expression(Config) when is_list(Config) ->
         "    2 -> two\n"
         "end\n"
     ),
-    % ?assertSame(
-    %     "receive\n"
-    %     "after\n"
-    %     "    % foo\n"
-    %     "    0 -> ok\n"
-    %     "end\n"
-    % ),
+    ?assertFormat(
+        "receive\n"
+        "after\n"
+        "    0 -> ok\n"
+        "    % receive post comment\n"
+        "end\n",
+        "receive\n"
+        "after 0 ->\n"
+        "    ok\n"
+        "    % receive post comment\n"
+        "end\n"
+    ),
     ?assertFormat(
         "receive\n"
         "    1 -> ok\n"
@@ -2596,6 +2601,18 @@ receive_expression(Config) when is_list(Config) ->
         "after 0 ->\n"
         "    ok\n"
         "    %% after after for receive\n"
+        "end\n"
+    ),
+    %% TODO: We do not want this comment to move
+    ?assertFormat(
+        "receive\n"
+        "after\n"
+        "    % before zero\n"
+        "    0 -> ok\n"
+        "end\n",
+        "receive\n"
+        "% before zero\n"
+        "after 0 -> ok\n"
         "end\n"
     ).
 
