@@ -797,7 +797,7 @@ receive_after_to_algebra(Expr, [HBody | _] = Body) ->
                     line(),
                     ExprD,
                     <<" -> ">>,
-                    nest(BodyD, ?INDENT, break)
+                    BodyD
                 ])
         end,
     group(nest(Doc, ?INDENT)).
