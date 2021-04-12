@@ -15,7 +15,14 @@
 
 -include("erlfmt_scan.hrl").
 
--export([io_node/1, string_node/1, continue/1, last_node_string/1]).
+-export([
+    io_node/1,
+    string_node/1,
+    continue/1,
+    last_node_string/1,
+    last_node_string_trimmed/1
+]).
+
 -export([
     put_anno/3,
     merge_anno/2,
@@ -180,6 +187,13 @@ last_node_string(#state{original = [First | _] = Tokens}) ->
     Location = erl_scan:location(First),
     {String, token_anno([{text, String}, {location, Location}])}.
 
+-spec last_node_string_trimmed(state()) -> {unicode:chardata(), anno()}.
+last_node_string_trimmed(#state{original = [First | _] = Tokens}) ->
+    String0 = stringify_tokens(Tokens),
+    String = string:trim(String0, both, "\n"),
+    Location = erl_scan:location(First),
+    {String, token_anno([{text, String}, {location, Location}])}.
+
 has_new_line({white_space, _, [$\n | _]}) -> true;
 has_new_line(_) -> false.
 
@@ -211,8 +225,9 @@ drop_initial_white_space([{white_space, _, _} | Rest]) ->
 drop_initial_white_space(Rest) ->
     Rest.
 
+-spec stringify_tokens([erl_scan:token()]) -> string().
 stringify_tokens(Tokens) ->
-    lists:map(fun erl_scan:text/1, Tokens).
+    lists:flatmap(fun erl_scan:text/1, Tokens).
 
 -spec split_tokens([erl_scan:token()], [erl_scan:token()]) ->
     {[token()], [erl_scan:token()], [comment()], [token()]}.

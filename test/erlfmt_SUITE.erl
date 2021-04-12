@@ -81,7 +81,8 @@
     contains_pragma/1,
     insert_pragma/1,
     overlong_warning/1,
-    do_not_crash_on_bad_record/1
+    do_not_crash_on_bad_record/1,
+    raw_string_anno/1
 ]).
 
 suite() ->
@@ -125,7 +126,8 @@ groups() ->
             types,
             annos,
             shebang,
-            do_not_crash_on_bad_record
+            do_not_crash_on_bad_record,
+            raw_string_anno
         ]},
         {smoke_tests, [parallel], [
             {group, snapshot_tests},
@@ -1425,4 +1427,49 @@ do_not_crash_on_bad_record(Config) when is_list(Config) ->
             ]}
         ]},
         Attr2
+    ).
+
+raw_string_anno(Config) when is_list(Config) ->
+    Broken =
+        "foo() ->\n"
+        " 1 2 3\n"
+        ".",
+    ?assertMatch(
+        {ok, [{raw_string, #{end_location := {3, 2}}, Broken}], _},
+        erlfmt:read_nodes_string("nofile", Broken)
+    ),
+
+    TrailingNl =
+        "foo() -> 1 2 3.\n"
+        "\n"
+        "\n"
+        "\n",
+    Trimmed = "foo() -> 1 2 3.",
+    EndCol = length(Trimmed) + 1,
+    ?assertMatch(
+        {ok, [{raw_string, #{end_location := {1, EndCol}}, Trimmed}], _},
+        erlfmt:read_nodes_string("nofile", TrailingNl)
+    ),
+
+    Incomplete =
+        "foo() ->\n"
+        " 123",
+    ?assertMatch(
+        {ok, [{raw_string, #{end_location := {2, 5}}, Incomplete}], _},
+        erlfmt:read_nodes_string("nofile", Incomplete)
+    ),
+
+    Comment =
+        "foo() ->\n"
+        " 1 2 3. %% comment\n"
+        "\n"
+        "bar() -> ok.",
+    ?assertMatch(
+        {ok,
+            [
+                {raw_string, #{end_location := {2, 19}}, _},
+                {function, #{location := {4, 1}}, _}
+            ],
+            _},
+        erlfmt:read_nodes_string("nofile", Comment)
     ).
