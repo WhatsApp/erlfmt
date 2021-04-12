@@ -3115,6 +3115,10 @@ record_definition(Config) when is_list(Config) ->
     ).
 
 spec(Config) when is_list(Config) ->
+    ?assertSame(
+        "-spec foo() ->\n"
+        "    atom().\n"
+    ),
     ?assertFormat(
         "-spec child_spec(#{\n"
         "    name => {local, Name :: atom()} | {global, GlobalName :: any()} | {via, Module :: atom(), ViaName :: any()},\n"
@@ -3126,7 +3130,8 @@ spec(Config) when is_list(Config) ->
         "        | {global, GlobalName :: any()}\n"
         "        | {via, Module :: atom(), ViaName :: any()},\n"
         "    another_field => atom()\n"
-        "}) -> supervisor:child_spec().\n"
+        "}) ->\n"
+        "    supervisor:child_spec().\n"
     ),
     ?assertSame(
         "-spec foo(Int) -> atom() when Int :: integer().\n"
@@ -3137,6 +3142,13 @@ spec(Config) when is_list(Config) ->
         "    Int :: integer().\n",
         40
     ),
+    % ?assertFormat(
+    %     "-spec foo(Int) ->\n"
+    %     "    atom() when\n"
+    %     "    Int :: integer().\n",
+    %     "-spec foo(Int) -> atom() when\n"
+    %     "    Int :: integer().\n"
+    % ),
     ?assertFormat(
         "-spec foo(Int) -> some_very:very(long, type) when Int :: integer().",
         "-spec foo(Int) ->\n"
@@ -3165,7 +3177,8 @@ spec(Config) when is_list(Config) ->
         "-spec foo\n"
         "    (integer()) ->\n"
         "        some_very:very(long, type);\n"
-        "    (1..2) -> atom().\n",
+        "    (1..2) ->\n"
+        "        atom().\n",
         40
     ),
     ?assertFormat(
@@ -3175,7 +3188,8 @@ spec(Config) when is_list(Config) ->
         "        some_very_very:very(long, type)\n"
         "    when\n"
         "        Int :: integer();\n"
-        "    (1..2) -> atom().\n",
+        "    (1..2) ->\n"
+        "        atom().\n",
         40
     ),
     ?assertFormat(
@@ -3208,10 +3222,8 @@ spec(Config) when is_list(Config) ->
     ),
     ?assertFormat(
         "-spec foo(very_long_type(), another_long_type()) -> some_very:very(long, type).",
-        "-spec foo(\n"
-        "    very_long_type(),\n"
-        "    another_long_type()\n"
-        ") -> some_very:very(long, type).\n",
+        "-spec foo(very_long_type(), another_long_type()) ->\n"
+        "    some_very:very(long, type).\n",
         50
     ),
     ?assertFormat(
@@ -3221,7 +3233,8 @@ spec(Config) when is_list(Config) ->
         "    | #blonglonglong{}\n"
         "    | #c{}\n"
         "    | #d{}\n"
-        ") -> binary().\n",
+        ") ->\n"
+        "    binary().\n",
         30
     ),
     ?assertSame(
@@ -3231,7 +3244,8 @@ spec(Config) when is_list(Config) ->
         "    binary() | null,\n"
         "    credit | {refund | dispute, binary()},\n"
         "    binary() | null\n"
-        ") -> ok.\n"
+        ") ->\n"
+        "    ok.\n"
     ),
     ?assertSame(
         "-spec my_fun(TypeA, TypeB) -> ok when\n"

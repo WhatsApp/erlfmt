@@ -709,6 +709,10 @@ clause_to_algebra({clause, _Meta, Head, empty, Body}) ->
     HeadD = clause_head_to_algebra(Head),
     BodyD = block_to_algebra(Body),
     space(HeadD, nest(break(<<"->">>, BodyD), ?INDENT));
+clause_to_algebra({spec_clause, _Meta, Head, Body, empty}) ->
+    HeadD = clause_head_to_algebra(Head),
+    BodyD = expr_to_algebra(Body),
+    space(HeadD, nest(break(<<"->">>, BodyD), ?INDENT));
 clause_to_algebra({clause, _Meta, empty, Guards, Body}) ->
     GuardsD = expr_to_algebra(Guards),
     BodyD = block_to_algebra(Body),
@@ -717,19 +721,11 @@ clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
     HeadD = clause_head_to_algebra(Head),
     GuardsD = expr_to_algebra(Guards),
     BodyD = block_to_algebra(Meta, Body),
-
     Nested = fun(Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
     concat(
         space(HeadD, <<"when">>),
         group(concat(Nested(GuardsD), break(<<" ">>), <<"->">>)),
         Nested(BodyD)
-    );
-clause_to_algebra({spec_clause, _Meta, Head, Body, empty}) ->
-    HeadD = clause_head_to_algebra(Head),
-    BodyD = expr_to_algebra(Body),
-    concat(
-        space(HeadD, <<"->">>),
-        group(nest(concat(break(<<" ">>), BodyD), ?INDENT))
     );
 clause_to_algebra({spec_clause, _Meta, Head, Body, Guards}) ->
     HeadD = clause_head_to_algebra(Head),
