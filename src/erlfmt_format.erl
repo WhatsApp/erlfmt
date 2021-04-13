@@ -724,10 +724,12 @@ clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
     Nested = fun(Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
     concat(
         space(HeadD, <<"when">>),
-        group(concat(
-            group(concat(Nested(GuardsD), break(<<" ">>), <<"->">>)),
-            Nested(BodyD)
-        ))
+        group(
+            concat(
+                group(concat(Nested(GuardsD), break(<<" ">>), <<"->">>)),
+                Nested(BodyD)
+            )
+        )
     );
 clause_to_algebra({spec_clause, _Meta, Head, Body, Guards}) ->
     HeadD = clause_head_to_algebra(Head),
@@ -736,10 +738,12 @@ clause_to_algebra({spec_clause, _Meta, Head, Body, Guards}) ->
     Nested = fun(Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
     concat(
         space(HeadD, <<"->">>),
-        group(concat(
-            group(concat(Nested(BodyD), break(<<" ">>), <<"when">>)),
-            Nested(GuardsD)
-        ))
+        group(
+            concat(
+                group(concat(Nested(BodyD), break(<<" ">>), <<"when">>)),
+                Nested(GuardsD)
+            )
+        )
     ).
 
 clause_head_to_algebra({op, Meta, Op, Left, Right}) ->
