@@ -823,7 +823,7 @@ try_of_block(Body, OfClauses) ->
 is_multiline(Node) ->
     erlfmt_scan:get_inner_line(Node) =/= erlfmt_scan:get_inner_end_line(Node).
 
-has_break_between(Left, [Right | _ ]) ->
+has_break_between(Left, [Right | _]) ->
     has_break_between(Left, Right);
 has_break_between(Left, Right) ->
     erlfmt_scan:get_end_line(Left) < erlfmt_scan:get_line(Right).
