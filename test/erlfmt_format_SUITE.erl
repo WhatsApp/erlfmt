@@ -3162,7 +3162,20 @@ spec(Config) when is_list(Config) ->
     ?assertFormat(
         "-spec foo(Int) -> atom() when\n"
         "    Int :: integer().\n",
-        "-spec foo(Int) -> atom() when Int :: integer().\n"
+        "-spec foo(Int) -> atom() when\n"
+        "    Int :: integer().\n"
+    ),
+    ?assertSame(
+        "bar(X) when is_list(X) ->\n"
+        "    ok.\n"
+    ),
+    ?assertFormat(
+        "bar(X) when\n"
+        "   is_list(X) -> ok.\n",
+        "bar(X) when\n"
+        "    is_list(X)\n"
+        "->\n"
+        "    ok.\n"
     ),
     ?assertFormat(
         "-spec foo(Int) -> some_very:very(long, type) when Int :: integer().",
@@ -3324,7 +3337,8 @@ spec(Config) when is_list(Config) ->
         "    Int :: integer()\n"
         "    %% after clause comment\n"
         "    .\n",
-        "-spec foo(Int) -> atom() when Int :: integer()\n"
+        "-spec foo(Int) -> atom() when\n"
+        "    Int :: integer()\n"
         "%% after clause comment\n"
         ".\n"
     ),
