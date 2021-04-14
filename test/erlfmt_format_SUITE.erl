@@ -3146,6 +3146,22 @@ spec(Config) when is_list(Config) ->
         "-spec foo(Int) ->\n"
         "    atom() when\n"
         "    Int :: integer().\n",
+        "-spec foo(Int) ->\n"
+        "    atom()\n"
+        "when\n"
+        "    Int :: integer().\n"
+    ),
+    ?assertFormat(
+        "-spec foo(Int) ->\n"
+        "    atom() when Int :: integer().\n",
+        "-spec foo(Int) ->\n"
+        "    atom()\n"
+        "when\n"
+        "    Int :: integer().\n"
+    ),
+    ?assertFormat(
+        "-spec foo(Int) -> atom() when\n"
+        "    Int :: integer().\n",
         "-spec foo(Int) -> atom() when Int :: integer().\n"
     ),
     ?assertFormat(
