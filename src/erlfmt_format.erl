@@ -780,27 +780,10 @@ single_clause_spec_to_algebra(Name, {spec_clause, CMeta, Head, Body, Guards}) ->
 receive_after_to_algebra(Expr, [HBody | _] = Body) ->
     ExprD = expr_to_algebra(Expr),
     BodyD = block_to_algebra(Body),
-    Doc =
-        case comments(Expr) of
-            {[], []} ->
-                concat([
-                    <<"after ">>,
-                    ExprD,
-                    <<" ->">>,
-                    break(),
-                    maybe_force_breaks(has_break_between(Expr, HBody)),
-                    BodyD
-                ]);
-            _ ->
-                concat([
-                    <<"after">>,
-                    line(),
-                    ExprD,
-                    <<" -> ">>,
-                    BodyD
-                ])
-        end,
-    group(nest(Doc, ?INDENT)).
+    MaybeForce = maybe_force_breaks(has_break_between(Expr, HBody)),
+    HeadD = group(concat([<<"after">>, break(), ExprD, <<" ">>])),
+    Doc = nest(concat([<<"->">>, break(), MaybeForce, BodyD]), ?INDENT),
+    group(concat(HeadD, Doc)).
 
 try_to_algebra(Body, OfClauses, CatchClauses, After) ->
     Clauses =
