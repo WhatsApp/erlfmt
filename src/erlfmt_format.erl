@@ -724,15 +724,10 @@ clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
     MaybeForceHeadGuards = maybe_force_breaks(has_break_between(Head, Guards)),
     MaybeForceGuardsBody = maybe_force_breaks(has_break_between(Guards, Body)),
     Nested = fun(Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
+    GuardsArrowD = group(concat([MaybeForceHeadGuards, Nested(GuardsD), break(<<" ">>), <<"->">>])),
     concat(
         space(HeadD, <<"when">>),
-        group(
-            concat(
-                group(concat([MaybeForceHeadGuards, Nested(GuardsD), break(<<" ">>), <<"->">>])),
-                MaybeForceGuardsBody,
-                Nested(BodyD)
-            )
-        )
+        group(concat(GuardsArrowD, MaybeForceGuardsBody, Nested(BodyD)))
     );
 clause_to_algebra({spec_clause, _Meta, Head, Body, Guards}) ->
     HeadD = clause_head_to_algebra(Head),
@@ -741,15 +736,10 @@ clause_to_algebra({spec_clause, _Meta, Head, Body, Guards}) ->
     MaybeForceHeadBody = maybe_force_breaks(has_break_between(Head, Body)),
     MaybeForceBodyGuards = maybe_force_breaks(has_break_between(Body, Guards)),
     Nested = fun(Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
+    BodyWhenD = group(concat([MaybeForceHeadBody, Nested(BodyD), break(<<" ">>), <<"when">>])),
     concat(
         space(HeadD, <<"->">>),
-        group(
-            concat(
-                group(concat([MaybeForceHeadBody, Nested(BodyD), break(<<" ">>), <<"when">>])),
-                MaybeForceBodyGuards,
-                Nested(GuardsD)
-            )
-        )
+        group(concat(BodyWhenD, MaybeForceBodyGuards, Nested(GuardsD)))
     ).
 
 clause_head_to_algebra({op, Meta, Op, Left, Right}) ->
