@@ -2661,6 +2661,25 @@ receive_expression(Config) when is_list(Config) ->
     ?assertFormat(
         "receive\n"
         "    1 -> ok\n"
+        "after\n"
+        "    0 -> a(\n"
+        "        b,\n"
+        "        c\n"
+        "    )\n"
+        "end\n",
+        "receive\n"
+        "    1 -> ok\n"
+        "after\n"
+        "    0 ->\n"
+        "        a(\n"
+        "            b,\n"
+        "            c\n"
+        "        )\n"
+        "end\n"
+    ),
+    ?assertFormat(
+        "receive\n"
+        "    1 -> ok\n"
         "    %% after receive\n"
         "after\n"
         "    %% before zero\n"
