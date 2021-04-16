@@ -2479,8 +2479,11 @@ receive_expression(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "receive\n"
-        "after 0 ->\n"
-        "    some:long(Expression)\n"
+        "after\n"
+        "    0 ->\n"
+        "        some:long(\n"
+        "            Expression\n"
+        "        )\n"
         "end\n",
         25
     ),
@@ -2490,11 +2493,15 @@ receive_expression(Config) when is_list(Config) ->
         "after 0 -> ok\n"
         "end\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "receive\n"
         "    1 -> ok\n"
         "after 0 ->\n"
         "    ok\n"
+        "end\n",
+        "receive\n"
+        "    1 -> ok\n"
+        "after 0 -> ok\n"
         "end\n"
     ),
     ?assertFormat(
@@ -2581,9 +2588,10 @@ receive_expression(Config) when is_list(Config) ->
         "    % receive post comment\n"
         "end\n",
         "receive\n"
-        "after 0 ->\n"
-        "    ok\n"
-        "    % receive post comment\n"
+        "after\n"
+        "    0 ->\n"
+        "        ok\n"
+        "        % receive post comment\n"
         "end\n"
     ),
     ?assertFormat(
@@ -2594,9 +2602,8 @@ receive_expression(Config) when is_list(Config) ->
         "end\n",
         "receive\n"
         "after\n"
-        "% before zero\n"
-        "0 ->\n"
-        "    ok\n"
+        "    % before zero\n"
+        "    0 -> ok\n"
         "end\n"
     ),
     ?assertFormat(
@@ -2609,10 +2616,10 @@ receive_expression(Config) when is_list(Config) ->
         "end.\n",
         "receive\n"
         "after\n"
-        "%% foo\n"
-        "0 ->\n"
-        "    \"abc\"\n"
-        "    \"def\"\n"
+        "    %% foo\n"
+        "    0 ->\n"
+        "        \"abc\"\n"
+        "        \"def\"\n"
         "end.\n"
     ),
     ?assertFormat(
@@ -2626,9 +2633,10 @@ receive_expression(Config) when is_list(Config) ->
         "receive\n"
         "    1 -> ok\n"
         "    %% after receive\n"
-        "after 0 ->\n"
-        "    ok\n"
-        "    %% after after for receive\n"
+        "after\n"
+        "    0 ->\n"
+        "        ok\n"
+        "        %% after after for receive\n"
         "end\n"
     ),
     ?assertFormat(
@@ -2644,10 +2652,10 @@ receive_expression(Config) when is_list(Config) ->
         "    1 -> ok\n"
         "    %% after receive\n"
         "after\n"
-        "%% before zero\n"
-        "0 ->\n"
-        "    ok\n"
-        "    %% after after for receive\n"
+        "    %% before zero\n"
+        "    0 ->\n"
+        "        ok\n"
+        "        %% after after for receive\n"
         "end\n"
     ),
     ?assertFormat(
@@ -2666,13 +2674,13 @@ receive_expression(Config) when is_list(Config) ->
         "    1 -> ok\n"
         "    %% after receive\n"
         "after\n"
-        "%% before zero\n"
-        "0 ->\n"
-        "    a(\n"
-        "        b,\n"
-        "        c\n"
-        "    )\n"
-        "    %% after after for receive\n"
+        "    %% before zero\n"
+        "    0 ->\n"
+        "        a(\n"
+        "            b,\n"
+        "            c\n"
+        "        )\n"
+        "        %% after after for receive\n"
         "end\n"
     ).
 

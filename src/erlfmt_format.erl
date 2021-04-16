@@ -777,13 +777,22 @@ single_clause_spec_to_algebra(Name, {spec_clause, CMeta, Head, Body, Guards}) ->
     {args, AMeta, Args} = Head,
     clauses_to_algebra([{spec_clause, CMeta, {call, AMeta, Name, Args}, Body, Guards}]).
 
-receive_after_to_algebra(Expr, [HBody | _] = Body) ->
+receive_after_to_algebra(Expr, Body) ->
     ExprD = expr_to_algebra(Expr),
     BodyD = block_to_algebra(Body),
-    MaybeForce = maybe_force_breaks(has_break_between(Expr, HBody)),
-    HeadD = group(concat([<<"after">>, break(), ExprD, <<" ">>])),
-    Doc = nest(concat([<<"->">>, break(), MaybeForce, BodyD]), ?INDENT),
-    group(concat(HeadD, Doc)).
+    Nest = fun(List) -> group(nest(concat(List), ?INDENT, break)) end,
+    concat([
+        <<"after">>,
+        Nest([
+            break(),
+            ExprD,
+            <<" ->">>,
+            Nest([
+                break(),
+                BodyD
+            ])
+        ])
+    ]).
 
 try_to_algebra(Body, OfClauses, CatchClauses, After) ->
     Clauses =
