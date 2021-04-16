@@ -711,6 +711,10 @@ clause_to_algebra({clause, _Meta, Head, empty, Body}) ->
     HeadD = clause_head_to_algebra(Head),
     BodyD = block_to_algebra(Body),
     space(HeadD, nest(break(<<"->">>, BodyD), ?INDENT));
+clause_to_algebra({spec_clause, _Meta, Head, Body, empty}) ->
+    HeadD = clause_head_to_algebra(Head),
+    BodyD = expr_to_algebra(Body),
+    space(HeadD, nest(break(<<"->">>, BodyD), ?INDENT));
 clause_to_algebra({clause, _Meta, empty, Guards, Body}) ->
     GuardsD = expr_to_algebra(Guards),
     BodyD = block_to_algebra(Body),
@@ -719,29 +723,25 @@ clause_to_algebra({clause, Meta, Head, Guards, Body}) ->
     HeadD = clause_head_to_algebra(Head),
     GuardsD = expr_to_algebra(Guards),
     BodyD = block_to_algebra(Meta, Body),
-
+    MaybeForceHeadGuards = maybe_force_breaks(has_break_between(Head, Guards)),
+    MaybeForceGuardsBody = maybe_force_breaks(has_break_between(Guards, Body)),
     Nested = fun(Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
+    GuardsArrowD = group(concat([MaybeForceHeadGuards, Nested(GuardsD), break(<<" ">>), <<"->">>])),
     concat(
         space(HeadD, <<"when">>),
-        group(concat(Nested(GuardsD), break(<<" ">>), <<"->">>)),
-        Nested(BodyD)
-    );
-clause_to_algebra({spec_clause, _Meta, Head, Body, empty}) ->
-    HeadD = clause_head_to_algebra(Head),
-    BodyD = expr_to_algebra(Body),
-    concat(
-        space(HeadD, <<"->">>),
-        group(nest(concat(break(<<" ">>), BodyD), ?INDENT))
+        group(concat(GuardsArrowD, MaybeForceGuardsBody, Nested(BodyD)))
     );
 clause_to_algebra({spec_clause, _Meta, Head, Body, Guards}) ->
     HeadD = clause_head_to_algebra(Head),
     GuardsD = spec_clause_gaurds_to_algebra(Guards),
     BodyD = expr_to_algebra(Body),
+    MaybeForceHeadBody = maybe_force_breaks(has_break_between(Head, Body)),
+    MaybeForceBodyGuards = maybe_force_breaks(has_break_between(Body, Guards)),
     Nested = fun(Doc) -> nest(concat(break(<<" ">>), Doc), ?INDENT) end,
+    BodyWhenD = group(concat([MaybeForceHeadBody, Nested(BodyD), break(<<" ">>), <<"when">>])),
     concat(
         space(HeadD, <<"->">>),
-        group(concat(Nested(BodyD), break(<<" ">>), <<"when">>)),
-        Nested(GuardsD)
+        group(concat(BodyWhenD, MaybeForceBodyGuards, Nested(GuardsD)))
     ).
 
 clause_head_to_algebra({op, Meta, Op, Left, Right}) ->
@@ -816,6 +816,8 @@ try_of_block(Body, OfClauses) ->
 is_multiline(Node) ->
     erlfmt_scan:get_inner_line(Node) =/= erlfmt_scan:get_inner_end_line(Node).
 
+has_break_between(Left, [Right | _]) ->
+    has_break_between(Left, Right);
 has_break_between(Left, Right) ->
     erlfmt_scan:get_end_line(Left) < erlfmt_scan:get_line(Right).
 
