@@ -219,7 +219,7 @@ insert_nested({'case', Meta, Expr0, Clauses0}, Comments0) ->
 insert_nested({'receive', Meta, Clauses0}, Comments0) ->
     {Clauses, []} = insert_expr(Clauses0, Comments0),
     {{'receive', Meta, Clauses}, []};
-insert_nested({'receive', Meta, empty, {after_clause, _, _, _} = After0}, Comments0) ->
+insert_nested({'receive', Meta, empty, After0}, Comments0) ->
     {After, []} = insert_expr(After0, Comments0),
     {{'receive', Meta, empty, After}, []};
 insert_nested({'receive', Meta, Clauses0, After0}, Comments0) ->
