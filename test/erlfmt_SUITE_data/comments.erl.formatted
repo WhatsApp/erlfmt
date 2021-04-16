@@ -31,7 +31,9 @@ has_fanciness([]) ->
     false.
 
 %% comment
-bar(X) when is_list(X) ->
+bar(X) when
+    is_list(X)
+->
     ok;
 %% comment
 bar(X) when is_atom(X) ->
