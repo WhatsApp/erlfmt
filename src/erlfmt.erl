@@ -317,8 +317,8 @@ contains_ignore_comment({comment, _Loc, Comments}) ->
     ).
 
 node_string(Cont) ->
-    {String, Anno} = erlfmt_scan:last_node_string(Cont),
-    {raw_string, Anno, string:trim(String, both, "\n")}.
+    {String, Anno} = erlfmt_scan:last_node_string_trimmed(Cont),
+    {raw_string, Anno, String}.
 
 -spec format_nodes([erlfmt_parse:abstract_form()], pos_integer()) -> [unicode:chardata()].
 format_nodes([], _PrintWidth) ->
@@ -467,8 +467,8 @@ nodes_in_range(Nodes, StartLocation, EndLocation) ->
 
 node_intersects_range(Node, StartLocation, EndLocation) ->
     {Start, End} = get_location_range(Node),
-    ((Start < StartLocation) and (End >= StartLocation)) or
-        ((Start >= StartLocation) and (Start =< EndLocation)).
+    ((Start < StartLocation) and (End > StartLocation)) or
+        ((Start >= StartLocation) and (Start < EndLocation)).
 
 get_possible_locations([Option1, Option2 | _], Location, GetLoc) ->
     case GetLoc(Option1) of
