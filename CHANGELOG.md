@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.13.0 (19.04.2021)
+
+1.0 Release Candidate 1
+
+### Fixes
+
+  - Preserve newline in spec without guards #273 #275
+  - Preserve comments in receive after after #271
+  - Fix end_location in raw_string anno #274
+  - Fix pre dot comments in function #267
+  - Better error reporting for not_equivalent and tests #269
+
 ## v0.12.0 (30.03.2021)
 
 Tuples that are not tagged tuples are formatted as lists
