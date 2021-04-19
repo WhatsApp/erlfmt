@@ -3130,8 +3130,7 @@ spec(Config) when is_list(Config) ->
         "        | {global, GlobalName :: any()}\n"
         "        | {via, Module :: atom(), ViaName :: any()},\n"
         "    another_field => atom()\n"
-        "}) ->\n"
-        "    supervisor:child_spec().\n"
+        "}) -> supervisor:child_spec().\n"
     ),
     ?assertSame(
         "-spec foo(Int) -> atom() when Int :: integer().\n"
@@ -3205,8 +3204,7 @@ spec(Config) when is_list(Config) ->
         "-spec foo\n"
         "    (integer()) ->\n"
         "        some_very:very(long, type);\n"
-        "    (1..2) ->\n"
-        "        atom().\n",
+        "    (1..2) -> atom().\n",
         40
     ),
     ?assertFormat(
@@ -3216,8 +3214,7 @@ spec(Config) when is_list(Config) ->
         "        some_very_very:very(long, type)\n"
         "    when\n"
         "        Int :: integer();\n"
-        "    (1..2) ->\n"
-        "        atom().\n",
+        "    (1..2) -> atom().\n",
         40
     ),
     ?assertFormat(
@@ -3261,9 +3258,17 @@ spec(Config) when is_list(Config) ->
         "    | #blonglonglong{}\n"
         "    | #c{}\n"
         "    | #d{}\n"
-        ") ->\n"
-        "    binary().\n",
+        ") -> binary().\n",
         30
+    ),
+    ?assertSame(
+        "-spec use_credit(\n"
+        "    store:id(),\n"
+        "    decimal:decimal(),\n"
+        "    binary() | null,\n"
+        "    credit | {refund | dispute, binary()},\n"
+        "    binary() | null\n"
+        ") -> ok.\n"
     ),
     ?assertSame(
         "-spec use_credit(\n"
