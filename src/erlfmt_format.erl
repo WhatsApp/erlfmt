@@ -714,7 +714,8 @@ clause_to_algebra({clause, _Meta, Head, empty, Body}) ->
 clause_to_algebra({spec_clause, _Meta, Head, Body, empty}) ->
     HeadD = clause_head_to_algebra(Head),
     BodyD = expr_to_algebra(Body),
-    space(HeadD, nest(break(<<"->">>, BodyD), ?INDENT));
+    MaybeForce = maybe_force_breaks(has_break_between(Head, Body)),
+    space(HeadD, group(nest(concat([MaybeForce, <<"->">>, break(<<" ">>), BodyD]), ?INDENT)));
 clause_to_algebra({clause, _Meta, empty, Guards, Body}) ->
     GuardsD = expr_to_algebra(Guards),
     BodyD = block_to_algebra(Body),
