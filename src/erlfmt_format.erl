@@ -783,11 +783,13 @@ receive_after_to_algebra(Expr, Body) ->
     Nest = fun(List) -> group(nest(concat(List), ?INDENT, break)) end,
     case comments(Expr) of
         {[], []} ->
+            MaybeForceBreaks = maybe_force_breaks(has_break_between(Expr, Body)),
             concat([
                 <<"after ">>,
                 ExprD,
                 <<" ->">>,
                 Nest([
+                    MaybeForceBreaks,
                     break(),
                     BodyD
                 ])

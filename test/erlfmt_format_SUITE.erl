@@ -2492,15 +2492,11 @@ receive_expression(Config) when is_list(Config) ->
         "after 0 -> ok\n"
         "end\n"
     ),
-    ?assertFormat(
+    ?assertSame(
         "receive\n"
         "    1 -> ok\n"
         "after 0 ->\n"
         "    ok\n"
-        "end\n",
-        "receive\n"
-        "    1 -> ok\n"
-        "after 0 -> ok\n"
         "end\n"
     ),
     ?assertFormat(
