@@ -160,7 +160,7 @@ call() ->
     end,
     receive
         ok -> ok
-    %% comment 5
+        %% comment 5
     after 1 ->
         %% comment 6
         ok

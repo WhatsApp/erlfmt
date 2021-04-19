@@ -397,11 +397,15 @@ cr_clause -> expr clause_guard clause_body :
     {clause, ?range_anno('$1', '$3'), '$1', '$2', ?val('$3')}.
 
 receive_expr -> 'receive' cr_clauses 'end' :
-        {'receive',?range_anno('$1', '$3'),'$2'}.
-receive_expr -> 'receive' 'after' expr clause_body 'end' :
-        {'receive',?range_anno('$1', '$5'),[],'$3',?val('$4')}.
-receive_expr -> 'receive' cr_clauses 'after' expr clause_body 'end' :
-        {'receive',?range_anno('$1', '$6'),'$2','$4',?val('$5')}.
+        Clauses = {clauses, ?range_anno('$1', '$3'), '$2'},
+        {'receive',?range_anno('$1', '$3'),Clauses}.
+receive_expr -> 'receive' 'after' expr clause_body 'end':
+        After =  {after_clause, ?range_anno('$2', '$5'), '$3', ?val('$4')},
+        {'receive',?range_anno('$1', '$5'),empty,After}.
+receive_expr -> 'receive' cr_clauses 'after' expr clause_body 'end':
+        After =  {after_clause, ?range_anno('$3', '$6'), '$4', ?val('$5')},
+        Clauses = {clauses, ?range_upto_anno('$1', '$3'), '$2'},
+        {'receive',?range_anno('$1', '$6'),Clauses,After}.
 
 fun_expr -> 'fun' atom_or_var_or_macro '/' integer_or_var_or_macro :
     Anno = ?range_anno('$1', '$4'),
