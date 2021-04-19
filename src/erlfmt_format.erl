@@ -781,33 +781,13 @@ single_clause_spec_to_algebra(Name, {spec_clause, CMeta, Head, Body, Guards}) ->
 receive_after_to_algebra(Expr, Body) ->
     ExprD = expr_to_algebra(Expr),
     BodyD = block_to_algebra(Body),
-    Nest = fun(List) -> group(nest(concat(List), ?INDENT, break)) end,
-    case comments(Expr) of
-        {[], []} ->
+    Nest = fun(List) -> group(nest(concat(break(), concat(List)), ?INDENT, break)) end,
+    case has_comments(Expr) of
+        false ->
             MaybeForceBreaks = maybe_force_breaks(has_break_between(Expr, Body)),
-            concat([
-                <<"after ">>,
-                ExprD,
-                <<" ->">>,
-                Nest([
-                    MaybeForceBreaks,
-                    break(),
-                    BodyD
-                ])
-            ]);
-        _ ->
-            concat([
-                <<"after">>,
-                Nest([
-                    break(),
-                    ExprD,
-                    <<" ->">>,
-                    Nest([
-                        break(),
-                        BodyD
-                    ])
-                ])
-            ])
+            concat([<<"after">>, <<" ">>, ExprD, <<" ->">>, Nest([MaybeForceBreaks, BodyD])]);
+        true ->
+            concat([<<"after">>, Nest([ExprD, <<" ->">>, Nest([BodyD])])])
     end.
 
 try_to_algebra(Body, OfClauses, CatchClauses, After) ->
@@ -927,3 +907,9 @@ comments_with_pre_dot(Meta) ->
 comments(Meta) ->
     [] = erlfmt_scan:get_anno(pre_dot_comments, Meta, []),
     {erlfmt_scan:get_anno(pre_comments, Meta, []), erlfmt_scan:get_anno(post_comments, Meta, [])}.
+
+has_comments(Expr) ->
+    case comments(Expr) of
+        {[], []} -> false;
+        _ -> true
+    end.
