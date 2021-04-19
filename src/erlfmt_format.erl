@@ -781,18 +781,31 @@ receive_after_to_algebra(Expr, Body) ->
     ExprD = expr_to_algebra(Expr),
     BodyD = block_to_algebra(Body),
     Nest = fun(List) -> group(nest(concat(List), ?INDENT, break)) end,
-    concat([
-        <<"after">>,
-        Nest([
-            break(),
-            ExprD,
-            <<" ->">>,
-            Nest([
-                break(),
-                BodyD
+    case comments(Expr) of
+        {[], []} ->
+            concat([
+                <<"after ">>,
+                ExprD,
+                <<" ->">>,
+                Nest([
+                    break(),
+                    BodyD
+                ])
+            ]);
+        _ ->
+            concat([
+                <<"after">>,
+                Nest([
+                    break(),
+                    ExprD,
+                    <<" ->">>,
+                    Nest([
+                        break(),
+                        BodyD
+                    ])
+                ])
             ])
-        ])
-    ]).
+    end.
 
 try_to_algebra(Body, OfClauses, CatchClauses, After) ->
     Clauses =

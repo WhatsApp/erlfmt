@@ -161,11 +161,10 @@ call() ->
     receive
         ok -> ok
         %% comment 5
-    after
-        1 ->
-            %% comment 6
-            ok
-            %% comment 7
+    after 1 ->
+        %% comment 6
+        ok
+        %% comment 7
     end.
 
 'if'() ->
