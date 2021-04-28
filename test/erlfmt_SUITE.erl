@@ -685,17 +685,17 @@ lists(Config) when is_list(Config) ->
         parse_expr("[1,2]")
     ),
     ?assertMatch(
-        {list, _, [{cons, _, {integer, _, 1}, {integer, _, 2}}]},
+        {list, _, [{cons, _, {integer, _, 1}, {cons_rest, _, {integer, _, 2}}}]},
         parse_expr("[1 | 2]")
     ),
     ?assertMatch(
-        {list, _, [{integer, _, 1}, {cons, _, {integer, _, 2}, {integer, _, 3}}]},
+        {list, _, [{integer, _, 1}, {cons, _, {integer, _, 2}, {cons_rest, _, {integer, _, 3}}}]},
         parse_expr("[1, 2 | 3]")
     ),
     ?assertMatch(
         {list, _, [
             {cons, _, {op, _, 'catch', {integer, _, 1}},
-                {op, _, '!', {integer, _, 2}, {integer, _, 3}}}
+                {cons_rest, _, {op, _, '!', {integer, _, 2}, {integer, _, 3}}}}
         ]},
         parse_expr("[catch 1 | 2 ! 3]")
     ).

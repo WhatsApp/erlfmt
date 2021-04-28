@@ -279,7 +279,7 @@ list -> '[' ']' : {list, ?range_anno('$1', '$2'), []}.
 list -> '[' list_exprs ']' : {list, ?range_anno('$1', '$3'), '$2'}.
 
 list_exprs -> expr : ['$1'].
-list_exprs -> expr '|' expr : [{cons, ?range_anno('$1', '$3'), '$1', '$3'}].
+list_exprs -> expr '|' expr : [{cons, ?range_anno('$1', '$3'), '$1', {cons_rest, ?range_anno('$2', '$3'), '$3'}}].
 list_exprs -> expr ',' list_exprs : ['$1' | '$3'].
 
 binary -> '<<' '>>' : {bin,?range_anno('$1', '$2'),[]}.

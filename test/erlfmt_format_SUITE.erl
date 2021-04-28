@@ -1495,6 +1495,57 @@ list(Config) when is_list(Config) ->
         "        [\"  end\"]\n"
         "    ]).\n",
         92
+    ),
+    ?assertSame(
+        "[\n"
+        "    Head\n"
+        "    % comment before cons\n"
+        "    | Rest\n"
+        "].\n"
+    ),
+    ?assertSame(
+        "[\n"
+        "    Head\n"
+        "    |\n"
+        "    % comment after cons\n"
+        "    Rest\n"
+        "].\n"
+    ),
+    ?assertSame(
+        "[\n"
+        "    % comment before head\n"
+        "    {an, element}\n"
+        "    % comment after pipe\n"
+        "    % comment below\n"
+        "    | Rest\n"
+        "].\n"
+    ),
+    ?assertFormat(
+        "[\n"
+        "    % comment before head\n"
+        "    {an, element} |\n"
+        "    % comment after pipe\n"
+        "    % comment below\n"
+        "    Rest\n"
+        "].\n",
+        "[\n"
+        "    % comment before head\n"
+        "    {an, element}\n"
+        "    |\n"
+        "    % comment after pipe\n"
+        "    % comment below\n"
+        "    Rest\n"
+        "].\n"
+    ),
+    ?assertSame(
+        "[\n"
+        "    % comment before head\n"
+        "    {an, element}\n"
+        "    % comment before pipe\n"
+        "    |\n"
+        "    % comment below\n"
+        "    Rest\n"
+        "].\n"
     ).
 
 binary(Config) when is_list(Config) ->
