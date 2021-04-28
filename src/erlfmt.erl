@@ -30,7 +30,7 @@
 -export_type([error_info/0, config/0, pragma/0]).
 
 -type error_info() :: {file:name_all(), erl_anno:location(), module(), Reason :: any()}.
--type pragma() :: require | insert | ignore.
+-type pragma() :: require | insert | delete | ignore.
 -type config() :: [{pragma, pragma()} | {print_width, pos_integer()} | verbose].
 
 -define(DEFAULT_WIDTH, 100).
@@ -65,14 +65,15 @@ format_file(FileName, Options) ->
     Pragma = proplists:get_value(pragma, Options, ignore),
     try
         case file_read_nodes(FileName, Pragma) of
-            {ok, Nodes, Warnings} ->
-                NodesWithPragma =
+            {ok, Nodes0, Warnings} ->
+                Nodes =
                     case Pragma of
-                        insert -> insert_pragma_nodes(Nodes);
-                        _ -> Nodes
+                        insert -> insert_pragma_nodes(Nodes0);
+                        delete -> remove_pragma_nodes(Nodes0);
+                        _ -> Nodes0
                     end,
-                Formatted = format_nodes(NodesWithPragma, PrintWidth),
-                verify_nodes(FileName, NodesWithPragma, Formatted),
+                Formatted = format_nodes(Nodes, PrintWidth),
+                verify_nodes(FileName, Nodes, Formatted),
                 VerboseWarnings =
                     case proplists:get_bool(verbose, Options) of
                         true -> check_line_lengths(FileName, PrintWidth, Formatted);
@@ -93,14 +94,15 @@ format_string(String, Options) ->
     Pragma = proplists:get_value(pragma, Options, ignore),
     try
         case read_nodes_string("nofile", String, Pragma) of
-            {ok, Nodes, Warnings} ->
-                NodesWithPragma =
+            {ok, Nodes0, Warnings} ->
+                Nodes =
                     case Pragma of
-                        insert -> insert_pragma_nodes(Nodes);
-                        _ -> Nodes
+                        insert -> insert_pragma_nodes(Nodes0);
+                        delete -> remove_pragma_nodes(Nodes0);
+                        _ -> Nodes0
                     end,
-                Formatted = format_nodes(NodesWithPragma, PrintWidth),
-                verify_nodes("nofile", NodesWithPragma, Formatted),
+                Formatted = format_nodes(Nodes, PrintWidth),
+                verify_nodes("nofile", Nodes, Formatted),
                 VerboseWarnings =
                     case proplists:get_bool(verbose, Options) of
                         true -> check_line_lengths("nofile", PrintWidth, Formatted);
@@ -149,6 +151,42 @@ insert_pragma_node(Node) ->
                     [{comment, Loc, LastComments ++ ["%% @format"]}]
         end,
     erlfmt_scan:put_anno(pre_comments, NewPreComments, Node).
+
+remove_pragma_nodes([]) ->
+    [];
+remove_pragma_nodes([{shebang, _, _} = Node | Nodes]) ->
+    case contains_pragma_node(Node) of
+        true -> [remove_pragma_node(Node) | Nodes];
+        false -> [Node | remove_pragma_nodes(Nodes)]
+    end;
+remove_pragma_nodes([Node | Nodes]) ->
+    case contains_pragma_node(Node) of
+        true -> [remove_pragma_node(Node) | Nodes];
+        false -> [Node | Nodes]
+    end.
+
+remove_pragma_node(Node0) ->
+    {PreComments0, _, PostComments0} = erlfmt_format:comments_with_pre_dot(Node0),
+    PreComments = remove_pragma_comment_blocks(PreComments0),
+    PostComments = remove_pragma_comment_blocks(PostComments0),
+    Node = erlfmt_scan:put_anno(pre_comments, PreComments, Node0),
+    erlfmt_scan:put_anno(post_comments, PostComments, Node).
+
+remove_pragma_comment_blocks([]) ->
+    [];
+remove_pragma_comment_blocks([{comment, Loc, Comments} | Rest]) ->
+    case remove_pragma_comment_block(Comments) of
+        [] -> remove_pragma_comment_block(Rest);
+        CleanComments -> [{comment, Loc, CleanComments} | remove_pragma_comment_block(Rest)]
+    end.
+
+remove_pragma_comment_block([]) ->
+    [];
+remove_pragma_comment_block([Head | Tail]) ->
+    case string:find(Head, "@format") of
+        nomatch -> [Head | remove_pragma_comment_block(Tail)];
+        _ -> Tail
+    end.
 
 -spec format_range(
     file:name_all(),
@@ -238,7 +276,7 @@ read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma, [], Warnings0, TextAc
                 Warnings,
                 TextAcc ++ LastString
             );
-        {require, false, _} ->
+        {_, false, _} when Pragma =:= require; Pragma =:= delete ->
             {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
             case erlfmt_scan:read_rest(Cont) of
                 {ok, Rest} ->
@@ -264,7 +302,7 @@ read_nodes(
 ) ->
     {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
     case {Pragma, contains_pragma_node(Node)} of
-        {require, false} ->
+        {_, false} when Pragma =:= require; Pragma =:= delete ->
             {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
             case erlfmt_scan:read_rest(Cont) of
                 {ok, Rest} ->
