@@ -55,6 +55,9 @@
     smoke_test_stdio_with_pragma/1,
     smoke_test_stdio_insert_pragma_without/1,
     smoke_test_stdio_insert_and_require_pragma/1,
+    smoke_test_stdio_delete_pragma/1,
+    smoke_test_stdio_delete_pragma_without/1,
+    smoke_test_stdio_delete_pragma_with_copyright/1,
     smoke_test_stdio_unicode/1,
     smoke_test_stdio_check/1,
     exclude_check/1,
@@ -138,6 +141,9 @@ groups() ->
             smoke_test_stdio_with_pragma,
             smoke_test_stdio_insert_pragma_without,
             smoke_test_stdio_insert_and_require_pragma,
+            smoke_test_stdio_delete_pragma,
+            smoke_test_stdio_delete_pragma_without,
+            smoke_test_stdio_delete_pragma_with_copyright,
             smoke_test_stdio_unicode,
             smoke_test_stdio_check,
             exclude_check
@@ -1009,6 +1015,26 @@ smoke_test_stdio_insert_pragma_without(Config) when is_list(Config) ->
     Formatted = os:cmd("echo '-module(nopragma).' | " ++ escript() ++ " - --insert-pragma"),
     Expected =
         "%% @format\n"
+        "\n"
+        "-module(nopragma).\n",
+    ?assertEqual(Expected, Formatted).
+
+smoke_test_stdio_delete_pragma(Config) when is_list(Config) ->
+    Formatted = os:cmd("echo '%% @format\n\n-module(nopragma).' | " ++ escript() ++ " - --delete-pragma"),
+    Expected =
+        "-module(nopragma).\n",
+    ?assertEqual(Expected, Formatted).
+
+smoke_test_stdio_delete_pragma_without(Config) when is_list(Config) ->
+    Formatted = os:cmd("echo '-module(nopragma).' | " ++ escript() ++ " - --delete-pragma"),
+    Expected =
+        "-module(nopragma).\n",
+    ?assertEqual(Expected, Formatted).
+
+smoke_test_stdio_delete_pragma_with_copyright(Config) when is_list(Config) ->
+    Formatted = os:cmd("echo '%% @format\n%% copyright\n\n-module(nopragma).' | " ++ escript() ++ " - --delete-pragma"),
+    Expected =
+        "%% copyright\n"
         "\n"
         "-module(nopragma).\n",
     ?assertEqual(Expected, Formatted).

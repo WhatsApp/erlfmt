@@ -47,6 +47,9 @@ opts() ->
             "Insert a @format pragma to the top of formatted files when pragma is absent. "
             "Works well when used in tandem with --require-pragma, "
             "but it is not allowed to use require-pragma and insert-pragma at the same time."},
+        {delete_pragma, undefined, "delete-pragma", undefined,
+            "Deletes the @format pragma at the top of formatted files. "
+            "It will also reformat the file, but is only applied to files with a pragma, see --require-pragma."},
         {exclude_files, undefined, "exclude-files", string,
             "files not to format. "
             "This overrides the files specified to format"},
@@ -292,12 +295,22 @@ parse_opts([{print_width, Value} | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{print_width = Value});
 parse_opts([require_pragma | _Rest], _Files, _Exclude, #config{pragma = insert}) ->
     {error, "Cannot use both --insert-pragma and --require-pragma options together."};
+parse_opts([require_pragma | _Rest], _Files, _Exclude, #config{pragma = delete}) ->
+    {error, "Cannot use both --delete-pragma and --require-pragma options together."};
 parse_opts([require_pragma | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{pragma = require});
 parse_opts([insert_pragma | _Rest], _Files, _Exclude, #config{pragma = require}) ->
     {error, "Cannot use both --insert-pragma and --require-pragma options together."};
+parse_opts([insert_pragma | _Rest], _Files, _Exclude, #config{pragma = delete}) ->
+    {error, "Cannot use both --insert-pragma and --delete-pragma options together."};
 parse_opts([insert_pragma | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{pragma = insert});
+parse_opts([delete_pragma | _Rest], _Files, _Exclude, #config{pragma = insert}) ->
+    {error, "Cannot use both --insert-pragma and --delete-pragma options together."};
+parse_opts([delete_pragma | _Rest], _Files, _Exclude, #config{pragma = require}) ->
+    {error, "Cannot use both --require-pragma and --delete-pragma options together."};
+parse_opts([delete_pragma | Rest], Files, Exclude, Config) ->
+    parse_opts(Rest, Files, Exclude, Config#config{pragma = delete});
 parse_opts([{files, NewFiles} | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, expand_files(NewFiles, Files), Exclude, Config);
 parse_opts([{exclude_files, NewExcludes} | Rest], Files, Exclude, Config) ->
