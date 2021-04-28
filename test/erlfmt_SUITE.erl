@@ -58,6 +58,7 @@
     smoke_test_stdio_delete_pragma/1,
     smoke_test_stdio_delete_pragma_without/1,
     smoke_test_stdio_delete_pragma_with_copyright/1,
+    smoke_test_stdio_reinsert_pragma/1,
     smoke_test_stdio_unicode/1,
     smoke_test_stdio_check/1,
     exclude_check/1,
@@ -144,6 +145,7 @@ groups() ->
             smoke_test_stdio_delete_pragma,
             smoke_test_stdio_delete_pragma_without,
             smoke_test_stdio_delete_pragma_with_copyright,
+            smoke_test_stdio_reinsert_pragma,
             smoke_test_stdio_unicode,
             smoke_test_stdio_check,
             exclude_check
@@ -1014,7 +1016,7 @@ smoke_test_stdio_unicode(Config) ->
 smoke_test_stdio_insert_pragma_without(Config) when is_list(Config) ->
     Formatted = os:cmd("echo '-module(nopragma).' | " ++ escript() ++ " - --insert-pragma"),
     Expected =
-        "%% @format\n"
+        "%% % @format\n"
         "\n"
         "-module(nopragma).\n",
     ?assertEqual(Expected, Formatted).
@@ -1039,6 +1041,18 @@ smoke_test_stdio_delete_pragma_with_copyright(Config) when is_list(Config) ->
             " - --delete-pragma"
     ),
     Expected =
+        "%% copyright\n"
+        "\n"
+        "-module(nopragma).\n",
+    ?assertEqual(Expected, Formatted).
+
+smoke_test_stdio_reinsert_pragma(Config) when is_list(Config) ->
+    Formatted = os:cmd(
+        "echo '%% @format\n%% copyright\n\n-module(nopragma).' | " ++ escript() ++
+            " - --insert-pragma"
+    ),
+    Expected =
+        "%% % @format\n"
         "%% copyright\n"
         "\n"
         "-module(nopragma).\n",
@@ -1189,6 +1203,18 @@ range_format_exact([{Start, End} | Options], Path) ->
 contains_pragma(Config) when is_list(Config) ->
     ?assert(
         contains_pragma_string(
+            "%% % @format\n"
+            "\n"
+            "-module(pragma).\n"
+            "\n"
+            "-export([f/3]).\n"
+            "\n"
+            "f(_Arg1,_Arg2,   _Arg3) ->\n"
+            "ok.\n"
+        )
+    ),
+    ?assert(
+        contains_pragma_string(
             "%% @format\n"
             "\n"
             "-module(pragma).\n"
@@ -1203,7 +1229,7 @@ contains_pragma(Config) when is_list(Config) ->
         contains_pragma_string(
             "\n"
             "\n"
-            "%% @format\n"
+            "%% % @format\n"
             "\n"
             "-module(pragma).\n"
         )
@@ -1239,7 +1265,7 @@ contains_pragma(Config) when is_list(Config) ->
             "%% LICENSE\n"
             "%% LICENSE\n"
             "\n"
-            "%% @format\n"
+            "%% % @format\n"
             "\n"
             "-module(pragma).\n"
             "\n"
@@ -1262,7 +1288,7 @@ contains_pragma(Config) when is_list(Config) ->
     ),
     ?assert(
         contains_pragma_string(
-            "%% @format\n"
+            "%% % @format\n"
             "\n"
             "{erl_opts, [debug_info]}\n"
         )
@@ -1271,7 +1297,7 @@ contains_pragma(Config) when is_list(Config) ->
         contains_pragma_string(
             "#! /usr/bin/env escript\n"
             "\n"
-            "%% @format\n"
+            "%% % @format\n"
             "\n"
             "main(_) -> ok.\n"
         )
@@ -1286,7 +1312,7 @@ contains_pragma(Config) when is_list(Config) ->
 
 insert_pragma(Config) when is_list(Config) ->
     ?assertEqual(
-        "%% @format\n"
+        "%% % @format\n"
         "\n"
         "-module(pragma).\n",
         insert_pragma_string(
@@ -1294,7 +1320,7 @@ insert_pragma(Config) when is_list(Config) ->
         )
     ),
     ?assertEqual(
-        "%% @format\n"
+        "%% % @format\n"
         "\n"
         "-module(pragma).\n"
         "\n"
@@ -1313,7 +1339,7 @@ insert_pragma(Config) when is_list(Config) ->
     ),
     ?assertEqual(
         "%% attached comment\n"
-        "%% @format\n"
+        "%% % @format\n"
         "-module(pragma).\n"
         "\n"
         "-export([f/3]).\n",
@@ -1326,7 +1352,7 @@ insert_pragma(Config) when is_list(Config) ->
     ),
     ?assertEqual(
         "%% single comment\n"
-        "%% @format\n"
+        "%% % @format\n"
         "\n"
         "-module(pragma).\n"
         "\n"
@@ -1344,7 +1370,7 @@ insert_pragma(Config) when is_list(Config) ->
         "%% LICENSE\n"
         "%% LICENSE\n"
         "%% LICENSE\n"
-        "%% @format\n"
+        "%% % @format\n"
         "\n"
         "-module(pragma).\n"
         "\n"
@@ -1361,7 +1387,7 @@ insert_pragma(Config) when is_list(Config) ->
         )
     ),
     ?assertEqual(
-        "%% @format\n"
+        "%% % @format\n"
         "\n"
         "{erl_opts, [debug_info]}\n",
         insert_pragma_string(
@@ -1371,7 +1397,7 @@ insert_pragma(Config) when is_list(Config) ->
     ?assertEqual(
         "#! /usr/bin/env escript\n"
         "\n"
-        "%% @format\n"
+        "%% % @format\n"
         "\n"
         "main(_) -> ok.\n",
         insert_pragma_string(

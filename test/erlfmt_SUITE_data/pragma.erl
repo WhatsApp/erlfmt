@@ -1,3 +1,3 @@
-%% @format
+%% % @format
 
 -module(pragma).
