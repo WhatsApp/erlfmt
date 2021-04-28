@@ -65,15 +65,15 @@ format_file(FileName, Options) ->
     Pragma = proplists:get_value(pragma, Options, ignore),
     try
         case file_read_nodes(FileName, Pragma) of
-            {ok, Nodes, Warnings} ->
-                NodesWithPragma =
+            {ok, Nodes0, Warnings} ->
+                Nodes =
                     case Pragma of
-                        insert -> insert_pragma_nodes(Nodes);
-                        delete -> remove_pragma_nodes(Nodes);
-                        _ -> Nodes
+                        insert -> insert_pragma_nodes(Nodes0);
+                        delete -> remove_pragma_nodes(Nodes0);
+                        _ -> Nodes0
                     end,
-                Formatted = format_nodes(NodesWithPragma, PrintWidth),
-                verify_nodes(FileName, NodesWithPragma, Formatted),
+                Formatted = format_nodes(Nodes, PrintWidth),
+                verify_nodes(FileName, Nodes, Formatted),
                 VerboseWarnings =
                     case proplists:get_bool(verbose, Options) of
                         true -> check_line_lengths(FileName, PrintWidth, Formatted);
@@ -94,15 +94,15 @@ format_string(String, Options) ->
     Pragma = proplists:get_value(pragma, Options, ignore),
     try
         case read_nodes_string("nofile", String, Pragma) of
-            {ok, Nodes, Warnings} ->
-                NodesWithPragma =
+            {ok, Nodes0, Warnings} ->
+                Nodes =
                     case Pragma of
-                        insert -> insert_pragma_nodes(Nodes);
-                        delete -> remove_pragma_nodes(Nodes);
-                        _ -> Nodes
+                        insert -> insert_pragma_nodes(Nodes0);
+                        delete -> remove_pragma_nodes(Nodes0);
+                        _ -> Nodes0
                     end,
-                Formatted = format_nodes(NodesWithPragma, PrintWidth),
-                verify_nodes("nofile", NodesWithPragma, Formatted),
+                Formatted = format_nodes(Nodes, PrintWidth),
+                verify_nodes("nofile", Nodes, Formatted),
                 VerboseWarnings =
                     case proplists:get_bool(verbose, Options) of
                         true -> check_line_lengths("nofile", PrintWidth, Formatted);
