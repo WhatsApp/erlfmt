@@ -1020,7 +1020,9 @@ smoke_test_stdio_insert_pragma_without(Config) when is_list(Config) ->
     ?assertEqual(Expected, Formatted).
 
 smoke_test_stdio_delete_pragma(Config) when is_list(Config) ->
-    Formatted = os:cmd("echo '%% @format\n\n-module(nopragma).' | " ++ escript() ++ " - --delete-pragma"),
+    Formatted = os:cmd(
+        "echo '%% @format\n\n-module(nopragma).' | " ++ escript() ++ " - --delete-pragma"
+    ),
     Expected =
         "-module(nopragma).\n",
     ?assertEqual(Expected, Formatted).
@@ -1032,7 +1034,10 @@ smoke_test_stdio_delete_pragma_without(Config) when is_list(Config) ->
     ?assertEqual(Expected, Formatted).
 
 smoke_test_stdio_delete_pragma_with_copyright(Config) when is_list(Config) ->
-    Formatted = os:cmd("echo '%% @format\n%% copyright\n\n-module(nopragma).' | " ++ escript() ++ " - --delete-pragma"),
+    Formatted = os:cmd(
+        "echo '%% @format\n%% copyright\n\n-module(nopragma).' | " ++ escript() ++
+            " - --delete-pragma"
+    ),
     Expected =
         "%% copyright\n"
         "\n"

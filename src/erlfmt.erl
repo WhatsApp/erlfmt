@@ -152,7 +152,8 @@ insert_pragma_node(Node) ->
         end,
     erlfmt_scan:put_anno(pre_comments, NewPreComments, Node).
 
-remove_pragma_nodes([]) -> [];
+remove_pragma_nodes([]) ->
+    [];
 remove_pragma_nodes([{shebang, _, _} = Node | Nodes]) ->
     case contains_pragma_node(Node) of
         true -> [remove_pragma_node(Node) | Nodes];
@@ -171,14 +172,16 @@ remove_pragma_node(Node0) ->
     Node = erlfmt_scan:put_anno(pre_comments, PreComments, Node0),
     erlfmt_scan:put_anno(post_comments, PostComments, Node).
 
-remove_pragma_comment_blocks([]) -> [];
+remove_pragma_comment_blocks([]) ->
+    [];
 remove_pragma_comment_blocks([{comment, Loc, Comments} | Rest]) ->
     case remove_pragma_comment_block(Comments) of
         [] -> remove_pragma_comment_block(Rest);
         CleanComments -> [{comment, Loc, CleanComments} | remove_pragma_comment_block(Rest)]
     end.
 
-remove_pragma_comment_block([]) -> [];
+remove_pragma_comment_block([]) ->
+    [];
 remove_pragma_comment_block([Head | Tail]) ->
     case string:find(Head, "@format") of
         nomatch -> [Head | remove_pragma_comment_block(Tail)];
