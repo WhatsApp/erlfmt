@@ -41,7 +41,7 @@ $ rebar3 fmt ./src/myfile.erl
 ```
 
 You could also setup your rebar3 config to:
-  - only format files that include a `%% % @format` comment, using `require_pragma`,
+  - only format files that include a `%%% % @format` comment, using `require_pragma`,
   - only check files and not format them, using `check` instead of `write`,
   - output which files are being checked, using `verbose` and
   - set the default width, using `{print_width, 100}`
