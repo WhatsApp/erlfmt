@@ -325,7 +325,7 @@ x() -> Foo = [short, list].
 `rebar3-format` allows you to opt out per file by adding `-format ignore.` to the top of your file.
 
 `erlfmt` allows you to opt-in per file and opt-out per top-level expression.
-Adding a comment to the top of the file `%% % @format` and running `erlfmt` with the `--require-pragma` option, will result in only files that have this comment will be formatted.
+Adding a comment to the top of the file `%%% % @format` and running `erlfmt` with the `--require-pragma` option, will result in only files that have this comment will be formatted.
 
 Adding a comment `%% erlfmt-ignore` above a top level expression, will skip over this single expression and continue to format the rest of the file.
 [Here](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionIgnore.md) you can see the reasoning behind including this option.
