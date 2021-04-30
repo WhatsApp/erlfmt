@@ -144,11 +144,11 @@ insert_pragma_node(Node) ->
         case PreComments of
             [] ->
                 Loc = erlfmt_scan:get_anno(location, Node),
-                [{comment, #{location => Loc, end_location => Loc}, ["%% % @format", ""]}];
+                [{comment, #{location => Loc, end_location => Loc}, ["%%% % @format", ""]}];
             _ ->
                 {comment, Loc, LastComments} = lists:last(PreComments),
                 lists:droplast(PreComments) ++
-                    [{comment, Loc, LastComments ++ ["%% % @format"]}]
+                    [{comment, Loc, LastComments ++ ["%%% % @format"]}]
         end,
     erlfmt_scan:put_anno(pre_comments, NewPreComments, Node).
 
@@ -206,7 +206,7 @@ replace_pragma_comment_blocks([{comment, Loc, Comments} | Rest]) ->
 replace_pragma_comment_block([]) ->
     [];
 replace_pragma_comment_block(["%% @format" | Tail]) ->
-    ["%% % @format" | Tail];
+    ["%%% % @format" | Tail];
 replace_pragma_comment_block([Head | Tail]) ->
     [Head | replace_pragma_comment_block(Tail)].
 
