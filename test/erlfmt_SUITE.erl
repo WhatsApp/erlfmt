@@ -1060,6 +1060,7 @@ smoke_test_stdio_reinsert_pragma(Config) when is_list(Config) ->
         "-module(nopragma).\n",
     ?assertEqual(Expected, Formatted).
 
+%% respect the number of percentages when replacing the pragma
 smoke_test_stdio_reinsert_pragma_second(Config) when is_list(Config) ->
     Formatted = os:cmd(
         "echo '%% copyright\n%% @format\n\n-module(nopragma).' | " ++ escript() ++
