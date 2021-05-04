@@ -200,7 +200,8 @@ replace_pragma_comment_blocks(_Prefix, []) ->
     [];
 replace_pragma_comment_blocks(Prefix, [{comment, Loc, Comments} | Rest]) ->
     case replace_pragma_comment_block(Prefix, Comments) of
-        [] -> replace_pragma_comment_block(Prefix, Rest);
+        [] ->
+            replace_pragma_comment_block(Prefix, Rest);
         CleanComments ->
             {Prefix0, _} = string:take(lists:last(CleanComments), "%"),
             [{comment, Loc, CleanComments} | replace_pragma_comment_block(Prefix0, Rest)]
