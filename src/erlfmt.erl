@@ -129,12 +129,12 @@ insert_pragma_nodes([]) ->
     [];
 insert_pragma_nodes([{shebang, _, _} = Node | Nodes]) ->
     case contains_pragma_node(Node) of
-        true -> [Node | Nodes];
+        true -> [replace_pragma_node(Node) | Nodes];
         false -> [Node | insert_pragma_nodes(Nodes)]
     end;
 insert_pragma_nodes([Node | Nodes]) ->
     case contains_pragma_node(Node) of
-        true -> [Node | Nodes];
+        true -> [replace_pragma_node(Node) | Nodes];
         false -> [insert_pragma_node(Node) | Nodes]
     end.
 
@@ -144,11 +144,12 @@ insert_pragma_node(Node) ->
         case PreComments of
             [] ->
                 Loc = erlfmt_scan:get_anno(location, Node),
-                [{comment, #{location => Loc, end_location => Loc}, ["%% @format", ""]}];
+                [{comment, #{location => Loc, end_location => Loc}, ["%%% % @format", ""]}];
             _ ->
                 {comment, Loc, LastComments} = lists:last(PreComments),
+                {Prefix, _} = string:take(lists:last(LastComments), "%"),
                 lists:droplast(PreComments) ++
-                    [{comment, Loc, LastComments ++ ["%% @format"]}]
+                    [{comment, Loc, LastComments ++ [Prefix ++ " % @format"]}]
         end,
     erlfmt_scan:put_anno(pre_comments, NewPreComments, Node).
 
@@ -187,6 +188,28 @@ remove_pragma_comment_block([Head | Tail]) ->
         nomatch -> [Head | remove_pragma_comment_block(Tail)];
         _ -> Tail
     end.
+
+replace_pragma_node(Node0) ->
+    {PreComments0, _, PostComments0} = erlfmt_format:comments_with_pre_dot(Node0),
+    PreComments = replace_pragma_comment_blocks("%%%", PreComments0),
+    PostComments = replace_pragma_comment_blocks("%%%", PostComments0),
+    Node = erlfmt_scan:put_anno(pre_comments, PreComments, Node0),
+    erlfmt_scan:put_anno(post_comments, PostComments, Node).
+
+replace_pragma_comment_blocks(_Prefix, []) ->
+    [];
+replace_pragma_comment_blocks(Prefix, [{comment, Loc, Comments} | Rest]) ->
+    CleanComments = replace_pragma_comment_block(Prefix, Comments),
+    {Prefix0, _} = string:take(lists:last(CleanComments), "%"),
+    [{comment, Loc, CleanComments} | replace_pragma_comment_block(Prefix0, Rest)].
+
+replace_pragma_comment_block(_Prefix, []) ->
+    [];
+replace_pragma_comment_block(Prefix, ["%% @format" | Tail]) ->
+    [(Prefix ++ " % @format") | Tail];
+replace_pragma_comment_block(_Prefix, [Head | Tail]) ->
+    {Prefix, _} = string:take(Head, "%"),
+    [Head | replace_pragma_comment_block(Prefix, Tail)].
 
 -spec format_range(
     file:name_all(),
