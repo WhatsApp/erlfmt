@@ -57,7 +57,11 @@ These are just examples:
 
 We have done a more thorough analysis of how comments are used in practice.
 
-It shows that mostly `%%` is used for standalone comments, while `%` is used with comments that share a line with code.
+It shows that mostly:
+  - `%%%` is used for standalone comments before the module attribute,
+  - `%%` is used for standalone comments, while
+  - `%` is used with comments that share a line with code.
+
 We also see a preference for the numbers of: `standalone > directly following > aligned` comments, where directly following comments still has a significant market share.
 We tried, but struggled to find enough of a pattern where comments are aligned at a specific column number in practice.
 

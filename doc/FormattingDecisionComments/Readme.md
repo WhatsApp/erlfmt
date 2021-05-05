@@ -1,9 +1,9 @@
 # Analysis of comments
 
-We have conducted a deeper analysis of comments in several code bases.
+We have conducted 2 deeper analyses of comments in several code bases:
 
-We looked at how popular the number of percentages, standalone, aligned and directly following comments are.
-You can see the analysis [here](./types.md).
+  - We looked at how popular the number of percentages, standalone, aligned and directly following comments are, see the analysis [here](./types.md).
+  - We also looked at how popular each number of percentages are for comments above the module attribute, see the analyses [here](./module_comments.md).
 
 standalone example:
 ```erlang
@@ -52,6 +52,8 @@ and 28% of comments aligned at column 68 in the kazoo code base, but otherwise n
 You can find the analysis [here](./columns.html).
 You can download the file and view it in a web browser, sorry for the inconvenience.
 
+We also found that 3 percentages are popular for comments above the module attribute in all code bases, except for OTP.
+
 ## Reproduce Analysis of Column where Comments are aligned
 
 To reproduce the analysis clone the following repos:
@@ -74,3 +76,4 @@ $ make
 This will result in generating the following files:
   - [columns.html](./columns.html).
   - [types.md](./types.md).
+  - [module_comments.md](./module_comments.md).
