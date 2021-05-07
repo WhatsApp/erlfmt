@@ -1503,12 +1503,17 @@ list(Config) when is_list(Config) ->
         "    | Rest\n"
         "].\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "[\n"
         "    Head\n"
         "    |\n"
         "    % comment after cons\n"
         "    Rest\n"
+        "].\n",
+        "[\n"
+        "    Head\n"
+        "    % comment after cons\n"
+        "    | Rest\n"
         "].\n"
     ),
     ?assertSame(
@@ -1531,13 +1536,12 @@ list(Config) when is_list(Config) ->
         "[\n"
         "    % comment before head\n"
         "    {an, element}\n"
-        "    |\n"
         "    % comment after pipe\n"
         "    % comment below\n"
-        "    Rest\n"
+        "    | Rest\n"
         "].\n"
     ),
-    ?assertSame(
+    ?assertFormat(
         "[\n"
         "    % comment before head\n"
         "    {an, element}\n"
@@ -1545,6 +1549,14 @@ list(Config) when is_list(Config) ->
         "    |\n"
         "    % comment below\n"
         "    Rest\n"
+        "].\n",
+        "[\n"
+        "    % comment before head\n"
+        "    {an, element}\n"
+        "    % comment before pipe\n"
+        "\n"
+        "    % comment below\n"
+        "    | Rest\n"
         "].\n"
     ).
 

@@ -585,8 +585,8 @@ fa_groups([Other | Tail]) ->
 
 cons_to_algebra(Head, Tail) ->
     HeadD = expr_to_algebra(Head),
-    TailD = concat(<<"| ">>, expr_to_algebra(Tail)),
-    break(HeadD, TailD).
+    TailD = concat(<<"| ">>, maybe_wrap_in_parens(Tail, do_expr_to_algebra(Tail))),
+    break(HeadD, combine_comments(Tail, TailD)).
 
 bin_element_to_algebra(Expr, Size, Types) ->
     Docs =
