@@ -131,8 +131,6 @@ do_expr_to_algebra({list, Meta, Values}) ->
     container(Meta, Values, <<"[">>, <<"]">>);
 do_expr_to_algebra({cons, _, Head, Tail}) ->
     cons_to_algebra(Head, Tail);
-do_expr_to_algebra({cons_rest, _, Tail}) ->
-    cons_rest_to_algebra(Tail);
 do_expr_to_algebra({bin, Meta, Values}) ->
     flex_container(Meta, Values, <<"<<">>, <<">>">>);
 do_expr_to_algebra({bin_element, _Meta, Expr, Size, Types}) ->
@@ -587,14 +585,8 @@ fa_groups([Other | Tail]) ->
 
 cons_to_algebra(Head, Tail) ->
     HeadD = expr_to_algebra(Head),
-    TailD = expr_to_algebra(Tail),
+    TailD = concat(<<"| ">>, expr_to_algebra(Tail)),
     break(HeadD, TailD).
-
-cons_rest_to_algebra(Tail) ->
-    case has_comments(Tail) of
-        true -> concat(<<"|">>, break(), expr_to_algebra(Tail));
-        false -> concat(<<"| ">>, expr_to_algebra(Tail))
-    end.
 
 bin_element_to_algebra(Expr, Size, Types) ->
     Docs =

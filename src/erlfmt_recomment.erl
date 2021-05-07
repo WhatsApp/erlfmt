@@ -127,9 +127,6 @@ insert_nested({cons, Meta, Head0, Tail0}, Comments0) ->
     {Head, Comments1} = insert_expr(Head0, Comments0),
     {Tail, Comments} = insert_expr(Tail0, Comments1),
     {{cons, Meta, Head, Tail}, Comments};
-insert_nested({cons_rest, Meta, Tail0}, Comments0) ->
-    {Tail, Comments} = insert_expr(Tail0, Comments0),
-    {{cons_rest, Meta, Tail}, Comments};
 insert_nested({spec_clause, Meta, Head0, Body0, empty}, Comments0) ->
     {Head, Comments1} = insert_expr(Head0, Comments0),
     {Body, Comments} = insert_expr(Body0, Comments1),
