@@ -50,7 +50,7 @@ what_is(Erlang) ->
 |Macros                         |No crashes formatting OTP                                        |Skips entire files sometimes	|Skips entire files sometimes	                |Crashes sometimes |
 |Comments                       |Preserves and moves to line before                               |Preserves but Floating       |Crashes sometimes and Reorders	                |Crashes sometimes and Floating |
 |Configurable vs Opinionated    |Opinionated                                                      |Configurable                 |Opinionated                                    |Configurable |
-|Preserving Representation      |Yes                                                              |Some                         |No                                             |No |
+|Preserving Representation      |Yes                                                              |Some                         |Some                                             |No |
 |Line Break Hints               |Yes                                                              |No                           |No                                             |No |
 |Opt In/Out                     |per file, per top level expression                               |per file                     |No                                             |No |
 |Speed                          |OTP lib in 7s                                                    |N/A                          |N/A                                            |N/A |

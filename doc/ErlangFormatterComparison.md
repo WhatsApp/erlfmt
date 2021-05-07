@@ -6,7 +6,7 @@
 |[Macros](#macros)                                          |No crashes formatting OTP                                        |Skips entire files sometimes	|Skips entire files sometimes	                |Crashes sometimes |
 |[Comments](#comments)                                      |Preserves and moves to line before                               |Preserves but Floating       |Crashes sometimes and Reorders	                |Crashes sometimes and Floating |
 |[Configurable vs Opinionated](#configurable-vs-opinionated)|Opinionated                                                      |Configurable                 |Opinionated                                    |Configurable |
-|[Preserving Representation](#preserving-representation)    |Yes                                                              |Some                         |No                                             |No |
+|[Preserving Representation](#preserving-representation)    |Yes                                                              |Some                         |Some                                             |No |
 |[Line Break Hints](#line-break-hints)                      |Yes                                                              |No                           |No                                             |No |
 |[Opt In/Out](#opt-inout)                                   |per file, per top level expression                               |per file                     |No                                             |No |
 |[Speed](#speed)                                            |OTP lib in 7s                                                    |N/A                          |N/A                                            |N/A |
