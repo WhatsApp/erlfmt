@@ -549,6 +549,30 @@ binary_operator(Config) when is_list(Config) ->
         "Foo andalso\n"
         "    Bar andalso\n"
         "    Baz\n"
+    ),
+
+    %% comments
+    ?assertSame(
+        "Foo\n"
+        "%% binary op comment"
+        "++ Bar.\n"
+    ),
+    ?assertFormat(
+        "Foo\n"
+        "++\n"
+        "%% binary op comment\n"
+        "Bar.\n",
+        "Foo ++\n"
+        "    %% binary op comment\n"
+        "    Bar.\n"
+    ),
+    ?assertFormat(
+        "Foo\n"
+        "++ %% binary op comment\n"
+        "Bar.\n",
+        "Foo ++\n"
+        "    %% binary op comment\n"
+        "    Bar.\n"
     ).
 
 binary_operator_more(Config) when is_list(Config) ->
