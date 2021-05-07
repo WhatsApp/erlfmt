@@ -549,6 +549,43 @@ binary_operator(Config) when is_list(Config) ->
         "Foo andalso\n"
         "    Bar andalso\n"
         "    Baz\n"
+    ),
+
+    %% comments
+    ?assertSame(
+        "Foo\n"
+        "%% binary op comment"
+        "++ Bar.\n"
+    ),
+    ?assertFormat(
+        "Foo\n"
+        "++\n"
+        "%% binary op comment\n"
+        "Bar.\n",
+        "Foo ++\n"
+        "    %% binary op comment\n"
+        "    Bar.\n"
+    ),
+    ?assertFormat(
+        "Foo\n"
+        "++ %% binary op comment\n"
+        "Bar.\n",
+        "Foo ++\n"
+        "    %% binary op comment\n"
+        "    Bar.\n"
+    ),
+    ?assertSame(
+        "Foo\n"
+        "%% binary op comment"
+        "= Bar.\n"
+    ),
+    ?assertFormat(
+        "Foo\n"
+        "= %% binary op comment\n"
+        "Bar.\n",
+        "Foo =\n"
+        "    %% binary op comment\n"
+        "    Bar.\n"
     ).
 
 binary_operator_more(Config) when is_list(Config) ->
@@ -1495,6 +1532,69 @@ list(Config) when is_list(Config) ->
         "        [\"  end\"]\n"
         "    ]).\n",
         92
+    ),
+    ?assertSame(
+        "[\n"
+        "    Head\n"
+        "    % comment before cons\n"
+        "    | Rest\n"
+        "].\n"
+    ),
+    ?assertFormat(
+        "[\n"
+        "    Head\n"
+        "    |\n"
+        "    % comment after cons\n"
+        "    Rest\n"
+        "].\n",
+        "[\n"
+        "    Head\n"
+        "    % comment after cons\n"
+        "    | Rest\n"
+        "].\n"
+    ),
+    ?assertSame(
+        "[\n"
+        "    % comment before head\n"
+        "    {an, element}\n"
+        "    % comment after pipe\n"
+        "    % comment below\n"
+        "    | Rest\n"
+        "].\n"
+    ),
+    ?assertFormat(
+        "[\n"
+        "    % comment before head\n"
+        "    {an, element} |\n"
+        "    % comment after pipe\n"
+        "    % comment below\n"
+        "    Rest\n"
+        "].\n",
+        "[\n"
+        "    % comment before head\n"
+        "    {an, element}\n"
+        "    % comment after pipe\n"
+        "    % comment below\n"
+        "    | Rest\n"
+        "].\n"
+    ),
+    ?assertFormat(
+        "[\n"
+        "    % comment before head\n"
+        "    {an, element}\n"
+        "    % comment before pipe\n"
+        "    |\n"
+        "    % comment below\n"
+        "    Rest\n"
+        "].\n",
+        "[\n"
+        "    % comment before head\n"
+        "    {an, element}\n"
+        "    % comment before pipe\n"
+        "\n"
+        "    % comment below\n"
+        "    | Rest\n"
+        "].\n"
     ).
 
 binary(Config) when is_list(Config) ->
