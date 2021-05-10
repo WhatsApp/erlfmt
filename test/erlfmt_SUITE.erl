@@ -60,6 +60,7 @@
     smoke_test_stdio_delete_pragma_with_copyright/1,
     smoke_test_stdio_reinsert_pragma/1,
     smoke_test_stdio_reinsert_pragma_second/1,
+    smoke_test_stdio_reinsert_pragma_config/1,
     smoke_test_stdio_unicode/1,
     smoke_test_stdio_check/1,
     exclude_check/1,
@@ -148,6 +149,7 @@ groups() ->
             smoke_test_stdio_delete_pragma_with_copyright,
             smoke_test_stdio_reinsert_pragma,
             smoke_test_stdio_reinsert_pragma_second,
+            smoke_test_stdio_reinsert_pragma_config,
             smoke_test_stdio_unicode,
             smoke_test_stdio_check,
             exclude_check
@@ -1071,6 +1073,18 @@ smoke_test_stdio_reinsert_pragma_second(Config) when is_list(Config) ->
         "%% % @format\n"
         "\n"
         "-module(nopragma).\n",
+    ?assertEqual(Expected, Formatted).
+
+smoke_test_stdio_reinsert_pragma_config(Config) when is_list(Config) ->
+    Formatted = os:cmd(
+        "echo '%% @format\n\n%%% actual comment\n{}.\n' | " ++ escript() ++
+            " - --insert-pragma"
+    ),
+    Expected =
+        "%%% % @format\n"
+        "\n"
+        "%%% actual comment\n"
+        "{}.\n",
     ?assertEqual(Expected, Formatted).
 
 smoke_test_stdio_insert_and_require_pragma(Config) when is_list(Config) ->
