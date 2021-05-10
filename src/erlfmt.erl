@@ -207,8 +207,10 @@ replace_pragma_comment_block(_Prefix, []) ->
     [];
 replace_pragma_comment_block(Prefix, ["%% @format" | Tail]) ->
     [(Prefix ++ " % @format") | Tail];
-replace_pragma_comment_block(_Prefix, [Head | Tail]) ->
+replace_pragma_comment_block(_Prefix, [("%" ++ _) = Head | Tail]) ->
     {Prefix, _} = string:take(Head, "%"),
+    [Head | replace_pragma_comment_block(Prefix, Tail)];
+replace_pragma_comment_block(Prefix, [Head | Tail]) ->
     [Head | replace_pragma_comment_block(Prefix, Tail)].
 
 -spec format_range(
