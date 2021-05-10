@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.14.1 (10.05.2021)
+
+1.0 Release Candidate 2.1
+
+### Fixes
+
+  - fix replace pragma to not crash on two blocks of comments
+
 ## v0.14.0 (10.05.2021)
 
 1.0 Release Candidate 2
