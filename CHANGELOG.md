@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.14.0 (10.05.2021)
+
+1.0 Release Candidate 2
+
+### Fixes
+
+  - comment `@format` pragma to avoid warnings from edoc
+  - fix place of comments for list cons #282
+
+### Enchancements
+
+  - added `delete-pragma` command line flag #280
+
+### Formatting Decisions
+
+  - new module documentation analyses #283
+
 ## v0.13.0 (19.04.2021)
 
 1.0 Release Candidate 1
