@@ -642,10 +642,15 @@ Erlang code.
 
 %% The following directive is needed for (significantly) faster compilation
 %% of the generated .erl file by the HiPE compiler.  Please do not remove.
--compile([{hipe,[{regalloc,linear_scan}]}]).
+-compile([{hipe, [{regalloc, linear_scan}]}]).
 
--export_type([abstract_expr/0, abstract_node/0,
-              abstract_type/0, form_info/0, error_info/0]).
+-export_type([
+    abstract_expr/0,
+    abstract_node/0,
+    abstract_type/0,
+    form_info/0,
+    error_info/0
+]).
 
 %% Start of Abstract Format
 
@@ -660,48 +665,47 @@ Erlang code.
 
 -type af_field_decl() :: {op, anno(), '::', af_field(), abstract_type()} | af_field().
 
--type af_field() :: {'record_field', anno(), af_field_name()}
-                  | {'record_field', anno(), af_field_name(), abstract_expr()}.
+-type af_field() ::
+    {'record_field', anno(), af_field_name()}
+    | {'record_field', anno(), af_field_name(), abstract_expr()}.
 
--type abstract_expr() :: af_literal()
-                       | af_variable()
-                       | af_tuple(abstract_expr())
-                       | af_list(abstract_expr())
-                       | af_bin(abstract_expr())
-                       | af_binary_op(abstract_expr())
-                       | af_unary_op(abstract_expr())
-                       | af_record_creation(abstract_expr())
-                       | af_record_update(abstract_expr())
-                       | af_record_index()
-                       | af_record_field_access(abstract_expr())
-                       | af_map_creation(abstract_expr())
-                       | af_map_update(abstract_expr())
-                       | af_local_call()
-                       | af_remote_call()
-                       | af_args(abstract_expr())
-                       | af_list_comprehension()
-                       | af_binary_comprehension()
-                       | af_block()
-                       | af_if()
-                       | af_case()
-                       | af_try()
-                       | af_receive()
-                       | af_fun()
-                       | af_macro_call()
-                       | af_function_type()
-                       | af_record_name()
-                       | af_field_decl()
-                       | abstract_type().
+-type abstract_expr() ::
+    af_literal()
+    | af_variable()
+    | af_tuple(abstract_expr())
+    | af_list(abstract_expr())
+    | af_bin(abstract_expr())
+    | af_binary_op(abstract_expr())
+    | af_unary_op(abstract_expr())
+    | af_record_creation(abstract_expr())
+    | af_record_update(abstract_expr())
+    | af_record_index()
+    | af_record_field_access(abstract_expr())
+    | af_map_creation(abstract_expr())
+    | af_map_update(abstract_expr())
+    | af_local_call()
+    | af_remote_call()
+    | af_args(abstract_expr())
+    | af_list_comprehension()
+    | af_binary_comprehension()
+    | af_block()
+    | af_if()
+    | af_case()
+    | af_try()
+    | af_receive()
+    | af_fun()
+    | af_macro_call()
+    | af_function_type()
+    | af_record_name()
+    | af_field_decl()
+    | abstract_type().
 
--type af_record_update(T) :: {'record',
-                              anno(),
-                              abstract_expr(),
-                              af_record_name(),
-                              [af_record_field(T)]}.
+-type af_record_update(T) ::
+    {'record', anno(), abstract_expr(), af_record_name(), [af_record_field(T)]}.
 
 -type af_local_call() :: {'call', anno(), af_local_function(), [abstract_expr()]}.
 
--type af_remote_call() :: {'call', anno(), af_remote_function(abstract_expr()), [abstract_expr()]}  .
+-type af_remote_call() :: {'call', anno(), af_remote_function(abstract_expr()), [abstract_expr()]}.
 
 -type af_macro_call() ::
     {'macro_call', anno(), af_atom() | af_variable(), [abstract_expr()]}.
@@ -713,10 +717,10 @@ Erlang code.
 -type af_remote_function(Expr) :: {'remote', anno(), Expr, Expr}.
 
 -type af_list_comprehension() ::
-        {'lc', anno(), af_template(), af_qualifier_seq()}.
+    {'lc', anno(), af_template(), af_qualifier_seq()}.
 
 -type af_binary_comprehension() ::
-        {'bc', anno(), af_template(), af_qualifier_seq()}.
+    {'bc', anno(), af_template(), af_qualifier_seq()}.
 
 -type af_template() :: abstract_expr().
 
@@ -724,8 +728,9 @@ Erlang code.
 
 -type af_qualifier() :: af_generator() | af_filter().
 
--type af_generator() :: {'generate', anno(), af_pattern(), abstract_expr()}
-                      | {'b_generate', anno(), af_pattern(), abstract_expr()}.
+-type af_generator() ::
+    {'generate', anno(), af_pattern(), abstract_expr()}
+    | {'b_generate', anno(), af_pattern(), abstract_expr()}.
 
 -type af_filter() :: abstract_expr().
 
@@ -735,27 +740,23 @@ Erlang code.
 
 -type af_case() :: {'case', anno(), abstract_expr(), af_clause_seq()}.
 
--type af_try() :: {'try',
-                   anno(),
-                   af_body() | [],
-                   af_clause_seq() | [],
-                   af_clause_seq() | [],
-                   af_body() | []}.
+-type af_try() ::
+    {'try', anno(), af_body() | [], af_clause_seq() | [], af_clause_seq() | [], af_body() | []}.
 
 -type af_clause_seq() :: [af_clause(), ...].
 
 -type af_receive() ::
-        {'receive', anno(), af_clause_seq()}
-      | {'receive', anno(), af_clause_seq(), abstract_expr(), af_body()}.
+    {'receive', anno(), af_clause_seq()}
+    | {'receive', anno(), af_clause_seq(), abstract_expr(), af_body()}.
 
 -type af_fun() ::
-    {'fun', anno(), {'clauses', af_clause_seq()}} |
-    {'fun', anno(), {function, abstract_expr(), abstract_expr()}} |
-    {'fun', anno(), {function, abstract_expr(), abstract_expr(), abstract_expr()}}.
+    {'fun', anno(), {'clauses', af_clause_seq()}}
+    | {'fun', anno(), {function, abstract_expr(), abstract_expr()}}
+    | {'fun', anno(), {function, abstract_expr(), abstract_expr(), abstract_expr()}}.
 
 -type af_clause() ::
-        {clause, anno(), af_pattern(), af_guard_seq(), af_body()} |
-        af_macro_call().
+    {clause, anno(), af_pattern(), af_guard_seq(), af_body()}
+    | af_macro_call().
 
 -type af_body() :: [abstract_expr(), ...].
 
@@ -763,78 +764,80 @@ Erlang code.
 
 -type af_guard() :: {guard_and, anno(), [af_guard_test(), ...]}.
 
--type af_guard_test() :: af_literal()
-                       | af_variable()
-                       | af_tuple(af_guard_test())
-                       | af_list(af_guard_test())
-                       | af_bin(af_guard_test())
-                       | af_binary_op(af_guard_test())
-                       | af_unary_op(af_guard_test())
-                       | af_record_creation(af_guard_test())
-                       | af_record_index()
-                       | af_record_field_access(af_guard_test())
-                       | af_map_creation(abstract_expr())
-                       | af_map_update(abstract_expr())
-                       | af_guard_call()
-                       | af_remote_guard_call().
+-type af_guard_test() ::
+    af_literal()
+    | af_variable()
+    | af_tuple(af_guard_test())
+    | af_list(af_guard_test())
+    | af_bin(af_guard_test())
+    | af_binary_op(af_guard_test())
+    | af_unary_op(af_guard_test())
+    | af_record_creation(af_guard_test())
+    | af_record_index()
+    | af_record_field_access(af_guard_test())
+    | af_map_creation(abstract_expr())
+    | af_map_update(abstract_expr())
+    | af_guard_call()
+    | af_remote_guard_call().
 
 -type af_record_field_access(T) ::
-        {'record_field', anno(), T, af_record_name(), af_field_name()}.
+    {'record_field', anno(), T, af_record_name(), af_field_name()}.
 
 -type af_map_creation(T) :: {'map', anno(), [af_assoc(T)]}.
 
 -type af_map_update(T) :: {'map', anno(), T, [af_assoc(T)]}.
 
--type af_assoc(T) :: {'map_field_assoc', anno(), T, T}
-                   | af_assoc_exact(T).
+-type af_assoc(T) ::
+    {'map_field_assoc', anno(), T, T}
+    | af_assoc_exact(T).
 
 -type af_assoc_exact(T) :: {'map_field_exact', anno(), T, T}.
 
 -type af_guard_call() :: {'call', anno(), function_name(), [af_guard_test()]}.
 
 -type af_remote_guard_call() ::
-        {'call', anno(),
-         {'remote', anno(), af_lit_atom('erlang'), af_atom()},
-         [af_guard_test()]}.
+    {'call', anno(), {'remote', anno(), af_lit_atom('erlang'), af_atom()}, [af_guard_test()]}.
 
--type af_pattern() :: af_literal()
-                    | af_variable()
-                    | af_tuple(af_pattern())
-                    | af_list(af_pattern())
-                    | af_bin(af_pattern())
-                    | af_binary_op(af_pattern())
-                    | af_unary_op(af_pattern())
-                    | af_record_creation(af_pattern())
-                    | af_record_index()
-                    | af_args(af_pattern())
-                    | af_map_pattern().
+-type af_pattern() ::
+    af_literal()
+    | af_variable()
+    | af_tuple(af_pattern())
+    | af_list(af_pattern())
+    | af_bin(af_pattern())
+    | af_binary_op(af_pattern())
+    | af_unary_op(af_pattern())
+    | af_record_creation(af_pattern())
+    | af_record_index()
+    | af_args(af_pattern())
+    | af_map_pattern().
 
 -type af_record_index() ::
-        {'record_index', anno(), af_record_name(), af_field_name()}.
+    {'record_index', anno(), af_record_name(), af_field_name()}.
 
 -type af_record_creation(T) ::
-        {'record', anno(), af_record_name(), [af_record_field(T)]}.
+    {'record', anno(), af_record_name(), [af_record_field(T)]}.
 
 -type af_record_field(T) :: {'record_field', anno(), af_field_name(), T}.
 
 -type af_map_pattern() ::
-        {'map', anno(), [af_assoc_exact(abstract_expr())]}.
+    {'map', anno(), [af_assoc_exact(abstract_expr())]}.
 
--type abstract_type() :: af_annotated_type()
-                       | af_atom()
-                       | af_bitstring_type()
-                       | af_list_type()
-                       | af_fun_type()
-                       | af_integer_range_type()
-                       | af_map_type()
-                       | af_local_type()
-                       | af_remote_type()
-                       | af_record_type()
-                       | af_remote_type()
-                       | af_singleton_integer_type()
-                       | af_tuple_type()
-                       | af_type_union()
-                       | af_type_variable().
+-type abstract_type() ::
+    af_annotated_type()
+    | af_atom()
+    | af_bitstring_type()
+    | af_list_type()
+    | af_fun_type()
+    | af_integer_range_type()
+    | af_map_type()
+    | af_local_type()
+    | af_remote_type()
+    | af_record_type()
+    | af_remote_type()
+    | af_singleton_integer_type()
+    | af_tuple_type()
+    | af_type_union()
+    | af_type_variable().
 
 -type af_annotated_type() :: {op, anno(), '::', af_variable(), abstract_type()}.
 
@@ -843,8 +846,8 @@ Erlang code.
 -type af_list_type() :: {list, anno(), [abstract_type() | {'...', anno()}]}.
 
 -type af_fun_type() ::
-    {'fun', anno(), type} |
-    {'fun', anno(), {type, [abstract_type() | {'...', anno()}], abstract_type()}}.
+    {'fun', anno(), type}
+    | {'fun', anno(), {type, [abstract_type() | {'...', anno()}], abstract_type()}}.
 
 -type af_integer_range_type() :: {op, anno(), '..', af_integer(), af_integer()}.
 
@@ -865,7 +868,8 @@ Erlang code.
 
 -type af_type_union() :: {op, anno(), '|', abstract_type(), abstract_type()}.
 
--type af_type_variable() :: {'var', anno(), atom()}. % except '_'
+% except '_'
+-type af_type_variable() :: {'var', anno(), atom()}.
 
 -type af_function_type() ::
     {spec, anno(), [af_spec_clause()]}.
@@ -873,16 +877,18 @@ Erlang code.
 -type af_spec_clause() ::
     {spec_clause, anno(), abstract_type(), af_guard_seq(), [abstract_type(), ...]}.
 
--type af_singleton_integer_type() :: af_integer()
-                                   | af_character()
-                                   | af_unary_op(af_singleton_integer_type())
-                                   | af_binary_op(af_singleton_integer_type()).
+-type af_singleton_integer_type() ::
+    af_integer()
+    | af_character()
+    | af_unary_op(af_singleton_integer_type())
+    | af_binary_op(af_singleton_integer_type()).
 
--type af_literal() :: af_atom()
-                    | af_character()
-                    | af_float()
-                    | af_integer()
-                    | af_string().
+-type af_literal() ::
+    af_atom()
+    | af_character()
+    | af_float()
+    | af_integer()
+    | af_string().
 
 -type af_atom() :: af_lit_atom(atom()).
 
@@ -904,20 +910,38 @@ Erlang code.
 
 -type af_bin(T) :: {'bin', anno(), [af_binelement(T)]}.
 
--type af_binelement(T) :: {'bin_element',
-                           anno(),
-                           T,
-                           af_binelement_size(),
-                           type_specifier_list()}.
+-type af_binelement(T) :: {'bin_element', anno(), T, af_binelement_size(), type_specifier_list()}.
 
 -type af_binelement_size() :: 'default' | abstract_expr().
 
 -type af_binary_op(T) :: {'op', anno(), binary_op(), T, T}.
 
--type binary_op() :: '/' | '*' | 'div' | 'rem' | 'band' | 'and' | '+' | '-'
-                   | 'bor' | 'bxor' | 'bsl' | 'bsr' | 'or' | 'xor' | '++'
-                   | '--' | '==' | '/=' | '=<' | '<'  | '>=' | '>' | '=:='
-                   | '=/=' | '='.
+-type binary_op() ::
+    '/'
+    | '*'
+    | 'div'
+    | 'rem'
+    | 'band'
+    | 'and'
+    | '+'
+    | '-'
+    | 'bor'
+    | 'bxor'
+    | 'bsl'
+    | 'bsr'
+    | 'or'
+    | 'xor'
+    | '++'
+    | '--'
+    | '=='
+    | '/='
+    | '=<'
+    | '<'
+    | '>='
+    | '>'
+    | '=:='
+    | '=/='
+    | '='.
 
 -type af_unary_op(T) :: {'op', anno(), unary_op(), T}.
 
@@ -926,20 +950,22 @@ Erlang code.
 %% See also lib/stdlib/{src/erl_bits.erl,include/erl_bits.hrl}.
 -type type_specifier_list() :: 'default' | [type_specifier(), ...].
 
--type type_specifier() :: type()
-                        | signedness()
-                        | endianness()
-                        | unit().
+-type type_specifier() ::
+    type()
+    | signedness()
+    | endianness()
+    | unit().
 
--type type() :: 'integer'
-              | 'float'
-              | 'binary'
-              | 'bytes'
-              | 'bitstring'
-              | 'bits'
-              | 'utf8'
-              | 'utf16'
-              | 'utf32'.
+-type type() ::
+    'integer'
+    | 'float'
+    | 'binary'
+    | 'bytes'
+    | 'bitstring'
+    | 'bits'
+    | 'utf8'
+    | 'utf16'
+    | 'utf32'.
 
 -type signedness() :: 'signed' | 'unsigned'.
 
@@ -959,9 +985,10 @@ Erlang code.
 
 -type type_name() :: atom().
 
--type form_info() :: {'eof', erl_anno:line()}
-                   | {'error', erl_scan:error_info() | error_info()}
-                   | {'warning', erl_scan:error_info() | error_info()}.
+-type form_info() ::
+    {'eof', erl_anno:line()}
+    | {'error', erl_scan:error_info() | error_info()}
+    | {'warning', erl_scan:error_info() | error_info()}.
 
 %% End of Abstract Format
 
@@ -994,27 +1021,27 @@ Erlang code.
 %% Entry points compatible to old erl_parse.
 
 -spec parse_node(Tokens) -> {ok, AbsNode} | {error, ErrorInfo} when
-      Tokens :: [token()],
-      AbsNode :: abstract_node(),
-      ErrorInfo :: error_info().
-parse_node([{'-',A1},{atom,A2,spec}|Tokens]) ->
-    NewTokens = [{'-',A1},{'spec',A2}|Tokens],
+    Tokens :: [token()],
+    AbsNode :: abstract_node(),
+    ErrorInfo :: error_info().
+parse_node([{'-', A1}, {atom, A2, spec} | Tokens]) ->
+    NewTokens = [{'-', A1}, {'spec', A2} | Tokens],
     parse(NewTokens);
-parse_node([{'-',A1},{atom,A2,callback}|Tokens]) ->
-    NewTokens = [{'-',A1},{'callback',A2}|Tokens],
+parse_node([{'-', A1}, {atom, A2, callback} | Tokens]) ->
+    NewTokens = [{'-', A1}, {'callback', A2} | Tokens],
     parse(NewTokens);
-parse_node([{'-',A1},{atom,A2,define}|Tokens]) ->
-    NewTokens1 = [{'-',A1},{define_expr,A2}|Tokens],
+parse_node([{'-', A1}, {atom, A2, define} | Tokens]) ->
+    NewTokens1 = [{'-', A1}, {define_expr, A2} | Tokens],
     case parse(NewTokens1) of
         {ok, _} = Res ->
             Res;
         _ ->
-            NewTokens2 = [{'-',A1},{define_type,A2}|Tokens],
+            NewTokens2 = [{'-', A1}, {define_type, A2} | Tokens],
             case parse(NewTokens2) of
                 {ok, _} = Res ->
                     Res;
                 _ ->
-                    NewTokens3 = [{'-',A1},{define_clause,A2}|Tokens],
+                    NewTokens3 = [{'-', A1}, {define_clause, A2} | Tokens],
                     parse(NewTokens3)
             end
     end;
@@ -1030,7 +1057,11 @@ parse_node(Tokens) ->
     end.
 
 %% unwrap single-expr definitions, wrapped in guards by the parser
-build_macro_def({'-', Anno}, {define_expr, AttrAnno}, {Name, {guard_or, _, [{guard_and, _, [Body]}]}}) ->
+build_macro_def(
+    {'-', Anno},
+    {define_expr, AttrAnno},
+    {Name, {guard_or, _, [{guard_and, _, [Body]}]}}
+) ->
     {attribute, Anno, {atom, AttrAnno, define}, [Name, Body]};
 build_macro_def({'-', Anno}, {_, AttrAnno}, {Name, Body}) ->
     {attribute, Anno, {atom, AttrAnno, define}, [Name, Body]}.
@@ -1042,23 +1073,24 @@ build_attribute({'-', Anno}, {atom, _, _} = Attr, Values) ->
 build_attribute({'-', Anno}, {Name, NameAnno}, Values) ->
     {attribute, Anno, {atom, NameAnno, Name}, Values}.
 
-record_tuple({tuple,At,Fields}) ->
-    {tuple,At,record_fields(Fields)};
+record_tuple({tuple, At, Fields}) ->
+    {tuple, At, record_fields(Fields)};
 record_tuple(Other) ->
     ret_err(?anno(Other), "bad record declaration").
 
-record_fields([{macro_call, A, Name, Args}|Fields]) ->
-    [{record_field,A,{macro_call, A, Name, Args}}|record_fields(Fields)];
-record_fields([{atom,Aa,A}|Fields]) ->
-    [{record_field,Aa,{atom,Aa,A}}|record_fields(Fields)];
-record_fields([{op,Am,'=',FieldValue,Expr}|Fields]) ->
-    [{record_field,Am,FieldValue,Expr}|record_fields(Fields)];
-record_fields([{op,Am,'::',Expr,TypeInfo}|Fields]) ->
+record_fields([{macro_call, A, Name, Args} | Fields]) ->
+    [{record_field, A, {macro_call, A, Name, Args}} | record_fields(Fields)];
+record_fields([{atom, Aa, A} | Fields]) ->
+    [{record_field, Aa, {atom, Aa, A}} | record_fields(Fields)];
+record_fields([{op, Am, '=', FieldValue, Expr} | Fields]) ->
+    [{record_field, Am, FieldValue, Expr} | record_fields(Fields)];
+record_fields([{op, Am, '::', Expr, TypeInfo} | Fields]) ->
     [Field] = record_fields([Expr]),
-    [{op,Am,'::',Field,TypeInfo}|record_fields(Fields)];
-record_fields([Other|_Fields]) ->
+    [{op, Am, '::', Field, TypeInfo} | record_fields(Fields)];
+record_fields([Other | _Fields]) ->
     ret_err(?anno(Other), "bad record field");
-record_fields([]) -> [].
+record_fields([]) ->
+    [].
 
 -spec ret_err(_, _) -> no_return().
 ret_err(Anno, S) ->
