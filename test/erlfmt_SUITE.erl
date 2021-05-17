@@ -15,6 +15,7 @@
 
 -include_lib("common_test/include/ct.hrl").
 -include_lib("stdlib/include/assert.hrl").
+-include_lib("src/assert_diagnostic.hrl").
 
 %% Test server callbacks
 -export([
@@ -1154,25 +1155,34 @@ snapshot_insert_pragma_with(Config) when is_list(Config) ->
     snapshot_same("pragma.erl", [{pragma, insert} | Config]).
 
 snapshot_same(Module, Config) ->
-    DataDir = ?config(data_dir, Config),
     Pragma = proplists:get_value(pragma, Config, ignore),
-    {ok, OriginalBin} = file:read_file(filename:join(DataDir, Module)),
-    Original = unicode:characters_to_list(OriginalBin),
-    case erlfmt:format_string(Original, [{pragma, Pragma}]) of
-        {ok, Original, _} -> ok;
-        {skip, _} -> ok;
-        {ok, Other, _} -> ct:fail({unexpected, Other, expected, Original});
-        Other -> ct:fail("unexpected: ~p~n", [Other])
-    end.
+    snapshot_match(Module, Module, Config, [{pragma, Pragma}]).
 
 snapshot_formatted(Module, Config) ->
+    % Sanity check via idempotence: the reference file is up-to-date.
     snapshot_same(Module ++ ".formatted", Config),
+    snapshot_match(Module ++ ".formatted", Module, Config, []).
+
+snapshot_match(FormattedModule, Module, Config, Options) ->
     DataDir = ?config(data_dir, Config),
-    {ok, FormattedBin} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
+    {ok, FormattedBin} = file:read_file(filename:join([DataDir, FormattedModule])),
     Formatted = unicode:characters_to_list(FormattedBin),
     {ok, OriginalBin} = file:read_file(filename:join([DataDir, Module])),
     Original = unicode:characters_to_list(OriginalBin),
-    ?assertMatch({ok, Formatted, _}, erlfmt:format_string(Original, [])).
+    case erlfmt:format_string(Original, Options) of
+        {ok, Formatted, _} -> ok;
+        {skip, _} -> ok;
+        {ok, Other, _} ->
+           % Split by lines.
+           Formatted2 = string:lexemes(Formatted, [$\n]),
+           Other2 = string:lexemes(Other, [$\n]),
+           % We already know they are not equal,
+           % this macro gives a better diagnostic.
+           ?assertListEqual(Formatted2, Other2);
+        Other -> ct:fail("unexpected: ~p~n", [Other])
+    end.
+
+
 
 smoke_test_stdio_check(Config) when is_list(Config) ->
     DataDir = ?config(data_dir, Config),
