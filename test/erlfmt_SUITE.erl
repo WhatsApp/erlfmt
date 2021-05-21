@@ -1245,7 +1245,6 @@ range_format_exact([{Start, End} | Options], Path) ->
     {ok, _Output, _} = erlfmt:format_file_range(Path, Start, End, []),
     range_format_exact(Options, Path).
 
-
 snapshot_range_whole_comments(Config) ->
     % When range enclose whole file,
     % the whole file must be formated!
@@ -1259,8 +1258,9 @@ snapshot_range_whole_comments(Config) ->
 
 snapshot_range_partial(_) ->
     % Check only the specified form is formatted.
-    Original = "x() ->"
-           "0.\n"
+    Original =
+        "x() ->"
+        "0.\n"
         "y()   ->  1.\n"
         "z()   ->  2.\n",
     % Only x() should be touched.
