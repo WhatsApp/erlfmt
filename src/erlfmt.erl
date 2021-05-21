@@ -18,8 +18,9 @@
     main/1,
     init/1,
     format_file/2,
+    format_file_range/4,
     format_string/2,
-    format_range/4,
+    format_string_range/4,
     format_nodes/2,
     read_nodes/1,
     read_nodes_string/2,
@@ -213,7 +214,7 @@ replace_pragma_comment_block(_Prefix, [("%" ++ _) = Head | Tail]) ->
 replace_pragma_comment_block(Prefix, [Head | Tail]) ->
     [Head | replace_pragma_comment_block(Prefix, Tail)].
 
--spec format_range(
+-spec format_file_range(
     file:name_all(),
     erlfmt_scan:location(),
     erlfmt_scan:location(),
@@ -222,10 +223,19 @@ replace_pragma_comment_block(Prefix, [Head | Tail]) ->
     {ok, string(), [error_info()]}
     | {error, error_info()}
     | {options, [{erlfmt_scan:location(), erlfmt_scan:location()}]}.
-format_range(FileName, StartLocation, EndLocation, Options) ->
+format_file_range(FileName, StartLocation, EndLocation, Options) ->
+    {ok, Nodes, Warnings} = file_read_nodes(FileName, ignore),
+    format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings).
+
+format_string_range(String, StartLocation, EndLocation, Options) ->
+    FileName = "nofile",
+    Pragma = proplists:get_value(pragma, Options, ignore),
+    {ok, Nodes, Warnings} = read_nodes_string(FileName, String, Pragma),
+    format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings).
+
+format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
     PrintWidth = proplists:get_value(print_width, Options, ?DEFAULT_WIDTH),
     try
-        {ok, Nodes, Warnings} = file_read_nodes(FileName, ignore),
         case verify_ranges(Nodes, StartLocation, EndLocation) of
             {ok, NodesInRange} ->
                 Result = format_nodes(NodesInRange, PrintWidth),

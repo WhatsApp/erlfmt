@@ -83,8 +83,9 @@
     snapshot_ignore_format/1,
     snapshot_empty/1,
     simple_comments_range/1,
-    comments_range/1,
     broken_range/1,
+    snapshot_range_whole_comments/1,
+    snapshot_range_partial/1,
     contains_pragma/1,
     insert_pragma/1,
     overlong_warning/1,
@@ -176,8 +177,9 @@ groups() ->
         ]},
         {range_tests, [parallel], [
             simple_comments_range,
-            comments_range,
-            broken_range
+            broken_range,
+            snapshot_range_whole_comments,
+            snapshot_range_partial
         ]},
         {pragma_tests, [parallel], [
             contains_pragma,
@@ -1164,23 +1166,29 @@ snapshot_formatted(Module, Config) ->
     snapshot_match(Module ++ ".formatted", Module, Config, []).
 
 snapshot_match(FormattedModule, Module, Config, Options) ->
+    % Format `Module` and check it matchs `FormattedModule`.
     DataDir = ?config(data_dir, Config),
     {ok, FormattedBin} = file:read_file(filename:join([DataDir, FormattedModule])),
-    Formatted = unicode:characters_to_list(FormattedBin),
     {ok, OriginalBin} = file:read_file(filename:join([DataDir, Module])),
+    Formatted = unicode:characters_to_list(FormattedBin),
     Original = unicode:characters_to_list(OriginalBin),
-    case erlfmt:format_string(Original, Options) of
-        {ok, Formatted, _} ->
+    Output = erlfmt:format_string(Original, Options),
+    assert_snapshot_match(Formatted, Output).
+
+assert_snapshot_match(Expected, Output) ->
+    %% Check the formatted result matches the reference.
+    case Output of
+        {ok, Expected, _} ->
             ok;
         {skip, _} ->
             ok;
         {ok, Other, _} ->
             % Split by lines.
-            Formatted2 = string:lexemes(Formatted, [$\n]),
+            Expected2 = string:lexemes(Expected, [$\n]),
             Other2 = string:lexemes(Other, [$\n]),
             % We already know they are not equal,
             % this macro gives a better diagnostic.
-            ?assertListEqual(Formatted2, Other2);
+            ?assertListEqual(Expected2, Other2);
         Other ->
             ct:fail("unexpected: ~p~n", [Other])
     end.
@@ -1220,16 +1228,13 @@ exclude_check(Config) when is_list(Config) ->
 simple_comments_range(Config) ->
     format_range(Config, "simple_comments.erl").
 
-comments_range(Config) ->
-    format_range(Config, "simple_comments.erl").
-
 broken_range(Config) ->
     format_range(Config, "broken.erl").
 
 format_range(Config, File) ->
     DataDir = ?config(data_dir, Config),
     Path = DataDir ++ File,
-    case erlfmt:format_range(Path, {3, 45}, {47, 1}, []) of
+    case erlfmt:format_file_range(Path, {3, 45}, {47, 1}, []) of
         {ok, _Output, _} -> ok;
         {options, Options} -> range_format_exact(Options, Path)
     end.
@@ -1237,8 +1242,31 @@ format_range(Config, File) ->
 range_format_exact([], _Path) ->
     ok;
 range_format_exact([{Start, End} | Options], Path) ->
-    {ok, _Output, _} = erlfmt:format_range(Path, Start, End, []),
+    {ok, _Output, _} = erlfmt:format_file_range(Path, Start, End, []),
     range_format_exact(Options, Path).
+
+
+snapshot_range_whole_comments(Config) ->
+    % When range enclose whole file,
+    % the whole file must be formated!
+    Module = "comments.erl",
+    DataDir = ?config(data_dir, Config),
+    {ok, FormattedBin} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
+    Path = filename:join(DataDir, Module),
+    % All forms enclosed, so must return {ok, FormattedOutput, _}.
+    Output = erlfmt:format_file_range(Path, {1, 1}, {38, 25}, []),
+    assert_snapshot_match(FormattedBin, Output).
+
+snapshot_range_partial(_) ->
+    % Check only the specified form is formatted.
+    Original = "x() ->"
+           "0.\n"
+        "y()   ->  1.\n"
+        "z()   ->  2.\n",
+    % Only x() should be touched.
+    Reference = "x() -> 0.\n",
+    Output = erlfmt:format_string_range(Original, {1, 1}, {1, 9}, []),
+    assert_snapshot_match(list_to_binary(Reference), Output).
 
 contains_pragma(Config) when is_list(Config) ->
     ?assert(
@@ -1469,7 +1497,7 @@ overlong_warning(Config) when is_list(Config) ->
     {ok, Formatted, FileWarnings} = erlfmt:format_file(FileName, Options),
     FormattedList = unicode:characters_to_list(Formatted),
     {ok, _, StringWarnings} = erlfmt:format_string(FormattedList, Options),
-    {ok, _, RangeWarnings} = erlfmt:format_range(FileName, {1, 1}, {11, 8}, Options),
+    {ok, _, RangeWarnings} = erlfmt:format_file_range(FileName, {1, 1}, {11, 8}, Options),
     FileLongLines = [{LineNo, Length} || {_, LineNo, _, {long_line, Length, _}} <- FileWarnings],
     StringLongLines = [
         {LineNo, Length}
