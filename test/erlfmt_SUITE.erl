@@ -86,6 +86,10 @@
     broken_range/1,
     snapshot_range_whole_comments/1,
     snapshot_range_partial/1,
+    snapshot_range_partial2/1,
+    snapshot_enclosing_range/1,
+    snapshot_enclosing_range2/1,
+    snapshot_enclosing_range_no_leak/1,
     contains_pragma/1,
     insert_pragma/1,
     overlong_warning/1,
@@ -179,7 +183,11 @@ groups() ->
             simple_comments_range,
             broken_range,
             snapshot_range_whole_comments,
-            snapshot_range_partial
+            snapshot_range_partial,
+            snapshot_range_partial2,
+            snapshot_enclosing_range,
+            snapshot_enclosing_range2,
+            snapshot_enclosing_range_no_leak
         ]},
         {pragma_tests, [parallel], [
             contains_pragma,
@@ -1259,13 +1267,68 @@ snapshot_range_whole_comments(Config) ->
 snapshot_range_partial(_) ->
     % Check only the specified form is formatted.
     Original =
-        "x() ->"
-        "0.\n"
+        "x()->0.\n"
         "y()   ->  1.\n"
         "z()   ->  2.\n",
     % Only x() should be touched.
     Reference = "x() -> 0.\n",
-    Output = erlfmt:format_string_range(Original, {1, 1}, {1, 9}, []),
+    Output = erlfmt:format_string_range(Original, {1, 1}, {1, 8}, []),
+    assert_snapshot_match(list_to_binary(Reference), Output).
+
+snapshot_range_partial2(_) ->
+    % Check only the specified form is formatted, too,
+    % with a range spanning on two lines.
+    Original =
+        "x()->\n"
+        "0.\n"
+        "y()   ->  1.\n",
+    % Only x() should be touched.
+    Reference =
+        "x() ->\n"
+        "    0.",
+    Output = erlfmt:format_string_range(Original, {1, 1}, {2, 3}, []),
+    assert_snapshot_match(list_to_binary(Reference), Output).
+
+snapshot_enclosing_range(_) ->
+    % Check we pick format the whole top level form covering passed range.
+    % Same Original and reference than snapshot_range_partial2.
+    Original =
+        "x()->\n"
+        "0.\n"
+        "y()   ->  1.\n",
+    Reference =
+        "x() ->\n"
+        "    0.",
+    % Range is just the first char (mimic e.g. function renaming).
+    Output = erlfmt:format_string_enclosing_range(Original, {1, 1}, {1, 2}, []),
+    assert_snapshot_match(list_to_binary(Reference), Output).
+
+snapshot_enclosing_range2(_) ->
+    % Same test when picking second part of the form:
+    % passed range doesn't intersect 'top level'.
+    Original =
+        "x()->\n"
+        " 0.\n"
+        "y()   ->  1.\n",
+    Reference =
+        "x() ->\n"
+        "    0.",
+    Output = erlfmt:format_string_enclosing_range(Original, {2, 2}, {2, 3}, []),
+    assert_snapshot_match(list_to_binary(Reference), Output).
+
+snapshot_enclosing_range_no_leak(_) ->
+    % Check only the specified form is formatted.
+    Original =
+        "x()->\n"
+        " 0.\n"
+        "\n"
+        "y()   ->  1.\n",
+    Reference =
+        "x() ->\n"
+        "    0.",
+    % End point overshots line 3, but doesn't reach line 4:
+    % Only x() must be formatted.
+    Output = erlfmt:format_string_enclosing_range(Original, {1, 1}, {3, 3}, []),
     assert_snapshot_match(list_to_binary(Reference), Output).
 
 contains_pragma(Config) when is_list(Config) ->
