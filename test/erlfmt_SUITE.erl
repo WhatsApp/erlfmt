@@ -1300,7 +1300,7 @@ snapshot_enclosing_range(_) ->
         "x() ->\n"
         "    0.",
     % Range is just the first char (mimic e.g. function renaming).
-    Output = erlfmt:format_string_enclosing_range(Original, {1, 1}, {1, 2}, []),
+    Output = erlfmt:format_string_range(Original, {1, 1}, {1, 2}, []),
     assert_snapshot_match(list_to_binary(Reference), Output).
 
 snapshot_enclosing_range2(_) ->
@@ -1313,7 +1313,7 @@ snapshot_enclosing_range2(_) ->
     Reference =
         "x() ->\n"
         "    0.",
-    Output = erlfmt:format_string_enclosing_range(Original, {2, 2}, {2, 3}, []),
+    Output = erlfmt:format_string_range(Original, {2, 2}, {2, 3}, []),
     assert_snapshot_match(list_to_binary(Reference), Output).
 
 snapshot_enclosing_range_no_leak(_) ->
@@ -1328,7 +1328,7 @@ snapshot_enclosing_range_no_leak(_) ->
         "    0.",
     % End point overshots line 3, but doesn't reach line 4:
     % Only x() must be formatted.
-    Output = erlfmt:format_string_enclosing_range(Original, {1, 1}, {3, 3}, []),
+    Output = erlfmt:format_string_range(Original, {1, 1}, {3, 3}, []),
     assert_snapshot_match(list_to_binary(Reference), Output).
 
 contains_pragma(Config) when is_list(Config) ->
