@@ -13,14 +13,18 @@
 %% limitations under the License.
 -module(erlfmt).
 
+-include_lib("stdlib/include/assert.hrl").
+
 %% API exports
 -export([
     main/1,
     init/1,
     format_file/2,
     format_file_range/4,
+    format_file_range_extract/4,
     format_string/2,
     format_string_range/4,
+    format_string_range_extract/4,
     format_nodes/2,
     read_nodes/1,
     read_nodes_string/2,
@@ -227,8 +231,9 @@ replace_pragma_comment_block(Prefix, [Head | Tail]) ->
     {ok, string(), [error_info()]}
     | {error, error_info()}.
 format_file_range(FileName, StartLocation, EndLocation, Options) ->
-    {ok, Nodes, Warnings} = file_read_nodes(FileName, ignore),
-    format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings).
+    {ok, Bin} = file:read_file(FileName),
+    String = binary_to_list(Bin),
+    format_string_range(String, StartLocation, EndLocation, Options).
 
 -spec format_string_range(
     string(),
@@ -239,6 +244,68 @@ format_file_range(FileName, StartLocation, EndLocation, Options) ->
     {ok, string(), [error_info()]}
     | {error, error_info()}.
 format_string_range(String, StartLocation, EndLocation, Options) ->
+    {{StartLine, _}, {EndLine, _}, Result} = format_string_range_extract(
+        String,
+        StartLocation,
+        EndLocation,
+        Options
+    ),
+    format_range_and_reinject(String, StartLine, EndLine, Result).
+
+format_range_and_reinject(Original, Start, End, Result) ->
+    case Result of
+        {ok, Formatted, Info} ->
+            % Reinject formatted extract into whole string.
+            AsList = string:split(list_to_binary(Original), "\n", all),
+            FormattedAsList0 = string:split(Formatted, "\n", all),
+            % Remove spurious empty line introduced by last \n separator.
+            FormattedAsList =
+                case lists:last(FormattedAsList0) of
+                    <<>> ->
+                        lists:droplast(FormattedAsList0);
+                    _ ->
+                        FormattedAsList0
+                end,
+            ?assert(End >= Start),
+            Len = End - Start + 1,
+            New = replace_slice(AsList, Start, Len, FormattedAsList),
+            {ok, lists:join("\n", New), Info};
+        X ->
+            % Error: Leave as is.
+            X
+    end.
+
+% Like format_file_range, but only return the modified part.
+% Entry point for IDE integration.
+-spec format_file_range_extract(
+    file:name_all(),
+    erlfmt_scan:location(),
+    erlfmt_scan:location(),
+    [{print_width, pos_integer()}]
+) ->
+    {
+        erlfmt_scan:location(),
+        erlfmt_scan:location(),
+        {ok, string(), [error_info()]}
+        | {error, error_info()}
+    }.
+format_file_range_extract(FileName, StartLocation, EndLocation, Options) ->
+    {ok, Nodes, Warnings} = file_read_nodes(FileName, ignore),
+    format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings).
+
+-spec format_string_range_extract(
+    string(),
+    erlfmt_scan:location(),
+    erlfmt_scan:location(),
+    [{print_width, pos_integer()}]
+) ->
+    {
+        erlfmt_scan:location(),
+        erlfmt_scan:location(),
+        {ok, string(), [error_info()]}
+        | {error, error_info()}
+    }.
+format_string_range_extract(String, StartLocation, EndLocation, Options) ->
     FileName = "nofile",
     Pragma = proplists:get_value(pragma, Options, ignore),
     {ok, Nodes, Warnings} = read_nodes_string(FileName, String, Pragma),
@@ -247,7 +314,7 @@ format_string_range(String, StartLocation, EndLocation, Options) ->
 format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
     case format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) of
         {options, PossibleRanges} ->
-            % Pick the largest range, so all intersected forms are covered.
+            % Pick the largest range, so all intersected forms are coverd.
             {Starts, Ends} = lists:unzip(PossibleRanges),
             Start = lists:min(Starts),
             End = lists:max(Ends),
@@ -255,10 +322,10 @@ format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, War
             % Poor man's assert (to avoid including assert.hrl)
             % This time we must have the formatted result.
             {ok, _, _} = Res,
-            Res;
+            {Start, End, Res};
         X ->
             % Already ok or error: pass as is.
-            X
+            {StartLocation, EndLocation, X}
     end.
 
 format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
@@ -605,3 +672,14 @@ check_line_lengths(FileName, Width, String, {FirstLineNo, _}) ->
         ),
         string:length(Line) > Width
     ].
+
+% Replace the sublist(Target, Start, Len) by Injected.
+% E.g. if Injected is empty it will just remove the sublist.
+-spec replace_slice(list(), pos_integer(), non_neg_integer(), list()) -> list().
+replace_slice(Target, Start, Len, Injected) ->
+    Res =
+        lists:sublist(Target, Start - 1) ++
+            Injected ++
+            lists:sublist(Target, Start + Len, length(Target)),
+    ?assertEqual(length(Target) - Len + length(Injected), length(Res)),
+    Res.

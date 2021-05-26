@@ -90,6 +90,7 @@
     snapshot_enclosing_range/1,
     snapshot_enclosing_range2/1,
     snapshot_enclosing_range_no_leak/1,
+    snapshot_range_reinjected/1,
     contains_pragma/1,
     insert_pragma/1,
     overlong_warning/1,
@@ -187,7 +188,8 @@ groups() ->
             snapshot_range_partial2,
             snapshot_enclosing_range,
             snapshot_enclosing_range2,
-            snapshot_enclosing_range_no_leak
+            snapshot_enclosing_range_no_leak,
+            snapshot_range_reinjected
         ]},
         {pragma_tests, [parallel], [
             contains_pragma,
@@ -1183,6 +1185,13 @@ snapshot_match(FormattedModule, Module, Config, Options) ->
     Output = erlfmt:format_string(Original, Options),
     assert_snapshot_match(Formatted, Output).
 
+assert_snapshot_match_range(Expected, Result) ->
+    % We assume range enclosed whole top-level forms,
+    % so result should be {_, _, {ok, FormattedOutput, _}}.
+    % We don't care about returned Start/End locations (avoid over-specification).
+    {_, _, Output} = Result,
+    assert_snapshot_match(list_to_binary(Expected), Output).
+
 assert_snapshot_match(Expected, Output) ->
     %% Check the formatted result matches the reference.
     case Output of
@@ -1191,9 +1200,9 @@ assert_snapshot_match(Expected, Output) ->
         {skip, _} ->
             ok;
         {ok, Other, _} ->
-            % Split by lines.
-            Expected2 = string:lexemes(Expected, [$\n]),
-            Other2 = string:lexemes(Other, [$\n]),
+            % Split by lines (preserving empty lines).
+            Expected2 = string:split(Expected, "\n", all),
+            Other2 = string:split(Other, "\n", all),
             % We already know they are not equal,
             % this macro gives a better diagnostic.
             ?assertListEqual(Expected2, Other2);
@@ -1260,7 +1269,6 @@ snapshot_range_whole_comments(Config) ->
     DataDir = ?config(data_dir, Config),
     {ok, FormattedBin} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
     Path = filename:join(DataDir, Module),
-    % All forms enclosed, so must return {ok, FormattedOutput, _}.
     Output = erlfmt:format_file_range(Path, {1, 1}, {38, 25}, []),
     assert_snapshot_match(FormattedBin, Output).
 
@@ -1272,8 +1280,8 @@ snapshot_range_partial(_) ->
         "z()   ->  2.\n",
     % Only x() should be touched.
     Reference = "x() -> 0.\n",
-    Output = erlfmt:format_string_range(Original, {1, 1}, {1, 8}, []),
-    assert_snapshot_match(list_to_binary(Reference), Output).
+    Result = erlfmt:format_string_range_extract(Original, {1, 1}, {1, 8}, []),
+    assert_snapshot_match_range(Reference, Result).
 
 snapshot_range_partial2(_) ->
     % Check only the specified form is formatted, too,
@@ -1285,9 +1293,9 @@ snapshot_range_partial2(_) ->
     % Only x() should be touched.
     Reference =
         "x() ->\n"
-        "    0.",
-    Output = erlfmt:format_string_range(Original, {1, 1}, {2, 3}, []),
-    assert_snapshot_match(list_to_binary(Reference), Output).
+        "    0.\n",
+    Result = erlfmt:format_string_range_extract(Original, {1, 1}, {2, 3}, []),
+    assert_snapshot_match_range(Reference, Result).
 
 snapshot_enclosing_range(_) ->
     % Check we pick format the whole top level form covering passed range.
@@ -1298,10 +1306,10 @@ snapshot_enclosing_range(_) ->
         "y()   ->  1.\n",
     Reference =
         "x() ->\n"
-        "    0.",
+        "    0.\n",
     % Range is just the first char (mimic e.g. function renaming).
-    Output = erlfmt:format_string_range(Original, {1, 1}, {1, 2}, []),
-    assert_snapshot_match(list_to_binary(Reference), Output).
+    Result = erlfmt:format_string_range_extract(Original, {1, 1}, {1, 2}, []),
+    assert_snapshot_match_range(Reference, Result).
 
 snapshot_enclosing_range2(_) ->
     % Same test when picking second part of the form:
@@ -1312,9 +1320,9 @@ snapshot_enclosing_range2(_) ->
         "y()   ->  1.\n",
     Reference =
         "x() ->\n"
-        "    0.",
-    Output = erlfmt:format_string_range(Original, {2, 2}, {2, 3}, []),
-    assert_snapshot_match(list_to_binary(Reference), Output).
+        "    0.\n",
+    Result = erlfmt:format_string_range_extract(Original, {2, 2}, {2, 3}, []),
+    assert_snapshot_match_range(Reference, Result).
 
 snapshot_enclosing_range_no_leak(_) ->
     % Check only the specified form is formatted.
@@ -1325,10 +1333,26 @@ snapshot_enclosing_range_no_leak(_) ->
         "y()   ->  1.\n",
     Reference =
         "x() ->\n"
-        "    0.",
+        "    0.\n",
     % End point overshots line 3, but doesn't reach line 4:
     % Only x() must be formatted.
-    Output = erlfmt:format_string_range(Original, {1, 1}, {3, 3}, []),
+    Result = erlfmt:format_string_range_extract(Original, {1, 1}, {3, 3}, []),
+    assert_snapshot_match_range(Reference, Result).
+
+snapshot_range_reinjected(_) ->
+    % Verify the formatted range is properly re-injected
+    % in original file, even if the number of lines has changed.
+    Original =
+        "x()->0. % This comment end up in new line.\n"
+        "\n"
+        "y()   ->  1. % This comment stays here\n",
+    Reference =
+        "% This comment end up in new line.\n"
+        "x() -> 0.\n"
+        "\n"
+        "y()   ->  1. % This comment stays here\n",
+    % Only x() must be formatted, but we get back the whole string.
+    Output = erlfmt:format_string_range(Original, {1, 1}, {1, 9}, []),
     assert_snapshot_match(list_to_binary(Reference), Output).
 
 contains_pragma(Config) when is_list(Config) ->
@@ -1560,7 +1584,12 @@ overlong_warning(Config) when is_list(Config) ->
     {ok, Formatted, FileWarnings} = erlfmt:format_file(FileName, Options),
     FormattedList = unicode:characters_to_list(Formatted),
     {ok, _, StringWarnings} = erlfmt:format_string(FormattedList, Options),
-    {ok, _, RangeWarnings} = erlfmt:format_file_range(FileName, {1, 1}, {11, 8}, Options),
+    {_, _, {ok, _, RangeWarnings}} = erlfmt:format_file_range_extract(
+        FileName,
+        {1, 1},
+        {11, 8},
+        Options
+    ),
     FileLongLines = [{LineNo, Length} || {_, LineNo, _, {long_line, Length, _}} <- FileWarnings],
     StringLongLines = [
         {LineNo, Length}
