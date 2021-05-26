@@ -214,6 +214,10 @@ replace_pragma_comment_block(_Prefix, [("%" ++ _) = Head | Tail]) ->
 replace_pragma_comment_block(Prefix, [Head | Tail]) ->
     [Head | replace_pragma_comment_block(Prefix, Tail)].
 
+% Format the minimum number of top-level forms
+% that cover the passed range.
+% Rationale: top-level forms is the smallest
+%            granularity we support now.
 -spec format_file_range(
     file:name_all(),
     erlfmt_scan:location(),
@@ -221,17 +225,41 @@ replace_pragma_comment_block(Prefix, [Head | Tail]) ->
     [{print_width, pos_integer()}]
 ) ->
     {ok, string(), [error_info()]}
-    | {error, error_info()}
-    | {options, [{erlfmt_scan:location(), erlfmt_scan:location()}]}.
+    | {error, error_info()}.
 format_file_range(FileName, StartLocation, EndLocation, Options) ->
     {ok, Nodes, Warnings} = file_read_nodes(FileName, ignore),
-    format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings).
+    format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings).
 
+-spec format_string_range(
+    string(),
+    erlfmt_scan:location(),
+    erlfmt_scan:location(),
+    [{print_width, pos_integer()}]
+) ->
+    {ok, string(), [error_info()]}
+    | {error, error_info()}.
 format_string_range(String, StartLocation, EndLocation, Options) ->
     FileName = "nofile",
     Pragma = proplists:get_value(pragma, Options, ignore),
     {ok, Nodes, Warnings} = read_nodes_string(FileName, String, Pragma),
-    format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings).
+    format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings).
+
+format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
+    case format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) of
+        {options, PossibleRanges} ->
+            % Pick the largest range, so all intersected forms are covered.
+            {Starts, Ends} = lists:unzip(PossibleRanges),
+            Start = lists:min(Starts),
+            End = lists:max(Ends),
+            Res = format_range(FileName, Start, End, Options, Nodes, Warnings),
+            % Poor man's assert (to avoid including assert.hrl)
+            % This time we must have the formatted result.
+            {ok, _, _} = Res,
+            Res;
+        X ->
+            % Already ok or error: pass as is.
+            X
+    end.
 
 format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
     PrintWidth = proplists:get_value(print_width, Options, ?DEFAULT_WIDTH),
