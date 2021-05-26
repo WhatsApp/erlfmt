@@ -13,8 +13,6 @@
 %% limitations under the License.
 -module(erlfmt).
 
--include_lib("stdlib/include/assert.hrl").
-
 %% API exports
 -export([
     main/1,
@@ -249,12 +247,14 @@ format_string_range(String, StartLocation, EndLocation, Options) ->
 format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
     case format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) of
         {options, PossibleRanges} ->
-            % Pick the largest range, so all intersected forms are coverd.
+            % Pick the largest range, so all intersected forms are covered.
             {Starts, Ends} = lists:unzip(PossibleRanges),
             Start = lists:min(Starts),
             End = lists:max(Ends),
             Res = format_range(FileName, Start, End, Options, Nodes, Warnings),
-            ?assertNotMatch({options, _}, Res),
+            % Poor man's assert (to avoid including assert.hrl)
+            % This time we must have the formatted result.
+            {ok, _, _} = Res,
             Res;
         X ->
             % Already ok or error: pass as is.
