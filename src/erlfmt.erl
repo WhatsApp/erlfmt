@@ -25,6 +25,11 @@
     format_string/2,
     format_string_range/4,
     format_string_range_extract/4,
+    % FIXME: We are exporting this function to quiet dialyzer.
+    % When only reached from format_{file|string}_range,
+    % dialyzer believes pattern {ok, _, _} cannot be
+    % matched (contrarily to what the unit tests prove).
+    format_range_and_reinject/4,
     format_nodes/2,
     read_nodes/1,
     read_nodes_string/2,
