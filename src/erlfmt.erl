@@ -13,8 +13,6 @@
 %% limitations under the License.
 -module(erlfmt).
 
--include_lib("stdlib/include/assert.hrl").
-
 %% API exports
 -export([
     main/1,
@@ -29,6 +27,7 @@
     % When only reached from format_{file|string}_range,
     % dialyzer believes pattern {ok, _, _} cannot be
     % matched (contrarily to what the unit tests prove).
+    % !! Not a part of public API, please do not use it !!
     format_range_and_reinject/4,
     format_nodes/2,
     read_nodes/1,
@@ -257,6 +256,7 @@ format_string_range(String, StartLocation, EndLocation, Options) ->
     ),
     format_range_and_reinject(String, StartLine, EndLine, Result).
 
+% !! Private helper, please do not use it outside this module !!
 format_range_and_reinject(Original, Start, End, Result) ->
     case Result of
         {ok, Formatted, Info} ->
@@ -271,7 +271,12 @@ format_range_and_reinject(Original, Start, End, Result) ->
                     _ ->
                         FormattedAsList0
                 end,
-            ?assert(End >= Start),
+            if
+                End < Start ->
+                    error(assertion_error);
+                true ->
+                    ok
+            end,
             Len = End - Start + 1,
             New = replace_slice(AsList, Start, Len, FormattedAsList),
             {ok, lists:join("\n", New), Info};
@@ -686,5 +691,10 @@ replace_slice(Target, Start, Len, Injected) ->
         lists:sublist(Target, Start - 1) ++
             Injected ++
             lists:sublist(Target, Start + Len, length(Target)),
-    ?assertEqual(length(Target) - Len + length(Injected), length(Res)),
+    if
+        length(Target) - Len + length(Injected) =/= length(Res) ->
+            error(assertion_error);
+        true ->
+            ok
+    end,
     Res.
