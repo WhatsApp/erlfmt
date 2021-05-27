@@ -324,7 +324,7 @@ format_string_range_extract(String, StartLocation, EndLocation, Options) ->
 format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
     case format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) of
         {options, PossibleRanges} ->
-            % Pick the largest range, so all intersected forms are coverd.
+            % Pick the largest range, so all intersected forms are covered.
             {Starts, Ends} = lists:unzip(PossibleRanges),
             Start = lists:min(Starts),
             End = lists:max(Ends),
