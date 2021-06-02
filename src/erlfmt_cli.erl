@@ -21,7 +21,8 @@
     verbose = false :: boolean(),
     print_width = undefined :: undefined | pos_integer(),
     pragma = ignore :: erlfmt:pragma(),
-    out = standard_out :: out()
+    out = standard_out :: out(),
+    range = undefined :: undefined | {pos_integer(), pos_integer()}
 }).
 
 -type parsed() :: {format, list(), list(), #config{}} | help | version | {error, string()}.
@@ -50,6 +51,11 @@ opts() ->
         {delete_pragma, undefined, "delete-pragma", undefined,
             "Deletes the @format pragma at the top of formatted files. "
             "It will also reformat the file, but is only applied to files with a pragma, see --require-pragma."},
+        % The getopt module doesn't support tuple of integers as a type,
+        % So we accept a string, and do an ad-hoc parsing manually.
+        {range, undefined, "range", string,
+            "Range to be formatted in start-end format (both inclusive). "
+            "Warning! A bigger range might end up being formatted, as for now the format granularity is top-level form."},
         {exclude_files, undefined, "exclude-files", string,
             "files not to format. "
             "This overrides the files specified to format"},
@@ -156,7 +162,8 @@ unprotected_with_config(Name, ParsedConfig) ->
     end.
 
 format_file(FileName, Config) ->
-    #config{pragma = Pragma, print_width = PrintWidth, verbose = Verbose, out = Out} = Config,
+    #config{pragma = Pragma, print_width = PrintWidth, verbose = Verbose, out = Out, range = Range} =
+        Config,
     case Verbose of
         true -> io:format(standard_error, "Formatting ~s\n", [FileName]);
         false -> ok
@@ -164,13 +171,16 @@ format_file(FileName, Config) ->
     Options =
         [{pragma, Pragma}] ++
             [{print_width, PrintWidth} || PrintWidth =/= undefined] ++
-            [verbose || Verbose],
+            [verbose || Verbose] ++
+            [{range, Range} || range =/= undefined],
     Result =
-        case {Out, FileName} of
-            {check, stdin} ->
+        case {Range, Out, FileName} of
+            {undefined, check, stdin} ->
                 check_stdin(Options);
-            {check, _} ->
+            {undefined, check, _} ->
                 check_file(FileName, Options);
+            {_, check, _} ->
+                {error, "Checking of range not supported."};
             _ ->
                 erlfmt:format_file(FileName, Options)
         end,
@@ -180,17 +190,20 @@ format_file(FileName, Config) ->
         _ ->
             ok
     end,
-    case Result of
-        {ok, FormattedText, Warnings} ->
+    case {Range, Result} of
+        {undefined, {ok, FormattedText, Warnings}} ->
             [print_error_info(Warning) || Warning <- Warnings],
             write_formatted(FileName, FormattedText, Out);
-        {warn, Warnings} ->
+        {_, {ok, _, _}} ->
+            print_error_info("In place formatting of range not supported yet."),
+            error;
+        {_, {warn, Warnings}} ->
             [print_error_info(Warning) || Warning <- Warnings],
             io:format(standard_error, "[warn] ~s\n", [FileName]),
             warn;
-        {skip, RawString} ->
+        {_, {skip, RawString}} ->
             write_formatted(FileName, RawString, Out);
-        {error, Error} ->
+        {_, {error, Error}} ->
             print_error_info(Error),
             error
     end.
@@ -311,6 +324,28 @@ parse_opts([delete_pragma | _Rest], _Files, _Exclude, #config{pragma = require})
     {error, "Cannot use both --require-pragma and --delete-pragma options together."};
 parse_opts([delete_pragma | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{pragma = delete});
+parse_opts([{range, String} | Rest], Files, Exclude, Config) ->
+    % Ad-hoc parsing. Mitigation for the absence of "couple of integers" direct support.
+    Range1 = string:split(String, ",", all),
+    Range2 = [list_to_integer(X) || X <- Range1],
+    Range3 =
+        case Range2 of
+            [X] ->
+                % Single line. Set end=start
+                [X, X];
+            [X, Y] ->
+                [X, Y];
+            _ ->
+                {error, "Range: Expected 1 argument (single line) or 2 (start, end)."}
+        end,
+    case Range3 of
+        [Start, End] when Start > End ->
+            {error, "Range: End must be greater or equal than Start."};
+        [Start, End] ->
+            parse_opts(Rest, Files, Exclude, Config#config{range = {Start, End}});
+        Error ->
+            Error
+    end;
 parse_opts([{files, NewFiles} | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, expand_files(NewFiles, Files), Exclude, Config);
 parse_opts([{exclude_files, NewExcludes} | Rest], Files, Exclude, Config) ->
@@ -361,24 +396,27 @@ resolve_config(
         verbose = PreferVerbose,
         print_width = PreferWidth,
         pragma = PreferPragma,
-        out = PreferOut
+        out = PreferOut,
+        range = PreferRange
     },
     #config{
         verbose = DefaultVerbose,
         print_width = DefaultWidth,
         pragma = DefaultPragma,
-        out = DefaultOut
+        out = DefaultOut,
+        range = DefaultRange
     }
 ) ->
     #config{
         verbose = PreferVerbose orelse DefaultVerbose,
-        print_width = resolve_width(PreferWidth, DefaultWidth),
+        print_width = resolve_undefined(PreferWidth, DefaultWidth),
         pragma = resolve_pragma(PreferPragma, DefaultPragma),
-        out = resolve_out(PreferOut, DefaultOut)
+        out = resolve_out(PreferOut, DefaultOut),
+        range = resolve_undefined(PreferRange, DefaultRange)
     }.
 
-resolve_width(undefined, W) -> W;
-resolve_width(W, _) -> W.
+resolve_undefined(undefined, W) -> W;
+resolve_undefined(W, _) -> W.
 
 resolve_pragma(ignore, P) -> P;
 resolve_pragma(P, _) -> P.
