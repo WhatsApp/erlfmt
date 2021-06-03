@@ -179,8 +179,10 @@ format_file(FileName, Config) ->
                 check_stdin(Options);
             {undefined, check, _} ->
                 check_file(FileName, Options);
-            {_, check, _} ->
+            {{_, _}, check, _} ->
                 {error, "Checking of range not supported."};
+            {{_, _}, replace, _} ->
+                {error, "In place formatting of range not supported yet."};
             _ ->
                 erlfmt:format_file(FileName, Options)
         end,
@@ -190,20 +192,17 @@ format_file(FileName, Config) ->
         _ ->
             ok
     end,
-    case {Range, Result} of
-        {undefined, {ok, FormattedText, Warnings}} ->
+    case Result of
+        {ok, FormattedText, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
             write_formatted(FileName, FormattedText, Out);
-        {_, {ok, _, _}} ->
-            print_error_info("In place formatting of range not supported yet."),
-            error;
-        {_, {warn, Warnings}} ->
+        {warn, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
             io:format(standard_error, "[warn] ~s\n", [FileName]),
             warn;
-        {_, {skip, RawString}} ->
+        {skip, RawString} ->
             write_formatted(FileName, RawString, Out);
-        {_, {error, Error}} ->
+        {error, Error} ->
             print_error_info(Error),
             error
     end.

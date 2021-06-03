@@ -47,7 +47,8 @@
     smoke_test_stdio_reinsert_pragma_config/1,
     smoke_test_stdio_unicode/1,
     smoke_test_stdio_check/1,
-    exclude_check/1
+    exclude_check/1,
+    range_check/1
 ]).
 
 suite() ->
@@ -90,7 +91,8 @@ groups() ->
             smoke_test_stdio_reinsert_pragma_config,
             smoke_test_stdio_unicode,
             smoke_test_stdio_check,
-            exclude_check
+            exclude_check,
+            range_check
         ]}
     ].
 
@@ -235,6 +237,11 @@ exclude_check(Config) when is_list(Config) ->
     ),
     ?assertNotMatch(nomatch, string:find(WithoutBroken, "[warn]")),
     ?assertMatch(nomatch, string:find(WithoutBroken, "broken.erl")).
+
+range_check(Config) when is_list(Config) ->
+    %% Simply check the options is properly recognized.
+    %% Here the range is the whole file.
+    stdio_test("attributes.erl", "--range=1,56", Config).
 
 %%--------------------------------------------------------------------
 %% HELPERS
