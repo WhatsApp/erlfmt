@@ -1,0 +1,1 @@
+-module(no_pragma). % "שלום עולם" non-unicode trailing comment
