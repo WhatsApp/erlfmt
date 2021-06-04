@@ -72,7 +72,10 @@ format_file(FileName, Options) ->
             % Whole file (default).
             format_file_full(FileName, Options);
         {Start, End} ->
-            format_file_range(FileName, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options)
+            % Remove 'range' property: when applicable we pass explictly the range instead.
+            % Also, match specifition of format_string_range.
+            Options2 = proplists:delete(range, Options),
+            format_file_range(FileName, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2)
     end.
 
 -spec format_file_full(file:name_all() | stdin, config()) ->
@@ -115,7 +118,7 @@ format_string(String, Options) ->
         {Start, End} ->
             % Remove 'range' property: when applicable we pass explictly the range instead.
             % Also, match specifition of format_string_range.
-            Options2 = proplists:remove(range, Options),
+            Options2 = proplists:delete(range, Options),
             format_string_range(String, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2)
     end.
 
