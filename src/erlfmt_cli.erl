@@ -408,20 +408,23 @@ resolve_config(
 ) ->
     #config{
         verbose = PreferVerbose orelse DefaultVerbose,
-        print_width = resolve_undefined(PreferWidth, DefaultWidth),
+        print_width = resolve_width(PreferWidth, DefaultWidth),
         pragma = resolve_pragma(PreferPragma, DefaultPragma),
         out = resolve_out(PreferOut, DefaultOut),
-        range = resolve_undefined(PreferRange, DefaultRange)
+        range = resolve_range(PreferRange, DefaultRange)
     }.
 
-resolve_undefined(undefined, W) -> W;
-resolve_undefined(W, _) -> W.
+resolve_width(undefined, W) -> W;
+resolve_width(W, _) -> W.
 
 resolve_pragma(ignore, P) -> P;
 resolve_pragma(P, _) -> P.
 
 resolve_out(standard_out, O) -> O;
 resolve_out(O, _) -> O.
+
+resolve_range(undefined, R) -> R;
+resolve_range(R, _) -> R.
 
 specified_files(List) ->
     lists:filter(

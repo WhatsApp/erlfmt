@@ -113,7 +113,10 @@ format_string(String, Options) ->
             % Whole file (default).
             format_string_full(String, Options);
         {Start, End} ->
-            format_string_range(String, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options)
+            % Remove 'range' property: when applicable we pass explictly the range instead.
+            % Also, match specifition of format_string_range.
+            Options2 = proplists:remove(range, Options),
+            format_string_range(String, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2)
     end.
 
 -spec format_string_full(string(), config()) ->
@@ -250,7 +253,7 @@ replace_pragma_comment_block(Prefix, [Head | Tail]) ->
     file:name_all(),
     erlfmt_scan:location(),
     erlfmt_scan:location(),
-    config()
+    [{print_width, pos_integer()}]
 ) ->
     {ok, string(), [error_info()]}
     | {error, error_info()}.
@@ -262,7 +265,7 @@ format_file_range(FileName, StartLocation, EndLocation, Options) ->
     string(),
     erlfmt_scan:location(),
     erlfmt_scan:location(),
-    config()
+    [{print_width, pos_integer()}]
 ) ->
     {ok, string(), [error_info()]}
     | {error, error_info()}.
