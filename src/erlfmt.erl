@@ -18,14 +18,18 @@
     main/1,
     init/1,
     format_file/2,
-    format_file_range/4,
     format_string/2,
-    format_string_range/4,
     format_nodes/2,
     read_nodes/1,
     read_nodes_string/2,
     format_error/1,
     format_error_info/1
+]).
+
+% For unit tests
+-export([
+    format_file_range/4,
+    format_string_range/4
 ]).
 
 -export_type([error_info/0, config/0, pragma/0]).
@@ -62,6 +66,21 @@ init(State) ->
 -spec format_file(file:name_all() | stdin, config()) ->
     {ok, [unicode:chardata()], [error_info()]} | {skip, string()} | {error, error_info()}.
 format_file(FileName, Options) ->
+    Range = proplists:get_value(range, Options),
+    case Range of
+        undefined ->
+            % Whole file (default).
+            format_file_full(FileName, Options);
+        {Start, End} ->
+            % Remove 'range' property: when applicable we pass explictly the range instead.
+            % Also, match specifition of format_string_range.
+            Options2 = proplists:delete(range, Options),
+            format_file_range(FileName, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2)
+    end.
+
+-spec format_file_full(file:name_all() | stdin, config()) ->
+    {ok, [unicode:chardata()], [error_info()]} | {skip, string()} | {error, error_info()}.
+format_file_full(FileName, Options) ->
     PrintWidth = proplists:get_value(print_width, Options, ?DEFAULT_WIDTH),
     Pragma = proplists:get_value(pragma, Options, ignore),
     try
@@ -91,6 +110,21 @@ format_file(FileName, Options) ->
 -spec format_string(string(), config()) ->
     {ok, string(), [error_info()]} | {skip, string()} | {error, error_info()}.
 format_string(String, Options) ->
+    Range = proplists:get_value(range, Options),
+    case Range of
+        undefined ->
+            % Whole file (default).
+            format_string_full(String, Options);
+        {Start, End} ->
+            % Remove 'range' property: when applicable we pass explictly the range instead.
+            % Also, match specifition of format_string_range.
+            Options2 = proplists:delete(range, Options),
+            format_string_range(String, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2)
+    end.
+
+-spec format_string_full(string(), config()) ->
+    {ok, string(), [error_info()]} | {skip, string()} | {error, error_info()}.
+format_string_full(String, Options) ->
     PrintWidth = proplists:get_value(print_width, Options, ?DEFAULT_WIDTH),
     Pragma = proplists:get_value(pragma, Options, ignore),
     try
