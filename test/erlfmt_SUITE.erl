@@ -70,6 +70,7 @@
     broken_range/1,
     snapshot_range_whole_comments/1,
     snapshot_range_partial/1,
+    snapshot_range_partial_reinjected/1,
     snapshot_range_partial2/1,
     snapshot_enclosing_range/1,
     snapshot_enclosing_range2/1,
@@ -150,6 +151,7 @@ groups() ->
             broken_range,
             snapshot_range_whole_comments,
             snapshot_range_partial,
+            snapshot_range_partial_reinjected,
             snapshot_range_partial2,
             snapshot_enclosing_range,
             snapshot_enclosing_range2,
@@ -1086,6 +1088,21 @@ snapshot_range_partial(_) ->
     Reference = "x() -> 0.\n",
     Result = erlfmt:format_string_range_extract(Original, {1, 1}, {1, 8}, []),
     assert_snapshot_match_range(Reference, Result).
+
+snapshot_range_partial_reinjected(_) ->
+    % Check only the specified form is formatted,
+    % the rest must be kept as is.
+    Original =
+        "x()->0.\n"
+        "y()   ->  1.\n"
+        "z()   ->  2.\n",
+    % Only x() should be touched.
+    Reference =
+        "x() -> 0.\n"
+        "y()   ->  1.\n"
+        "z()   ->  2.\n",
+    Result = erlfmt:format_string_range(Original, {1, 1}, {1, 8}, []),
+    assert_diagnostic:assert_snapshot_match(list_to_binary(Reference), Result).
 
 snapshot_range_partial2(_) ->
     % Check only the specified form is formatted, too,

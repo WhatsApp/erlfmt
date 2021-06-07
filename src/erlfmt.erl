@@ -278,7 +278,14 @@ format_string_range(Original, StartLocation, EndLocation, Options) ->
     FileName = "nofile",
     Pragma = proplists:get_value(pragma, Options, ignore),
     {ok, Nodes, Warnings} = read_nodes_string(FileName, Original, Pragma),
-    {{StartLine, _}, {EndLine, _}, Result} = format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings),
+    {{StartLine, _}, {EndLine, _}, Result} = format_enclosing_range(
+        FileName,
+        StartLocation,
+        EndLocation,
+        Options,
+        Nodes,
+        Warnings
+    ),
     case Result of
         {ok, Formatted, Info} ->
             Whole = inject_range(Original, StartLine, EndLine, Formatted),
