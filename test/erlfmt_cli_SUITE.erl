@@ -15,6 +15,7 @@
 
 -include_lib("common_test/include/ct.hrl").
 -include_lib("stdlib/include/assert.hrl").
+-include_lib("test/assert_diagnostic.hrl").
 
 %% Test server callbacks
 -export([
@@ -48,7 +49,8 @@
     smoke_test_stdio_unicode/1,
     smoke_test_stdio_check/1,
     exclude_check/1,
-    range_check/1
+    range_check_full/1,
+    range_check_partial/1
 ]).
 
 suite() ->
@@ -92,7 +94,8 @@ groups() ->
             smoke_test_stdio_unicode,
             smoke_test_stdio_check,
             exclude_check,
-            range_check
+            range_check_full,
+            range_check_partial
         ]}
     ].
 
@@ -238,10 +241,17 @@ exclude_check(Config) when is_list(Config) ->
     ?assertNotMatch(nomatch, string:find(WithoutBroken, "[warn]")),
     ?assertMatch(nomatch, string:find(WithoutBroken, "broken.erl")).
 
-range_check(Config) when is_list(Config) ->
-    %% Simply check the options is properly recognized.
+range_check_full(Config) when is_list(Config) ->
+    %% Mainly check the options is properly recognized.
     %% Here the range is the whole file.
     stdio_test("attributes.erl", "--range=1,56", Config).
+
+range_check_partial(Config) when is_list(Config) ->
+    %% Even when we ask to format a proper range,
+    %% the whole file must be returned.
+    %% Since the file is already formatted in the first place,
+    %% we reuse stdio_test which compare agains original file.
+    stdio_test("attributes.erl", "--range=1,2", Config).
 
 %%--------------------------------------------------------------------
 %% HELPERS
@@ -252,7 +262,7 @@ stdio_test(FileName, Options, Config) ->
     Formatted = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - " ++ Options),
     % ?assertEqual(toto, Path),
     {ok, Expected} = file:read_file(Path),
-    ?assertEqual(Expected, unicode:characters_to_binary(Formatted)).
+    assert_diagnostic:assert_binary_match(Expected, unicode:characters_to_binary(Formatted)).
 
 escript() ->
     %% this relies on the _build structure rebar3 uses
