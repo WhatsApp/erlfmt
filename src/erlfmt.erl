@@ -264,7 +264,7 @@ replace_pragma_comment_block(Prefix, [Head | Tail]) ->
     | {error, error_info()}.
 format_file_range(FileName, StartLocation, EndLocation, Options) ->
     String = read_file_or_stdin(FileName),
-    format_string_range(String, StartLocation, EndLocation, Options).
+    format_string_range(FileName, String, StartLocation, EndLocation, Options).
 
 -spec format_string_range(
     string(),
@@ -275,7 +275,8 @@ format_file_range(FileName, StartLocation, EndLocation, Options) ->
     {ok, string(), [error_info()]}
     | {error, error_info()}.
 format_string_range(Original, StartLocation, EndLocation, Options) ->
-    FileName = "nofile",
+    format_string_range("nofile", Original, StartLocation, EndLocation, Options).
+format_string_range(FileName, Original, StartLocation, EndLocation, Options) ->
     Pragma = proplists:get_value(pragma, Options, ignore),
     {ok, Nodes, Warnings} = read_nodes_string(FileName, Original, Pragma),
     {{StartLine, _}, {EndLine, _}, Result} = format_enclosing_range(
@@ -740,10 +741,5 @@ replace_slice(Target, Start, Len, Injected) ->
         lists:sublist(Target, Start - 1) ++
             Injected ++
             lists:sublist(Target, Start + Len, length(Target)),
-    if
-        length(Target) - Len + length(Injected) =/= length(Res) ->
-            error(assertion_error);
-        true ->
-            ok
-    end,
+    true = length(Target) - Len + length(Injected) =:= length(Res),
     Res.
