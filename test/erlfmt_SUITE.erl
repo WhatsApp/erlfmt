@@ -1042,11 +1042,7 @@ snapshot_match(FormattedModule, Module, Config, Options) ->
     assert_diagnostic:assert_snapshot_match(Formatted, Output).
 
 assert_snapshot_match_range(Expected, Result) ->
-    % We assume range enclosed whole top-level forms,
-    % so result should be {_, _, {ok, FormattedOutput, _}}.
-    % We don't care about returned Start/End locations (avoid over-specification).
-    {_, _, Output} = Result,
-    assert_diagnostic:assert_snapshot_match(list_to_binary(Expected), Output).
+    assert_diagnostic:assert_snapshot_match(list_to_binary(Expected), Result).
 
 simple_comments_range(Config) ->
     format_range(Config, "simple_comments.erl").
@@ -1085,8 +1081,10 @@ snapshot_range_partial(_) ->
         "y()   ->  1.\n"
         "z()   ->  2.\n",
     % Only x() should be touched.
-    Reference = "x() -> 0.\n",
-    Result = erlfmt:format_string_range_extract(Original, {1, 1}, {1, 8}, []),
+    Reference = "x() -> 0.\n"
+        "y()   ->  1.\n"
+        "z()   ->  2.\n",
+    Result = erlfmt:format_string_range(Original, {1, 1}, {1, 8}, []),
     assert_snapshot_match_range(Reference, Result).
 
 snapshot_range_partial_reinjected(_) ->
@@ -1114,8 +1112,9 @@ snapshot_range_partial2(_) ->
     % Only x() should be touched.
     Reference =
         "x() ->\n"
-        "    0.\n",
-    Result = erlfmt:format_string_range_extract(Original, {1, 1}, {2, 3}, []),
+        "    0.\n"
+        "y()   ->  1.\n",
+    Result = erlfmt:format_string_range(Original, {1, 1}, {2, 3}, []),
     assert_snapshot_match_range(Reference, Result).
 
 snapshot_enclosing_range(_) ->
@@ -1127,9 +1126,10 @@ snapshot_enclosing_range(_) ->
         "y()   ->  1.\n",
     Reference =
         "x() ->\n"
-        "    0.\n",
+        "    0.\n"
+        "y()   ->  1.\n",
     % Range is just the first char (mimic e.g. function renaming).
-    Result = erlfmt:format_string_range_extract(Original, {1, 1}, {1, 2}, []),
+    Result = erlfmt:format_string_range(Original, {1, 1}, {1, 2}, []),
     assert_snapshot_match_range(Reference, Result).
 
 snapshot_enclosing_range2(_) ->
@@ -1141,8 +1141,9 @@ snapshot_enclosing_range2(_) ->
         "y()   ->  1.\n",
     Reference =
         "x() ->\n"
-        "    0.\n",
-    Result = erlfmt:format_string_range_extract(Original, {2, 2}, {2, 3}, []),
+        "    0.\n"
+        "y()   ->  1.\n",
+    Result = erlfmt:format_string_range(Original, {2, 2}, {2, 3}, []),
     assert_snapshot_match_range(Reference, Result).
 
 snapshot_enclosing_range_no_leak(_) ->
@@ -1154,10 +1155,12 @@ snapshot_enclosing_range_no_leak(_) ->
         "y()   ->  1.\n",
     Reference =
         "x() ->\n"
-        "    0.\n",
+        "    0.\n"
+        "\n"
+        "y()   ->  1.\n",
     % End point overshots line 3, but doesn't reach line 4:
     % Only x() must be formatted.
-    Result = erlfmt:format_string_range_extract(Original, {1, 1}, {3, 3}, []),
+    Result = erlfmt:format_string_range(Original, {1, 1}, {3, 3}, []),
     assert_snapshot_match_range(Reference, Result).
 
 snapshot_range_reinjected(_) ->
@@ -1405,7 +1408,7 @@ overlong_warning(Config) when is_list(Config) ->
     {ok, Formatted, FileWarnings} = erlfmt:format_file(FileName, Options),
     FormattedList = unicode:characters_to_list(Formatted),
     {ok, _, StringWarnings} = erlfmt:format_string(FormattedList, Options),
-    {_, _, {ok, _, RangeWarnings}} = erlfmt:format_file_range_extract(
+    {ok, _, RangeWarnings} = erlfmt:format_file_range(
         FileName,
         {1, 1},
         {11, 8},
