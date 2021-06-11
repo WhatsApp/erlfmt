@@ -305,12 +305,7 @@ inject_range(Original, StartLine, EndLine, Formatted) ->
             _ ->
                 FormattedAsList0
         end,
-    if
-        EndLine < StartLine ->
-            error(assertion_error);
-        true ->
-            ok
-    end,
+    true = EndLine >= StartLine,
     Len = EndLine - StartLine + 1,
     New = replace_slice(AsList, StartLine, Len, FormattedAsList),
     lists:join("\n", New).

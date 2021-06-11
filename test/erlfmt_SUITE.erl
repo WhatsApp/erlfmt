@@ -72,9 +72,12 @@
     snapshot_range_whole_comments/1,
     snapshot_range_whole_string_unicode/1,
     snapshot_range_whole_file_unicode/1,
-    snapshot_range_partial/1,
-    snapshot_range_partial_reinjected/1,
-    snapshot_range_partial2/1,
+    snapshot_range_partial_top/1,
+    snapshot_range_partial_middle/1,
+    snapshot_range_partial_bottom/1,
+    snapshot_range_partial_none/1,
+    snapshot_range_partial_two_forms/1,
+    snapshot_range_partial_two_lines/1,
     snapshot_enclosing_range/1,
     snapshot_enclosing_range2/1,
     snapshot_enclosing_range_no_leak/1,
@@ -156,9 +159,12 @@ groups() ->
             snapshot_range_whole_comments,
             snapshot_range_whole_string_unicode,
             snapshot_range_whole_file_unicode,
-            snapshot_range_partial,
-            snapshot_range_partial_reinjected,
-            snapshot_range_partial2,
+            snapshot_range_partial_top,
+            snapshot_range_partial_middle,
+            snapshot_range_partial_bottom,
+            snapshot_range_partial_none,
+            snapshot_range_partial_two_forms,
+            snapshot_range_partial_two_lines,
             snapshot_enclosing_range,
             snapshot_enclosing_range2,
             snapshot_enclosing_range_no_leak,
@@ -1105,21 +1111,7 @@ snapshot_range_whole_file_unicode(Config) ->
     Output = erlfmt:format_file_range(Path, {1, 1}, {11, 7}, []),
     assert_diagnostic:assert_snapshot_match(FormattedBin, Output).
 
-snapshot_range_partial(_) ->
-    % Check only the specified form is formatted.
-    Original =
-        "x()->0.\n"
-        "y()   ->  1.\n"
-        "z()   ->  2.\n",
-    % Only x() should be touched.
-    Reference =
-        "x() -> 0.\n"
-        "y()   ->  1.\n"
-        "z()   ->  2.\n",
-    Result = erlfmt:format_string_range(Original, {1, 1}, {1, 8}, []),
-    assert_snapshot_match_range(Reference, Result).
-
-snapshot_range_partial_reinjected(_) ->
+snapshot_range_partial_top(_) ->
     % Check only the specified form is formatted,
     % the rest must be kept as is.
     Original =
@@ -1134,7 +1126,58 @@ snapshot_range_partial_reinjected(_) ->
     Result = erlfmt:format_string_range(Original, {1, 1}, {1, 8}, []),
     assert_diagnostic:assert_snapshot_match(list_to_binary(Reference), Result).
 
-snapshot_range_partial2(_) ->
+snapshot_range_partial_middle(_) ->
+    Original =
+        "x()->0.\n"
+        "y()   ->  1.\n"
+        "z()   ->  2.\n",
+    % Only y() should be touched.
+    Reference =
+        "x()->0.\n"
+        "y() -> 1.\n"
+        "z()   ->  2.\n",
+    Result = erlfmt:format_string_range(Original, {2, 1}, {2, 11}, []),
+    assert_diagnostic:assert_snapshot_match(list_to_binary(Reference), Result).
+
+snapshot_range_partial_bottom(_) ->
+    Original =
+        "x()->0.\n"
+        "y()   ->  1.\n"
+        "z()   ->  2.\n",
+    % Only z() should be touched.
+    Reference =
+        "x()->0.\n"
+        "y()   ->  1.\n"
+        "z() -> 2.\n",
+    Result = erlfmt:format_string_range(Original, {3, 1}, {3, 11}, []),
+    assert_diagnostic:assert_snapshot_match(list_to_binary(Reference), Result).
+
+snapshot_range_partial_none(_) ->
+    % Check only the specified form is formatted,
+    % the rest must be kept as is.
+    Original =
+        "x()->0.\n"
+        "% Comment itself already formatted.\n",
+    Result = erlfmt:format_string_range(Original, {2, 1}, {2, 17}, []),
+    % No Change.
+    assert_diagnostic:assert_snapshot_match(list_to_binary(Original), Result).
+
+snapshot_range_partial_two_forms(_) ->
+    % Check only the specified form is formatted,
+    % the rest must be kept as is.
+    Original =
+        "x()->0.\n"
+        "y()   ->  1.\n"
+        "z()   ->  2.\n",
+    % Only x() and y() should be touched.
+    Reference =
+        "x() -> 0.\n"
+        "y() -> 1.\n"
+        "z()   ->  2.\n",
+    Result = erlfmt:format_string_range(Original, {1, 1}, {2, 11}, []),
+    assert_diagnostic:assert_snapshot_match(list_to_binary(Reference), Result).
+
+snapshot_range_partial_two_lines(_) ->
     % Check only the specified form is formatted, too,
     % with a range spanning on two lines.
     Original =
@@ -1151,7 +1194,7 @@ snapshot_range_partial2(_) ->
 
 snapshot_enclosing_range(_) ->
     % Check we pick format the whole top level form covering passed range.
-    % Same Original and reference than snapshot_range_partial2.
+    % Same Original and reference than snapshot_range_partial_two_lines.
     Original =
         "x()->\n"
         "0.\n"
