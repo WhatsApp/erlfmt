@@ -66,9 +66,12 @@
     snapshot_script/1,
     snapshot_ignore_format/1,
     snapshot_empty/1,
+    format_string_unicode/1,
     simple_comments_range/1,
     broken_range/1,
     snapshot_range_whole_comments/1,
+    snapshot_range_whole_string_unicode/1,
+    snapshot_range_whole_file_unicode/1,
     snapshot_range_partial/1,
     snapshot_range_partial_reinjected/1,
     snapshot_range_partial2/1,
@@ -144,12 +147,15 @@ groups() ->
             snapshot_insert_pragma_with,
             snapshot_script,
             snapshot_ignore_format,
-            snapshot_empty
+            snapshot_empty,
+            format_string_unicode
         ]},
         {range_tests, [parallel], [
             simple_comments_range,
             broken_range,
             snapshot_range_whole_comments,
+            snapshot_range_whole_string_unicode,
+            snapshot_range_whole_file_unicode,
             snapshot_range_partial,
             snapshot_range_partial_reinjected,
             snapshot_range_partial2,
@@ -1042,7 +1048,14 @@ snapshot_match(FormattedModule, Module, Config, Options) ->
     assert_diagnostic:assert_snapshot_match(Formatted, Output).
 
 assert_snapshot_match_range(Expected, Result) ->
-    assert_diagnostic:assert_snapshot_match(list_to_binary(Expected), Result).
+    assert_diagnostic:assert_snapshot_match(unicode:characters_to_binary(Expected), Result).
+
+format_string_unicode(_) ->
+    Original = unicode_string(),
+    Options = [],
+    Output = erlfmt:format_string(Original, Options),
+    % Already formatted: we just check encoding is still ok.
+    assert_diagnostic:assert_snapshot_match(Original, Output).
 
 simple_comments_range(Config) ->
     format_range(Config, "simple_comments.erl").
@@ -1074,6 +1087,24 @@ snapshot_range_whole_comments(Config) ->
     Output = erlfmt:format_file_range(Path, {1, 1}, {38, 25}, []),
     assert_diagnostic:assert_snapshot_match(FormattedBin, Output).
 
+snapshot_range_whole_string_unicode(_) ->
+    % Check the utf8 part was properly handled.
+    Original = unicode_string(),
+    Output = erlfmt:format_string_range(Original, {1, 1}, {1, 70}, []),
+    % Already formatted: remains as is.
+    assert_snapshot_match_range(Original, Output).
+
+snapshot_range_whole_file_unicode(Config) ->
+    % Check the utf8 part was properly handled.
+    % If this check fails but not the previous one (string flavor),
+    % that means the issue is in file loading!
+    Module = "overlong.erl",
+    DataDir = ?config(data_dir, Config),
+    {ok, FormattedBin} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
+    Path = filename:join(DataDir, Module),
+    Output = erlfmt:format_file_range(Path, {1, 1}, {11, 7}, []),
+    assert_diagnostic:assert_snapshot_match(FormattedBin, Output).
+
 snapshot_range_partial(_) ->
     % Check only the specified form is formatted.
     Original =
@@ -1081,7 +1112,8 @@ snapshot_range_partial(_) ->
         "y()   ->  1.\n"
         "z()   ->  2.\n",
     % Only x() should be touched.
-    Reference = "x() -> 0.\n"
+    Reference =
+        "x() -> 0.\n"
         "y()   ->  1.\n"
         "z()   ->  2.\n",
     Result = erlfmt:format_string_range(Original, {1, 1}, {1, 8}, []),
@@ -1514,3 +1546,7 @@ raw_string_anno(Config) when is_list(Config) ->
             _},
         erlfmt:read_nodes_string("nofile", Comment)
     ).
+
+unicode_string() ->
+    "% Overlong, in bytes: "
+    "色は匂へど 散りぬるを 我が世誰ぞ 常ならむ 有為の奥山 今日越えて 浅き夢見じ 酔ひもせず\n".

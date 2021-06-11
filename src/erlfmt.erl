@@ -295,7 +295,7 @@ format_string_range(FileName, Original, StartLocation, EndLocation, Options) ->
 
 % Reinject formatted extract into whole string.
 inject_range(Original, StartLine, EndLine, Formatted) ->
-    AsList = string:split(list_to_binary(Original), "\n", all),
+    AsList = string:split(unicode:characters_to_binary(Original), "\n", all),
     FormattedAsList0 = string:split(Formatted, "\n", all),
     % Remove spurious empty line introduced by last \n separator.
     FormattedAsList =
@@ -387,14 +387,14 @@ read_file_or_stdin(stdin) ->
     read_stdin([]);
 read_file_or_stdin(FileName) ->
     {ok, Bin} = file:read_file(FileName),
-    binary_to_list(Bin).
+    unicode:characters_to_list(Bin).
 
 read_stdin(Acc) ->
     case io:get_line("") of
         eof ->
             lists:flatten(lists:reverse(Acc, []));
         Line ->
-            read_stdin([binary_to_list(Line) | Acc])
+            read_stdin([unicode:characters_to_list(Line) | Acc])
     end.
 
 %% API entry point
