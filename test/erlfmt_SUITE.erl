@@ -66,14 +66,22 @@
     snapshot_script/1,
     snapshot_ignore_format/1,
     snapshot_empty/1,
+    format_string_unicode/1,
     simple_comments_range/1,
     broken_range/1,
     snapshot_range_whole_comments/1,
-    snapshot_range_partial/1,
-    snapshot_range_partial2/1,
+    snapshot_range_whole_string_unicode/1,
+    snapshot_range_whole_file_unicode/1,
+    snapshot_range_partial_top/1,
+    snapshot_range_partial_middle/1,
+    snapshot_range_partial_bottom/1,
+    snapshot_range_partial_none/1,
+    snapshot_range_partial_two_forms/1,
+    snapshot_range_partial_two_lines/1,
     snapshot_enclosing_range/1,
     snapshot_enclosing_range2/1,
     snapshot_enclosing_range_no_leak/1,
+    snapshot_range_reinjected/1,
     contains_pragma/1,
     insert_pragma/1,
     overlong_warning/1,
@@ -142,17 +150,25 @@ groups() ->
             snapshot_insert_pragma_with,
             snapshot_script,
             snapshot_ignore_format,
-            snapshot_empty
+            snapshot_empty,
+            format_string_unicode
         ]},
         {range_tests, [parallel], [
             simple_comments_range,
             broken_range,
             snapshot_range_whole_comments,
-            snapshot_range_partial,
-            snapshot_range_partial2,
+            snapshot_range_whole_string_unicode,
+            snapshot_range_whole_file_unicode,
+            snapshot_range_partial_top,
+            snapshot_range_partial_middle,
+            snapshot_range_partial_bottom,
+            snapshot_range_partial_none,
+            snapshot_range_partial_two_forms,
+            snapshot_range_partial_two_lines,
             snapshot_enclosing_range,
             snapshot_enclosing_range2,
-            snapshot_enclosing_range_no_leak
+            snapshot_enclosing_range_no_leak,
+            snapshot_range_reinjected
         ]},
         {pragma_tests, [parallel], [
             contains_pragma,
@@ -1035,25 +1051,17 @@ snapshot_match(FormattedModule, Module, Config, Options) ->
     Formatted = unicode:characters_to_list(FormattedBin),
     Original = unicode:characters_to_list(OriginalBin),
     Output = erlfmt:format_string(Original, Options),
-    assert_snapshot_match(Formatted, Output).
+    assert_diagnostic:assert_snapshot_match(Formatted, Output).
 
-assert_snapshot_match(Expected, Output) ->
-    %% Check the formatted result matches the reference.
-    case Output of
-        {ok, Expected, _} ->
-            ok;
-        {skip, _} ->
-            ok;
-        {ok, Other, _} ->
-            % Split by lines.
-            Expected2 = string:lexemes(Expected, [$\n]),
-            Other2 = string:lexemes(Other, [$\n]),
-            % We already know they are not equal,
-            % this macro gives a better diagnostic.
-            ?assertListEqual(Expected2, Other2);
-        Other ->
-            ct:fail("unexpected: ~p~n", [Other])
-    end.
+assert_snapshot_match_range(Expected, Result) ->
+    assert_diagnostic:assert_snapshot_match(unicode:characters_to_binary(Expected), Result).
+
+format_string_unicode(_) ->
+    Original = unicode_string(),
+    Options = [],
+    Output = erlfmt:format_string(Original, Options),
+    % Already formatted: we just check encoding is still ok.
+    assert_diagnostic:assert_snapshot_match(Original, Output).
 
 simple_comments_range(Config) ->
     format_range(Config, "simple_comments.erl").
@@ -1082,22 +1090,94 @@ snapshot_range_whole_comments(Config) ->
     DataDir = ?config(data_dir, Config),
     {ok, FormattedBin} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
     Path = filename:join(DataDir, Module),
-    % All forms enclosed, so must return {ok, FormattedOutput, _}.
     Output = erlfmt:format_file_range(Path, {1, 1}, {38, 25}, []),
-    assert_snapshot_match(FormattedBin, Output).
+    assert_diagnostic:assert_snapshot_match(FormattedBin, Output).
 
-snapshot_range_partial(_) ->
-    % Check only the specified form is formatted.
+snapshot_range_whole_string_unicode(_) ->
+    % Check the utf8 part was properly handled.
+    Original = unicode_string(),
+    Output = erlfmt:format_string_range(Original, {1, 1}, {1, 70}, []),
+    % Already formatted: remains as is.
+    assert_snapshot_match_range(Original, Output).
+
+snapshot_range_whole_file_unicode(Config) ->
+    % Check the utf8 part was properly handled.
+    % If this check fails but not the previous one (string flavor),
+    % that means the issue is in file loading!
+    Module = "overlong.erl",
+    DataDir = ?config(data_dir, Config),
+    {ok, FormattedBin} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
+    Path = filename:join(DataDir, Module),
+    Output = erlfmt:format_file_range(Path, {1, 1}, {11, 7}, []),
+    assert_diagnostic:assert_snapshot_match(FormattedBin, Output).
+
+snapshot_range_partial_top(_) ->
+    % Check only the specified form is formatted,
+    % the rest must be kept as is.
     Original =
         "x()->0.\n"
         "y()   ->  1.\n"
         "z()   ->  2.\n",
     % Only x() should be touched.
-    Reference = "x() -> 0.\n",
-    Output = erlfmt:format_string_range(Original, {1, 1}, {1, 8}, []),
-    assert_snapshot_match(list_to_binary(Reference), Output).
+    Reference =
+        "x() -> 0.\n"
+        "y()   ->  1.\n"
+        "z()   ->  2.\n",
+    Result = erlfmt:format_string_range(Original, {1, 1}, {1, 8}, []),
+    assert_diagnostic:assert_snapshot_match(list_to_binary(Reference), Result).
 
-snapshot_range_partial2(_) ->
+snapshot_range_partial_middle(_) ->
+    Original =
+        "x()->0.\n"
+        "y()   ->  1.\n"
+        "z()   ->  2.\n",
+    % Only y() should be touched.
+    Reference =
+        "x()->0.\n"
+        "y() -> 1.\n"
+        "z()   ->  2.\n",
+    Result = erlfmt:format_string_range(Original, {2, 1}, {2, 11}, []),
+    assert_diagnostic:assert_snapshot_match(list_to_binary(Reference), Result).
+
+snapshot_range_partial_bottom(_) ->
+    Original =
+        "x()->0.\n"
+        "y()   ->  1.\n"
+        "z()   ->  2.\n",
+    % Only z() should be touched.
+    Reference =
+        "x()->0.\n"
+        "y()   ->  1.\n"
+        "z() -> 2.\n",
+    Result = erlfmt:format_string_range(Original, {3, 1}, {3, 11}, []),
+    assert_diagnostic:assert_snapshot_match(list_to_binary(Reference), Result).
+
+snapshot_range_partial_none(_) ->
+    % Check only the specified form is formatted,
+    % the rest must be kept as is.
+    Original =
+        "x()->0.\n"
+        "% Comment itself already formatted.\n",
+    Result = erlfmt:format_string_range(Original, {2, 1}, {2, 17}, []),
+    % No Change.
+    assert_diagnostic:assert_snapshot_match(list_to_binary(Original), Result).
+
+snapshot_range_partial_two_forms(_) ->
+    % Check only the specified form is formatted,
+    % the rest must be kept as is.
+    Original =
+        "x()->0.\n"
+        "y()   ->  1.\n"
+        "z()   ->  2.\n",
+    % Only x() and y() should be touched.
+    Reference =
+        "x() -> 0.\n"
+        "y() -> 1.\n"
+        "z()   ->  2.\n",
+    Result = erlfmt:format_string_range(Original, {1, 1}, {2, 11}, []),
+    assert_diagnostic:assert_snapshot_match(list_to_binary(Reference), Result).
+
+snapshot_range_partial_two_lines(_) ->
     % Check only the specified form is formatted, too,
     % with a range spanning on two lines.
     Original =
@@ -1107,23 +1187,25 @@ snapshot_range_partial2(_) ->
     % Only x() should be touched.
     Reference =
         "x() ->\n"
-        "    0.",
-    Output = erlfmt:format_string_range(Original, {1, 1}, {2, 3}, []),
-    assert_snapshot_match(list_to_binary(Reference), Output).
+        "    0.\n"
+        "y()   ->  1.\n",
+    Result = erlfmt:format_string_range(Original, {1, 1}, {2, 3}, []),
+    assert_snapshot_match_range(Reference, Result).
 
 snapshot_enclosing_range(_) ->
     % Check we pick format the whole top level form covering passed range.
-    % Same Original and reference than snapshot_range_partial2.
+    % Same Original and reference than snapshot_range_partial_two_lines.
     Original =
         "x()->\n"
         "0.\n"
         "y()   ->  1.\n",
     Reference =
         "x() ->\n"
-        "    0.",
+        "    0.\n"
+        "y()   ->  1.\n",
     % Range is just the first char (mimic e.g. function renaming).
-    Output = erlfmt:format_string_range(Original, {1, 1}, {1, 2}, []),
-    assert_snapshot_match(list_to_binary(Reference), Output).
+    Result = erlfmt:format_string_range(Original, {1, 1}, {1, 2}, []),
+    assert_snapshot_match_range(Reference, Result).
 
 snapshot_enclosing_range2(_) ->
     % Same test when picking second part of the form:
@@ -1134,9 +1216,10 @@ snapshot_enclosing_range2(_) ->
         "y()   ->  1.\n",
     Reference =
         "x() ->\n"
-        "    0.",
-    Output = erlfmt:format_string_range(Original, {2, 2}, {2, 3}, []),
-    assert_snapshot_match(list_to_binary(Reference), Output).
+        "    0.\n"
+        "y()   ->  1.\n",
+    Result = erlfmt:format_string_range(Original, {2, 2}, {2, 3}, []),
+    assert_snapshot_match_range(Reference, Result).
 
 snapshot_enclosing_range_no_leak(_) ->
     % Check only the specified form is formatted.
@@ -1147,11 +1230,29 @@ snapshot_enclosing_range_no_leak(_) ->
         "y()   ->  1.\n",
     Reference =
         "x() ->\n"
-        "    0.",
+        "    0.\n"
+        "\n"
+        "y()   ->  1.\n",
     % End point overshots line 3, but doesn't reach line 4:
     % Only x() must be formatted.
-    Output = erlfmt:format_string_range(Original, {1, 1}, {3, 3}, []),
-    assert_snapshot_match(list_to_binary(Reference), Output).
+    Result = erlfmt:format_string_range(Original, {1, 1}, {3, 3}, []),
+    assert_snapshot_match_range(Reference, Result).
+
+snapshot_range_reinjected(_) ->
+    % Verify the formatted range is properly re-injected
+    % in original file, even if the number of lines has changed.
+    Original =
+        "x()->0. % This comment end up in new line.\n"
+        "\n"
+        "y()   ->  1. % This comment stays here\n",
+    Reference =
+        "% This comment end up in new line.\n"
+        "x() -> 0.\n"
+        "\n"
+        "y()   ->  1. % This comment stays here\n",
+    % Only x() must be formatted, but we get back the whole string.
+    Output = erlfmt:format_string_range(Original, {1, 1}, {1, 9}, []),
+    assert_diagnostic:assert_snapshot_match(list_to_binary(Reference), Output).
 
 contains_pragma(Config) when is_list(Config) ->
     ?assert(
@@ -1382,7 +1483,12 @@ overlong_warning(Config) when is_list(Config) ->
     {ok, Formatted, FileWarnings} = erlfmt:format_file(FileName, Options),
     FormattedList = unicode:characters_to_list(Formatted),
     {ok, _, StringWarnings} = erlfmt:format_string(FormattedList, Options),
-    {ok, _, RangeWarnings} = erlfmt:format_file_range(FileName, {1, 1}, {11, 8}, Options),
+    {ok, _, RangeWarnings} = erlfmt:format_file_range(
+        FileName,
+        {1, 1},
+        {11, 8},
+        Options
+    ),
     FileLongLines = [{LineNo, Length} || {_, LineNo, _, {long_line, Length, _}} <- FileWarnings],
     StringLongLines = [
         {LineNo, Length}
@@ -1483,3 +1589,7 @@ raw_string_anno(Config) when is_list(Config) ->
             _},
         erlfmt:read_nodes_string("nofile", Comment)
     ).
+
+unicode_string() ->
+    "% Overlong, in bytes: "
+    "色は匂へど 散りぬるを 我が世誰ぞ 常ならむ 有為の奥山 今日越えて 浅き夢見じ 酔ひもせず\n".

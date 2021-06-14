@@ -261,8 +261,8 @@ replace_pragma_comment_block(Prefix, [Head | Tail]) ->
     {ok, string(), [error_info()]}
     | {error, error_info()}.
 format_file_range(FileName, StartLocation, EndLocation, Options) ->
-    {ok, Nodes, Warnings} = file_read_nodes(FileName, ignore),
-    format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings).
+    String = read_file_or_stdin(FileName),
+    format_string_range(FileName, String, StartLocation, EndLocation, Options).
 
 -spec format_string_range(
     string(),
@@ -272,11 +272,43 @@ format_file_range(FileName, StartLocation, EndLocation, Options) ->
 ) ->
     {ok, string(), [error_info()]}
     | {error, error_info()}.
-format_string_range(String, StartLocation, EndLocation, Options) ->
-    FileName = "nofile",
+format_string_range(Original, StartLocation, EndLocation, Options) ->
+    format_string_range("nofile", Original, StartLocation, EndLocation, Options).
+format_string_range(FileName, Original, StartLocation, EndLocation, Options) ->
     Pragma = proplists:get_value(pragma, Options, ignore),
-    {ok, Nodes, Warnings} = read_nodes_string(FileName, String, Pragma),
-    format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings).
+    {ok, Nodes, Warnings} = read_nodes_string(FileName, Original, Pragma),
+    {{StartLine, _}, {EndLine, _}, Result} = format_enclosing_range(
+        FileName,
+        StartLocation,
+        EndLocation,
+        Options,
+        Nodes,
+        Warnings
+    ),
+    case Result of
+        {ok, Formatted, Info} ->
+            Whole = inject_range(Original, StartLine, EndLine, Formatted),
+            {ok, Whole, Info};
+        Error ->
+            Error
+    end.
+
+% Reinject formatted extract into whole string.
+inject_range(Original, StartLine, EndLine, Formatted) ->
+    AsList = string:split(unicode:characters_to_binary(Original), "\n", all),
+    FormattedAsList0 = string:split(Formatted, "\n", all),
+    % Remove spurious empty line introduced by last \n separator.
+    FormattedAsList =
+        case lists:last(FormattedAsList0) of
+            <<>> ->
+                lists:droplast(FormattedAsList0);
+            _ ->
+                FormattedAsList0
+        end,
+    true = EndLine >= StartLine,
+    Len = EndLine - StartLine + 1,
+    New = replace_slice(AsList, StartLine, Len, FormattedAsList),
+    lists:join("\n", New).
 
 format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
     case format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) of
@@ -289,10 +321,10 @@ format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, War
             % Poor man's assert (to avoid including assert.hrl)
             % This time we must have the formatted result.
             {ok, _, _} = Res,
-            Res;
+            {Start, End, Res};
         X ->
             % Already ok or error: pass as is.
-            X
+            {StartLocation, EndLocation, X}
     end.
 
 format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
@@ -330,6 +362,7 @@ file_read_nodes(FileName, Pragma) ->
         read_nodes(erlfmt_scan:io_node(File), FileName, Pragma)
     end).
 
+% Apply 'Action' to file.
 read_file(stdin, Action) ->
     Action(standard_io);
 read_file(FileName, Action) ->
@@ -342,6 +375,21 @@ read_file(FileName, Action) ->
             end;
         {error, Reason} ->
             throw({error, {FileName, 0, file, Reason}})
+    end.
+
+% Return file as one big string (with '\n' as line separator).
+read_file_or_stdin(stdin) ->
+    read_stdin([]);
+read_file_or_stdin(FileName) ->
+    {ok, Bin} = file:read_file(FileName),
+    unicode:characters_to_list(Bin).
+
+read_stdin(Acc) ->
+    case io:get_line("") of
+        eof ->
+            lists:flatten(lists:reverse(Acc, []));
+        Line ->
+            read_stdin([unicode:characters_to_list(Line) | Acc])
     end.
 
 %% API entry point
@@ -639,3 +687,14 @@ check_line_lengths(FileName, Width, String, {FirstLineNo, _}) ->
         ),
         string:length(Line) > Width
     ].
+
+% Replace the sublist(Target, Start, Len) by Injected.
+% E.g. if Injected is empty it will just remove the sublist.
+-spec replace_slice(list(), pos_integer(), non_neg_integer(), list()) -> list().
+replace_slice(Target, Start, Len, Injected) ->
+    Res =
+        lists:sublist(Target, Start - 1) ++
+            Injected ++
+            lists:sublist(Target, Start + Len, length(Target)),
+    true = length(Target) - Len + length(Injected) =:= length(Res),
+    Res.
