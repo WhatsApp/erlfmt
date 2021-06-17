@@ -48,6 +48,8 @@
     smoke_test_stdio_reinsert_pragma_config/1,
     smoke_test_stdio_unicode/1,
     smoke_test_stdio_check/1,
+    noformat_pragma/1,
+    noformat_pragma_file/1,
     exclude_check/1,
     range_check_full/1,
     range_check_partial/1
@@ -93,6 +95,8 @@ groups() ->
             smoke_test_stdio_reinsert_pragma_config,
             smoke_test_stdio_unicode,
             smoke_test_stdio_check,
+            noformat_pragma,
+            noformat_pragma_file,
             exclude_check,
             range_check_full,
             range_check_partial
@@ -226,6 +230,22 @@ smoke_test_stdio_check(Config) when is_list(Config) ->
             " | " ++ escript() ++ " - " ++ "--check --require-pragma --verbose"
     ),
     ?assertNotMatch(nomatch, string:find(Skip, "Skip")).
+
+noformat_pragma_file(Config) when is_list(Config) ->
+    DataDir = ?config(data_dir, Config),
+    Path = filename:join(DataDir, "noformat.erl"),
+    stdio_test(Path, "", Config).
+
+noformat_pragma(Config) when is_list(Config) ->
+    Formatted = os:cmd(
+        "echo '%% @noformat\n\n%%% actual comment\n{ }.' | " ++ escript() ++ " -"
+    ),
+    Expected =
+        "%% @noformat\n"
+        "\n"
+        "%%% actual comment\n"
+        "{ }.\n",
+    ?assertEqual(Expected, Formatted).
 
 exclude_check(Config) when is_list(Config) ->
     Files = filename:join(?config(data_dir, Config), "*.erl"),
