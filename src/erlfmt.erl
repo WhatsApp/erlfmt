@@ -151,26 +151,40 @@ format_string_full(String, Options) ->
         {error, Error} -> {error, Error}
     end.
 
-contains_pragma_node(Node) ->
+which_pragma_node(Node) ->
     {PreComments, _, PostComments} = erlfmt_format:comments_with_pre_dot(Node),
-    lists:any(fun contains_pragma_comment/1, PreComments ++ PostComments).
+    Comments = PreComments ++ PostComments,
+    case lists:any(fun contains_noformat_pragma/1, Comments) of
+        true ->
+            noformat;
+        false ->
+            case lists:any(fun contains_format_pragma/1, Comments) of
+                true -> format;
+                false -> nopragma
+            end
+    end.
 
-contains_pragma_comment({comment, _Loc, Comments}) ->
+contains_format_pragma({comment, _Loc, Comments}) ->
     string:find(Comments, "@format") =/= nomatch.
+
+contains_noformat_pragma({comment, _Loc, Comments}) ->
+    string:find(Comments, "@noformat") =/= nomatch.
 
 %% insert_pragma_nodes only inserts an @format comment,
 %% if one has not already been inserted.
 insert_pragma_nodes([]) ->
     [];
 insert_pragma_nodes([{shebang, _, _} = Node | Nodes]) ->
-    case contains_pragma_node(Node) of
-        true -> [replace_pragma_node(Node) | Nodes];
-        false -> [Node | insert_pragma_nodes(Nodes)]
+    case which_pragma_node(Node) of
+        format -> [replace_pragma_node(Node) | Nodes];
+        noformat -> [Node | Nodes];
+        nopragma -> [Node | insert_pragma_nodes(Nodes)]
     end;
 insert_pragma_nodes([Node | Nodes]) ->
-    case contains_pragma_node(Node) of
-        true -> [replace_pragma_node(Node) | Nodes];
-        false -> [insert_pragma_node(Node) | Nodes]
+    case which_pragma_node(Node) of
+        format -> [replace_pragma_node(Node) | Nodes];
+        noformat -> [Node | Nodes];
+        nopragma -> [insert_pragma_node(Node) | Nodes]
     end.
 
 insert_pragma_node(Node) ->
@@ -191,14 +205,15 @@ insert_pragma_node(Node) ->
 remove_pragma_nodes([]) ->
     [];
 remove_pragma_nodes([{shebang, _, _} = Node | Nodes]) ->
-    case contains_pragma_node(Node) of
-        true -> [remove_pragma_node(Node) | Nodes];
-        false -> [Node | remove_pragma_nodes(Nodes)]
+    case which_pragma_node(Node) of
+        format -> [remove_pragma_node(Node) | Nodes];
+        noformat -> [Node | Nodes];
+        nopragma -> [Node | remove_pragma_nodes(Nodes)]
     end;
 remove_pragma_nodes([Node | Nodes]) ->
-    case contains_pragma_node(Node) of
-        true -> [remove_pragma_node(Node) | Nodes];
-        false -> [Node | Nodes]
+    case which_pragma_node(Node) of
+        format -> [remove_pragma_node(Node) | Nodes];
+        _ -> [Node | Nodes]
     end.
 
 remove_pragma_node(Node0) ->
@@ -408,27 +423,23 @@ read_nodes_string(FileName, String, Pragma) ->
 read_nodes(State, FileName, Pragma) ->
     read_nodes(State, FileName, Pragma, [], [], []).
 
-read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma, [], Warnings0, TextAcc) ->
+read_nodes({ok, Tokens, Comments, Cont}, FileName, PragmaFlag, [], Warnings0, TextAcc) ->
     {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
-    case {Pragma, contains_pragma_node(Node), Node} of
-        {_, _, {shebang, _, _}} ->
+    case {which_pragma_node(Node), Node} of
+        {_, {shebang, _, _}} ->
             {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
             read_nodes(
                 erlfmt_scan:continue(Cont),
                 FileName,
-                Pragma,
+                PragmaFlag,
                 [Node],
                 Warnings,
                 TextAcc ++ LastString
             );
-        {_, false, _} when Pragma =:= require; Pragma =:= delete ->
-            {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
-            case erlfmt_scan:read_rest(Cont) of
-                {ok, Rest} ->
-                    {skip, [TextAcc, LastString | Rest]};
-                {error, {ErrLoc, Mod, Reason}} ->
-                    throw({error, {FileName, ErrLoc, Mod, Reason}})
-            end;
+        {nopragma, _} when PragmaFlag =:= require; PragmaFlag =:= delete ->
+            skip_nodes(Cont, FileName, TextAcc);
+        {noformat, _} ->
+            skip_nodes(Cont, FileName, TextAcc);
         _ ->
             read_nodes_loop(
                 erlfmt_scan:continue(Cont),
@@ -440,21 +451,17 @@ read_nodes({ok, Tokens, Comments, Cont}, FileName, Pragma, [], Warnings0, TextAc
 read_nodes(
     {ok, Tokens, Comments, Cont},
     FileName,
-    Pragma,
+    PragmaFlag,
     [{shebang, _, _} = ShebangNode],
     Warnings0,
     TextAcc
 ) ->
     {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
-    case {Pragma, contains_pragma_node(Node)} of
-        {_, false} when Pragma =:= require; Pragma =:= delete ->
-            {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
-            case erlfmt_scan:read_rest(Cont) of
-                {ok, Rest} ->
-                    {skip, [TextAcc, LastString | Rest]};
-                {error, {ErrLoc, Mod, Reason}} ->
-                    throw({error, {FileName, ErrLoc, Mod, Reason}})
-            end;
+    case which_pragma_node(Node) of
+        nopragma when PragmaFlag =:= require; PragmaFlag =:= delete ->
+            skip_nodes(Cont, FileName, TextAcc);
+        noformat ->
+            skip_nodes(Cont, FileName, TextAcc);
         _ ->
             read_nodes_loop(
                 erlfmt_scan:continue(Cont),
@@ -463,8 +470,17 @@ read_nodes(
                 Warnings
             )
     end;
-read_nodes(Other, FileName, _Pragma, NodeAcc, Warnings, _TextAcc) ->
+read_nodes(Other, FileName, _PragmaFlag, NodeAcc, Warnings, _TextAcc) ->
     read_nodes_loop(Other, FileName, NodeAcc, Warnings).
+
+skip_nodes(Cont, FileName, TextAcc) ->
+    {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
+    case erlfmt_scan:read_rest(Cont) of
+        {ok, Rest} ->
+            {skip, [TextAcc, LastString | Rest]};
+        {error, {ErrLoc, Mod, Reason}} ->
+            throw({error, {FileName, ErrLoc, Mod, Reason}})
+    end.
 
 read_nodes_loop({ok, Tokens, Comments, Cont}, FileName, Acc, Warnings0) ->
     {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
