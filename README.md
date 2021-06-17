@@ -150,6 +150,8 @@ hello(mike, joe, robert)
 
 will be kept as-is, since it fits in a single line.
 
+Note: The enforcing of line-length is best effort and will sometimes overrun the selected line length, because the algorithm is greedy.
+
 ## Design principles
 
 The formatter was designed with these main principles in mind:
