@@ -352,6 +352,9 @@ We have introduced the `erlfmt-ignore` comment, which when placed before a top-l
 **Only top-level expression are supported.**
 Nested expressions are not supported, for example expressions inside functions.
 
+You can also add a comment to `%%% % @noformat` at the top of your file to opt that file out of formatting.
+It is also possible to use `%%% % @format` comments at the top of your files with the `--require-pragma` flag to only format opted in files.
+
 ## Join the erlfmt community
 
 To learn more about erlfmt internals, please explore the `doc/` directory
