@@ -473,11 +473,7 @@ read_nodes(
 read_nodes(Other, FileName, _PragmaFlag, NodeAcc, Warnings, _TextAcc) ->
     read_nodes_loop(Other, FileName, NodeAcc, Warnings).
 
-skip_nodes(
-    Cont,
-    FileName,
-    TextAcc
-) ->
+skip_nodes(Cont, FileName, TextAcc) ->
     {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
     case erlfmt_scan:read_rest(Cont) of
         {ok, Rest} ->
