@@ -425,8 +425,8 @@ read_nodes(State, FileName, Pragma) ->
 
 read_nodes({ok, Tokens, Comments, Cont}, FileName, PragmaFlag, [], Warnings0, TextAcc) ->
     {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
-    case {PragmaFlag, which_pragma_node(Node), Node} of
-        {_, _, {shebang, _, _}} ->
+    case {which_pragma_node(Node), Node} of
+        {_, {shebang, _, _}} ->
             {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
             read_nodes(
                 erlfmt_scan:continue(Cont),
@@ -436,9 +436,9 @@ read_nodes({ok, Tokens, Comments, Cont}, FileName, PragmaFlag, [], Warnings0, Te
                 Warnings,
                 TextAcc ++ LastString
             );
-        {_, nopragma, _} when PragmaFlag =:= require; PragmaFlag =:= delete ->
+        {nopragma, _} when PragmaFlag =:= require; PragmaFlag =:= delete ->
             skip_nodes(Cont, FileName, TextAcc);
-        {_, noformat, _} ->
+        {noformat, _} ->
             skip_nodes(Cont, FileName, TextAcc);
         _ ->
             read_nodes_loop(
@@ -457,10 +457,10 @@ read_nodes(
     TextAcc
 ) ->
     {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
-    case {PragmaFlag, which_pragma_node(Node)} of
-        {_, nopragma} when PragmaFlag =:= require; PragmaFlag =:= delete ->
+    case which_pragma_node(Node) of
+        nopragma when PragmaFlag =:= require; PragmaFlag =:= delete ->
             skip_nodes(Cont, FileName, TextAcc);
-        {_, noformat} ->
+        noformat ->
             skip_nodes(Cont, FileName, TextAcc);
         _ ->
             read_nodes_loop(
