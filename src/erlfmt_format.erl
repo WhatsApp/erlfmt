@@ -421,12 +421,12 @@ flex_container(Meta, Values, Left, Right) ->
     container_common(Meta, Values, Left, Right, flex_break, last_fits).
 
 call(Meta, Values, Left, Right) ->
-    container_common(Meta, Values, Left, Right, break, last_fits).
+    container_common(Meta, Values, Left, Right, group_break, last_fits).
 
 container_common(_Meta, [], Left, Right, _, _) ->
     concat(Left, Right);
-container_common(Meta, Values, Left, Right, BreakKind0, LastFits0) ->
-    LastFitsFun = last_fits_fun(LastFits0, Values),
+container_common(Meta, Values, Left, Right, BreakKind0, LastFits) ->
+    LastFitsFun = last_fits_fun(LastFits, Values),
     BreakKind = break_behaviour(Meta, Values, BreakKind0),
     BreakFun = break_fun(BreakKind),
     ValuesVD = map_inner_values(LastFitsFun, Values),
@@ -434,8 +434,18 @@ container_common(Meta, Values, Left, Right, BreakKind0, LastFits0) ->
     Surrounded = surround_container(BreakKind, Left, Doc, Right),
     LastFitsFun(Surrounded, disabled).
 
--type break_kind() :: break | flex_break | line | no_break.
+-type break_kind() :: break | group_break | flex_break | line | group_line | no_break.
 
+break_behaviour(Meta, Values, group_break) ->
+    case has_trailing_comments(Values) orelse has_any_break_between(Values) of
+        true ->
+            line;
+        false ->
+            case has_opening_line_break(Meta, Values) of
+                true -> group_line;
+                false -> group_break
+            end
+    end;
 break_behaviour(Meta, Values, BreakKind) ->
     case
         has_opening_line_break(Meta, Values) orelse
@@ -485,6 +495,10 @@ surround_container(line, Left, Doc, Right) ->
     surround(Left, <<"">>, concat(force_breaks(), Doc), <<"">>, Right);
 surround_container(break, Left, Doc, Right) ->
     surround(Left, <<"">>, Doc, <<"">>, Right);
+surround_container(group_line, Left, Doc, Right) ->
+    surround(Left, <<"">>, concat(force_breaks(), group(Doc)), <<"">>, Right);
+surround_container(group_break, Left, Doc, Right) ->
+    surround(Left, <<"">>, group(Doc), <<"">>, Right);
 surround_container(no_break, Left, Doc, Right) ->
     concat(Left, Doc, Right);
 surround_container(flex_break, Left, Doc, Right) ->
@@ -527,6 +541,8 @@ has_any_break_between(_) ->
 -spec break_fun(break_kind()) -> erlfmt_algebra:append_fun().
 break_fun(line) -> fun erlfmt_algebra:line/2;
 break_fun(break) -> fun erlfmt_algebra:break/2;
+break_fun(group_line) -> fun erlfmt_algebra:break/2;
+break_fun(group_break) -> fun erlfmt_algebra:break/2;
 break_fun(flex_break) -> fun erlfmt_algebra:flex_break/2;
 break_fun(no_break) -> fun(_, _) -> error(unreachable) end.
 

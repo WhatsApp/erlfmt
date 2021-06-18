@@ -804,8 +804,7 @@ binary_operator_more(Config) when is_list(Config) ->
         "D, E).\n",
         "A orelse B orelse\n"
         "    c(\n"
-        "        D,\n"
-        "        E\n"
+        "        D, E\n"
         "    ).\n"
     ).
 
@@ -2160,6 +2159,34 @@ call(Config) when is_list(Config) ->
         "    80\n"
         ")\n",
         60
+    ),
+    ?assertFormat(
+        "long_name(Long, Arguments)",
+        "long_name(\n"
+        "    Long, Arguments\n"
+        ")\n",
+        25
+    ),
+    ?assertSame(
+        "long_name(\n"
+        "    Long, Arguments\n"
+        ")\n"
+    ),
+    ?assertFormat(
+        "long_name(\n"
+        "    Long, Arguments\n"
+        ")\n",
+        "long_name(\n"
+        "    Long,\n"
+        "    Arguments\n"
+        ")\n",
+        10
+    ),
+    ?assertSame(
+        "long_name(\n"
+        "    Long,\n"
+        "    Arguments\n"
+        ")\n"
     ).
 
 block(Config) when is_list(Config) ->
@@ -2984,7 +3011,7 @@ macro(Config) when is_list(Config) ->
         "    X when is_integer(X),\n"
         "    Y\n"
         ")\n",
-        30
+        25
     ),
     ?assertFormat(
         "?assertMatch(X when is_integer(X), Y)",
@@ -3434,10 +3461,10 @@ spec(Config) when is_list(Config) ->
         50
     ),
     ?assertFormat(
-        "-spec foo(very_long_type(), another_long_type()) -> some_very:very(long, type) when Int :: integer().",
+        "-spec foo(very_very_long_type(with_argument), yet_another_long_type()) -> some_very:very(long, type) when Int :: integer().",
         "-spec foo(\n"
-        "    very_long_type(),\n"
-        "    another_long_type()\n"
+        "    very_very_long_type(with_argument),\n"
+        "    yet_another_long_type()\n"
         ") -> some_very:very(long, type) when\n"
         "    Int :: integer().\n",
         50
@@ -3611,6 +3638,34 @@ spec(Config) when is_list(Config) ->
         "        String :: string()\n"
         "%% before dot\n"
         ".\n"
+    ),
+    ?assertFormat(
+        "-spec long_name(Long, Arguments) -> ok.",
+        "-spec long_name(\n"
+        "    Long, Arguments\n"
+        ") -> ok.\n",
+        25
+    ),
+    ?assertSame(
+        "-spec long_name(\n"
+        "    Long, Arguments\n"
+        ") -> ok.\n"
+    ),
+    ?assertFormat(
+        "-spec long_name(\n"
+        "    Long, Arguments\n"
+        ") -> ok.\n",
+        "-spec long_name(\n"
+        "    Long,\n"
+        "    Arguments\n"
+        ") -> ok.\n",
+        10
+    ),
+    ?assertSame(
+        "-spec long_name(\n"
+        "    Long,\n"
+        "    Arguments\n"
+        ") -> ok.\n"
     ).
 
 define(Config) when is_list(Config) ->
