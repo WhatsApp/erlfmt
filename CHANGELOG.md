@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.15.0 (18.06.2021)
+
+1.0 Release Candidate 3
+
+### Enhancements
+
+  - Add `--range` as a command line option #299, #300, #295
+  - Introduce semi-expanded format for function calls #305
+  - Introduce noformat pragma #302
+
+### Fixes
+
+  - Return exit code 2 when option isn't recognized. #304
+
 ## v0.14.1 (10.05.2021)
 
 1.0 Release Candidate 2.1
