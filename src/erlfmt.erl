@@ -54,7 +54,8 @@ main(Argv) ->
             erlfmt_cli:do("erlfmt", [{files, ExtraFiles} | ArgOpts]);
         {error, Error} ->
             io:put_chars(standard_error, [getopt:format_error(Opts, Error), "\n\n"]),
-            getopt:usage(Opts, "erlfmt")
+            getopt:usage(Opts, "erlfmt"),
+            erlang:halt(2)
     end.
 
 %% rebar3 plugin entry point
