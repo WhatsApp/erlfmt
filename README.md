@@ -185,18 +185,18 @@ not perfect. Therefore some manual intervention to help the formatter out might
 be needed. For example, given the following code:
 
 ```erlang unformatted split_tokens
-split_tokens([{TokenType, Meta, TokenValue} | Rest], Acc, CAcc) ->
-    split_tokens(Rest, [{TokenType, token_anno(erl_anno:to_term(Meta), #{}), TokenValue} | Acc], CAcc).
+split_tokens([{TokenType, Meta, TokenValue} | Rest], TokenAcc, CommentAcc) ->
+    split_tokens(Rest, [{TokenType, token_anno(erl_anno:to_term(Meta), #{}), TokenValue} | TokenAcc], CommentAcc).
 ```
 
 Because the line-length is exceeded, the formatter will produce the following:
 
 ```erlang formatted split_tokens
-split_tokens([{TokenType, Meta, TokenValue} | Rest], Acc, CAcc) ->
+split_tokens([{TokenType, Meta, TokenValue} | Rest], TokenAcc, CommentAcc) ->
     split_tokens(
         Rest,
-        [{TokenType, token_anno(erl_anno:to_term(Meta), #{}), TokenValue} | Acc],
-        CAcc
+        [{TokenType, token_anno(erl_anno:to_term(Meta), #{}), TokenValue} | TokenAcc],
+        CommentAcc
     ).
 ```
 
@@ -204,9 +204,9 @@ It might be more desirable, though, to extract a variable and allow the call to
 still be rendered in a single line, for example:
 
 ```erlang formatted split_tokens2
-split_tokens([{TokenType, Meta, TokenValue} | Rest], Acc, CAcc) ->
+split_tokens([{TokenType, Meta, TokenValue} | Rest], TokenAcc, CommentAcc) ->
     Token = {TokenType, token_anno(erl_anno:to_term(Meta), #{}), TokenValue},
-    split_tokens(Rest, [Token | Acc], CAcc).
+    split_tokens(Rest, [Token | TokenAcc], CommentAcc).
 ```
 
 A similar situation could happen with long patterns in function heads,
@@ -245,8 +245,8 @@ The formatter keeps the original decisions in two key places
 
 ### In containers
 
-For containers like lists, tuples, maps, records, function calls, macro calls,
-etc, there are two possible layouts - "collapsed" where the entire collection
+For containers like lists, tuples, maps, records, etc,
+there are two possible layouts - "collapsed" where the entire collection
 is printed in a single line; and "expanded" where each element is printed on a
 separate line. The formatter respects this choice, if possible. If there is a
 newline between the opening bracket/brace/parenthesis and the first element,
@@ -281,6 +281,43 @@ Foo, Bar]
 ```
 
 and re-running the formatter, will produce the initial format again.
+
+### In functions
+
+For function calls, function definitions, types, and macros, there are two possible
+layouts similar to lists, but also a third extra layout that puts all the arguments
+on the same line. This new format is preserved:
+
+```erlang formatted function
+function(
+    Argument1, Argument2, Argument3
+)
+```
+
+Similar to the fully expanded format:
+
+```erlang formatted function-full
+function(
+    Argument1,
+    Argument2,
+    Argument3
+)
+```
+
+The expanded forms can be forced by including a newline between the parentheses
+and the first argument or in-between the arguments:
+```erlang unformatted function
+function(
+Argument1, Argument2, Argument3)
+```
+
+Will be formatted to the first snippet, while:
+```erlang unformatted function-full
+function(Argument1,
+Argument2, Argument3)
+```
+
+Will be formatted to the second snippet.
 
 ### In clauses
 

@@ -7,5 +7,5 @@ process(_Arg1, Arg2, _Arg3, _Arg4, _Arg5, _Arg6) ->
     % Curabitur nisi metus.
     % Overlong, in bytes: 色は匂へど 散りぬるを 我が世誰ぞ 常ならむ 有為の奥山 今日越えて 浅き夢見じ 酔ひもせず
     other_module:call('some.atom'),
-    other_module:call(with_many, extremely_long_arguments, that_should_really, be_broken_up, size(Arg2)),
+    other_module:call(with_so_very_many, very_very_long, extremely_long_arguments, that_should_really, be_broken_up, size(Arg2)),
     ok.
