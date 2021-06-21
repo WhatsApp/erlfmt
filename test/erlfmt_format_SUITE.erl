@@ -3709,7 +3709,8 @@ define(Config) when is_list(Config) ->
         "    Name(X) ->\n"
         "        X\n"
         ").\n"
-    ).
+    ),
+    ?assertSame("-define(ANY_MODE(Mode), Mode when Mode =:= inline; Mode =:= async).\n").
 
 type(Config) when is_list(Config) ->
     ?assertSame(
