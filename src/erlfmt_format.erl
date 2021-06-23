@@ -535,6 +535,8 @@ has_opening_line_break(Meta, [HeadValue | _]) ->
 
 has_any_break_between([Head | [Head2 | _] = Tail]) ->
     has_break_between(Head, Head2) orelse has_any_break_between(Tail);
+has_any_break_between([{cons, _, Head, Tail}]) ->
+    has_break_between(Head, Tail);
 has_any_break_between(_) ->
     false.
 
