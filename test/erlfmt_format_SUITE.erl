@@ -1108,9 +1108,22 @@ tuple(Config) when is_list(Config) ->
         "    foo\n"
         "}\n"
     ),
-    ?assertFormat(
+    ?assertSame(
         "{\n"
         "    foo, bar, baz\n"
+        "}\n"
+    ),
+    ?assertSame(
+        "{\n"
+        "    foo,\n"
+        "    bar,\n"
+        "    baz\n"
+        "}\n"
+    ),
+    ?assertFormat(
+        "{\n"
+        "    foo, bar,\n"
+        "    baz\n"
         "}\n",
         "{\n"
         "    foo,\n"

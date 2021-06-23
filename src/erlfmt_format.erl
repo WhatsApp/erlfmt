@@ -434,7 +434,7 @@ container_common(Meta, Values, Left, Right, BreakKind0, LastFits) ->
     Surrounded = surround_container(BreakKind, Left, Doc, Right),
     LastFitsFun(Surrounded, disabled).
 
--type break_kind() :: break | group_break | flex_break | line | group_line | no_break.
+-type break_kind() :: group_break | flex_break | line | group_line | no_break.
 
 break_behaviour(Meta, Values, group_break) ->
     case has_trailing_comments(Values) orelse has_any_break_between(Values) of
@@ -446,33 +446,35 @@ break_behaviour(Meta, Values, group_break) ->
                 false -> group_break
             end
     end;
-break_behaviour(Meta, Values, BreakKind) ->
+break_behaviour(Meta, Values, flex_break) ->
     case
-        has_opening_line_break(Meta, Values) orelse
-            has_trailing_comments(Values) orelse
-            (BreakKind =:= break andalso has_any_break_between(Values))
+        has_trailing_comments(Values) orelse
+            (has_opening_line_break(Meta, Values) andalso has_any_break_between(Values))
     of
         true ->
             line;
-        false when BreakKind =:= flex_break ->
-            case Values of
-                [{bin_element, _, {string, _, _}, _, _}] ->
-                    no_break;
-                [SoleElement] ->
-                    case is_container(SoleElement) of
-                        true -> no_break;
-                        false -> group_break
-                    end;
-                [First | _] ->
-                    case is_tag(First) of
-                        true -> BreakKind;
-                        false -> group_break
-                    end;
-                _ ->
-                    BreakKind
-            end;
         false ->
-            BreakKind
+            case has_opening_line_break(Meta, Values) of
+                true ->
+                    group_line;
+                false ->
+                    case Values of
+                        [{bin_element, _, {string, _, _}, _, _}] ->
+                            no_break;
+                        [SoleElement] ->
+                            case is_container(SoleElement) of
+                                true -> no_break;
+                                false -> group_break
+                            end;
+                        [First | _] ->
+                            case is_tag(First) of
+                                true -> flex_break;
+                                false -> group_break
+                            end;
+                        _ ->
+                            flex_break
+                    end
+            end
     end.
 
 %% Allow inlining binary literals
@@ -491,18 +493,23 @@ is_tag(Expr) ->
 is_container(Expr) ->
     lists:member(element(1, Expr), [tuple, bin, list, map, record, call, macro_call, lc, bc]).
 
-surround_container(line, Left, Doc, Right) ->
-    surround(Left, <<"">>, concat(force_breaks(), Doc), <<"">>, Right);
-surround_container(break, Left, Doc, Right) ->
-    surround(Left, <<"">>, Doc, <<"">>, Right);
-surround_container(group_line, Left, Doc, Right) ->
-    surround(Left, <<"">>, concat(force_breaks(), group(Doc)), <<"">>, Right);
-surround_container(group_break, Left, Doc, Right) ->
-    surround(Left, <<"">>, group(Doc), <<"">>, Right);
 surround_container(no_break, Left, Doc, Right) ->
     concat(Left, Doc, Right);
 surround_container(flex_break, Left, Doc, Right) ->
-    group(concat(nest(concat(Left, Doc), ?INDENT, break), Right)).
+    group(concat(nest(concat(Left, Doc), ?INDENT, break), Right));
+surround_container(BreakKind, Left, Doc, Right) ->
+    {ForceOuter, ForceInner} = break_force(BreakKind),
+    surround(
+        Left,
+        <<"">>,
+        concat(maybe_force_breaks(ForceOuter), group(concat(maybe_force_breaks(ForceInner), Doc))),
+        <<"">>,
+        Right
+    ).
+
+break_force(line) -> {true, true};
+break_force(group_line) -> {true, false};
+break_force(group_break) -> {false, false}.
 
 %% last_fits_fun returns a fun similar to next_break_fits/2
 %% that takes into account the desired fits behaviour.
@@ -541,12 +548,8 @@ has_any_break_between(_) ->
     false.
 
 -spec break_fun(break_kind()) -> erlfmt_algebra:append_fun().
-break_fun(line) -> fun erlfmt_algebra:line/2;
-break_fun(break) -> fun erlfmt_algebra:break/2;
-break_fun(group_line) -> fun erlfmt_algebra:break/2;
-break_fun(group_break) -> fun erlfmt_algebra:break/2;
 break_fun(flex_break) -> fun erlfmt_algebra:flex_break/2;
-break_fun(no_break) -> fun(_, _) -> error(unreachable) end.
+break_fun(_) -> fun erlfmt_algebra:break/2.
 
 -type value_doc_pair() :: {erlfmt_parse:abstract_form(), erlfmt_algebra:doc()}.
 
@@ -854,7 +857,7 @@ is_next_break_fits({FlexContainer, Meta, Values}) when
     FlexContainer =:= tuple; FlexContainer =:= bin
 ->
     BreakBehaviour = break_behaviour(Meta, Values, flex_break),
-    BreakBehaviour =:= group_break orelse BreakBehaviour =:= line;
+    BreakBehaviour =:= group_break orelse BreakBehaviour =:= group_line orelse BreakBehaviour =:= line;
 is_next_break_fits(Expr) ->
     lists:member(element(1, Expr), [map, list, record, block, 'fun', lc, bc]) andalso
         has_no_comments_or_parens(Expr).
