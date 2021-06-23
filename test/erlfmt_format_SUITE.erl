@@ -1518,6 +1518,12 @@ list(Config) when is_list(Config) ->
         "    3\n"
         "]\n"
     ),
+    ?assertSame(
+        "[\n"
+        "    1\n"
+        "    | 2\n"
+        "]\n"
+    ),
     ?assertFormat(
         "gen_part_decode_funcs({constructed,bif}, TypeName, {_Name,parts,Tag,_Type}) ->\n"
         "   emit([\n"
