@@ -17,8 +17,19 @@
 -include_lib("stdlib/include/assert.hrl").
 -include_lib("test/assert_diagnostic.hrl").
 
-%% TestServer callbacks ++ test cases.
--compile(export_all).
+%% Test server callbacks
+-export([
+    all/0,
+    groups/0
+]).
+
+%% Test cases
+-export([
+    test_equal/1,
+    test_expected_is_longer/1,
+    test_actual_is_longer/1,
+    test_one_distinc_item/1
+]).
 
 groups() ->
     [
@@ -43,24 +54,24 @@ test_equal(_) ->
 test_expected_is_longer(_) ->
     L0 = [coffee, brownie],
     L1 = [coffee],
-    checkListEqualMessage(L0, L1, ["Actual list lacks 1 expected items: [brownie]"]).
+    check_list_equal_message(L0, L1, ["Actual list lacks 1 expected items: [brownie]"]).
 
 test_actual_is_longer(_) ->
     L0 = [breath],
     L1 = [breath, explode],
-    checkListEqualMessage(L0, L1, ["Actual list has 1 unexpected items: [explode]"]).
+    check_list_equal_message(L0, L1, ["Actual list has 1 unexpected items: [explode]"]).
 
 test_one_distinc_item(_) ->
     L0 = [sea, sax, sun],
     L1 = [sea, tex, sun],
-    checkListEqualMessage(L0, L1, [
+    check_list_equal_message(L0, L1, [
         "Item 2 differs:\n"
         "Expected: sax\n"
         "Value:    tex"
     ]).
 
 %% Helper ensuring comparison of mismatching lists give the expected message.
-checkListEqualMessage(L0, L1, Msg) ->
+check_list_equal_message(L0, L1, Msg) ->
     case (catch ?assertListEqual(L0, L1)) of
         ok ->
             ct:fail("Got 'ok', was expecting exception: ~p", [Msg]);
