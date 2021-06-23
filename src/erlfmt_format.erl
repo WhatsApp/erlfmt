@@ -415,7 +415,7 @@ with_next_break_fits(false, Doc, Fun) ->
     Fun(Doc).
 
 container(Meta, Values, Left, Right) ->
-    container_common(Meta, Values, Left, Right, break, last_normal).
+    container_common(Meta, Values, Left, Right, group_break, last_normal).
 
 flex_container(Meta, Values, Left, Right) ->
     container_common(Meta, Values, Left, Right, flex_break, last_fits).
@@ -461,12 +461,12 @@ break_behaviour(Meta, Values, BreakKind) ->
                 [SoleElement] ->
                     case is_container(SoleElement) of
                         true -> no_break;
-                        false -> break
+                        false -> group_break
                     end;
                 [First | _] ->
                     case is_tag(First) of
                         true -> BreakKind;
-                        false -> break
+                        false -> group_break
                     end;
                 _ ->
                     BreakKind
@@ -852,7 +852,7 @@ is_next_break_fits({FlexContainer, Meta, Values}) when
     FlexContainer =:= tuple; FlexContainer =:= bin
 ->
     BreakBehaviour = break_behaviour(Meta, Values, flex_break),
-    BreakBehaviour =:= break orelse BreakBehaviour =:= line;
+    BreakBehaviour =:= group_break orelse BreakBehaviour =:= line;
 is_next_break_fits(Expr) ->
     lists:member(element(1, Expr), [map, list, record, block, 'fun', lc, bc]) andalso
         has_no_comments_or_parens(Expr).

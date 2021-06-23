@@ -240,84 +240,67 @@ inspect the code manually to correct similar sub-par layouts.
 
 The formatter keeps the original decisions in two key places
 
-  * when choosing between a "collapsed" and an "expanded" layout for containers
+  * when choosing between a "collapsed", "semi-expanded", and an "expanded" layout for containers
   * when choosing between single-line and multi-line clauses.
 
 ### In containers
 
-For containers like lists, tuples, maps, records, etc,
-there are two possible layouts - "collapsed" where the entire collection
-is printed in a single line; and "expanded" where each element is printed on a
+For containers like lists, tuples, maps, records, function calls, etc,
+there are three possible layouts - "collapsed" where the entire collection
+is printed in a single line; "semi-expanded" where the enclosing
+brackets/breaces/parentheses are printed on a line of their own, but all elements
+are printed in a single line; and "expanded" where each element is printed on a
 separate line. The formatter respects this choice, if possible. If there is a
 newline between the opening bracket/brace/parenthesis and the first element,
-the collection will be always printed "expanded", for example:
+the collection will be always printed "semi-expanded", for example:
 
-```erlang formatted foobar
+```erlang formatted semi-expanded
+[
+    Foo, Bar
+]
+```
+
+will be preserved, even though it could fit on a single line.
+
+Similarly, if there's a break between any elements, the container will be printed
+in the "expanded" format:
+```erlang formatted expanded
 [
     Foo,
     Bar
 ]
 ```
 
-will be preserved, even though it could fit on a single line.
-This is controlled by whether the user has included a newline in the original version.
+This is controlled by the newlines in the original version.
 For example, merely deleting the newlines from the above sequence:
 
-```erlang unformatted foobar1
+```erlang unformatted collapsed
 [    Foo, Bar]
 ```
 
 and re-running the formatter, will produce:
 
-```erlang formatted foobar1
+```erlang formatted collapsed
 [Foo, Bar]
 ```
 
-Similarly, adding the single newline back:
+Similarly, adding the single initial newline back:
 
-```erlang unformatted foobar
+```erlang unformatted semi-expanded
 [
 Foo, Bar]
 ```
 
-and re-running the formatter, will produce the initial format again.
+and re-running the formatter, will produce the "semi-expanded" format again.
 
-### In functions
+While adding a newline in the middle:
 
-For function calls, function definitions, types, and macros, there are two possible
-layouts similar to lists, but also a third extra layout that puts all the arguments
-on the same line. This new format is preserved:
-
-```erlang formatted function
-function(
-    Argument1, Argument2, Argument3
-)
+```erlang unformatted expanded
+[Foo,
+Bar]
 ```
 
-Similar to the fully expanded format:
-
-```erlang formatted function-full
-function(
-    Argument1,
-    Argument2,
-    Argument3
-)
-```
-
-The expanded forms can be forced by including a newline between the parentheses
-and the first argument or in-between the arguments:
-```erlang unformatted function
-function(
-Argument1, Argument2, Argument3)
-```
-
-Will be formatted to the first snippet, while:
-```erlang unformatted function-full
-function(Argument1,
-Argument2, Argument3)
-```
-
-Will be formatted to the second snippet.
+and re-running the formatter, will produce the "expanded" format again.
 
 ### In clauses
 
