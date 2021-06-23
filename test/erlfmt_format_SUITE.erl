@@ -1252,6 +1252,17 @@ untagged_tuple(Config) when is_list(Config) ->
         "], c}.\n",
         "{ajdsdjhasd, askjdasjkd,\n"
         "    [\n"
+        "        A, B\n"
+        "    ],\n"
+        "    c}.\n"
+    ),
+    ?assertFormat(
+        "{ajdsdjhasd, askjdasjkd, [\n"
+        "A,\n"
+        "B\n"
+        "], c}.\n",
+        "{ajdsdjhasd, askjdasjkd,\n"
+        "    [\n"
         "        A,\n"
         "        B\n"
         "    ],\n"
@@ -2152,9 +2163,7 @@ call(Config) when is_list(Config) ->
         "render(fold_doc(fun(D, Acc) -> concat([D,X,Acc]) end, [A,B,C]),80)",
         "render(\n"
         "    fold_doc(fun(D, Acc) -> concat([D, X, Acc]) end, [\n"
-        "        A,\n"
-        "        B,\n"
-        "        C\n"
+        "        A, B, C\n"
         "    ]),\n"
         "    80\n"
         ")\n",
@@ -3232,6 +3241,22 @@ exportimport(Config) when is_list(Config) ->
         "    c/1,\n"
         "    c/2\n"
         "]).\n"
+    ),
+    ?assertSame(
+        "-export([\n"
+        "    bar/1, baz/1\n"
+        "]).\n"
+    ),
+    ?assertFormat(
+        "-export([\n"
+        "    foo/1, bar/1,\n"
+        "    baz/1, baz/2\n"
+        "]).\n",
+        "-export([\n"
+        "    foo/1,\n"
+        "    bar/1,\n"
+        "    baz/1, baz/2\n"
+        "]).\n"
     ).
 
 ifdef(Config) when is_list(Config) ->
@@ -3296,12 +3321,19 @@ record_definition(Config) when is_list(Config) ->
     ?assertFormat(
         "-record(foo, {a = 1 :: integer(), b :: float(), c  = 2, d}).",
         "-record(foo, {\n"
+        "    a = 1 :: integer(), b :: float(), c = 2, d\n"
+        "}).\n",
+        50
+    ),
+    ?assertFormat(
+        "-record(foo, {a = 1 :: integer(), b :: float(), c  = 2, d}).",
+        "-record(foo, {\n"
         "    a = 1 :: integer(),\n"
         "    b :: float(),\n"
         "    c = 2,\n"
         "    d\n"
         "}).\n",
-        50
+        40
     ),
     ?assertSame(
         "-record(foo,\n"
@@ -3719,10 +3751,17 @@ type(Config) when is_list(Config) ->
     ?assertFormat(
         "-type foobar() :: #foo{a :: integer(), b :: mod:type()}.",
         "-type foobar() :: #foo{\n"
+        "    a :: integer(), b :: mod:type()\n"
+        "}.\n",
+        50
+    ),
+    ?assertFormat(
+        "-type foobar() :: #foo{a :: integer(), b :: mod:type()}.",
+        "-type foobar() :: #foo{\n"
         "    a :: integer(),\n"
         "    b :: mod:type()\n"
         "}.\n",
-        50
+        30
     ),
     ?assertSame(
         "-type foo() :: fun(\n"
