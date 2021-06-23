@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.15.1 (23.06.2021)
+
+1.0 Release Candidate 3.1
+
+### Enhancements
+
+  - Introduce semi-expanded format for containers #309
+
 ## v0.15.0 (18.06.2021)
 
 1.0 Release Candidate 3
