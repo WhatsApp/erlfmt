@@ -78,6 +78,8 @@
     snapshot_range_partial_none/1,
     snapshot_range_partial_two_forms/1,
     snapshot_range_partial_two_lines/1,
+    snapshot_range_noformat/1,
+    snapshot_range_past_endofile/1,
     snapshot_enclosing_range/1,
     snapshot_enclosing_range2/1,
     snapshot_enclosing_range_no_leak/1,
@@ -165,6 +167,8 @@ groups() ->
             snapshot_range_partial_none,
             snapshot_range_partial_two_forms,
             snapshot_range_partial_two_lines,
+            snapshot_range_noformat,
+            snapshot_range_past_endofile,
             snapshot_enclosing_range,
             snapshot_enclosing_range2,
             snapshot_enclosing_range_no_leak,
@@ -1191,6 +1195,27 @@ snapshot_range_partial_two_lines(_) ->
         "y()   ->  1.\n",
     Result = erlfmt:format_string_range(Original, {1, 1}, {2, 3}, []),
     assert_snapshot_match_range(Reference, Result).
+
+snapshot_range_noformat(_) ->
+    % Check noformat pragma is respected.
+    Original =
+        "%%% % @noformat\n"
+        "\n"
+        "f(1)->42.\n"
+        "g(2)->6128.\n",
+    Result = erlfmt:format_string_range(Original, {1, 1}, {2, 3}, []),
+    % Untouched.
+    assert_snapshot_match_range(Original, Result).
+
+snapshot_range_past_endofile(_) ->
+    % Check file is returned as is when range is past end of file.
+    Original = "% Nevermind, dummy comment.\n",
+    % Just past the end.
+    Result = erlfmt:format_string_range(Original, {2, 1}, {2, 1}, []),
+    assert_snapshot_match_range(Original, Result),
+    % Far past the end.
+    Result2 = erlfmt:format_string_range(Original, {10, 1}, {10, 80}, []),
+    assert_snapshot_match_range(Original, Result2).
 
 snapshot_enclosing_range(_) ->
     % Check we pick format the whole top level form covering passed range.
