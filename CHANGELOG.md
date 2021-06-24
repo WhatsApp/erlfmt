@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.15.2 (24.06.2021)
+
+1.0 Release Candidate 3.2
+
+### Fixes
+
+  - Formatting Ranges support for opt-out pragmas #311
+
 ## v0.15.1 (23.06.2021)
 
 1.0 Release Candidate 3.1

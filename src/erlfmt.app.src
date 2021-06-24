@@ -1,6 +1,6 @@
 {application, erlfmt, [
     {description, "erlfmt is an opinionated Erlang code formatter"},
-    {vsn, "0.15.1"},
+    {vsn, "0.15.2"},
     {registered, []},
     {applications, [kernel, stdlib]},
     {env, []},
