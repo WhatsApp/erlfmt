@@ -275,6 +275,7 @@ replace_pragma_comment_block(Prefix, [Head | Tail]) ->
     [{print_width, pos_integer()}]
 ) ->
     {ok, string(), [error_info()]}
+    | {skip, string()}
     | {error, error_info()}.
 format_file_range(FileName, StartLocation, EndLocation, Options) ->
     String = read_file_or_stdin(FileName),
@@ -287,26 +288,33 @@ format_file_range(FileName, StartLocation, EndLocation, Options) ->
     [{print_width, pos_integer()}]
 ) ->
     {ok, string(), [error_info()]}
+    | {skip, string()}
     | {error, error_info()}.
 format_string_range(Original, StartLocation, EndLocation, Options) ->
     format_string_range("nofile", Original, StartLocation, EndLocation, Options).
 format_string_range(FileName, Original, StartLocation, EndLocation, Options) ->
     Pragma = proplists:get_value(pragma, Options, ignore),
-    {ok, Nodes, Warnings} = read_nodes_string(FileName, Original, Pragma),
-    {{StartLine, _}, {EndLine, _}, Result} = format_enclosing_range(
-        FileName,
-        StartLocation,
-        EndLocation,
-        Options,
-        Nodes,
-        Warnings
-    ),
-    case Result of
-        {ok, Formatted, Info} ->
-            Whole = inject_range(Original, StartLine, EndLine, Formatted),
-            {ok, Whole, Info};
-        Error ->
-            Error
+    case read_nodes_string(FileName, Original, Pragma) of
+        {ok, Nodes, Warnings} ->
+            {{StartLine, _}, {EndLine, _}, Result} = format_enclosing_range(
+                FileName,
+                StartLocation,
+                EndLocation,
+                Options,
+                Nodes,
+                Warnings
+            ),
+            case Result of
+                {ok, Formatted, Info} ->
+                    Whole = inject_range(Original, StartLine, EndLine, Formatted),
+                    {ok, Whole, Info};
+                Other ->
+                    % Error or skip.
+                    Other
+            end;
+        {skip, String} ->
+            % Happens with `noformat` pragma.
+            {skip, String}
     end.
 
 % Reinject formatted extract into whole string.
@@ -328,6 +336,10 @@ inject_range(Original, StartLine, EndLine, Formatted) ->
 
 format_enclosing_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
     case format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) of
+        {options, []} ->
+            % Nothing to format, due to noformat pragma or range outside of file,
+            % return empty change (no warning should be emitted if noformat).
+            {StartLocation, EndLocation, {skip, []}};
         {options, PossibleRanges} ->
             % Pick the largest range, so all intersected forms are covered.
             {Starts, Ends} = lists:unzip(PossibleRanges),
