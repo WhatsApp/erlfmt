@@ -5,7 +5,7 @@ formatting the code, it frees your team up to focus on what the code does,
 instead of what it looks like.
 
 erlfmt is feature complete and released as version 1.0
-This means only backwards incompatible changes and bug fixes can be adopted without very serious consideration.
+This means only backwards compatible changes and bug fixes can be adopted without very serious consideration.
 We do not want to put users in the position where they need to reformat code without a very good reason.
 
 ## Before
