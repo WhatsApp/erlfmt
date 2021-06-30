@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.0 (29.06.2021)
+
+1.0.0 Release. No new changes.
+
 ## v0.15.2 (24.06.2021)
 
 1.0 Release Candidate 3.2
