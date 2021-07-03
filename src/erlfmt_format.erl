@@ -113,12 +113,22 @@ expr_to_algebra(Expr) when is_tuple(Expr) ->
 expr_to_algebra(Other) ->
     do_expr_to_algebra(Other).
 
-do_expr_to_algebra({string, Meta, _Value}) ->
-    string_to_algebra(erlfmt_scan:get_anno(text, Meta));
+do_expr_to_algebra({string, Meta, Value}) ->
+    case erlfmt_scan:get_anno(text, Meta, undefined) of
+        undefined ->
+            string_to_algebra(Value);
+        Text ->
+            string_to_algebra(Text)
+    end;
 do_expr_to_algebra({char, #{text := "$ "}, $\s}) ->
     <<"$\\s">>;
-do_expr_to_algebra({Atomic, Meta, _Value}) when ?IS_ATOMIC(Atomic) ->
-    string(erlfmt_scan:get_anno(text, Meta));
+do_expr_to_algebra({Atomic, Meta, Value}) when ?IS_ATOMIC(Atomic) ->
+    case erlfmt_scan:get_anno(text, Meta, undefined) of
+        undefined ->
+            string(io_lib:write(Value));
+        Text ->
+            string(Text)
+    end;
 do_expr_to_algebra({concat, _Meta, Values}) ->
     concat_to_algebra(Values);
 do_expr_to_algebra({op, _Meta, Op, Expr}) ->
