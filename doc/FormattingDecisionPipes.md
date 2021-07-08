@@ -50,7 +50,7 @@ WhatsApp
   - Pipes as a Suffix: x
   - Pipes as a Prefix: 50x
 
-## Status and Plan
+## History
 
-Currently `erlfmt` formats pipes as a suffix, because this is consistent with other binary operators.
-We propose to update this implementation and move pipes to be a prefix.
+Previously `erlfmt` formatted pipes as a suffix, because this is consistent with other binary operators.
+We proposed and updated this implementation and move pipes to be a prefix.
