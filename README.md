@@ -407,7 +407,7 @@ The [release process](./RELEASE.md) requires a few steps, updating the [CHANGELO
 
 ### Decision Documents
 
-[Formatting Decisions](https://github.com/WhatsApp/erlfmt/blob/master/doc/Readme.md) documents are intended to explain our reasoning for making certain formatting decisions.
+[Formatting Decisions](https://github.com/WhatsApp/erlfmt/blob/main/doc/Readme.md) documents are intended to explain our reasoning for making certain formatting decisions.
 
 ### License
 

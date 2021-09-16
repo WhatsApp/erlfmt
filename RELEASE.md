@@ -2,7 +2,7 @@
 
 The release process requires a few steps.
 
-1. Update the [CHANGELOG.md](https://github.com/WhatsApp/erlfmt/blob/master/CHANGELOG.md) file.
+1. Update the [CHANGELOG.md](https://github.com/WhatsApp/erlfmt/blob/main/CHANGELOG.md) file.
 ```
     ### v<major>.<minor>.<bugfix>
 

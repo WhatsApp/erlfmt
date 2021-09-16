@@ -5,7 +5,7 @@ possible.
 ## Pull Requests
 We actively welcome your pull requests.
 
-1. Fork the repo and create your branch from `master`.
+1. Fork the repo and create your branch from `main`.
 2. Add tests for your code using [Common Test](https://erlang.org/doc/apps/common_test/basics_chapter.html).
 3. If you've changed APIs, update the documentation.
 4. Ensure the test suite passes using `rebar3 ct`.
