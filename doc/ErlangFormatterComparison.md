@@ -181,7 +181,7 @@ The trailing comment is moved to the line above and the above comment is moved t
 Other Erlang formatters have several configurable options, which can adjust the format.
 
 `erlfmt` is very opinionated and only a single option that will change the format, `print-width` the maximum line length, which has a default of 100.
-See the reasoning behind this decision [here](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionDefaultWidth.md).
+See the reasoning behind this decision [here](https://github.com/WhatsApp/erlfmt/blob/main/doc/FormattingDecisionDefaultWidth.md).
 
 ## Preserving Representation
 
@@ -328,7 +328,7 @@ x() -> Foo = [short, list].
 Adding a comment to the top of the file `%%% % @format` and running `erlfmt` with the `--require-pragma` option, will result in only files that have this comment will be formatted.
 
 Adding a comment `%% erlfmt-ignore` above a top level expression, will skip over this single expression and continue to format the rest of the file.
-[Here](https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionIgnore.md) you can see the reasoning behind including this option.
+[Here](https://github.com/WhatsApp/erlfmt/blob/main/doc/FormattingDecisionIgnore.md) you can see the reasoning behind including this option.
 
 ## Speed
 

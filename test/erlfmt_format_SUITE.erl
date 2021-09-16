@@ -810,7 +810,7 @@ binary_operator_more(Config) when is_list(Config) ->
 
 %% These formattings might not be exactly what we want in some cases,
 %% see our reasoning for why we stuck to this format here:
-%% https://github.com/WhatsApp/erlfmt/blob/master/doc/FormattingDecisionAssociative.md
+%% https://github.com/WhatsApp/erlfmt/blob/main/doc/FormattingDecisionAssociative.md
 binary_operator_equal(Config) when is_list(Config) ->
     ?assertFormat(
         "A = B = c(\n"
