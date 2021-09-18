@@ -32,6 +32,7 @@
 %% Test cases
 -export([
     literals/1,
+    dotted/1,
     string_concat/1,
     unary_operator/1,
     binary_operator/1,
@@ -95,6 +96,7 @@ groups() ->
     [
         {expressions, [parallel], [
             literals,
+            dotted,
             string_concat,
             {group, containers},
             {group, operators},
@@ -209,6 +211,11 @@ literals(Config) when is_list(Config) ->
     ?assertSame("Foo\n"),
     ?assertSame("_Bar\n"),
     ?assertFormat("$ ", "$\\s\n").
+
+dotted(Config) when is_list(Config) ->
+    ?assertSame("<0.1.2>\n"),
+    ?assertSame("#Ref<0.1.2.3>\n"),
+    ?assertSame("#Port<0.1>\n").
 
 string_concat(Config) when is_list(Config) ->
     ?assertSame("\"foo\" \"bar\"\n"),

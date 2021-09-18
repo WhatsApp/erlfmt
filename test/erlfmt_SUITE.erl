@@ -49,6 +49,7 @@
     types/1,
     annos/1,
     shebang/1,
+    dotted/1,
     snapshot_simple_comments/1,
     snapshot_big_binary/1,
     snapshot_attributes/1,
@@ -134,7 +135,8 @@ groups() ->
             annos,
             shebang,
             do_not_crash_on_bad_record,
-            raw_string_anno
+            raw_string_anno,
+            dotted
         ]},
         {snapshot_tests, [parallel], [
             snapshot_simple_comments,
@@ -948,6 +950,20 @@ shebang(Config) when is_list(Config) ->
             "#! /usr/bin/env escript\n"
             "main(_) -> ok."
         )
+    ).
+
+dotted(Config) when is_list(Config) ->
+    ?assertMatch(
+        {pid, _, [{float, _, _}, {integer, _, _}]},
+        parse_expr("<0.1.2>")
+    ),
+    ?assertMatch(
+        {dotted_special, _, {var, _, 'Ref'}, [{float, _, _}, {float, _, _}]},
+        parse_expr("#Ref<0.1.2.3>")
+    ),
+    ?assertMatch(
+        {dotted_special, _, {var, _, 'Port'}, [{float, _, _}]},
+        parse_expr("#Port<0.1>")
     ).
 
 parse_expr(String) ->
