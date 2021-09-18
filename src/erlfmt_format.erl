@@ -119,6 +119,10 @@ do_expr_to_algebra({char, #{text := "$ "}, $\s}) ->
     <<"$\\s">>;
 do_expr_to_algebra({Atomic, Meta, _Value}) when ?IS_ATOMIC(Atomic) ->
     string(erlfmt_scan:get_anno(text, Meta));
+do_expr_to_algebra({pid, _Meta, Dotted}) ->
+    concat(<<"<">>, dotted_to_algebra(Dotted), <<">">>);
+do_expr_to_algebra({dotted_special, _Meta, Name, Dotted}) ->
+    concat([<<"#">>, expr_to_algebra(Name), <<"<">>, dotted_to_algebra(Dotted), <<">">>]);
 do_expr_to_algebra({concat, _Meta, Values}) ->
     concat_to_algebra(Values);
 do_expr_to_algebra({op, _Meta, Op, Expr}) ->
@@ -276,6 +280,11 @@ concat_to_algebra([Value1, Value2 | _] = Values) ->
         false ->
             group(fold_doc(fun erlfmt_algebra:break/2, ValuesD))
     end.
+
+dotted_to_algebra([LastSegment]) ->
+    expr_to_algebra(LastSegment);
+dotted_to_algebra([Segment | Rest]) ->
+    concat(expr_to_algebra(Segment), <<".">>, dotted_to_algebra(Rest)).
 
 unary_op_to_algebra(Op, Expr) ->
     OpD = string(atom_to_binary(Op, utf8)),

@@ -21,6 +21,7 @@ attribute attr_val
 function function_clauses function_clause
 clause_guard clause_body
 expr expr_max expr_max_remote
+pid dotted_special dotted_seq
 pat_expr pat_expr_max map_pat_expr record_pat_expr
 pat_argument_list pat_exprs
 list list_exprs
@@ -230,6 +231,8 @@ expr_max_remote -> expr_max : '$1'.
 
 expr_max -> macro_call_expr : '$1'.
 expr_max -> macro_record_or_concatable : '$1'.
+expr_max -> pid : '$1'.
+expr_max -> dotted_special : '$1'.
 expr_max -> var : '$1'.
 expr_max -> atomic : '$1'.
 expr_max -> list : '$1'.
@@ -256,6 +259,8 @@ pat_expr -> record_pat_expr : '$1'.
 pat_expr -> pat_expr_max : '$1'.
 
 pat_expr_max -> macro_call_pat : '$1'.
+pat_expr_max -> pid : '$1'.
+pat_expr_max -> dotted_special : '$1'.
 pat_expr_max -> var : '$1'.
 pat_expr_max -> atomic : '$1'.
 pat_expr_max -> list : '$1'.
@@ -308,6 +313,16 @@ bit_type -> atom             : '$1'.
 bit_type -> atom ':' integer : {remote, ?range_anno('$1', '$3'), '$1', '$3'}.
 
 bit_size_expr -> expr_max : '$1'.
+
+pid -> '<' dotted_seq '>' : {pid, ?range_anno('$1', '$3'), '$2'}.
+
+dotted_special -> '#' var '<' dotted_seq '>' : {dotted_special, ?range_anno('$1', '$5'), '$2', '$4'}.
+
+%% The scanner will read 0.1.0 as float '.' integer, we need to handle both
+dotted_seq -> integer : ['$1'].
+dotted_seq -> float : ['$1'].
+dotted_seq -> integer '.' dotted_seq : ['$1' | '$3'].
+dotted_seq -> float '.' dotted_seq : ['$1' | '$3'].
 
 list_comprehension -> '[' expr '||' lc_exprs ']' :
     {lc, ?range_anno('$1', '$5'), '$2', '$4'}.
