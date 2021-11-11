@@ -172,7 +172,7 @@ format_file(FileName, Config) ->
         [{pragma, Pragma}] ++
             [{print_width, PrintWidth} || PrintWidth =/= undefined] ++
             [verbose || Verbose] ++
-            [{range, Range} || range =/= undefined],
+            [{range, Range} || Range =/= undefined],
     Result =
         case {Range, Out, FileName} of
             {undefined, check, stdin} ->
