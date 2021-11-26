@@ -34,7 +34,9 @@
 
 -export_type([error_info/0, config/0, pragma/0]).
 
--type error_info() :: {file:name_all(), erl_anno:location(), module(), Reason :: any()}.
+-type error_info() :: {
+    file:name_all(), erl_anno:location() | erlfmt_scan:anno(), module(), Reason :: any()
+}.
 -type pragma() :: require | insert | delete | ignore.
 -type config() :: [{pragma, pragma()} | {print_width, pos_integer()} | verbose].
 
