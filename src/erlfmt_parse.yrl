@@ -1034,7 +1034,7 @@ Erlang code.
 
 %% XXX. To be refined.
 -type error_description() :: term().
--type error_info() :: {erl_anno:line(), module(), error_description()}.
+-type error_info() :: {erl_anno:location() | erlfmt_scan:anno(), module(), error_description()}.
 -type token() :: erlfmt_scan:token().
 
 %% mkop(Op, Arg) -> {op,Anno,Op,Arg}.
