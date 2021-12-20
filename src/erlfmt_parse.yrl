@@ -640,10 +640,6 @@ Erlang code.
 
 -export([parse_node/1]).
 
-%% The following directive is needed for (significantly) faster compilation
-%% of the generated .erl file by the HiPE compiler.  Please do not remove.
--compile([{hipe, [{regalloc, linear_scan}]}]).
-
 -export_type([
     abstract_expr/0,
     abstract_node/0,
