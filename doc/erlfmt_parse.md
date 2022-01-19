@@ -32,7 +32,7 @@ In `erlfmt_parse` the following AST nodes have different definitions:
   element is always an `args` node.
 
 * New `{guard_or, Anno, GuardAndList}` and `{guard_and, Anno, Exprs}` nodes
-  are introduced to support annotating guard sequences, insted of a plain
+  are introduced to support annotating guard sequences, instead of a plain
   nested list of lists structure.
 
 * The `function` node has a different AST representation:
@@ -84,7 +84,7 @@ In `erlfmt_parse` the following AST nodes have different definitions:
 * The special `catch` node is encoded as regular unary operator node.
 
 * Lists are represented as a `list` node instead of a chain of `cons` and `nil` nodes,
-  similar to the `tuple` node. The last elemenent of the list can be a `cons` node
+  similar to the `tuple` node. The last element of the list can be a `cons` node
   representing explicit consing syntax.
 
 * Representation for types is in general the same as for corresponding values.

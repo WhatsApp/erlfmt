@@ -51,7 +51,7 @@
   - comment `@format` pragma to avoid warnings from edoc
   - fix place of comments for list cons #282
 
-### Enchancements
+### Enhancements
 
   - added `delete-pragma` command line flag #280
 
