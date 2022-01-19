@@ -270,7 +270,7 @@ range_check_partial(Config) when is_list(Config) ->
     %% Even when we ask to format a proper range,
     %% the whole file must be returned.
     %% Since the file is already formatted in the first place,
-    %% we reuse stdio_test which compare agains original file.
+    %% we reuse stdio_test which compare against original file.
     stdio_test("attributes.erl", "--range=1,2", Config).
 
 %%--------------------------------------------------------------------

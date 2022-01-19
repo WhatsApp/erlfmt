@@ -73,7 +73,7 @@ format_file(FileName, Options) ->
             % Whole file (default).
             format_file_full(FileName, Options);
         {Start, End} ->
-            % Remove 'range' property: when applicable we pass explictly the range instead.
+            % Remove 'range' property: when applicable we pass explicitly the range instead.
             % Also, match specifition of format_string_range.
             Options2 = proplists:delete(range, Options),
             format_file_range(FileName, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2)
@@ -117,7 +117,7 @@ format_string(String, Options) ->
             % Whole file (default).
             format_string_full(String, Options);
         {Start, End} ->
-            % Remove 'range' property: when applicable we pass explictly the range instead.
+            % Remove 'range' property: when applicable we pass explicitly the range instead.
             % Also, match specifition of format_string_range.
             Options2 = proplists:delete(range, Options),
             format_string_range(String, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2)

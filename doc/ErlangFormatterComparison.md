@@ -267,7 +267,7 @@ x() ->
     ].
 ```
 
-`rebar3_format` loses all new lines and moves the comments out of the list, since the list can fit on a single line, completely loosing the information about grouping.
+`rebar3_format` loses all new lines and moves the comments out of the list, since the list can fit on a single line, completely losing the information about grouping.
 
 ```erlang
 -export([foo/1, foo/2, bar/1, baz/5]).    %% public functions

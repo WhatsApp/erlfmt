@@ -49,11 +49,11 @@ function count() {
 
 echo "# Analysis: Number of percentages on module documentation"
 echo "We have conducted a deeper analysis of the number of percentages used for module documentation. This is meant to guide our recommendation of the \`%%% % @format\` module pragma."
-echo "From the empirical results below, it shows that while there is no explicit concensus, most projects prefer using \`%%%\` for module documentation, except for OTP which strongly favors \`%%\`."
+echo "From the empirical results below, it shows that while there is no explicit consensus, most projects prefer using \`%%%\` for module documentation, except for OTP which strongly favors \`%%\`."
 echo "## Methodology"
 echo "We first isolated the comments located above the \`-module\` attribute and counted the number of blocks (as opposed to single lines)"
 echo "for each number of percentage, this avoids skewing the results towards lengthy multi-line comment blocks. We also removed all \`%% @format\` headings to give a better representation of usage."
-echo "We have then outputed as a percentage of total blocks the number of percentages used by each repository."
+echo "We have then outputted as a percentage of total blocks the number of percentages used by each repository."
 echo "## Results"
 
 for repo in ${!repos[*]}; do

@@ -1050,7 +1050,7 @@ snapshot_formatted(Module, Config) ->
     snapshot_match(Module ++ ".formatted", Module, Config, []).
 
 snapshot_match(FormattedModule, Module, Config, Options) ->
-    % Format `Module` and check it matchs `FormattedModule`.
+    % Format `Module` and check it matches `FormattedModule`.
     DataDir = ?config(data_dir, Config),
     {ok, FormattedBin} = file:read_file(filename:join([DataDir, FormattedModule])),
     {ok, OriginalBin} = file:read_file(filename:join([DataDir, Module])),
@@ -1091,7 +1091,7 @@ range_format_exact([{Start, End} | Options], Path) ->
 
 snapshot_range_whole_comments(Config) ->
     % When range enclose whole file,
-    % the whole file must be formated!
+    % the whole file must be formatted!
     Module = "comments.erl",
     DataDir = ?config(data_dir, Config),
     {ok, FormattedBin} = file:read_file(filename:join([DataDir, Module ++ ".formatted"])),
