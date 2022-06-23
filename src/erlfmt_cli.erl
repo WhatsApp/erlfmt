@@ -254,21 +254,26 @@ check_file(FileName, Options) ->
     end.
 
 check_stdin(Options) ->
-    case read_stdin([]) of
-        {ok, OriginalBin} ->
-            Original = unicode:characters_to_list(OriginalBin),
-            case erlfmt:format_string(Original, Options) of
-                {ok, Formatted, FormatWarnings} ->
-                    case Formatted of
-                        Original -> {ok, Formatted, FormatWarnings};
-                        _ -> {warn, FormatWarnings}
-                    end;
-                Other ->
-                    Other
-            end;
-        {error, Reason} ->
-            {error, Reason}
-    end.
+    CurrentOpts = io:getopts(standard_io),
+    io:setopts(standard_io, [binary, {encoding, unicode}]),
+    Result =
+        case read_stdin([]) of
+            {ok, OriginalBin} ->
+                Original = unicode:characters_to_list(OriginalBin),
+                case erlfmt:format_string(Original, Options) of
+                    {ok, Formatted, FormatWarnings} ->
+                        case Formatted of
+                            Original -> {ok, Formatted, FormatWarnings};
+                            _ -> {warn, FormatWarnings}
+                        end;
+                    Other ->
+                        Other
+                end;
+            {error, Reason} ->
+                {error, Reason}
+        end,
+    io:setopts(standard_io, CurrentOpts),
+    Result.
 
 -dialyzer({no_improper_lists, [read_stdin/1]}).
 
