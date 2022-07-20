@@ -32,11 +32,12 @@
     format_string_range/4
 ]).
 
--export_type([error_info/0, config/0, pragma/0]).
+-export_type([error_info/0, config_option/0, config/0, pragma/0]).
 
 -type error_info() :: {file:name_all(), erl_anno:location(), module(), Reason :: any()}.
 -type pragma() :: require | insert | delete | ignore.
--type config() :: [{pragma, pragma()} | {print_width, pos_integer()} | verbose].
+-type config_option() :: {pragma, pragma()} | {print_width, pos_integer()} | verbose.
+-type config() :: [config_option()].
 
 -define(DEFAULT_WIDTH, 100).
 
@@ -108,7 +109,7 @@ format_file_full(FileName, Options) ->
         {error, Error} -> {error, Error}
     end.
 
--spec format_string(string(), config()) ->
+-spec format_string(string(), [config_option() | {filename, string()}]) ->
     {ok, string(), [error_info()]} | {skip, string()} | {error, error_info()}.
 format_string(String, Options) ->
     Range = proplists:get_value(range, Options),
@@ -123,13 +124,14 @@ format_string(String, Options) ->
             format_string_range(String, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2)
     end.
 
--spec format_string_full(string(), config()) ->
+-spec format_string_full(string(), [config_option() | {filename, string()}]) ->
     {ok, string(), [error_info()]} | {skip, string()} | {error, error_info()}.
 format_string_full(String, Options) ->
+    Filename = proplists:get_value(filename, Options, "nofile"),
     PrintWidth = proplists:get_value(print_width, Options, ?DEFAULT_WIDTH),
     Pragma = proplists:get_value(pragma, Options, ignore),
     try
-        case read_nodes_string("nofile", String, Pragma) of
+        case read_nodes_string(Filename, String, Pragma) of
             {ok, Nodes0, Warnings} ->
                 Nodes =
                     case Pragma of
@@ -138,10 +140,10 @@ format_string_full(String, Options) ->
                         _ -> Nodes0
                     end,
                 Formatted = format_nodes(Nodes, PrintWidth),
-                verify_nodes("nofile", Nodes, Formatted),
+                verify_nodes(Filename, Nodes, Formatted),
                 VerboseWarnings =
                     case proplists:get_bool(verbose, Options) of
-                        true -> check_line_lengths("nofile", PrintWidth, Formatted);
+                        true -> check_line_lengths(Filename, PrintWidth, Formatted);
                         false -> []
                     end,
                 {ok, unicode:characters_to_list(Formatted), Warnings ++ VerboseWarnings};
@@ -285,13 +287,14 @@ format_file_range(FileName, StartLocation, EndLocation, Options) ->
     string(),
     erlfmt_scan:location(),
     erlfmt_scan:location(),
-    [{print_width, pos_integer()}]
+    [{print_width, pos_integer()} | {filename, string()}]
 ) ->
     {ok, string(), [error_info()]}
     | {skip, string()}
     | {error, error_info()}.
 format_string_range(Original, StartLocation, EndLocation, Options) ->
-    format_string_range("nofile", Original, StartLocation, EndLocation, Options).
+    Filename = proplists:get_value(filename, Options, "nofile"),
+    format_string_range(Filename, Original, StartLocation, EndLocation, Options).
 format_string_range(FileName, Original, StartLocation, EndLocation, Options) ->
     Pragma = proplists:get_value(pragma, Options, ignore),
     case read_nodes_string(FileName, Original, Pragma) of
