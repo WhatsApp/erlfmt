@@ -138,7 +138,9 @@ do_expr_to_algebra({bin_element, _Meta, Expr, Size, Types}) ->
 do_expr_to_algebra({map, Meta, Values}) ->
     container(Meta, Values, <<"#{">>, <<"}">>);
 do_expr_to_algebra({map, Meta, Expr, Values}) ->
-    concat(expr_to_algebra(Expr), container(Meta, Values, <<"#{">>, <<"}">>));
+    concat(
+        wrap_if_integer(expr_to_algebra(Expr), Expr), container(Meta, Values, <<"#{">>, <<"}">>)
+    );
 do_expr_to_algebra({map_field_assoc, _Meta, Key, Value}) ->
     field_to_algebra(<<"=>">>, Key, Value);
 do_expr_to_algebra({map_field_exact, _Meta, Key, Value}) ->
@@ -147,7 +149,7 @@ do_expr_to_algebra({record, Meta, Name, Values}) ->
     concat(record_name_to_algebra(Meta, Name), container(Meta, Values, <<"{">>, <<"}">>));
 do_expr_to_algebra({record, Meta, Expr, Name, Values}) ->
     concat(
-        expr_to_algebra(Expr),
+        wrap_if_integer(expr_to_algebra(Expr), Expr),
         record_name_to_algebra(Meta, Name),
         container(Meta, Values, <<"{">>, <<"}">>)
     );
@@ -158,7 +160,7 @@ do_expr_to_algebra({record_index, Meta, Name, Key}) ->
 do_expr_to_algebra({record_field, _Meta, Name}) ->
     expr_to_algebra(Name);
 do_expr_to_algebra({record_field, Meta, Expr, Name, Key}) ->
-    concat(expr_to_algebra(Expr), record_access_to_algebra(Meta, Name, Key));
+    concat(wrap_if_integer(expr_to_algebra(Expr), Expr), record_access_to_algebra(Meta, Name, Key));
 do_expr_to_algebra({record_name, Meta, Name}) ->
     record_name_to_algebra(Meta, Name);
 do_expr_to_algebra({lc, _Meta, Expr, LcExprs}) ->
@@ -844,6 +846,17 @@ is_next_break_fits(Expr) ->
 has_no_comments_or_parens(Meta) ->
     {Pre, Post} = comments(Meta),
     Pre =:= [] andalso Post =:= [] andalso not erlfmt_scan:get_anno(parens, Meta, false).
+
+%% Workaround for misparse if record/map base is a raw integer
+%% e.g. 2#{} is illigal, because it tries to scan the Base#Int syntax
+wrap_if_integer(Doc, {integer, Meta, _}) ->
+    case erlfmt_scan:get_anno(parens, Meta, false) of
+        %% This will be wrapped by the generic paren-wrapping mechanism
+        true -> Doc;
+        false -> concat(<<"(">>, Doc, <<")">>)
+    end;
+wrap_if_integer(Doc, _Other) ->
+    Doc.
 
 maybe_wrap_in_parens(Meta, Doc) ->
     case erlfmt_scan:get_anno(parens, Meta, false) of
