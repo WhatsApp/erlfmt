@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.1.0 (29.07.2022)
+
+### Enhancements
+
+  - Handle try clauses in define
+  - Support formatting PIDs, Refs, Ports
+  - Handle ;-separated guards in macro expressions
+
+### Fixes
+
+  - Ensure proper IO opts when reading from stdin
+  - Handle Int#{} edge case without crashing
+
 ## v1.0.0 (29.06.2021)
 
 1.0.0 Release. No new changes.
