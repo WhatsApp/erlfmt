@@ -13,7 +13,6 @@
 %% limitations under the License.
 -module(erlfmt_format_SUITE).
 
--include_lib("common_test/include/ct.hrl").
 -include_lib("stdlib/include/assert.hrl").
 
 %% Test server callbacks
@@ -67,7 +66,8 @@
     comment/1,
     force_break/1,
     binary_operator_more/1,
-    binary_operator_equal/1
+    binary_operator_equal/1,
+    update_edgecase/1
 ]).
 
 suite() ->
@@ -133,7 +133,8 @@ groups() ->
             map_create,
             map_update,
             {group, records},
-            force_break
+            force_break,
+            update_edgecase
         ]},
         {records, [parallel], [
             record_create,
@@ -1977,6 +1978,11 @@ force_break(Config) when is_list(Config) ->
         "foo(2) ->\n"
         "    y.\n"
     ).
+
+update_edgecase(Config) when is_list(Config) ->
+    ?assertFormat("2 #{3 := 4}\n", "(2)#{3 := 4}\n"),
+    ?assertFormat("2 #record.field\n", "(2)#record.field\n"),
+    ?assertFormat("2 #record{}\n", "(2)#record{}\n").
 
 list_comprehension(Config) when is_list(Config) ->
     ?assertFormat("[X||X<-List]", "[X || X <- List]\n"),
