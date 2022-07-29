@@ -3062,7 +3062,8 @@ macro(Config) when is_list(Config) ->
         "    Y\n"
         ")\n",
         23
-    ).
+    ),
+    ?assertSame("?macro(Expr when Guard1; Guard2)\n").
 
 function(Config) when is_list(Config) ->
     ?assertSame("f() -> ok.\n"),

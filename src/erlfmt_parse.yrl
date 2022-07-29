@@ -44,7 +44,7 @@ type types anno_types type_call type_argument_list
 type_sig type_sigs fun_type binary_type bin_element_type
 type_spec spec_fun
 macro_call_expr macro_string macro_call_pat macro_call_type macro_call_none
-macro_expr macro_exprs
+macro_expr macro_exprs macro_expr_guard
 macro_name macro_def_expr macro_def_expr_body macro_def_type macro_def_clause.
 
 Terminals
@@ -539,7 +539,11 @@ macro_string -> '?' '?' atom_or_var :
     {macro_string, ?range_anno('$1', '$3'), '$3'}.
 
 macro_expr -> expr : '$1'.
-macro_expr -> expr 'when' expr : ?mkop2('$1', '$2', '$3').
+macro_expr -> expr 'when' macro_expr_guard : ?mkop2('$1', '$2', '$3').
+
+macro_expr_guard -> expr : {guard_or, ?anno('$1'), ['$1']}.
+macro_expr_guard -> expr ';' macro_expr_guard :
+    {guard_or, ?range_anno('$1', '$3'), ['$1' | element(3, '$3')]}.
 
 argument_list -> '(' ')' : {[], ?range_anno('$1', '$2')}.
 argument_list -> '(' exprs ')' : {'$2', ?range_anno('$1', '$3')}.
