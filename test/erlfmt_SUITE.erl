@@ -366,7 +366,9 @@ macro_call_exprs(Config) when is_list(Config) ->
         parse_expr("??FOO")
     ),
     ?assertMatch(
-        {macro_call, _, {atom, _, foo}, [{op, _, 'when', {atom, _, x}, {atom, _, true}}]},
+        {macro_call, _, {atom, _, foo}, [
+            {op, _, 'when', {atom, _, x}, {guard_or, _, [{atom, _, true}]}}
+        ]},
         parse_expr("?foo(x when true)")
     ),
     ?assertMatch(
