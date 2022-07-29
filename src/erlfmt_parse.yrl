@@ -225,7 +225,7 @@ expr -> function_call : '$1'.
 expr -> record_expr : '$1'.
 expr -> expr_max_remote : '$1'.
 
-expr_max_remote -> expr_max ':' expr_max : {remote,?range_anno('$1', '$3'),'$1','$3'}.
+expr_max_remote -> expr_max ':' expr_max_remote : {remote,?range_anno('$1', '$3'),'$1','$3'}.
 expr_max_remote -> expr_max : '$1'.
 
 expr_max -> macro_call_expr : '$1'.
