@@ -109,7 +109,9 @@ format_file_full(FileName, Options) ->
         {error, Error} -> {error, Error}
     end.
 
--spec format_string(string(), [config_option() | {filename, string()}]) ->
+-spec format_string(string(), [
+    config_option() | {filename, string()} | {range, erlfmt_scan:location()}
+]) ->
     {ok, string(), [error_info()]} | {skip, string()} | {error, error_info()}.
 format_string(String, Options) ->
     Range = proplists:get_value(range, Options),
