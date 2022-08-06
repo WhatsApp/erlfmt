@@ -34,14 +34,14 @@ what_is(Erlang) ->
 
 ## Table of Contents
 
-  - [Comparison with other Erlang formatters](#comparison-with-other-erlang-formatters)
-  - [Usage](#usage)
-  - [Line length](#line-length)
-  - [Design principles](#design-principles)
-  - [Manual interventions](#manual-interventions)
-  - [Respecting original format](#respecting-original-format)
-  - [Ignoring Formatting](#ignoring-formatting)
-  - [Join the erlfmt community](#join-the-erlfmt-community)
+- [Comparison with other Erlang formatters](#comparison-with-other-erlang-formatters)
+- [Usage](#usage)
+- [Line length](#line-length)
+- [Design principles](#design-principles)
+- [Manual interventions](#manual-interventions)
+- [Respecting original format](#respecting-original-format)
+- [Ignoring Formatting](#ignoring-formatting)
+- [Join the erlfmt community](#join-the-erlfmt-community)
 
 ## Comparison with other Erlang formatters
 
@@ -78,14 +78,14 @@ can be configured with defaults in your `rebar.config`, for example:
 
 Now you can format all the files in your project by running:
 
-```
-$ rebar3 fmt
+```sh
+rebar3 fmt
 ```
 
 And you can add the following command in your CI to ensure your Erlang is formatted:
 
-```
-$ rebar3 fmt --check
+```sh
+rebar3 fmt --check
 ```
 
 For more usage instructions, see [RebarUsage](./doc/RebarUsage.md)
@@ -96,14 +96,14 @@ Alternatively, you can build a standalone and portable escript and use erlfmt
 without rebar (it still requires Erlang to be installed on the target system).
 
 ```sh
-$ rebar3 as release escriptize
-$ _build/release/bin/erlfmt -h
+rebar3 as release escriptize
+_build/release/bin/erlfmt -h
 ```
 
 You can then run it from the command line:
 
 ```sh
-$ erlfmt -w './otp/lib/*/{src,include}/*.{erl,hrl}'
+erlfmt -w './otp/lib/*/{src,include}/*.{erl,hrl}'
 ```
 
 ### Requirements
@@ -112,9 +112,9 @@ erlfmt requires Erlang/OTP 21+ and works on all platforms.
 
 ### Integrations
 
- - Visual Studio Code's [Erlang Formatter](https://marketplace.visualstudio.com/items?itemName=szTheory.erlang-formatter) extension.
- - How to integrate with [doom emacs](https://github.com/WhatsApp/erlfmt/issues/46#issuecomment-655996639)
- - Use `erlfmt` through [`rebar3_format`](https://github.com/AdRoll/rebar3_format/blob/master/README.md#erlfmt)
+- Visual Studio Code's [Erlang Formatter](https://marketplace.visualstudio.com/items?itemName=szTheory.erlang-formatter) extension.
+- How to integrate with [doom emacs](https://github.com/WhatsApp/erlfmt/issues/46#issuecomment-655996639)
+- Use `erlfmt` through [`rebar3_format`](https://github.com/AdRoll/rebar3_format/blob/master/README.md#erlfmt)
 
 Add your integration here, by making a pull request.
 
@@ -241,8 +241,8 @@ inspect the code manually to correct similar sub-par layouts.
 
 The formatter keeps the original decisions in two key places
 
-  * when choosing between a "collapsed", "semi-expanded", and an "expanded" layout for containers
-  * when choosing between single-line and multi-line clauses.
+- when choosing between a "collapsed", "semi-expanded", and an "expanded" layout for containers
+- when choosing between single-line and multi-line clauses.
 
 ### In containers
 
@@ -265,6 +265,7 @@ will be preserved, even though it could fit on a single line.
 
 Similarly, if there's a break between any elements, the container will be printed
 in the "expanded" format:
+
 ```erlang formatted expanded
 [
     Foo,
@@ -398,7 +399,7 @@ $ make check
 To format erlfmt itself:
 
 ```sh
-$ make fmt
+make fmt
 ```
 
 ### Release Process

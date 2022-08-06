@@ -1,4 +1,4 @@
-## Formatting Decision: Commas in Lists
+# Formatting Decision: Commas in Lists
 
 This is a document explaining our reasoning behind the formatting decision for commas in lists.
 
@@ -30,6 +30,7 @@ We have decided to analyse the OTP and WhatsApp code base, since this was too bi
 
 We `grep` `.hrl` and `.erl` files recursively.
 This requires grepping for two patterns:
+
 1. lists with commas at the end of the line (suffixes)
 2. lists with commas at the start of the line (prefixes)
 
@@ -38,6 +39,7 @@ This requires grepping for two patterns:
 Here are examples of the suffix pattern.
 
 One that starts with a newline after the opening bracket:
+
 ```erlang
 [
   a,
@@ -45,22 +47,25 @@ One that starts with a newline after the opening bracket:
 ```
 
 One that has no newline after the opening bracket:
+
 ```erlang
 [ a/1,
 ...
 ```
 
 The Suffix pattern:
-  - starts with open bracket `(\[)`, followed by
-  - optional white space `(\s)*`, followed by
-  - optional an new line `(\n)?`, followed by
-  - optional white space `(\s)*`, again followed by
-  - characters that are not a comma, close bracket, new line or opening call or opening record or tuple `([^,\n\]\{\(])*`, followed by
-  - a comma and some optional white space before the new line `,(\s*)\n`
+
+- starts with open bracket `(\[)`, followed by
+- optional white space `(\s)*`, followed by
+- optional an new line `(\n)?`, followed by
+- optional white space `(\s)*`, again followed by
+- characters that are not a comma, close bracket, new line or opening call or opening record or tuple `([^,\n\]\{\(])*`, followed by
+- a comma and some optional white space before the new line `,(\s*)\n`
 
 So we end up with the following `pcregrep` pattern, where:
-  - `-M` allows us to match over multiple lines.
-  - `grep "\["` allows us to only count once per list
+
+- `-M` allows us to match over multiple lines.
+- `grep "\["` allows us to only count once per list
 
 ```sh
 pcregrep --include=".*\.erl" --include=".*\.hrl" -rM "(\[)(\s)*(\n)?(\s)*([^,\n\]\{\(])*,(\s*)\n" . | grep "\[" | wc -l
@@ -69,6 +74,7 @@ pcregrep --include=".*\.erl" --include=".*\.hrl" -rM "(\[)(\s)*(\n)?(\s)*([^,\n\
 ### Prefix Pattern
 
 One that ends with a newline before the closing bracket:
+
 ```erlang
 ...
   , a
@@ -76,12 +82,14 @@ One that ends with a newline before the closing bracket:
 ```
 
 One that has no newline before the closing bracket:
+
 ```erlang
 ...
 , a/1 ]
 ```
 
 The Prefix Pattern:
+
 - starts with a newline, followed by some white space and a comma. `(\n(\s)*,)`, followed by
 - characters that are not a comma, closing bracket, new line or opening bracket `([^,\n\]\[])*`, followed by
 - an optional newline `(\n)?`, followed by
@@ -89,8 +97,9 @@ The Prefix Pattern:
 - and ending with a closing bracket `(\])`
 
 So we end up with the following `pcregrep` pattern, where:
-  - `-M` allows us to match over multiple lines.
-  - `grep "\]"` allows us to only count once per list
+
+- `-M` allows us to match over multiple lines.
+- `grep "\]"` allows us to only count once per list
 
 ```sh
 pcregrep --include=".*\.erl" --include=".*\.hrl" -rM "(\n(\s)*,)([^,\n\]\[])*(\n)?(\s)*(\])" . | grep "\]" | wc -l
@@ -101,28 +110,34 @@ pcregrep --include=".*\.erl" --include=".*\.hrl" -rM "(\n(\s)*,)([^,\n\]\[])*(\n
 We found that both OTP and WhatsApp prefer commas as a suffix.
 
 OTP:
-  - Commas as a Suffix: 4533
-  - Commas as a Prefix: 20
+
+- Commas as a Suffix: 4533
+- Commas as a Prefix: 20
 
 WhatsApp:
-  - Commas as a Suffix: 50x
-  - Commas as a Prefix: x
+
+- Commas as a Suffix: 50x
+- Commas as a Prefix: x
 
 [Kazoo](https://github.com/2600hz/kazoo):
-  - Commas as a Suffix: 124
-  - Commas as a Prefix: 3116
+
+- Commas as a Suffix: 124
+- Commas as a Prefix: 3116
 
 [MongooseIM](https://github.com/esl/MongooseIM):
-  - Commas as a Suffix: 852
-  - Commas as a Prefix: 1
+
+- Commas as a Suffix: 852
+- Commas as a Prefix: 1
 
 [ejabberd](https://github.com/processone/ejabberd):
-  - Commas as a Suffix: 173
-  - Commas as a Prefix: 0
+
+- Commas as a Suffix: 173
+- Commas as a Prefix: 0
 
 [inaka repos](./clone_inaka.sh):
-  - Commas as a Suffix: 244
-  - Commas as a Prefix: 442
+
+- Commas as a Suffix: 244
+- Commas as a Prefix: 442
 
 We tried some other code bases too: [luerl](https://github.com/rvirding/luerl) and [circuitbreak](https://github.com/klarna/circuit_breaker), but these data sets where too small in comparison.
 
@@ -132,9 +147,10 @@ Another consideration is possibly alienating new comers.
 We would love to attract more talent to the erlang community.
 
 The following style guides from other languages use ending commas exclusively:
-  - [Guido van Rossum's style guide for Python](https://www.python.org/dev/peps/pep-0008/#multiline-if-statements) (consistent ending)
-  - [Google's Java style guide](https://google.github.io/styleguide/javaguide.html#s4.8.3.1-array-initializers) (consistent or interspersed endings permitted, but not leading)
-  - [Mozilla's JavaScript style guide](https://firefox-source-docs.mozilla.org/code-quality/coding-style/coding_style_js.html) (interspersed ending; old JS did not allow trailing commas)
+
+- [Guido van Rossum's style guide for Python](https://www.python.org/dev/peps/pep-0008/#multiline-if-statements) (consistent ending)
+- [Google's Java style guide](https://google.github.io/styleguide/javaguide.html#s4.8.3.1-array-initializers) (consistent or interspersed endings permitted, but not leading)
+- [Mozilla's JavaScript style guide](https://firefox-source-docs.mozilla.org/code-quality/coding-style/coding_style_js.html) (interspersed ending; old JS did not allow trailing commas)
 
 ## Decision
 

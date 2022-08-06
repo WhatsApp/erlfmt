@@ -1,4 +1,4 @@
-## Formatting Decision: Number of Spaces
+# Formatting Decision: Number of Spaces
 
 This is a document explaining our reasoning behind the formatting decision for the default number of spaces, representing an indentation.
 This document assumes that indentation is not aligned and that indentation requires a fixed number of spaces.
@@ -21,28 +21,34 @@ $ pcregrep -Mr --include=".*\.erl" --include=".*\.hrl" "\->\n\s\s\w" . | grep "\
 ## Results
 
 OTP:
-  - 2 spaces: 16366
-  - 4 spaces: 113481
+
+- 2 spaces: 16366
+- 4 spaces: 113481
 
 WhatsApp:
-  - 2 spaces: x
-  - 4 spaces: 20x
+
+- 2 spaces: x
+- 4 spaces: 20x
 
 [Kazoo](https://github.com/2600hz/kazoo):
-  - 2 spaces: 0
-  - 4 spaces: 37355
+
+- 2 spaces: 0
+- 4 spaces: 37355
 
 [MongooseIM](https://github.com/esl/MongooseIM):
-  - 2 spaces: 30
-  - 4 spaces: 13740
+
+- 2 spaces: 30
+- 4 spaces: 13740
 
 [ejabberd](https://github.com/processone/ejabberd):
-  - 2 spaces: 349
-  - 4 spaces: 9010
+
+- 2 spaces: 349
+- 4 spaces: 9010
 
 [Inaka repos](./clone_inaka.sh):
-  - 2 spaces: 2800
-  - 4 spaces: 1349
+
+- 2 spaces: 2800
+- 4 spaces: 1349
 
 ## Decision
 
