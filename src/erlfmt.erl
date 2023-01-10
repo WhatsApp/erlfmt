@@ -66,53 +66,19 @@ init(State) ->
 
 %% API entry point
 -spec format_file(file:name_all() | stdin, config()) ->
-    {ok, [unicode:chardata()], [error_info()]} | {skip, string()} | {error, error_info()}.
-format_file(FileName, Options) ->
-    Range = proplists:get_value(range, Options),
-    case Range of
-        undefined ->
-            % Whole file (default).
-            format_file_full(FileName, Options);
-        {Start, End} ->
-            % Remove 'range' property: when applicable we pass explicitly the range instead.
-            % Also, match specifition of format_string_range.
-            Options2 = proplists:delete(range, Options),
-            format_file_range(FileName, {Start, 1}, {End, ?DEFAULT_WIDTH}, Options2)
-    end.
+    {ok, string(), string(), [error_info()]} | {skip, string()} | {error, error_info()}.
+format_file(FileName, Options0) ->
+    Options = [{filename, FileName} | Options0],
 
--spec format_file_full(file:name_all() | stdin, config()) ->
-    {ok, [unicode:chardata()], [error_info()]} | {skip, string()} | {error, error_info()}.
-format_file_full(FileName, Options) ->
-    PrintWidth = proplists:get_value(print_width, Options, ?DEFAULT_WIDTH),
-    Pragma = proplists:get_value(pragma, Options, ignore),
-    try
-        case file_read_nodes(FileName, Pragma) of
-            {ok, Nodes0, Warnings} ->
-                Nodes =
-                    case Pragma of
-                        insert -> insert_pragma_nodes(Nodes0);
-                        delete -> remove_pragma_nodes(Nodes0);
-                        _ -> Nodes0
-                    end,
-                Formatted = format_nodes(Nodes, PrintWidth),
-                verify_nodes(FileName, Nodes, Formatted),
-                VerboseWarnings =
-                    case proplists:get_bool(verbose, Options) of
-                        true -> check_line_lengths(FileName, PrintWidth, Formatted);
-                        false -> []
-                    end,
-                {ok, Formatted, Warnings ++ VerboseWarnings};
-            {skip, RawString} ->
-                {skip, RawString}
-        end
-    catch
-        {error, Error} -> {error, Error}
+    case read_file_or_stdin(FileName) of
+        {error, Error} -> {error, Error};
+        Original -> format_string(Original, Options)
     end.
 
 -spec format_string(string(), [
     config_option() | {filename, string()} | {range, erlfmt_scan:location()}
 ]) ->
-    {ok, string(), [error_info()]} | {skip, string()} | {error, error_info()}.
+    {ok, string(), string(), [error_info()]} | {skip, string()} | {error, error_info()}.
 format_string(String, Options) ->
     Range = proplists:get_value(range, Options),
     case Range of
@@ -127,7 +93,7 @@ format_string(String, Options) ->
     end.
 
 -spec format_string_full(string(), [config_option() | {filename, string()}]) ->
-    {ok, string(), [error_info()]} | {skip, string()} | {error, error_info()}.
+    {ok, string(), string(), [error_info()]} | {skip, string()} | {error, error_info()}.
 format_string_full(String, Options) ->
     Filename = proplists:get_value(filename, Options, "nofile"),
     PrintWidth = proplists:get_value(print_width, Options, ?DEFAULT_WIDTH),
@@ -148,7 +114,7 @@ format_string_full(String, Options) ->
                         true -> check_line_lengths(Filename, PrintWidth, Formatted);
                         false -> []
                     end,
-                {ok, unicode:characters_to_list(Formatted), Warnings ++ VerboseWarnings};
+                {ok, String, unicode:characters_to_list(Formatted), Warnings ++ VerboseWarnings};
             {skip, RawString} ->
                 {skip, RawString}
         end
@@ -278,7 +244,7 @@ replace_pragma_comment_block(Prefix, [Head | Tail]) ->
     erlfmt_scan:location(),
     [{print_width, pos_integer()}]
 ) ->
-    {ok, string(), [error_info()]}
+    {ok, string(), string(), [error_info()]}
     | {skip, string()}
     | {error, error_info()}.
 format_file_range(FileName, StartLocation, EndLocation, Options) ->
@@ -291,7 +257,7 @@ format_file_range(FileName, StartLocation, EndLocation, Options) ->
     erlfmt_scan:location(),
     [{print_width, pos_integer()} | {filename, string()}]
 ) ->
-    {ok, string(), [error_info()]}
+    {ok, string(), string(), [error_info()]}
     | {skip, string()}
     | {error, error_info()}.
 format_string_range(Original, StartLocation, EndLocation, Options) ->
@@ -312,7 +278,7 @@ format_string_range(FileName, Original, StartLocation, EndLocation, Options) ->
             case Result of
                 {ok, Formatted, Info} ->
                     Whole = inject_range(Original, StartLine, EndLine, Formatted),
-                    {ok, Whole, Info};
+                    {ok, Original, Whole, Info};
                 Other ->
                     % Error or skip.
                     Other
@@ -384,38 +350,19 @@ format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
 -spec read_nodes(file:name_all()) ->
     {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
 read_nodes(FileName) ->
-    try
-        file_read_nodes(FileName, ignore)
-    catch
-        {error, Error} -> {error, Error}
-    end.
-
-file_read_nodes(FileName, Pragma) ->
-    read_file(FileName, fun(File) ->
-        read_nodes(erlfmt_scan:io_node(File), FileName, Pragma)
-    end).
-
-% Apply 'Action' to file.
-read_file(stdin, Action) ->
-    Action(standard_io);
-read_file(FileName, Action) ->
-    case file:open(FileName, [read, binary, {encoding, unicode}]) of
-        {ok, File} ->
-            try
-                Action(File)
-            after
-                file:close(File)
-            end;
-        {error, Reason} ->
-            throw({error, {FileName, 0, file, Reason}})
+    case read_file_or_stdin(FileName) of
+        {error, Error} -> {error, Error};
+        String -> read_nodes_string(FileName, String)
     end.
 
 % Return file as one big string (with '\n' as line separator).
 read_file_or_stdin(stdin) ->
     read_stdin([]);
 read_file_or_stdin(FileName) ->
-    {ok, Bin} = file:read_file(FileName),
-    unicode:characters_to_list(Bin).
+    case file:read_file(FileName) of
+        {ok, Bin} -> unicode:characters_to_list(Bin);
+        {error, Reason} -> {error, {FileName, 0, file, Reason}}
+    end.
 
 read_stdin(Acc) ->
     case io:get_line("") of

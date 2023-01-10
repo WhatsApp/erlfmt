@@ -73,7 +73,7 @@ check_elements([H1 | T1], [H2 | T2], I) ->
 %% Check the formatted result matches the reference.
 assert_snapshot_match(Expected, Output) ->
     case Output of
-        {ok, Formatted, _} ->
+        {ok, _, Formatted, _} ->
             assert_binary_match(Expected, Formatted);
         {skip, _} ->
             ok;

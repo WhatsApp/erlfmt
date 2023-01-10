@@ -16,7 +16,6 @@
 -include("erlfmt_scan.hrl").
 
 -export([
-    io_node/1,
     string_node/1,
     continue/1,
     last_node_string/1,
@@ -75,9 +74,6 @@
 
 -opaque state() :: #state{}.
 
--spec io_node(file:io_device()) -> node_ret().
-io_node(IO) -> node(fun io_scan_erl_node/2, IO).
-
 -spec string_node(string()) -> node_ret().
 string_node(String) -> node(fun erl_scan_tokens/2, String).
 
@@ -108,8 +104,6 @@ continue(Scan, Inner0, Loc0, []) ->
             continue(Scan, Inner, Loc, Tokens);
         {{error, Reason}, _Inner} ->
             {error, {Loc0, file, Reason}};
-        {eof, _Inner} ->
-            {eof, Loc0};
         {Other, _Inner} ->
             Other
     end;
@@ -165,9 +159,6 @@ read_rest(IO, Data) ->
         eof -> Data;
         {error, Reason} -> throw({error, Reason})
     end.
-
-io_scan_erl_node(IO, Loc) ->
-    {io:scan_erl_form(IO, "", Loc, ?ERL_SCAN_OPTS), IO}.
 
 erl_scan_tokens(String, Loc) ->
     case erl_scan:tokens([], String, Loc, ?ERL_SCAN_OPTS) of

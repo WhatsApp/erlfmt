@@ -171,7 +171,7 @@ all() ->
 end).
 
 format_string(String, Options) ->
-    {ok, Formatted, []} = erlfmt:format_string(String, Options),
+    {ok, _, Formatted, []} = erlfmt:format_string(String, Options),
     Formatted.
 
 literals(Config) when is_list(Config) ->
