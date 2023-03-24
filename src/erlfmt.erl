@@ -442,7 +442,7 @@ read_nodes(State, FileName, Pragma) ->
     read_nodes(State, FileName, Pragma, [], [], []).
 
 read_nodes({ok, Tokens, Comments, Cont}, FileName, PragmaFlag, [], Warnings0, TextAcc) ->
-    {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
+    {Node, Warnings, Ignore} = parse_node(Tokens, Comments, FileName, Cont, Warnings0, false),
     case {which_pragma_node(Node), Node} of
         {_, {shebang, _, _}} ->
             {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
@@ -459,12 +459,7 @@ read_nodes({ok, Tokens, Comments, Cont}, FileName, PragmaFlag, [], Warnings0, Te
         {noformat, _} ->
             skip_nodes(Cont, FileName, TextAcc);
         _ ->
-            read_nodes_loop(
-                erlfmt_scan:continue(Cont),
-                FileName,
-                [Node],
-                Warnings
-            )
+            read_nodes_loop(erlfmt_scan:continue(Cont), FileName, [Node], Warnings, Ignore)
     end;
 read_nodes(
     {ok, Tokens, Comments, Cont},
@@ -474,7 +469,7 @@ read_nodes(
     Warnings0,
     TextAcc
 ) ->
-    {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
+    {Node, Warnings, Ignore} = parse_node(Tokens, Comments, FileName, Cont, Warnings0, false),
     case which_pragma_node(Node) of
         nopragma when PragmaFlag =:= require; PragmaFlag =:= delete ->
             skip_nodes(Cont, FileName, TextAcc);
@@ -482,14 +477,11 @@ read_nodes(
             skip_nodes(Cont, FileName, TextAcc);
         _ ->
             read_nodes_loop(
-                erlfmt_scan:continue(Cont),
-                FileName,
-                [Node, ShebangNode],
-                Warnings
+                erlfmt_scan:continue(Cont), FileName, [Node, ShebangNode], Warnings, Ignore
             )
     end;
 read_nodes(Other, FileName, _PragmaFlag, NodeAcc, Warnings, _TextAcc) ->
-    read_nodes_loop(Other, FileName, NodeAcc, Warnings).
+    read_nodes_loop(Other, FileName, NodeAcc, Warnings, false).
 
 skip_nodes(Cont, FileName, TextAcc) ->
     {LastString, _Anno} = erlfmt_scan:last_node_string(Cont),
@@ -500,38 +492,72 @@ skip_nodes(Cont, FileName, TextAcc) ->
             throw({error, {FileName, ErrLoc, Mod, Reason}})
     end.
 
-read_nodes_loop({ok, Tokens, Comments, Cont}, FileName, Acc, Warnings0) ->
-    {Node, Warnings} = parse_node(Tokens, Comments, FileName, Cont, Warnings0),
-    read_nodes_loop(erlfmt_scan:continue(Cont), FileName, [Node | Acc], Warnings);
-read_nodes_loop({eof, _Loc}, _FileName, Acc, Warnings) ->
+read_nodes_loop({ok, Tokens, Comments, Cont}, FileName, Acc, Warnings0, Ignore0) ->
+    {Node, Warnings, Ignore} = parse_node(Tokens, Comments, FileName, Cont, Warnings0, Ignore0),
+    read_nodes_loop(erlfmt_scan:continue(Cont), FileName, [Node | Acc], Warnings, Ignore);
+read_nodes_loop({eof, _Loc}, _FileName, Acc, Warnings, _Ignore0) ->
     {ok, lists:reverse(Acc), lists:reverse(Warnings)};
-read_nodes_loop({error, {ErrLoc, Mod, Reason}, _Loc}, FileName, _Acc, _Warnings) ->
+read_nodes_loop({error, {ErrLoc, Mod, Reason}, _Loc}, FileName, _Acc, _Warnings, _Ignore0) ->
     throw({error, {FileName, ErrLoc, Mod, Reason}}).
 
-parse_node([], _Comments, _FileName, Cont, Warnings) ->
-    {node_string(Cont), Warnings};
-parse_node([{shebang, Meta, String}], Comments, _FileName, _Cont, Warnings) ->
-    {{shebang, erlfmt_recomment:put_post_comments(Meta, Comments), String}, Warnings};
-parse_node([Token | _] = Tokens, Comments, FileName, Cont, Warnings) ->
+parse_node([], _Comments, _FileName, Cont, Warnings, Ignore) ->
+    {node_string(Cont), Warnings, Ignore};
+parse_node([{shebang, Meta, String}], Comments, _FileName, _Cont, Warnings, Ignore) ->
+    Node = {shebang, erlfmt_recomment:put_post_comments(Meta, Comments), String},
+    {Node, Warnings, Ignore};
+parse_node([Token | _] = Tokens, Comments, FileName, Cont, Warnings, Ignore0) ->
     {PreComments, _} = erlfmt_recomment:take_comments(erlfmt_scan:get_line(Token), Comments),
-    case lists:any(fun contains_ignore_comment/1, PreComments) of
+    Ignore = ignore_state_pre(PreComments, FileName, Ignore0),
+    NextIgnore = ignore_state_post([], FileName, Ignore),
+    case Ignore of
         false ->
             case erlfmt_parse:parse_node(Tokens) of
                 {ok, Node} ->
-                    {erlfmt_recomment:recomment(Node, Comments), Warnings};
+                    {erlfmt_recomment:recomment(Node, Comments), Warnings, NextIgnore};
                 {error, {ErrLoc, Mod, Reason}} ->
                     Warning = {FileName, ErrLoc, Mod, Reason},
-                    {node_string(Cont), [Warning | Warnings]}
+                    {node_string(Cont), [Warning | Warnings], NextIgnore}
             end;
-        true ->
-            {node_string(Cont), Warnings}
+        _ ->
+            {node_string(Cont), Warnings, NextIgnore}
     end.
 
-contains_ignore_comment({comment, _Loc, Comments}) ->
-    lists:any(
-        fun(Comment) -> string:trim(Comment, both, "% ") == "erlfmt-ignore" end,
-        Comments
-    ).
+ignore_state_pre(PreComments, FileName, Acc) ->
+    case ignore_state(PreComments, FileName, Acc) of
+        'end' -> false;
+        Other -> Other
+    end.
+
+ignore_state_post(PostComments, FileName, Acc) ->
+    case ignore_state(PostComments, FileName, Acc) of
+        ignore -> false;
+        'end' -> false;
+        Other -> Other
+    end.
+
+ignore_state([{comment, Loc, Comments} | Rest], FileName, Acc) ->
+    ignore_state(Comments, FileName, Loc, Rest, Acc);
+ignore_state([], _FileName, Acc) ->
+    Acc.
+
+ignore_state([Line | Lines], FileName, Loc, Rest, Acc0) ->
+    Acc =
+        case string:trim(Line, both, "% ") of
+            "erlfmt-ignore" when Acc0 =:= false -> ignore;
+            "erlfmt-ignore" ->
+                throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, ignore, Acc0}}});
+            "erlfmt-ignore-begin" when Acc0 =:= false -> 'begin';
+            "erlfmt-ignore-begin" ->
+                throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'begin', Acc0}}});
+            "erlfmt-ignore-end" when Acc0 =:= 'begin' -> 'end';
+            "erlfmt-ignore-end" ->
+                throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'end', Acc0}}});
+            _ ->
+                Acc0
+        end,
+    ignore_state(Lines, FileName, Loc, Rest, Acc);
+ignore_state([], FileName, _Loc, Rest, Acc) ->
+    ignore_state(Rest, FileName, Acc).
 
 node_string(Cont) ->
     {String, Anno} = erlfmt_scan:last_node_string_trimmed(Cont),
@@ -650,7 +676,15 @@ format_error({not_equivalent, Node1, Node2, Formatted}) ->
 format_error(could_not_reparse) ->
     "formatter result invalid, could not reparse";
 format_error({long_line, Length, Width}) ->
-    io_lib:format("Line too long (~p > ~p)", [Length, Width]).
+    io_lib:format("line too long (~p > ~p)", [Length, Width]);
+format_error({invalid_ignore, ignore, 'begin'}) ->
+    "invalid erlfmt-ignore while in erlfmt-ignore-begin section";
+format_error({invalid_ignore, Same, Same}) ->
+    "duplicate ignore comment";
+format_error({invalid_ignore, 'end', false}) ->
+    "invalid erlfmt-ignore-end while outside of erlfmt-ignore-begin section";
+format_error({invalid_ignore, Given, Previous}) ->
+    io_lib:format("invalid ignore specification ~ts while in ~ts state", [Given, Previous]).
 
 verify_ranges(Nodes, StartLocation, EndLocation) ->
     ApplicableNodes = nodes_in_range(Nodes, StartLocation, EndLocation),

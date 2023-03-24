@@ -66,8 +66,13 @@
     snapshot_insert_pragma_with/1,
     snapshot_script/1,
     snapshot_ignore_format/1,
+    snapshot_ignore_format_many/1,
     snapshot_empty/1,
     format_string_unicode/1,
+    error_ignore_begin_ignore/1,
+    error_ignore_begin_ignore_begin/1,
+    error_ignore_end/1,
+    error_ignore_ignore/1,
     simple_comments_range/1,
     broken_range/1,
     snapshot_range_whole_comments/1,
@@ -155,8 +160,15 @@ groups() ->
             snapshot_insert_pragma_with,
             snapshot_script,
             snapshot_ignore_format,
+            snapshot_ignore_format_many,
             snapshot_empty,
             format_string_unicode
+        ]},
+        {error_tests, [parallel], [
+            error_ignore_begin_ignore,
+            error_ignore_begin_ignore_begin,
+            error_ignore_end,
+            error_ignore_ignore
         ]},
         {range_tests, [parallel], [
             simple_comments_range,
@@ -192,6 +204,7 @@ group(_) -> [].
 all() ->
     [
         {group, parser},
+        {group, error_tests},
         {group, snapshot_tests},
         {group, range_tests},
         {group, pragma_tests},
@@ -1053,6 +1066,8 @@ snapshot_otp_examples(Config) -> snapshot_formatted("otp_examples.erl", Config).
 
 snapshot_ignore_format(Config) -> snapshot_formatted("ignore_format.erl", Config).
 
+snapshot_ignore_format_many(Config) -> snapshot_formatted("ignore_format_many.erl", Config).
+
 snapshot_empty(Config) -> snapshot_same("empty.erl", Config).
 
 snapshot_insert_pragma_with(Config) when is_list(Config) ->
@@ -1086,6 +1101,42 @@ format_string_unicode(_) ->
     Output = erlfmt:format_string(Original, Options),
     % Already formatted: we just check encoding is still ok.
     assert_diagnostic:assert_snapshot_match(Original, Output).
+
+error_ignore_begin_ignore(_) ->
+    assert_error(
+        "% erlfmt-ignore-begin\n"
+        "% erlfmt-ignore\n"
+        "foo() -> ok.\n",
+        "nofile:1:1: invalid erlfmt-ignore while in erlfmt-ignore-begin section"
+    ).
+
+error_ignore_begin_ignore_begin(_) ->
+    assert_error(
+        "% erlfmt-ignore-begin\n"
+        "% erlfmt-ignore-begin\n"
+        "foo() -> ok.\n",
+        "nofile:1:1: duplicate ignore comment"
+    ).
+
+error_ignore_end(_) ->
+    assert_error(
+        "% erlfmt-ignore-end\n"
+        "foo() -> ok.\n",
+        "nofile:1:1: invalid erlfmt-ignore-end while outside of erlfmt-ignore-begin section"
+    ).
+
+error_ignore_ignore(_) ->
+    assert_error(
+        "% erlfmt-ignore\n"
+        "% erlfmt-ignore\n"
+        "foo() -> ok.\n",
+        "nofile:1:1: duplicate ignore comment"
+    ).
+
+assert_error(Code, Err) ->
+    {error, ErrorInfo} = erlfmt:format_string(Code, []),
+    Formatted = erlfmt:format_error_info(ErrorInfo),
+    ?assertEqual(Err, unicode:characters_to_list(Formatted)).
 
 simple_comments_range(Config) ->
     format_range(Config, "simple_comments.erl").

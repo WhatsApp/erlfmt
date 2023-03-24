@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.0 (24.03.2023)
+
+### Enhancements
+
+  - Support `erlfmt-ignore-begin`, `erlfmt-ignore-end` to skip multiple top-level forms
+
 ## v1.1.0 (29.07.2022)
 
 ### Enhancements

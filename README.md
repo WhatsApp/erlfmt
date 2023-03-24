@@ -372,6 +372,20 @@ We have introduced the `erlfmt-ignore` comment, which when placed before a top-l
 ]).
 ```
 
+You can also encose multiple top-level forms in a `erlfmt-ignore-begin`, `erlfmt-ignore-end` section.
+```erlang formatted ignore-many
+%% erlfmt-ignore-begin
+-define(DELTA_MATRIX1, [
+    [0,   0,   0,   0,   0,   0]
+]).
+-define(DELTA_MATRIX2, [
+    [0,   0,   0,   0,   0,   0]
+]).
+%% erlfmt-ignore-end
+
+-define(THIS_IS_FORMATTED, ok).
+```
+
 **Only top-level expression are supported.**
 Nested expressions are not supported, for example expressions inside functions.
 
