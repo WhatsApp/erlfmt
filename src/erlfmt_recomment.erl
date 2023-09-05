@@ -173,7 +173,7 @@ insert_nested({record, Meta, Expr0, Name, Values0}, Comments0) ->
     Values = insert_expr_container(Values0, Comments1),
     {{record, Meta, Expr, Name, Values}, []};
 insert_nested({Comprehension, Meta, Expr0, LcExprs0}, Comments0) when
-    Comprehension =:= lc; Comprehension =:= bc
+    Comprehension =:= lc; Comprehension =:= bc; Comprehension =:= mc
 ->
     {Expr, Comments1} = insert_expr(Expr0, Comments0),
     LcExprs = insert_expr_container(LcExprs0, Comments1),

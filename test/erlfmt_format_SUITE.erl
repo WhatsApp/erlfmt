@@ -46,6 +46,7 @@
     record_index/1,
     record_field/1,
     list_comprehension/1,
+    map_comprehension/1,
     binary_comprehension/1,
     call/1,
     block/1,
@@ -146,6 +147,7 @@ groups() ->
         ]},
         {comprehensions, [parallel], [
             list_comprehension,
+            map_comprehension,
             binary_comprehension
         ]}
     ].
@@ -1994,6 +1996,7 @@ update_edgecase(Config) when is_list(Config) ->
 list_comprehension(Config) when is_list(Config) ->
     ?assertFormat("[X||X<-List]", "[X || X <- List]\n"),
     ?assertSame("[X || {X, Y} <- Results, X >= Y]\n"),
+    ?assertSame("[X || X := Y <- ResultMap, X >= Y]\n"),
     ?assertSame("[X || <<X, Y>> <= Results, X >= Y]\n"),
     ?assertFormat(
         "[[Very, Long, Expression] || X <- Y, X < 10]",
@@ -2080,9 +2083,78 @@ list_comprehension(Config) when is_list(Config) ->
         "]).\n"
     ).
 
+map_comprehension(Config) when is_list(Config) ->
+    ?assertFormat("#{X=>X||X<-List}", "#{X => X || X <- List}\n"),
+    ?assertFormat("#{X=>Y||X:=Y<-Map}", "#{X => Y || X := Y <- Map}\n"),
+    ?assertSame("#{X => X || {X, Y} <- Results, X >= Y}\n"),
+    ?assertSame("#{X => X || <<X, Y>> <= Results, X >= Y}\n"),
+    ?assertFormat(
+        "#{[Very, Long, Expression] => X || X <- Y, X < 10}",
+        "#{\n"
+        "    [\n"
+        "        Very,\n"
+        "        Long,\n"
+        "        Expression\n"
+        "    ] => X\n"
+        " || X <- Y, X < 10\n"
+        "}\n",
+        25
+    ),
+    ?assertFormat(
+        "#{X => X || X <- Y, X < 10\n"
+        " % trailing comment\n"
+        "}",
+        "#{\n"
+        "    X => X\n"
+        " || X <- Y,\n"
+        "    X < 10\n"
+        "    % trailing comment\n"
+        "}\n"
+    ),
+    ?assertFormat(
+        "#{{Very, Long, Expression} => X || X <- Y, X < 10}",
+        "#{\n"
+        "    {Very, Long,\n"
+        "        Expression} => X\n"
+        " || X <- Y, X < 10\n"
+        "}\n",
+        25
+    ),
+    ?assertFormat(
+        "#{X => X || X <- LongExpr123, X < 10}",
+        "#{\n"
+        "    X => X\n"
+        " || X <- LongExpr123,\n"
+        "    X < 10\n"
+        "}\n",
+        25
+    ),
+    ?assertFormat(
+        "#{X => X || X <- VeryLongExpression, X < 10}",
+        "#{\n"
+        "    X => X\n"
+        " || X <-\n"
+        "        VeryLongExpression,\n"
+        "    X < 10\n"
+        "}\n",
+        25
+    ),
+    ?assertFormat(
+        "#{X => X || X := VeryLongExpression <- VeryLongExpression, X < 10}",
+        "#{\n"
+        "    X => X\n"
+        " || X :=\n"
+        "        VeryLongExpression <-\n"
+        "        VeryLongExpression,\n"
+        "    X < 10\n"
+        "}\n",
+        25
+    ).
+
 binary_comprehension(Config) when is_list(Config) ->
     ?assertFormat("<<X||X<-List>>", "<<X || X <- List>>\n"),
     ?assertSame("<<X || <<X, Y>> <= Results, X >= Y>>\n"),
+    ?assertSame("<<X || X := Y <- ResultMap, X >= Y>>\n"),
     ?assertSame(
         "<<\n"
         "    X\n"

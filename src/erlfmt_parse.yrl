@@ -26,6 +26,7 @@ pat_expr pat_expr_max map_pat_expr record_pat_expr
 pat_argument_list pat_exprs
 list list_exprs
 list_comprehension lc_expr lc_exprs
+map_comprehension
 binary_comprehension
 tuple
 record_expr record_name record_field_name record_tuple record_field record_fields
@@ -238,6 +239,7 @@ expr_max -> atomic : '$1'.
 expr_max -> list : '$1'.
 expr_max -> binary : '$1'.
 expr_max -> list_comprehension : '$1'.
+expr_max -> map_comprehension : '$1'.
 expr_max -> binary_comprehension : '$1'.
 expr_max -> tuple : '$1'.
 expr_max -> '(' expr ')' : set_parens('$2').
@@ -326,6 +328,8 @@ dotted_seq -> float '.' dotted_seq : ['$1' | '$3'].
 
 list_comprehension -> '[' expr '||' lc_exprs ']' :
     {lc, ?range_anno('$1', '$5'), '$2', '$4'}.
+map_comprehension -> '#' '{' expr '||' lc_exprs '}' :
+    {mc, ?range_anno('$1', '$6'), '$3', '$5'}.
 binary_comprehension -> '<<' expr_max '||' lc_exprs '>>' :
     {bc, ?range_anno('$1', '$5'), '$2', '$4'}.
 
@@ -702,6 +706,7 @@ Erlang code.
     | af_remote_call()
     | af_args(abstract_expr())
     | af_list_comprehension()
+    | af_map_comprehension()
     | af_binary_comprehension()
     | af_block()
     | af_if()
@@ -733,6 +738,9 @@ Erlang code.
 
 -type af_list_comprehension() ::
     {'lc', anno(), af_template(), af_qualifier_seq()}.
+
+-type af_map_comprehension() ::
+    {'mc', anno(), af_assoc(abstract_expr()), af_qualifier_seq()}.
 
 -type af_binary_comprehension() ::
     {'bc', anno(), af_template(), af_qualifier_seq()}.

@@ -50,6 +50,7 @@
     annos/1,
     shebang/1,
     dotted/1,
+    map_comprehension/1,
     snapshot_simple_comments/1,
     snapshot_big_binary/1,
     snapshot_attributes/1,
@@ -141,7 +142,8 @@ groups() ->
             shebang,
             do_not_crash_on_bad_record,
             raw_string_anno,
-            dotted
+            dotted,
+            map_comprehension
         ]},
         {snapshot_tests, [parallel], [
             snapshot_simple_comments,
@@ -979,6 +981,14 @@ dotted(Config) when is_list(Config) ->
     ?assertMatch(
         {dotted_special, _, {var, _, 'Port'}, [{float, _, _}]},
         parse_expr("#Port<0.1>")
+    ).
+
+map_comprehension(Config) when is_list(Config) ->
+    ?assertMatch(
+        {mc, _, {map_field_assoc, _, {var, _, 'A'}, {var, _, 'B'}}, [
+            {generate, _, {map_field_exact, _, {var, _, 'A'}, {var, _, 'B'}}, {var, _, 'M'}}
+        ]},
+        parse_expr("#{A => B || A := B <- M}")
     ).
 
 parse_expr(String) ->

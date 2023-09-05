@@ -169,6 +169,8 @@ do_expr_to_algebra({record_name, Meta, Name}) ->
     record_name_to_algebra(Meta, Name);
 do_expr_to_algebra({lc, _Meta, Expr, LcExprs}) ->
     comprehension_to_algebra(Expr, LcExprs, <<"[">>, <<"]">>);
+do_expr_to_algebra({mc, _Meta, Expr, LcExprs}) ->
+    comprehension_to_algebra(Expr, LcExprs, <<"#{">>, <<"}">>);
 do_expr_to_algebra({bc, _Meta, Expr, LcExprs}) ->
     comprehension_to_algebra(Expr, LcExprs, <<"<<">>, <<">>">>);
 do_expr_to_algebra({generate, _Meta, Left, Right}) ->
