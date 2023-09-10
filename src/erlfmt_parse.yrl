@@ -414,6 +414,8 @@ cr_clauses -> cr_clause ';' cr_clauses : ['$1' | '$3'].
 
 cr_clause -> expr clause_guard clause_body :
     {clause, ?range_anno('$1', '$3'), '$1', '$2', ?val('$3')}.
+cr_clause -> macro_call_expr :
+    '$1'.
 
 receive_expr -> 'receive' cr_clauses 'end' :
         Clauses = {clauses, ?range_anno('$1', '$3'), '$2'},
