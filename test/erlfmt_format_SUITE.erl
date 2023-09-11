@@ -2696,6 +2696,13 @@ case_expression(Config) when is_list(Config) ->
         "            {reply, ok, State}\n"
         "    end.\n",
         100
+    ),
+    ?assertFormat(
+        "case 1 of ?macro(1); ?macro(2) end",
+        "case 1 of\n"
+        "    ?macro(1);\n"
+        "    ?macro(2)\n"
+        "end\n"
     ).
 
 receive_expression(Config) when is_list(Config) ->
