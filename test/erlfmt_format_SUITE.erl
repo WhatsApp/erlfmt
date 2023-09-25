@@ -52,6 +52,7 @@
     block/1,
     fun_expression/1,
     case_expression/1,
+    maybe_expression/1,
     receive_expression/1,
     try_expression/1,
     if_expression/1,
@@ -106,6 +107,7 @@ groups() ->
             block,
             fun_expression,
             case_expression,
+            maybe_expression,
             receive_expression,
             try_expression,
             if_expression,
@@ -2704,6 +2706,54 @@ case_expression(Config) when is_list(Config) ->
         "    ?macro(2)\n"
         "end\n"
     ).
+
+maybe_expression(Config) when is_list(Config) ->
+    case erl_scan:reserved_word('else') of
+        true ->
+            ?assertFormat(
+                "maybe 1 ?= 1, 2 = 2, 3, ok\nelse 4 -> ok\nend",
+                "maybe\n"
+                "    1 ?= 1,\n"
+                "    2 = 2,\n"
+                "    3,\n"
+                "    ok\n"
+                "else\n"
+                "    4 -> ok\n"
+                "end\n",
+                100
+            ),
+
+            ?assertFormat(
+                "maybe\nok ?= {error, #{extremely_long_name => that_forces_a_break, for_the_expression => because_it_goes_over, the_line => limit}}, ok\nend",
+                "maybe\n"
+                "    ok ?=\n"
+                "        {error, #{\n"
+                "            extremely_long_name => that_forces_a_break,\n"
+                "            for_the_expression => because_it_goes_over,\n"
+                "            the_line => limit\n"
+                "        }},\n"
+                "    ok\n"
+                "end\n",
+                100
+            ),
+
+            ?assertSame(
+                "maybe\n"
+                "    % comment before\n"
+                "    ok ?= ok,\n"
+                "    % comment end\n"
+                "    ok\n"
+                "else\n"
+                "    % comment else before\n"
+                "    1 -> ok\n"
+                "    % comment else after\n"
+                "end\n"
+            ),
+
+            ok;
+        false ->
+            {skipped, maybe_expr_disabled}
+    end.
 
 receive_expression(Config) when is_list(Config) ->
     ?assertFormat(

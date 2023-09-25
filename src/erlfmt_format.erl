@@ -196,6 +196,18 @@ do_expr_to_algebra({args, Meta, Values}) ->
 do_expr_to_algebra({'case', _Meta, Expr, Clauses}) ->
     Prefix = surround(<<"case">>, <<" ">>, expr_to_algebra(Expr), <<" ">>, <<"of">>),
     surround_block(Prefix, clauses_to_algebra(Clauses), <<"end">>);
+do_expr_to_algebra({'maybe', _Meta, MaybeExpressions}) ->
+    surround_block(<<"maybe">>, maybe_expressions_to_algebra(MaybeExpressions), <<"end">>);
+do_expr_to_algebra({'maybe', _Meta, MaybeExpressions, Else}) ->
+    ElseD = expr_to_algebra(Else),
+    surround_block(
+        <<"maybe">>, maybe_expressions_to_algebra(MaybeExpressions), line(ElseD, <<"end">>)
+    );
+do_expr_to_algebra({else_clause, _Meta, Clauses}) ->
+    concat(
+        force_breaks(),
+        group(concat(<<"else">>, nest(concat(line(), clauses_to_algebra(Clauses)), ?INDENT)))
+    );
 do_expr_to_algebra({'receive', _Meta, Clauses}) ->
     surround_block(<<"receive">>, expr_to_algebra(Clauses), <<"end">>);
 do_expr_to_algebra({'receive', _Meta, empty, After}) ->
@@ -762,6 +774,11 @@ clause_head_to_algebra({op, Meta, Op, Left, Right}) ->
     expr_to_algebra({op, Meta, {clause_op, Op}, Left, Right});
 clause_head_to_algebra(Head) ->
     expr_to_algebra(Head).
+
+maybe_expressions_to_algebra([Expression]) ->
+    expr_to_algebra(Expression);
+maybe_expressions_to_algebra([Expression1 | Rest]) ->
+    line(concat(expr_to_algebra(Expression1), <<",">>), maybe_expressions_to_algebra(Rest)).
 
 spec_clause_gaurds_to_algebra(Expr) ->
     Meta = element(2, Expr),

@@ -222,6 +222,16 @@ insert_nested({'case', Meta, Expr0, Clauses0}, Comments0) ->
     {Expr, Comments1} = insert_expr(Expr0, Comments0),
     Clauses = insert_expr_container(Clauses0, Comments1),
     {{'case', Meta, Expr, Clauses}, []};
+insert_nested({'maybe', Meta, MaybeExpressions0}, Comments0) ->
+    MaybeExpressions = insert_expr_container(MaybeExpressions0, Comments0),
+    {{'maybe', Meta, MaybeExpressions}, []};
+insert_nested({'maybe', Meta, MaybeExpressions0, ElseClause0}, Comments0) ->
+    {MaybeExpressions, Comments1} = insert_expr_list(MaybeExpressions0, Comments0),
+    {ElseClause, []} = insert_nested(ElseClause0, Comments1),
+    {{'maybe', Meta, MaybeExpressions, ElseClause}, []};
+insert_nested({'else_clause', Meta, Clauses0}, Comments0) ->
+    Clauses = insert_expr_container(Clauses0, Comments0),
+    {{'else_clause', Meta, Clauses}, []};
 insert_nested({'receive', Meta, Clauses0}, Comments0) ->
     {Clauses, []} = insert_expr(Clauses0, Comments0),
     {{'receive', Meta, Clauses}, []};
