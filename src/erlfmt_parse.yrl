@@ -31,7 +31,7 @@ binary_comprehension
 tuple
 record_expr record_name record_field_name record_tuple record_field record_fields
 map_expr map_tuple
-if_expr if_clause if_clauses case_expr cr_clause cr_clauses receive_expr
+if_expr if_clause if_clauses case_expr cr_clause cr_clauses receive_expr maybe_expr maybe_clauses maybe_clause_expr
 fun_expr fun_clause fun_clauses
 atom_or_var atom_or_var_or_macro integer_or_var_or_macro
 try_expr try_catch try_clause try_clauses
@@ -51,8 +51,8 @@ macro_name macro_def_expr macro_def_expr_body macro_def_type macro_def_clause.
 Terminals
 char integer float atom string var
 
-'(' ')' ',' '->' '{' '}' '[' ']' '|' '||' '<-' ';' ':' '#' '.'
-'after' 'begin' 'case' 'try' 'catch' 'end' 'fun' 'if' 'of' 'receive' 'when'
+'(' ')' ',' '->' '{' '}' '[' ']' '|' '||' '<-' ';' ':' '#' '.' '?='
+'after' 'begin' 'case' 'try' 'catch' 'end' 'fun' 'if' 'of' 'receive' 'when' 'maybe' 'else'
 'andalso' 'orelse'
 'bnot' 'not'
 '*' '/' 'div' 'rem' 'band' 'and'
@@ -100,7 +100,9 @@ node -> standalone_exprs anno_exprs : {exprs, ?range_anno('$1', '$2'), ?val('$2'
 %% Anno is wrong here, we'll adjust it at the top level using the dot token.
 attribute -> '-' 'if' attr_val               : build_attribute('$1', '$2', '$3').
 attribute -> '-' atom                        : build_attribute('$1', '$2', no_parens).
+attribute -> '-' else                        : build_attribute('$1', else_atom('$2'), no_parens).
 attribute -> '-' atom attr_val               : build_attribute('$1', '$2', '$3').
+attribute -> '-' else attr_val               : build_attribute('$1', else_atom('$2'), '$3').
 attribute -> '-' spec type_spec              : build_attribute('$1', '$2', ['$3']).
 attribute -> '-' callback type_spec          : build_attribute('$1', '$2', ['$3']).
 attribute -> '-' define_expr macro_def_expr  : build_macro_def('$1', '$2', '$3').
@@ -246,6 +248,7 @@ expr_max -> '(' expr ')' : set_parens('$2').
 expr_max -> 'begin' exprs 'end' : {block,?range_anno('$1', '$3'),'$2'}.
 expr_max -> if_expr : '$1'.
 expr_max -> case_expr : '$1'.
+expr_max -> maybe_expr : '$1'.
 expr_max -> receive_expr : '$1'.
 expr_max -> fun_expr : '$1'.
 expr_max -> try_expr : '$1'.
@@ -407,6 +410,23 @@ case_expr -> 'case' expr 'of' cr_clauses 'end' :
 
 cr_clauses -> cr_clause : ['$1'].
 cr_clauses -> cr_clause ';' cr_clauses : ['$1' | '$3'].
+
+maybe_expr -> 'maybe' maybe_clauses 'end' :
+    {'maybe', ?range_anno('$1', '$3'), '$2'}.
+maybe_expr -> 'maybe' maybe_clauses 'else' cr_clauses 'end' :
+    Else = {else_clause, ?range_anno('$3', '$5'), '$4'},
+    {'maybe', ?range_anno('$1', '$5'), '$2', Else}.
+
+maybe_clause_expr -> expr: '$1'.
+maybe_clause_expr -> expr '?=' expr : ?mkop2('$1', '$2', '$3').
+
+maybe_clauses -> maybe_clause_expr: ['$1'].
+maybe_clauses -> maybe_clause_expr ',' maybe_clauses : ['$1' | '$3'].
+
+% maybe_clause -> expr '?=' expr:
+%     {match, '$1', '?=', '$3'}.
+% maybe_clause -> expr:
+%     {expr, '$1'}.
 
 %% FIXME: merl in syntax_tools depends on patterns in a 'case' being
 %% full expressions. Therefore, we can't use pat_expr here. There
@@ -1097,6 +1117,8 @@ build_attribute({'-', Anno}, {atom, _, _} = Attr, Values) ->
     {attribute, Anno, Attr, Values};
 build_attribute({'-', Anno}, {Name, NameAnno}, Values) ->
     {attribute, Anno, {atom, NameAnno, Name}, Values}.
+
+else_atom({'else', Meta}) -> {atom, maps:put(text, "else", Meta), 'else'}.
 
 record_tuple({tuple, At, Fields}) ->
     {tuple, At, record_fields(Fields)};
