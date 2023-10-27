@@ -1,6 +1,6 @@
 # `erlfmt_parse`
 
-## Differences to `erl_parse`
+## Differences to [`erl_parse`](https://www.erlang.org/doc/apps/erts/absform.html)
 
 In `erlfmt_parse` the following AST nodes have different definitions:
 
