@@ -1158,14 +1158,14 @@ format_range(Config, File) ->
     DataDir = ?config(data_dir, Config),
     Path = DataDir ++ File,
     case erlfmt:format_file_range(Path, {3, 45}, {47, 1}, []) of
-        {ok, _Output, _} -> ok;
+        {ok, _, _Output, _} -> ok;
         {options, Options} -> range_format_exact(Options, Path)
     end.
 
 range_format_exact([], _Path) ->
     ok;
 range_format_exact([{Start, End} | Options], Path) ->
-    {ok, _Output, _} = erlfmt:format_file_range(Path, Start, End, []),
+    {ok, _, _Output, _} = erlfmt:format_file_range(Path, Start, End, []),
     range_format_exact(Options, Path).
 
 snapshot_range_whole_comments(Config) ->
@@ -1591,11 +1591,11 @@ contains_pragma_string(String) ->
     end.
 
 insert_pragma_string(String) ->
-    {ok, StringWithPragma, []} = erlfmt:format_string(String, [{pragma, insert}]),
+    {ok, _, StringWithPragma, []} = erlfmt:format_string(String, [{pragma, insert}]),
     %% check that insert_pragma_nodes doesn't insert a pragma, when one has already been inserted.
     ?assertEqual(
         erlfmt:format_string(StringWithPragma, [{pragma, insert}]),
-        {ok, StringWithPragma, []}
+        {ok, StringWithPragma, StringWithPragma, []}
     ),
     StringWithPragma.
 
@@ -1603,10 +1603,10 @@ overlong_warning(Config) when is_list(Config) ->
     DataDir = ?config(data_dir, Config),
     FileName = filename:join([DataDir, "overlong.erl"]),
     Options = [verbose],
-    {ok, Formatted, FileWarnings} = erlfmt:format_file(FileName, Options),
+    {ok, _, Formatted, FileWarnings} = erlfmt:format_file(FileName, Options),
     FormattedList = unicode:characters_to_list(Formatted),
-    {ok, _, StringWarnings} = erlfmt:format_string(FormattedList, Options),
-    {ok, _, RangeWarnings} = erlfmt:format_file_range(
+    {ok, _, _, StringWarnings} = erlfmt:format_string(FormattedList, Options),
+    {ok, _, _, RangeWarnings} = erlfmt:format_file_range(
         FileName,
         {1, 1},
         {11, 8},

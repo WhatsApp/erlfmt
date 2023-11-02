@@ -193,25 +193,25 @@ format_file(FileName, Config) ->
             ok
     end,
     case Result of
-        {ok, FormattedText, Warnings} ->
+        {ok, Original, FormattedText, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
-            write_formatted(FileName, FormattedText, Out);
+            write_formatted(FileName, Original, FormattedText, Out);
         {warn, Warnings} ->
             [print_error_info(Warning) || Warning <- Warnings],
             io:format(standard_error, "[warn] ~s\n", [FileName]),
             warn;
         {skip, RawString} ->
-            write_formatted(FileName, RawString, Out);
+            write_formatted(FileName, RawString, RawString, Out);
         {error, Error} ->
             print_error_info(Error),
             error
     end.
 
-write_formatted(_FileName, _Formatted, check) ->
+write_formatted(_FileName, _Original, _Formatted, check) ->
     ok;
-write_formatted(_FileName, Formatted, standard_out) ->
+write_formatted(_FileName, _Original, Formatted, standard_out) ->
     io:put_chars(Formatted);
-write_formatted(FileName, Formatted, Out) ->
+write_formatted(FileName, Original, Formatted, Out) ->
     OutFileName = out_file(FileName, Out),
     case filelib:ensure_dir(OutFileName) of
         ok ->
@@ -220,14 +220,13 @@ write_formatted(FileName, Formatted, Out) ->
             print_error_info({OutFileName, 0, file, Reason1}),
             error
     end,
-    {ok, OriginalBin} = file:read_file(FileName),
-    case unicode:characters_to_binary(Formatted) of
-        OriginalBin -> ok;
-        FormattedBin -> write_file(OutFileName, FormattedBin)
+    case Formatted of
+        Original -> ok;
+        _ -> write_file(OutFileName, unicode:characters_to_binary(Formatted))
     end.
 
 write_file(OutFileName, FormattedBin) ->
-    case file:write_file(OutFileName, unicode:characters_to_binary(FormattedBin)) of
+    case file:write_file(OutFileName, FormattedBin) of
         ok ->
             ok;
         {error, Reason2} ->
@@ -242,11 +241,9 @@ out_file(FileName, {path, Path}) ->
 
 check_file(FileName, Options) ->
     case erlfmt:format_file(FileName, Options) of
-        {ok, Formatted, FormatWarnings} ->
-            {ok, OriginalBin} = file:read_file(FileName),
-            FormattedBin = unicode:characters_to_binary(Formatted),
-            case FormattedBin of
-                OriginalBin -> {ok, Formatted, FormatWarnings};
+        {ok, Original, Formatted, FormatWarnings} ->
+            case Formatted of
+                Original -> {ok, Original, Formatted, FormatWarnings};
                 _ -> {warn, FormatWarnings}
             end;
         Other ->
@@ -261,9 +258,9 @@ check_stdin(Options) ->
             {ok, OriginalBin} ->
                 Original = unicode:characters_to_list(OriginalBin),
                 case erlfmt:format_string(Original, Options) of
-                    {ok, Formatted, FormatWarnings} ->
+                    {ok, _, Formatted, FormatWarnings} ->
                         case Formatted of
-                            Original -> {ok, Formatted, FormatWarnings};
+                            Original -> {ok, Original, Formatted, FormatWarnings};
                             _ -> {warn, FormatWarnings}
                         end;
                     Other ->
