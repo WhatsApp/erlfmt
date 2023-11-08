@@ -31,7 +31,7 @@ binary_comprehension
 tuple
 record_expr record_name record_field_name record_tuple record_field record_fields
 map_expr map_tuple
-if_expr if_clause if_clauses case_expr cr_clause cr_clauses receive_expr maybe_expr maybe_clauses maybe_clause_expr
+if_expr if_clause if_clauses case_expr cr_clause cr_clauses receive_expr maybe_expr
 fun_expr fun_clause fun_clauses
 atom_or_var atom_or_var_or_macro integer_or_var_or_macro
 try_expr try_catch try_clause try_clauses
@@ -84,6 +84,7 @@ Nonassoc 700 '#'.
 Nonassoc 800 ':'.
 Nonassoc 800 '=>'.
 Nonassoc 800 ':='.
+Nonassoc 800 '?='.
 
 %% Types
 
@@ -224,6 +225,7 @@ expr -> expr '=>' expr : {map_field_assoc, ?range_anno('$1', '$3'), '$1', '$3'}.
 expr -> expr ':=' expr : {map_field_exact, ?range_anno('$1', '$3'), '$1', '$3'}.
 expr -> prefix_op expr : ?mkop1('$1', '$2').
 expr -> expr '::' type : ?mkop2('$1', '$2', '$3').
+expr -> expr '?=' expr : ?mkop2('$1', '$2', '$3').
 expr -> map_expr : '$1'.
 expr -> function_call : '$1'.
 expr -> record_expr : '$1'.
@@ -411,22 +413,11 @@ case_expr -> 'case' expr 'of' cr_clauses 'end' :
 cr_clauses -> cr_clause : ['$1'].
 cr_clauses -> cr_clause ';' cr_clauses : ['$1' | '$3'].
 
-maybe_expr -> 'maybe' maybe_clauses 'end' :
+maybe_expr -> 'maybe' exprs 'end' :
     {'maybe', ?range_anno('$1', '$3'), '$2'}.
-maybe_expr -> 'maybe' maybe_clauses 'else' cr_clauses 'end' :
+maybe_expr -> 'maybe' exprs 'else' cr_clauses 'end' :
     Else = {else_clause, ?range_anno('$3', '$5'), '$4'},
     {'maybe', ?range_anno('$1', '$5'), '$2', Else}.
-
-maybe_clause_expr -> expr: '$1'.
-maybe_clause_expr -> expr '?=' expr : ?mkop2('$1', '$2', '$3').
-
-maybe_clauses -> maybe_clause_expr: ['$1'].
-maybe_clauses -> maybe_clause_expr ',' maybe_clauses : ['$1' | '$3'].
-
-% maybe_clause -> expr '?=' expr:
-%     {match, '$1', '?=', '$3'}.
-% maybe_clause -> expr:
-%     {expr, '$1'}.
 
 %% FIXME: merl in syntax_tools depends on patterns in a 'case' being
 %% full expressions. Therefore, we can't use pat_expr here. There

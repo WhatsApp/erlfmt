@@ -20,7 +20,8 @@
     string_node/1,
     continue/1,
     last_node_string/1,
-    last_node_string_trimmed/1
+    last_node_string_trimmed/1,
+    downgrade_maybe/1
 ]).
 
 -export([
@@ -41,7 +42,9 @@
 
 -export_type([state/0, anno/0, token/0, comment/0]).
 
--define(ERL_SCAN_OPTS, [text, return_white_spaces, return_comments]).
+-define(ERL_SCAN_OPTS, [
+    text, return_white_spaces, return_comments, {reserved_word_fun, fun reserved_word/1}
+]).
 -define(START_LOCATION, {1, 1}).
 
 -type inner() :: term().
@@ -74,6 +77,11 @@
     | {eof, erl_anno:location()}.
 
 -opaque state() :: #state{}.
+
+%% We always pretend the maybe feature is enabled
+reserved_word('maybe') -> true;
+reserved_word('else') -> true;
+reserved_word(Atom) -> erl_scan:reserved_word(Atom).
 
 -spec io_node(file:io_device()) -> node_ret().
 io_node(IO) -> node(fun io_scan_erl_node/2, IO).
@@ -370,3 +378,8 @@ end_location([_ | String], Line, Column) ->
 
 range_anno(First, Last) ->
     put_anno(end_location, get_anno(end_location, Last), First).
+
+downgrade_maybe([{'maybe', Anno} | Rest]) -> [{atom, Anno, 'maybe'} | downgrade_maybe(Rest)];
+downgrade_maybe([{'else', Anno} | Rest]) -> [{atom, Anno, 'else'} | downgrade_maybe(Rest)];
+downgrade_maybe([Token | Rest]) -> [Token | downgrade_maybe(Rest)];
+downgrade_maybe([]) -> [].

@@ -2708,52 +2708,48 @@ case_expression(Config) when is_list(Config) ->
     ).
 
 maybe_expression(Config) when is_list(Config) ->
-    case erl_scan:reserved_word('else') of
-        true ->
-            ?assertFormat(
-                "maybe 1 ?= 1, 2 = 2, 3, ok\nelse 4 -> ok\nend",
-                "maybe\n"
-                "    1 ?= 1,\n"
-                "    2 = 2,\n"
-                "    3,\n"
-                "    ok\n"
-                "else\n"
-                "    4 -> ok\n"
-                "end\n",
-                100
-            ),
+    %% automatically upgrades
+    ?assertFormat("foo(maybe, else)", "foo('maybe', 'else')\n"),
 
-            ?assertFormat(
-                "maybe\nok ?= {error, #{extremely_long_name => that_forces_a_break, for_the_expression => because_it_goes_over, the_line => limit}}, ok\nend",
-                "maybe\n"
-                "    ok ?=\n"
-                "        {error, #{\n"
-                "            extremely_long_name => that_forces_a_break,\n"
-                "            for_the_expression => because_it_goes_over,\n"
-                "            the_line => limit\n"
-                "        }},\n"
-                "    ok\n"
-                "end\n",
-                100
-            ),
+    ?assertFormat(
+        "maybe 1 ?= 1, 2 = 2, 3, ok\nelse 4 -> ok\nend",
+        "maybe\n"
+        "    1 ?= 1,\n"
+        "    2 = 2,\n"
+        "    3,\n"
+        "    ok\n"
+        "else\n"
+        "    4 -> ok\n"
+        "end\n",
+        100
+    ),
 
-            ?assertSame(
-                "maybe\n"
-                "    % comment before\n"
-                "    ok ?= ok,\n"
-                "    % comment end\n"
-                "    ok\n"
-                "else\n"
-                "    % comment else before\n"
-                "    1 -> ok\n"
-                "    % comment else after\n"
-                "end\n"
-            ),
+    ?assertFormat(
+        "maybe\nok ?= {error, #{extremely_long_name => that_forces_a_break, for_the_expression => because_it_goes_over, the_line => limit}}, ok\nend",
+        "maybe\n"
+        "    ok ?=\n"
+        "        {error, #{\n"
+        "            extremely_long_name => that_forces_a_break,\n"
+        "            for_the_expression => because_it_goes_over,\n"
+        "            the_line => limit\n"
+        "        }},\n"
+        "    ok\n"
+        "end\n",
+        100
+    ),
 
-            ok;
-        false ->
-            {skipped, maybe_expr_disabled}
-    end.
+    ?assertSame(
+        "maybe\n"
+        "    % comment before\n"
+        "    ok ?= ok,\n"
+        "    % comment end\n"
+        "    ok\n"
+        "else\n"
+        "    % comment else before\n"
+        "    1 -> ok\n"
+        "    % comment else after\n"
+        "end\n"
+    ).
 
 receive_expression(Config) when is_list(Config) ->
     ?assertFormat(
@@ -3240,6 +3236,7 @@ function(Config) when is_list(Config) ->
 
 attribute(Config) when is_list(Config) ->
     ?assertFormat("-else .", "-else.\n"),
+    ?assertFormat("-else () .", "-else().\n"),
     ?assertFormat("- foo ( 1 ).", "-foo(1).\n"),
     ?assertFormat(
         "- foo (\n"

@@ -511,7 +511,7 @@ parse_node([Token | _] = Tokens, Comments, FileName, Cont, Warnings, Ignore0) ->
     NextIgnore = ignore_state_post([], FileName, Ignore),
     case Ignore of
         false ->
-            case erlfmt_parse:parse_node(Tokens) of
+            case parse(Tokens) of
                 {ok, Node} ->
                     {erlfmt_recomment:recomment(Node, Comments), Warnings, NextIgnore};
                 {error, {ErrLoc, Mod, Reason}} ->
@@ -520,6 +520,18 @@ parse_node([Token | _] = Tokens, Comments, FileName, Cont, Warnings, Ignore0) ->
             end;
         _ ->
             {node_string(Cont), Warnings, NextIgnore}
+    end.
+
+parse(Tokens) ->
+    case erlfmt_parse:parse_node(Tokens) of
+        {ok, Node} ->
+            {ok, Node};
+        {error, Error} ->
+            TokensWithoutMaybe = erlfmt_scan:downgrade_maybe(Tokens),
+            case erlfmt_parse:parse_node(TokensWithoutMaybe) of
+                {ok, Node} -> {ok, Node};
+                _ -> {error, Error}
+            end
     end.
 
 ignore_state_pre(PreComments, FileName, Acc) ->

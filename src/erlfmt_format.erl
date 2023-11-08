@@ -55,7 +55,7 @@ to_algebra({function, Meta, Clauses}) ->
     Doc = clauses_to_algebra(Clauses),
     combine_comments_with_dot(Meta, Doc);
 to_algebra({attribute, Meta, Name, no_parens}) ->
-    Doc = concat(<<"-">>, expr_to_algebra(Name)),
+    Doc = concat(<<"-">>, attribute_to_algebra(Name)),
     combine_comments_with_dot(Meta, Doc);
 to_algebra({attribute, Meta, {atom, _, define}, [Define, empty]}) ->
     Doc = concat(<<"-define(">>, expr_to_algebra(Define), <<",)">>),
@@ -94,7 +94,7 @@ to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Values} = 
             combine_comments_with_dot(Meta, Doc)
     end;
 to_algebra({attribute, Meta, Name, Values}) ->
-    Doc = concat(<<"-">>, expr_to_algebra(Name), call(Meta, Values, <<"(">>, <<")">>)),
+    Doc = concat(<<"-">>, attribute_to_algebra(Name), call(Meta, Values, <<"(">>, <<")">>)),
     combine_comments_with_dot(Meta, Doc);
 to_algebra(Expr) ->
     Meta = element(2, Expr),
@@ -105,6 +105,9 @@ to_algebra(Expr) ->
         false ->
             combine_comments(Meta, Doc)
     end.
+
+attribute_to_algebra({atom, Meta, 'else'}) -> string(erlfmt_scan:get_anno(text, Meta));
+attribute_to_algebra(Other) -> expr_to_algebra(Other).
 
 expr_to_algebra(Expr) when is_tuple(Expr) ->
     Meta = element(2, Expr),
@@ -117,6 +120,10 @@ do_expr_to_algebra({string, Meta, _Value}) ->
     string_to_algebra(erlfmt_scan:get_anno(text, Meta));
 do_expr_to_algebra({char, #{text := "$ "}, $\s}) ->
     <<"$\\s">>;
+do_expr_to_algebra({atom, _, 'maybe'}) ->
+    string(<<"'maybe'">>);
+do_expr_to_algebra({atom, _, 'else'}) ->
+    string(<<"'else'">>);
 do_expr_to_algebra({Atomic, Meta, _Value}) when ?IS_ATOMIC(Atomic) ->
     string(erlfmt_scan:get_anno(text, Meta));
 do_expr_to_algebra({pid, _Meta, Dotted}) ->
