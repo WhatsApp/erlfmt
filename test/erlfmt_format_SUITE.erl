@@ -3200,6 +3200,7 @@ attribute(Config) when is_list(Config) ->
     ),
     ?assertSame("-compile([export_all, nowarn_export_all]).\n"),
     ?assertSame("-import(foo, [bar/2, baz/0]).\n"),
+    ?assertSame("-import_type(foo, [bar/2, baz/0]).\n"),
     ?assertFormat(
         "-attribute({Very, Long, Value}).",
         "-attribute(\n"
