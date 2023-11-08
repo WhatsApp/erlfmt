@@ -77,7 +77,8 @@ suite() ->
     [{timetrap, {seconds, 10}}].
 
 init_per_suite(Config) ->
-    Config.
+    Features = get_features(),
+    [{features, Features} | Config].
 
 end_per_suite(_Config) ->
     ok.
@@ -88,6 +89,11 @@ init_per_group(_GroupName, Config) ->
 end_per_group(_GroupName, _Config) ->
     ok.
 
+init_per_testcase(maybe_expression, Config) ->
+    case has_feature(maybe_expr, Config) of
+        true -> Config;
+        false -> {skip, "Maybe feature not present in the runtime system"}
+    end;
 init_per_testcase(_TestCase, Config) ->
     Config.
 
@@ -160,6 +166,15 @@ all() ->
         {group, forms},
         comment
     ].
+
+get_features() ->
+    case erlang:function_exported(erl_features, all, 0) of
+        true -> erl_features:all();
+        false -> []
+    end.
+
+has_feature(Feature, Config) ->
+    lists:member(Feature, proplists:get_value(features, Config)).
 
 %%--------------------------------------------------------------------
 %% TEST CASES
