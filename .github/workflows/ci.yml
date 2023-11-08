@@ -9,28 +9,70 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
-        platform: [ubuntu-latest]
-        otp-version: [21.3, 22.3, 23.3, 24.3, 25]
-    runs-on: ${{ matrix.platform }}
-    container:
-      image: erlang:${{ matrix.otp-version }}
+        include:
+          - os: ubuntu-20.04
+            otp-version: 21.3
+            rebar3-version: 3.15
+          - os: ubuntu-20.04
+            otp-version: '22.3'
+            rebar3-version: 3.16
+          - os: ubuntu-20.04
+            otp-version: 23.3
+            rebar3-version: 3.19
+          - os: ubuntu-20.04
+            otp-version: 24.3
+            rebar3-version: 3.22
+          - os: ubuntu-20.04
+            otp-version: 25.3
+            rebar3-version: 3.22
+          - os: ubuntu-22.04
+            otp-version: 26
+            rebar3-version: 3.22
+    runs-on: ${{ matrix.os }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Cache Hex packages
-      uses: actions/cache@v1
-      with:
-        path: ~/.cache/rebar3/hex/hexpm/packages
-        key: ${{ runner.os }}-hex-${{ hashFiles(format('{0}{1}', github.workspace, '/rebar.lock')) }}
-        restore-keys: |
-          ${{ runner.os }}-hex-
-    - name: Cache Dialyzer PLTs
-      uses: actions/cache@v1
-      with:
-        path: ~/.cache/rebar3/rebar3_*.plt
-        key: ${{ runner.os }}-dialyzer-${{ hashFiles(format('{0}{1}', github.workspace, '/rebar.config')) }}
-        restore-keys: |
-          ${{ runner.os }}-dialyzer-
-    - name: Check
-      run: make check
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{matrix.otp-version}}
+          rebar3-version: ${{matrix.rebar3-version}}
+      - name: Cache Hex packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/rebar3/hex/hexpm/packages
+          key: ${{ runner.os }}-hex-${{ hashFiles(format('{0}{1}', github.workspace, '/rebar.lock')) }}
+          restore-keys: |
+            ${{ runner.os }}-hex-
+      - name: Compile
+        run: make compile
+      - name: Test
+        run: make test
+      - name: Check format
+        run: make checkfmt
+
+  dialyzer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: 26
+          rebar3-version: 3.22
+      - name: Cache Dialyzer PLTs
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/rebar3/rebar3_*.plt
+          key: ${{ runner.os }}-dialyzer-${{ hashFiles(format('{0}{1}', github.workspace, '/rebar.config')) }}
+          restore-keys: |
+            ${{ runner.os }}-dialyzer-
+      - name: Cache Dialyzer PLTs
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/rebar3/rebar3_*.plt
+          key: ${{ runner.os }}-dialyzer-${{ hashFiles(format('{0}{1}', github.workspace, '/rebar.config')) }}
+          restore-keys: |
+            ${{ runner.os }}-dialyzer-
+      - name: Dialyzer
+        run: rebar3 dialyzer
