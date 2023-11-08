@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.3.0 (08.11.2023)
+
+### Enhancements
+
+  - Support map comprehensions, `import_type` attribute, and `maybe` constructs
+
+**POTENTIAL RE-FORMATTING**
+
+All "raw" `maybe` and `else` atoms will be automatically re-quoted to make
+the code compatible with the `maybe` feature, if enabled.
+After the transformation the code will be compatible with the maybe feature
+both enabled & disabled.
+
 ## v1.2.0 (24.03.2023)
 
 ### Enhancements
