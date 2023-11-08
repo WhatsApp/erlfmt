@@ -39,6 +39,9 @@
 -type config_option() :: {pragma, pragma()} | {print_width, pos_integer()} | verbose.
 -type config() :: [config_option()].
 
+%% needed because of getopt being weird
+-dialyzer({nowarn_function, [init/1, main/1]}).
+
 -define(DEFAULT_WIDTH, 100).
 
 %% escript entry point
@@ -60,7 +63,7 @@ main(Argv) ->
     end.
 
 %% rebar3 plugin entry point
--spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
+-spec init(term()) -> {ok, term()}.
 init(State) ->
     rebar3_fmt_prv:init(State).
 
@@ -382,7 +385,7 @@ format_range(FileName, StartLocation, EndLocation, Options, Nodes, Warnings) ->
 
 %% API entry point
 -spec read_nodes(file:name_all()) ->
-    {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
+    {ok, [erlfmt_parse:abstract_node()], [error_info()]} | {error, error_info()}.
 read_nodes(FileName) ->
     try
         file_read_nodes(FileName, ignore)
@@ -427,7 +430,7 @@ read_stdin(Acc) ->
 
 %% API entry point
 -spec read_nodes_string(file:name_all(), string()) ->
-    {ok, [erlfmt_parse:abstract_form()], [error_info()]} | {error, error_info()}.
+    {ok, [erlfmt_parse:abstract_node()], [error_info()]} | {error, error_info()}.
 read_nodes_string(FileName, String) ->
     try
         read_nodes_string(FileName, String, ignore)
@@ -575,7 +578,7 @@ node_string(Cont) ->
     {String, Anno} = erlfmt_scan:last_node_string_trimmed(Cont),
     {raw_string, Anno, String}.
 
--spec format_nodes([erlfmt_parse:abstract_form()], pos_integer()) -> [unicode:chardata()].
+-spec format_nodes([erlfmt_parse:abstract_node()], pos_integer()) -> [unicode:chardata()].
 format_nodes([], _PrintWidth) ->
     [];
 format_nodes(Nodes, PrintWidth) ->
@@ -600,7 +603,7 @@ maybe_empty_line(Node, Next) ->
         false -> ""
     end.
 
--spec format_node(erlfmt_parse:abstract_form(), pos_integer()) -> unicode:chardata().
+-spec format_node(erlfmt_parse:abstract_node(), pos_integer()) -> unicode:chardata().
 format_node({raw_string, _Anno, String}, _PrintWidth) ->
     String;
 format_node(Node, PrintWidth) ->

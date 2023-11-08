@@ -680,6 +680,7 @@ Erlang code.
     abstract_expr/0,
     abstract_node/0,
     abstract_type/0,
+    any_node/0,
     form_info/0,
     error_info/0
 ]).
@@ -690,6 +691,9 @@ Erlang code.
 
 -type abstract_node() ::
     af_function_decl() | af_attribute() | abstract_expr().
+
+-type any_node() ::
+    abstract_node() | af_guard_test() | af_pattern() | af_field() | af_generator() | af_binelement(abstract_expr()).
 
 -type af_attribute() :: {attribute, anno(), af_atom(), [abstract_expr()]}.
 

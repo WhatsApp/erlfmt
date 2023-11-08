@@ -47,7 +47,7 @@
 
 -define(INDENT, 4).
 
--spec to_algebra(erlfmt_parse:abstract_form()) -> erlfmt_algebra:doc().
+-spec to_algebra(erlfmt_parse:any_node()) -> erlfmt_algebra:doc().
 to_algebra({shebang, Meta, String}) ->
     Doc = string(String),
     combine_comments(Meta, Doc);
@@ -524,7 +524,7 @@ surround_container(#break{inner = ForceInner, outer = ForceOuter}, Left, Doc, Ri
 
 %% last_fits_fun returns a fun similar to next_break_fits/2
 %% that takes into account the desired fits behaviour.
--spec last_fits_fun(last_normal | last_fits, [erlfmt_parse:abstract_form()]) ->
+-spec last_fits_fun(last_normal | last_fits, [erlfmt_parse:any_node()]) ->
     fun((erlfmt_algebra:doc(), disabled | enabled) -> erlfmt_algebra:doc()).
 last_fits_fun(last_fits, Values) when Values =/= [] ->
     case is_next_break_fits(lists:last(Values)) of
@@ -545,7 +545,7 @@ has_trailing_comments(Values) ->
             PostComments =/= []
     end.
 
--spec has_opening_line_break(erlfmt_scan:anno(), [erlfmt_parse:abstract_form()]) -> boolean().
+-spec has_opening_line_break(erlfmt_scan:anno(), [erlfmt_parse:any_node()]) -> boolean().
 has_opening_line_break(_Meta, []) ->
     false;
 has_opening_line_break(Meta, [HeadValue | _]) ->
@@ -562,7 +562,7 @@ has_any_break_between(_) ->
 break_fun(flex_break) -> fun erlfmt_algebra:flex_break/2;
 break_fun(_) -> fun erlfmt_algebra:break/2.
 
--type value_doc_pair() :: {erlfmt_parse:abstract_form(), erlfmt_algebra:doc()}.
+-type value_doc_pair() :: {erlfmt_parse:any_node(), erlfmt_algebra:doc()}.
 
 map_inner_values(_LastFitsFun, []) ->
     [];

@@ -27,7 +27,6 @@
 
 -type parsed() :: {format, list(), list(), #config{}} | help | version | {error, string()}.
 
--spec opts() -> [getopt:option_spec()].
 opts() ->
     [
         {help, $h, "help", undefined, "print this message"},
@@ -110,6 +109,9 @@ with_parsed(Name, Config) ->
 
 set_difference(Files, Excludes) ->
     sets:to_list(sets:subtract(sets:from_list(Files), sets:from_list(Excludes))).
+
+%% needed because of getopt
+-dialyzer({nowarn_function, [unprotected_with_config/2]}).
 
 -spec unprotected_with_config(string(), parsed()) -> ok.
 unprotected_with_config(Name, ParsedConfig) ->
