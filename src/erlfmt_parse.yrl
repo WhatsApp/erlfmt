@@ -1048,10 +1048,10 @@ Erlang code.
 
 -define(val(Tok), element(1, Tok)).
 
--define(range_anno(Tok1, Tok2), #{
+-define(range_anno(Tok1, Tok2), begin #{
     location => map_get(location, ?anno(Tok1)),
     end_location => map_get(end_location, ?anno(Tok2))
-}).
+} end).
 
 -define(range_upto_anno(Tok1, Tok2), #{
     location => map_get(location, ?anno(Tok1)),
