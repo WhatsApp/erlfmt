@@ -107,8 +107,25 @@ with_parsed(Name, Config) ->
             erlang:halt(127)
     end.
 
+-spec set_difference([file:name_all()], [file:name_all()]) -> [file:name_all()].
 set_difference(Files, Excludes) ->
-    sets:to_list(sets:subtract(sets:from_list(Files), sets:from_list(Excludes))).
+    {ok, Dir} = file:get_cwd(),
+    AbsoluteExcludes = [resolve_path(Dir, E) || E <- Excludes],
+    AllExcludes = sets:from_list(Excludes ++ AbsoluteExcludes),
+    sets:to_list(sets:subtract(sets:from_list(Files), AllExcludes)).
+
+resolve_path(Dir, Filename) ->
+    case filename:pathtype(Filename) of
+        absolute -> Filename;
+        relative -> resolve_path2(lists:reverse(filename:split(Dir)), filename:split(Filename))
+    end.
+
+resolve_path2([_H | T1], [".." | T2]) ->
+    resolve_path2(T1, T2);
+resolve_path2([_H | T1], [<<"..">> | T2]) ->
+    resolve_path2(T1, T2);
+resolve_path2(Dir, Filename) ->
+    filename:join(lists:reverse(Dir) ++ Filename).
 
 %% needed because of getopt
 -dialyzer({nowarn_function, [unprotected_with_config/2]}).
