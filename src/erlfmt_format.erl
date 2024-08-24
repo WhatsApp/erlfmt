@@ -254,6 +254,22 @@ do_expr_to_algebra({clauses, _Meta, Clauses}) ->
     clauses_to_algebra(Clauses);
 do_expr_to_algebra({body, _Meta, Exprs}) ->
     block_to_algebra(Exprs);
+do_expr_to_algebra({sigil, _Meta, {Prefix, Content, Suffix}}) ->
+    concat(
+        concat(
+            concat(<<"~">>, do_expr_to_algebra(Prefix)),
+            do_expr_to_algebra(Content)
+        ),
+        do_expr_to_algebra(Suffix)
+    );
+do_expr_to_algebra({sigil_prefix, _Meta, ''}) ->
+    <<"">>;
+do_expr_to_algebra({sigil_prefix, _Meta, SigilName}) ->
+    atom_to_binary(SigilName, utf8);
+do_expr_to_algebra({sigil_suffix, _Meta, []}) ->
+    <<>>;
+do_expr_to_algebra({sigil_suffix, _Meta, Modifiers}) ->
+    list_to_binary(Modifiers);
 do_expr_to_algebra(Other) ->
     error(unsupported, [Other]).
 
@@ -274,6 +290,10 @@ surround_block(Left, Doc, Right) ->
 
 string_to_algebra(Text) ->
     case string:split(Text, "\n", all) of
+        ["\"\"\"", Line, "\"\"\""] ->
+            string_to_algebra(["\"", Line, "\""]);
+        ["\"\"\"" | _Rest] ->
+            string(Text);
         [Line] ->
             string(Line);
         [First, "\""] ->
