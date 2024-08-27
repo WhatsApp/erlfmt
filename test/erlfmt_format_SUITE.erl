@@ -86,6 +86,13 @@ init_per_suite(Config) ->
 end_per_suite(_Config) ->
     ok.
 
+init_per_group(otp_27_features, Config) ->
+    case erlang:system_info(otp_release) >= "27" of
+        true -> Config;
+        false -> {skip, "Skipping tests for features from OTP >= 27"}
+    end;
+init_per_group(_, Config) ->
+    Config;
 init_per_group(_GroupName, Config) ->
     Config.
 
@@ -121,8 +128,6 @@ groups() ->
             try_expression,
             if_expression,
             macro,
-            sigils,
-            doc_attributes,
             doc_macros
         ]},
         {forms, [parallel], [
@@ -163,6 +168,10 @@ groups() ->
             list_comprehension,
             map_comprehension,
             binary_comprehension
+        ]},
+        {otp_27_features, [parallel], [
+            sigils,
+            doc_attributes
         ]}
     ].
 
@@ -238,7 +247,6 @@ literals(Config) when is_list(Config) ->
     ?assertSame("_Bar\n"),
     ?assertFormat("$ ", "$\\s\n").
 
--if(?OTP_RELEASE >= 27).
 sigils(Config) when is_list(Config) ->
     %% https://www.erlang.org/blog/highlights-otp-27/#sigils
     ?assertSame("~b\"abc\\txyz\"\n"),
@@ -257,10 +265,6 @@ sigils(Config) when is_list(Config) ->
     ),
     ?assertSame("\"\"\"\nTest\nMultiline\n\"\"\"\n"),
     ?assertSame("~\"\"\"\nTest\nMultiline\n\"\"\"\n").
--else.
-sigils(Config) when is_list(Config) ->
-    {skip, "Sigils are supported in OTP >= 27"}.
--endif.
 
 dotted(Config) when is_list(Config) ->
     ?assertSame("<0.1.2>\n"),
@@ -4265,16 +4269,11 @@ comment(Config) when is_list(Config) ->
         "\"b\".\n"
     ).
 
--if(?OTP_RELEASE >= 27).
 doc_attributes(Config) when is_list(Config) ->
     ?assertSame("-moduledoc(\"Test\").\n-moduledoc(#{since => <<\"1.0.0\">>}).\n"),
     ?assertSame("-moduledoc(\"\"\"\nTest\nMultiline\n\"\"\").\n"),
     ?assertSame("-doc(\"Test\").\n-doc(#{since => <<\"1.0.0\">>}).\ntest() -> ok.\n"),
     ?assertSame("-doc(\"Test\").\n-doc(#{since => <<\"1.0.0\">>}).\n-type t() :: ok.\n").
--else.
-doc_attributes(Config) when is_list(Config) ->
-    {skip, "Doc Attributes are supported in OTP >= 27"}.
--endif.
 
 doc_macros(Config) when is_list(Config) ->
     %% Doc Attributes as macros is a common pattern for OTP < 27 compatibility.

@@ -608,7 +608,7 @@ atomic -> string : '$1'.
 atomic -> string concatables : {concat, ?range_anno('$1', '$2'), ['$1' | ?val('$2')]}.
 atomic -> macro_call_none concatables : {concat, ?range_anno('$1', '$2'), ['$1' | ?val('$2')]}.
 atomic -> macro_string concatables : {concat, ?range_anno('$1', '$2'), ['$1' | ?val('$2')]}.
-atomic -> sigil_prefix string sigil_suffix : {sigil, ?range_anno('$1', '$3'), {'$1', '$2', '$3'}}.
+atomic -> sigil_prefix string sigil_suffix : {sigil, ?range_anno('$1', '$3'), '$1', '$2', '$3'}.
 
 concatables_no_initial_call -> concatable_no_call concatables : {['$1' | ?val('$2')], ?anno('$2')}.
 concatables_no_initial_call -> concatable_no_call : {['$1'], ?anno('$1')}.

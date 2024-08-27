@@ -235,14 +235,7 @@ drop_initial_white_space(Rest) ->
 
 -spec stringify_tokens([erl_scan:token()]) -> string().
 stringify_tokens(Tokens) ->
-    lists:flatmap(fun stringify_token/1, Tokens).
-
--spec stringify_token(erl_scan:token()) -> string().
-stringify_token(Token) ->
-    case erl_scan:text(Token) of
-        undefined -> "";
-        Text -> Text
-    end.
+    lists:flatmap(fun erl_scan:text/1, Tokens).
 
 -spec split_tokens([erl_scan:token()], [erl_scan:token()]) ->
     {[token()], [erl_scan:token()], [comment()], [token()]}.
