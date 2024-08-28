@@ -68,12 +68,19 @@
     snapshot_script/1,
     snapshot_ignore_format/1,
     snapshot_ignore_format_many/1,
+    snapshot_ignore_format_old/1,
+    snapshot_ignore_format_many_old/1,
     snapshot_empty/1,
     format_string_unicode/1,
     error_ignore_begin_ignore/1,
     error_ignore_begin_ignore_begin/1,
     error_ignore_end/1,
     error_ignore_ignore/1,
+    error_ignore_ignore_old/1,
+    error_ignore_begin_ignore_old/1,
+    error_ignore_begin_ignore_begin_old/1,
+    error_ignore_end_old/1,
+    error_ignore_ignore_old/1,
     simple_comments_range/1,
     broken_range/1,
     snapshot_range_whole_comments/1,
@@ -163,6 +170,8 @@ groups() ->
             snapshot_script,
             snapshot_ignore_format,
             snapshot_ignore_format_many,
+            snapshot_ignore_format_old,
+            snapshot_ignore_format_many_old,
             snapshot_empty,
             format_string_unicode
         ]},
@@ -170,7 +179,11 @@ groups() ->
             error_ignore_begin_ignore,
             error_ignore_begin_ignore_begin,
             error_ignore_end,
-            error_ignore_ignore
+            error_ignore_ignore,
+            error_ignore_begin_ignore_old,
+            error_ignore_begin_ignore_begin_old,
+            error_ignore_end_old,
+            error_ignore_ignore_old
         ]},
         {range_tests, [parallel], [
             simple_comments_range,
@@ -1078,6 +1091,10 @@ snapshot_ignore_format(Config) -> snapshot_formatted("ignore_format.erl", Config
 
 snapshot_ignore_format_many(Config) -> snapshot_formatted("ignore_format_many.erl", Config).
 
+snapshot_ignore_format_old(Config) -> snapshot_formatted("ignore_format_old.erl", Config).
+
+snapshot_ignore_format_many_old(Config) -> snapshot_formatted("ignore_format_many_old.erl", Config).
+
 snapshot_empty(Config) -> snapshot_same("empty.erl", Config).
 
 snapshot_insert_pragma_with(Config) when is_list(Config) ->
@@ -1114,13 +1131,29 @@ format_string_unicode(_) ->
 
 error_ignore_begin_ignore(_) ->
     assert_error(
+        "% erlfmt:ignore-begin\n"
+        "% erlfmt:ignore\n"
+        "foo() -> ok.\n",
+        "nofile:1:1: invalid erlfmt:ignore while in erlfmt:ignore-begin section"
+    ).
+
+error_ignore_begin_ignore_old(_) ->
+    assert_error(
         "% erlfmt-ignore-begin\n"
         "% erlfmt-ignore\n"
         "foo() -> ok.\n",
-        "nofile:1:1: invalid erlfmt-ignore while in erlfmt-ignore-begin section"
+        "nofile:1:1: invalid erlfmt:ignore while in erlfmt:ignore-begin section"
     ).
 
 error_ignore_begin_ignore_begin(_) ->
+    assert_error(
+        "% erlfmt:ignore-begin\n"
+        "% erlfmt:ignore-begin\n"
+        "foo() -> ok.\n",
+        "nofile:1:1: duplicate ignore comment"
+    ).
+
+error_ignore_begin_ignore_begin_old(_) ->
     assert_error(
         "% erlfmt-ignore-begin\n"
         "% erlfmt-ignore-begin\n"
@@ -1130,12 +1163,27 @@ error_ignore_begin_ignore_begin(_) ->
 
 error_ignore_end(_) ->
     assert_error(
+        "% erlfmt:ignore-end\n"
+        "foo() -> ok.\n",
+        "nofile:1:1: invalid erlfmt:ignore-end while outside of erlfmt:ignore-begin section"
+    ).
+
+error_ignore_end_old(_) ->
+    assert_error(
         "% erlfmt-ignore-end\n"
         "foo() -> ok.\n",
-        "nofile:1:1: invalid erlfmt-ignore-end while outside of erlfmt-ignore-begin section"
+        "nofile:1:1: invalid erlfmt:ignore-end while outside of erlfmt:ignore-begin section"
     ).
 
 error_ignore_ignore(_) ->
+    assert_error(
+        "% erlfmt:ignore\n"
+        "% erlfmt:ignore\n"
+        "foo() -> ok.\n",
+        "nofile:1:1: duplicate ignore comment"
+    ).
+
+error_ignore_ignore_old(_) ->
     assert_error(
         "% erlfmt-ignore\n"
         "% erlfmt-ignore\n"
