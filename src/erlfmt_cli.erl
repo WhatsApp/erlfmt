@@ -109,23 +109,24 @@ with_parsed(Name, Config) ->
 
 -spec set_difference([file:name_all()], [file:name_all()]) -> [file:name_all()].
 set_difference(Files, Excludes) ->
-    {ok, Dir} = file:get_cwd(),
-    AbsoluteExcludes = [resolve_path(Dir, E) || E <- Excludes],
-    AllExcludes = sets:from_list(Excludes ++ AbsoluteExcludes),
-    sets:to_list(sets:subtract(sets:from_list(Files), AllExcludes)).
+    {ok, Cwd} = file:get_cwd(),
+    AbsoluteFiles = maps:from_list([{resolve_path(Cwd, F), F} || F <- Files]),
+    AbsoluteExcludes = [resolve_path(Cwd, E) || E <- Excludes],
+    maps:values(maps:without(AbsoluteExcludes, AbsoluteFiles)).
 
 resolve_path(Dir, Filename) ->
-    case filename:pathtype(Filename) of
-        absolute -> Filename;
-        relative -> resolve_path2(lists:reverse(filename:split(Dir)), filename:split(Filename))
-    end.
+    resolve_path2(filename:absname(Filename, Dir)).
 
-resolve_path2([_H | T1], [".." | T2]) ->
-    resolve_path2(T1, T2);
-resolve_path2([_H | T1], [<<"..">> | T2]) ->
-    resolve_path2(T1, T2);
-resolve_path2(Dir, Filename) ->
-    filename:join(lists:reverse(Dir) ++ Filename).
+resolve_path2(AbsPath) ->
+    [Volume | Components] = filename:split(AbsPath),
+    filename:join(resolve_path2(Components, [Volume])).
+
+resolve_path2([".." | T1], [Volume]) -> resolve_path2(T1, [Volume]);
+resolve_path2([<<"..">> | T1], [Volume]) -> resolve_path2(T1, [Volume]);
+resolve_path2([".." | T1], [_H2 | T2]) -> resolve_path2(T1, T2);
+resolve_path2([<<"..">> | T1], [_H2 | T2]) -> resolve_path2(T1, T2);
+resolve_path2([H1 | T1], Components) -> resolve_path2(T1, [H1 | Components]);
+resolve_path2([], Components) -> lists:reverse(Components).
 
 %% needed because of getopt
 -dialyzer({nowarn_function, [unprotected_with_config/2]}).
