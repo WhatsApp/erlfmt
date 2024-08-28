@@ -560,6 +560,7 @@ ignore_state([], _FileName, Acc) ->
 ignore_state([Line | Lines], FileName, Loc, Rest, Acc0) ->
     Acc =
         case string:trim(Line, leading, "% ") of
+            % Old-style erlfmt-ignore
             "erlfmt-ignore" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= false ->
                 ignore;
             "erlfmt-ignore" ++ R when ?IS_IGNORE_REASON(R) ->
@@ -571,6 +572,19 @@ ignore_state([Line | Lines], FileName, Loc, Rest, Acc0) ->
             "erlfmt-ignore-end" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= 'begin' ->
                 'end';
             "erlfmt-ignore-end" ++ R when ?IS_IGNORE_REASON(R) ->
+                throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'end', Acc0}}});
+            % New-style erlfmt:ignore
+            "erlfmt:ignore" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= false ->
+                ignore;
+            "erlfmt:ignore" ++ R when ?IS_IGNORE_REASON(R) ->
+                throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, ignore, Acc0}}});
+            "erlfmt:ignore-begin" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= false ->
+                'begin';
+            "erlfmt:ignore-begin" ++ R when ?IS_IGNORE_REASON(R) ->
+                throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'begin', Acc0}}});
+            "erlfmt:ignore-end" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= 'begin' ->
+                'end';
+            "erlfmt:ignore-end" ++ R when ?IS_IGNORE_REASON(R) ->
                 throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'end', Acc0}}});
             _ ->
                 Acc0
@@ -698,11 +712,11 @@ format_error(could_not_reparse) ->
 format_error({long_line, Length, Width}) ->
     io_lib:format("line too long (~p > ~p)", [Length, Width]);
 format_error({invalid_ignore, ignore, 'begin'}) ->
-    "invalid erlfmt-ignore while in erlfmt-ignore-begin section";
+    "invalid erlfmt:ignore while in erlfmt:ignore-begin section";
 format_error({invalid_ignore, Same, Same}) ->
     "duplicate ignore comment";
 format_error({invalid_ignore, 'end', false}) ->
-    "invalid erlfmt-ignore-end while outside of erlfmt-ignore-begin section";
+    "invalid erlfmt:ignore-end while outside of erlfmt:ignore-begin section";
 format_error({invalid_ignore, Given, Previous}) ->
     io_lib:format("invalid ignore specification ~ts while in ~ts state", [Given, Previous]).
 

@@ -358,10 +358,10 @@ which after re-formatting will result in the original layout again.
 ## Ignoring Formatting
 
 We found that mostly it is possible to format erlang code in an at least somewhat acceptable way, but exceptions do occur.
-We have introduced the `erlfmt-ignore` comment, which when placed before a top-level expression, will indicate to `erlfmt` to skip over that expression, leave it as is and move on to the next expression. For documentation purposes, a reason for not formatting can be given..
+We have introduced the `erlfmt:ignore` comment, which when placed before a top-level expression, will indicate to `erlfmt` to skip over that expression, leave it as is and move on to the next expression. For documentation purposes, a reason for not formatting can be given..
 
 ```erlang formatted matrix
-%% erlfmt-ignore I like it more this way
+%% erlfmt:ignore I like it more this way
 -define(DELTA_MATRIX, [
     [0,   0,   0,   0,   0,   0],
     [0, -16,   0,   0,   0,   0],
@@ -372,16 +372,16 @@ We have introduced the `erlfmt-ignore` comment, which when placed before a top-l
 ]).
 ```
 
-You can also encose multiple top-level forms in a `erlfmt-ignore-begin`, `erlfmt-ignore-end` section.
+You can also encose multiple top-level forms in a `erlfmt:ignore-begin`, `erlfmt:ignore-end` section.
 ```erlang formatted ignore-many
-%% erlfmt-ignore-begin
+%% erlfmt:ignore-begin
 -define(DELTA_MATRIX1, [
     [0,   0,   0,   0,   0,   0]
 ]).
 -define(DELTA_MATRIX2, [
     [0,   0,   0,   0,   0,   0]
 ]).
-%% erlfmt-ignore-end
+%% erlfmt:ignore-end
 
 -define(THIS_IS_FORMATTED, ok).
 ```
