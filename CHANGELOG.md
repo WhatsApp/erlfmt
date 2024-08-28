@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.4.0 (28.08.2024)
+
+### Enhancements
+
+  - Support trailing content on ignore comments
+  - Support (and recommend) `erlfmt:ignore`-style ignore comments to align with ELP & eqWAlizer
+
+### Fixes
+
+  - Fix compiler warnings on OTP 27
+
 ## v1.3.0 (08.11.2023)
 
 ### Enhancements
