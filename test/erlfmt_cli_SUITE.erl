@@ -133,7 +133,7 @@ smoke_test_stdio_unicode(Config) ->
     stdio_test("unicode.erl", "--require-pragma", Config).
 
 smoke_test_stdio_insert_pragma_without(Config) when is_list(Config) ->
-    Formatted = os:cmd("echo '-module(nopragma).' | " ++ escript() ++ " - --insert-pragma"),
+    Formatted = os:cmd("echo \"-module(nopragma).\" | " ++ escript() ++ " - --insert-pragma"),
     Expected =
         "%%% % @format\n"
         "\n"
@@ -142,21 +142,21 @@ smoke_test_stdio_insert_pragma_without(Config) when is_list(Config) ->
 
 smoke_test_stdio_delete_pragma(Config) when is_list(Config) ->
     Formatted = os:cmd(
-        "echo '%% @format\n\n-module(nopragma).' | " ++ escript() ++ " - --delete-pragma"
+        "echo \"%% @format\n\n-module(nopragma).\" | " ++ escript() ++ " - --delete-pragma"
     ),
     Expected =
         "-module(nopragma).\n",
     ?assertEqual(Expected, Formatted).
 
 smoke_test_stdio_delete_pragma_without(Config) when is_list(Config) ->
-    Formatted = os:cmd("echo '-module(nopragma).' | " ++ escript() ++ " - --delete-pragma"),
+    Formatted = os:cmd("echo \"-module(nopragma).\" | " ++ escript() ++ " - --delete-pragma"),
     Expected =
         "-module(nopragma).\n",
     ?assertEqual(Expected, Formatted).
 
 smoke_test_stdio_delete_pragma_with_copyright(Config) when is_list(Config) ->
     Formatted = os:cmd(
-        "echo '%% @format\n%% copyright\n\n-module(nopragma).' | " ++ escript() ++
+        "echo \"%% @format\n%% copyright\n\n-module(nopragma).\" | " ++ escript() ++
             " - --delete-pragma"
     ),
     Expected =
@@ -167,7 +167,7 @@ smoke_test_stdio_delete_pragma_with_copyright(Config) when is_list(Config) ->
 
 smoke_test_stdio_reinsert_pragma(Config) when is_list(Config) ->
     Formatted = os:cmd(
-        "echo '%% @format\n%%% copyright\n\n-module(nopragma).' | " ++ escript() ++
+        "echo \"%% @format\n%%% copyright\n\n-module(nopragma).\" | " ++ escript() ++
             " - --insert-pragma"
     ),
     Expected =
@@ -180,7 +180,7 @@ smoke_test_stdio_reinsert_pragma(Config) when is_list(Config) ->
 %% respect the number of percentages when replacing the pragma
 smoke_test_stdio_reinsert_pragma_second(Config) when is_list(Config) ->
     Formatted = os:cmd(
-        "echo '%% copyright\n%% @format\n\n-module(nopragma).' | " ++ escript() ++
+        "echo \"%% copyright\n%% @format\n\n-module(nopragma).\" | " ++ escript() ++
             " - --insert-pragma"
     ),
     Expected =
@@ -192,7 +192,7 @@ smoke_test_stdio_reinsert_pragma_second(Config) when is_list(Config) ->
 
 smoke_test_stdio_reinsert_pragma_config(Config) when is_list(Config) ->
     Formatted = os:cmd(
-        "echo '%% @format\n\n%%% actual comment\n{}.\n' | " ++ escript() ++
+        "echo \"%% @format\n\n%%% actual comment\n{}.\n\" | " ++ escript() ++
             " - --insert-pragma"
     ),
     Expected =
@@ -238,7 +238,7 @@ noformat_pragma_file(Config) when is_list(Config) ->
 
 noformat_pragma(Config) when is_list(Config) ->
     Formatted = os:cmd(
-        "echo '%% @noformat\n\n%%% actual comment\n{ }.' | " ++ escript() ++ " -"
+        "echo \"%% @noformat\n\n%%% actual comment\n{ }.\" | " ++ escript() ++ " -"
     ),
     Expected =
         "%% @noformat\n"
@@ -280,10 +280,9 @@ stdio_test(FileName, Options, Config) ->
     DataDir = ?config(data_dir, Config),
     Path = filename:join(DataDir, FileName),
     Formatted = os:cmd("cat " ++ Path ++ " | " ++ escript() ++ " - " ++ Options),
-    % ?assertEqual(toto, Path),
     {ok, Expected} = file:read_file(Path),
     assert_diagnostic:assert_binary_match(Expected, unicode:characters_to_binary(Formatted)).
 
 escript() ->
     %% this relies on the _build structure rebar3 uses
-    filename:join(code:lib_dir(erlfmt), "../../bin/erlfmt").
+    "escript " ++ filename:join(code:lib_dir(erlfmt), "../../bin/erlfmt").

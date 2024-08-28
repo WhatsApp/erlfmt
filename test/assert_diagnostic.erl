@@ -81,15 +81,18 @@ assert_snapshot_match(Expected, Output) ->
             ct:fail("unexpected: ~p~n", [Other])
     end.
 
-assert_binary_match(Expected, Formatted) ->
-    case Formatted of
-        Expected ->
-            ok;
-        Other ->
-            % Split by lines (preserving empty lines).
-            Expected2 = string:split(Expected, "\n", all),
-            Other2 = string:split(Other, "\n", all),
-            % We already know they are not equal,
-            % this macro gives a better diagnostic.
-            ?assertListEqual(Expected2, Other2)
-    end.
+assert_binary_match(Expected0, Formatted0) ->
+    Expected = unicode:characters_to_binary(string:replace(Expected0, "\r\n", "\n", all)),
+    Formatted = unicode:characters_to_binary(Formatted0),
+    ?assertEqual(Expected, Formatted).
+% case string:equal(Expected, Formatted) of
+    %     true ->
+    %         ok;
+    %     false ->
+    %         % Split by lines (preserving empty lines).
+    %         Expected2 = string:split(Expected, "\n", all),
+    %         Other = string:split(Formatted, "\n", all),
+    %         % We already know they are not equal,
+    %         % this macro gives a better diagnostic.
+    %         ?assertListEqual(Expected2, Other)
+    % end.

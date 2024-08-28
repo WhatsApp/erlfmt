@@ -1112,9 +1112,8 @@ snapshot_formatted(Module, Config) ->
 snapshot_match(FormattedModule, Module, Config, Options) ->
     % Format `Module` and check it matches `FormattedModule`.
     DataDir = ?config(data_dir, Config),
-    {ok, FormattedBin} = file:read_file(filename:join([DataDir, FormattedModule])),
+    {ok, Formatted} = file:read_file(filename:join([DataDir, FormattedModule])),
     {ok, OriginalBin} = file:read_file(filename:join([DataDir, Module])),
-    Formatted = unicode:characters_to_list(FormattedBin),
     Original = unicode:characters_to_list(OriginalBin),
     Output = erlfmt:format_string(Original, Options),
     assert_diagnostic:assert_snapshot_match(Formatted, Output).
@@ -1127,7 +1126,7 @@ format_string_unicode(_) ->
     Options = [],
     Output = erlfmt:format_string(Original, Options),
     % Already formatted: we just check encoding is still ok.
-    assert_diagnostic:assert_snapshot_match(Original, Output).
+    assert_diagnostic:assert_snapshot_match(unicode:characters_to_binary(Original), Output).
 
 error_ignore_begin_ignore(_) ->
     assert_error(
