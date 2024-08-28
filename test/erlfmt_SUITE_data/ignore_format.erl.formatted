@@ -33,5 +33,8 @@ gen_part_decode_funcs({constructed,bif},TypeName,
           "      Res",nl,
           "  end"]).
 
+% erlfmt-ignore I like the comment next to the statement
+f() -> ok. % this is ok
+
 %% TODO write emit
 emit(S) -> ok.

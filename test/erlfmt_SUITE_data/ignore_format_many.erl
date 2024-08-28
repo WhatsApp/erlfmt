@@ -35,5 +35,12 @@ gen_part_decode_funcs({constructed,bif},TypeName,
           "      Res",nl,
           "  end"]).
 
+% erlfmt-ignore-begin I like the comments next to the statement
+f() -> ok. % this is ok
+g() -> ok. % this is also ok
+% erlfmt-ignore-end I'm done with this style
+
+h() -> ok. % blah
+
 %% TODO write emit
 emit(S) ->   ok.

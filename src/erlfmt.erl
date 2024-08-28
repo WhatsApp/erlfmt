@@ -555,17 +555,22 @@ ignore_state([{comment, Loc, Comments} | Rest], FileName, Acc) ->
 ignore_state([], _FileName, Acc) ->
     Acc.
 
+-define(IS_IGNORE_REASON(S), (S =:= [] orelse hd(S) =:= 32 orelse hd(S) =:= $%)).
+
 ignore_state([Line | Lines], FileName, Loc, Rest, Acc0) ->
     Acc =
-        case string:trim(Line, both, "% ") of
-            "erlfmt-ignore" when Acc0 =:= false -> ignore;
-            "erlfmt-ignore" ->
+        case string:trim(Line, leading, "% ") of
+            "erlfmt-ignore" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= false ->
+                ignore;
+            "erlfmt-ignore" ++ R when ?IS_IGNORE_REASON(R) ->
                 throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, ignore, Acc0}}});
-            "erlfmt-ignore-begin" when Acc0 =:= false -> 'begin';
-            "erlfmt-ignore-begin" ->
+            "erlfmt-ignore-begin" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= false ->
+                'begin';
+            "erlfmt-ignore-begin" ++ R when ?IS_IGNORE_REASON(R) ->
                 throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'begin', Acc0}}});
-            "erlfmt-ignore-end" when Acc0 =:= 'begin' -> 'end';
-            "erlfmt-ignore-end" ->
+            "erlfmt-ignore-end" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= 'begin' ->
+                'end';
+            "erlfmt-ignore-end" ++ R when ?IS_IGNORE_REASON(R) ->
                 throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'end', Acc0}}});
             _ ->
                 Acc0
