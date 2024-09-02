@@ -91,8 +91,6 @@ init_per_group(otp_27_features, Config) ->
         true -> Config;
         false -> {skip, "Skipping tests for features from OTP >= 27"}
     end;
-init_per_group(_, Config) ->
-    Config;
 init_per_group(_GroupName, Config) ->
     Config.
 
@@ -179,6 +177,7 @@ all() ->
     [
         {group, expressions},
         {group, forms},
+        {group, otp_27_features},
         comment
     ].
 
