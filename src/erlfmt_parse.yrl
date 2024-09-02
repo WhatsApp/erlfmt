@@ -62,7 +62,8 @@ char integer float atom string var
 '<<' '>>'
 '?' '!' '=' '::' '..' '...'
 spec callback define_expr define_type define_clause standalone_exprs % helper
-dot.
+dot
+sigil_prefix sigil_suffix.
 
 %% Conflict comes from optional parens on macro calls.
 Expect 1.
@@ -607,6 +608,7 @@ atomic -> string : '$1'.
 atomic -> string concatables : {concat, ?range_anno('$1', '$2'), ['$1' | ?val('$2')]}.
 atomic -> macro_call_none concatables : {concat, ?range_anno('$1', '$2'), ['$1' | ?val('$2')]}.
 atomic -> macro_string concatables : {concat, ?range_anno('$1', '$2'), ['$1' | ?val('$2')]}.
+atomic -> sigil_prefix string sigil_suffix : {sigil, ?range_anno('$1', '$3'), '$1', '$2', '$3'}.
 
 concatables_no_initial_call -> concatable_no_call concatables : {['$1' | ?val('$2')], ?anno('$2')}.
 concatables_no_initial_call -> concatable_no_call : {['$1'], ?anno('$1')}.

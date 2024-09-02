@@ -315,7 +315,9 @@ atomic_anno([{text, Text}, {location, {Line, Col} = Location}]) ->
     #{text => Text, location => Location, end_location => end_location(Text, Line, Col)}.
 
 token_anno([{text, Text}, {location, {Line, Col} = Location}]) ->
-    #{location => Location, end_location => end_location(Text, Line, Col)}.
+    #{location => Location, end_location => end_location(Text, Line, Col)};
+token_anno({_Line, _Col} = Location) ->
+    #{location => Location, end_location => Location}.
 
 comment_anno([{text, _}, {location, Location}], [{text, Text}, {location, {Line, Col}}]) ->
     #{location => Location, end_location => end_location(Text, Line, Col)}.
