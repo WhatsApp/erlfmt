@@ -256,11 +256,10 @@ sigils(Config) when is_list(Config) ->
     ?assertSame("~b\"abc\\txyz\"x\n"),
     ?assertSame("~s\"\"\"\n\\tabc\n\\tdef\n\"\"\"\n"),
     %% https://www.erlang.org/blog/highlights-otp-27/#triple-quoted-strings
-    ?assertFormat(
+    ?assertSame(
         "\"\"\"\n"
         "Test\n"
-        "\"\"\"\n",
-        "\"Test\"\n"
+        "\"\"\"\n"
     ),
     ?assertSame("\"\"\"\nTest\nMultiline\n\"\"\"\n"),
     ?assertSame("~\"\"\"\nTest\nMultiline\n\"\"\"\n").

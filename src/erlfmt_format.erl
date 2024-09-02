@@ -290,8 +290,6 @@ surround_block(Left, Doc, Right) ->
 
 string_to_algebra(Text) ->
     case string:split(Text, "\n", all) of
-        ["\"\"\"", Line, "\"\"\""] ->
-            string_to_algebra(["\"", Line, "\""]);
         ["\"\"\"" | _Rest] ->
             string(Text);
         [Line] ->
