@@ -80,7 +80,6 @@
     error_ignore_begin_ignore_old/1,
     error_ignore_begin_ignore_begin_old/1,
     error_ignore_end_old/1,
-    error_ignore_ignore_old/1,
     simple_comments_range/1,
     broken_range/1,
     snapshot_range_whole_comments/1,
