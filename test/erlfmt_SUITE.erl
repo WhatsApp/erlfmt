@@ -98,6 +98,7 @@
     snapshot_enclosing_range2/1,
     snapshot_enclosing_range_no_leak/1,
     snapshot_range_reinjected/1,
+    snapshot_tripple_string/1,
     contains_pragma/1,
     insert_pragma/1,
     overlong_warning/1,
@@ -115,6 +116,11 @@ init_per_suite(Config) ->
 end_per_suite(_Config) ->
     ok.
 
+init_per_group(otp_27_snapshot_tests, Config) ->
+    case erlang:system_info(otp_release) >= "27" of
+        true -> Config;
+        false -> {skip, "Skipping tests for features from OTP >= 27"}
+    end;
 init_per_group(_GroupName, Config) ->
     Config.
 
@@ -172,7 +178,11 @@ groups() ->
             snapshot_ignore_format_old,
             snapshot_ignore_format_many_old,
             snapshot_empty,
-            format_string_unicode
+            format_string_unicode,
+            {group, otp_27_snapshot_tests}
+        ]},
+        {otp_27_snapshot_tests, [parallel], [
+            snapshot_tripple_string
         ]},
         {error_tests, [parallel], [
             error_ignore_begin_ignore,
@@ -1098,6 +1108,8 @@ snapshot_empty(Config) -> snapshot_same("empty.erl", Config).
 
 snapshot_insert_pragma_with(Config) when is_list(Config) ->
     snapshot_same("pragma.erl", [{pragma, insert} | Config]).
+
+snapshot_tripple_string(Config) -> snapshot_formatted("tripple_string.erl", Config).
 
 snapshot_same(Module, Config) ->
     Pragma = proplists:get_value(pragma, Config, ignore),
