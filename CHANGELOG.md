@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.5.0 (03.09.2024)
+
+### Enhancements
+
+  - Support OTP 27 sigils https://www.erlang.org/blog/highlights-otp-27/#sigils
+  - Support OTP 27 triple-quoted strings https://www.erlang.org/blog/highlights-otp-27/#triple-quoted-strings
+  - Support new documentation attributes
+
+### Fixes
+
+  - Apply `exclude_files` to `files` absolute paths - mixing relative & absolute paths could lead to
+    unexpected behaviour before
+
 ## v1.4.0 (28.08.2024)
 
 ### Enhancements
