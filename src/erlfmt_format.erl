@@ -93,6 +93,12 @@ to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Values} = 
             Doc = surround(HeadD, <<"">>, expr_to_algebra(Tuple), <<"">>, <<")">>),
             combine_comments_with_dot(Meta, Doc)
     end;
+to_algebra({attribute, Meta, {atom, _, RawName} = Name, [Value]}) when
+    RawName =:= doc; RawName =:= moduledoc
+->
+    ValueD = expr_to_algebra(Value),
+    Doc = concat([<<"-">>, expr_to_algebra(Name), <<" ">>, ValueD]),
+    combine_comments_with_dot(Meta, Doc);
 to_algebra({attribute, Meta, Name, Values}) ->
     Doc = concat(<<"-">>, attribute_to_algebra(Name), call(Meta, Values, <<"(">>, <<")">>)),
     combine_comments_with_dot(Meta, Doc);

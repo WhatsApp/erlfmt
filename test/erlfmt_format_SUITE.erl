@@ -4283,10 +4283,10 @@ comment(Config) when is_list(Config) ->
     ).
 
 doc_attributes(Config) when is_list(Config) ->
-    ?assertSame("-moduledoc(\"Test\").\n-moduledoc(#{since => <<\"1.0.0\">>}).\n"),
-    ?assertSame("-moduledoc(\"\"\"\nTest\nMultiline\n\"\"\").\n"),
-    ?assertSame("-doc(\"Test\").\n-doc(#{since => <<\"1.0.0\">>}).\ntest() -> ok.\n"),
-    ?assertSame("-doc(\"Test\").\n-doc(#{since => <<\"1.0.0\">>}).\n-type t() :: ok.\n").
+    ?assertSame("-moduledoc \"Test\".\n-moduledoc #{since => <<\"1.0.0\">>}.\n"),
+    ?assertSame("-moduledoc \"\"\"\nTest\nMultiline\n\"\"\".\n"),
+    ?assertSame("-doc \"Test\".\n-doc #{since => <<\"1.0.0\">>}.\ntest() -> ok.\n"),
+    ?assertSame("-doc \"Test\".\n-doc #{since => <<\"1.0.0\">>}.\n-type t() :: ok.\n").
 
 doc_macros(Config) when is_list(Config) ->
     %% Doc Attributes as macros is a common pattern for OTP < 27 compatibility.
