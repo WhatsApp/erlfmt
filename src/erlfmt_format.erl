@@ -290,8 +290,8 @@ surround_block(Left, Doc, Right) ->
 
 string_to_algebra(Text) ->
     case string:split(Text, "\n", all) of
-        ["\"\"\"" | _Rest] ->
-            string(Text);
+        ["\"\"\"" ++ _ = Quote | Rest] ->
+            tripple_quoted_to_algebra(Quote, Rest);
         [Line] ->
             string(Line);
         [First, "\""] ->
@@ -301,6 +301,26 @@ string_to_algebra(Text) ->
             LinesD = string_lines_to_algebra(Lines),
             concat([force_breaks(), FirstD, line(), LinesD])
     end.
+
+%% tripple-quoted string might have actually more than tripple quotes
+%% indentation to remove from each line is given from the closing parenteses per documentation
+%% see: https://www.erlang.org/doc/system/data_types#string
+tripple_quoted_to_algebra(Quote, LinesWithFinalQuote) ->
+    {Lines, FinalQuote} = splitlast(LinesWithFinalQuote, []),
+    IndentToRemove = calculate_indentation(Quote, FinalQuote, []),
+    CleanedLinesD = [string(remove_indentation(Line, IndentToRemove)) || Line <- Lines],
+    LinesD = fold_doc(fun erlfmt_algebra:line/2, CleanedLinesD),
+    QuoteD = string(Quote),
+    line(QuoteD, line(LinesD, QuoteD)).
+
+splitlast([T], Acc) -> {lists:reverse(Acc), T};
+splitlast([H | T], Acc) -> splitlast(T, [H | Acc]).
+
+calculate_indentation(Quote, Quote, Acc) -> lists:reverse(Acc);
+calculate_indentation(Quote, [I | Rest], Acc) -> calculate_indentation(Quote, Rest, [I | Acc]).
+
+remove_indentation(Line, []) -> Line;
+remove_indentation([H | LineRest], [H | IndentRest]) -> remove_indentation(LineRest, IndentRest).
 
 string_lines_to_algebra([LastLine]) ->
     string(["\"" | LastLine]);

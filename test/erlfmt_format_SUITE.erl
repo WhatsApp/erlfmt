@@ -254,13 +254,28 @@ sigils(Config) when is_list(Config) ->
     %% The modifier X does not technically exist, but there seems to be no supported
     %% modifiers yet even though they are correctly parsed.
     ?assertSame("~b\"abc\\txyz\"x\n"),
-    ?assertSame("~s\"\"\"\n\\tabc\n\\tdef\n\"\"\"\n"),
     %% https://www.erlang.org/blog/highlights-otp-27/#triple-quoted-strings
-    ?assertSame(
+    ?assertFormat(
+        "\t\"\"\"\n"
+        "\t\tTest\n"
+        "\t\t  Test\n"
+        "\t\"\"\"\n",
         "\"\"\"\n"
-        "Test\n"
+        "\tTest\n"
+        "\t  Test\n"
         "\"\"\"\n"
     ),
+    ?assertFormat(
+        "    \"\"\"\n"
+        "    Test\n"
+        "      Test\n"
+        "    \"\"\"\n",
+        "\"\"\"\n"
+        "Test\n"
+        "  Test\n"
+        "\"\"\"\n"
+    ),
+    ?assertSame("~s\"\"\"\n\\tabc\n\\tdef\n\"\"\"\n"),
     ?assertSame("\"\"\"\nTest\nMultiline\n\"\"\"\n"),
     ?assertSame("~\"\"\"\nTest\nMultiline\n\"\"\"\n").
 
