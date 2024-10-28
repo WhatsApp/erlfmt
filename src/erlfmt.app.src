@@ -9,3 +9,4 @@
     {links, [{"GitHub", "https://github.com/WhatsApp/erlfmt"}]},
     {exclude_files, ["src/erlfmt_parse.erl"]}
 ]}.
+https://wretched-crematorium-x556gg4pv7492vvx5.github.dev/
