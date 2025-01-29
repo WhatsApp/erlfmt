@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.5.0 (29.01.2025)
+
+### Enhancements
+
+  - Parse code with trailing commas and semicolons and just remove them when reprinting
+
 ## v1.4.0 (28.08.2024)
 
 ### Enhancements
