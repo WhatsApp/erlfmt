@@ -1223,7 +1223,8 @@ tuple(Config) when is_list(Config) ->
         "            line(expr_to_algebra(Value), comments_to_algebra(Comments))\n"
         "        )\n"
         "    ])}\n"
-    ).
+    ),
+    ?assertFormat("{1,}\n", "{1}\n").
 
 %% tagged vs untagged tuples
 untagged_tuple(Config) when is_list(Config) ->
@@ -1698,7 +1699,8 @@ list(Config) when is_list(Config) ->
         "    % comment below\n"
         "    | Rest\n"
         "].\n"
-    ).
+    ),
+    ?assertFormat("[1,]\n", "[1]\n").
 
 binary(Config) when is_list(Config) ->
     ?assertFormat("<< >>", "<<>>\n"),
@@ -1730,7 +1732,8 @@ binary(Config) when is_list(Config) ->
         "        333\n"
         "    >>\n"
         ">>\n"
-    ).
+    ),
+    ?assertFormat("<<1,>>\n", "<<1>>\n").
 
 map_create(Config) when is_list(Config) ->
     ?assertFormat("#{\n}", "#{}\n"),
@@ -1765,22 +1768,6 @@ map_create(Config) when is_list(Config) ->
         "#{\n"
         "    ?FOO\n"
         "}\n"
-    ).
-
-map_update(Config) when is_list(Config) ->
-    ?assertFormat("X # {\n}", "X#{}\n"),
-    ?assertSame("#{}#{}\n"),
-    ?assertSame("#{}#{}#{}\n"),
-    ?assertSame("(X#foo.bar)#{}\n"),
-    ?assertSame("(catch 1)#{}\n"),
-    ?assertSame("X#{A => B, C := D}\n"),
-    ?assertFormat(
-        "X#{11 => 22, 33 => 44}",
-        "X#{\n"
-        "    11 => 22,\n"
-        "    33 => 44\n"
-        "}\n",
-        15
     ),
     ?assertFormat(
         "#{55 => 66, 77 => 88}#{11 => 22, 33 => 44}",
@@ -1802,7 +1789,25 @@ map_update(Config) when is_list(Config) ->
         "        e\n"
         "    )\n"
         "}\n"
-    ).
+    ),
+    ?assertFormat("#{a => 1,}\n", "#{a => 1}\n").
+
+map_update(Config) when is_list(Config) ->
+    ?assertFormat("X # {\n}", "X#{}\n"),
+    ?assertSame("#{}#{}\n"),
+    ?assertSame("#{}#{}#{}\n"),
+    ?assertSame("(X#foo.bar)#{}\n"),
+    ?assertSame("(catch 1)#{}\n"),
+    ?assertSame("X#{A => B, C := D}\n"),
+    ?assertFormat(
+        "X#{11 => 22, 33 => 44}",
+        "X#{\n"
+        "    11 => 22,\n"
+        "    33 => 44\n"
+        "}\n",
+        15
+    ),
+    ?assertFormat("X#{a => 1,}\n", "X#{a => 1}\n").
 
 record_create(Config) when is_list(Config) ->
     ?assertFormat("#foo{\n}", "#foo{}\n"),
@@ -1862,7 +1867,8 @@ record_create(Config) when is_list(Config) ->
         "    c = 3\n"
         "}\n",
         15
-    ).
+    ),
+    ?assertFormat("#foo{a = 1,}\n", "#foo{a = 1}\n").
 
 record_update(Config) when is_list(Config) ->
     ?assertFormat("X #foo {\n}", "X#foo{}\n"),
@@ -1890,7 +1896,8 @@ record_update(Config) when is_list(Config) ->
         15
     ),
     ?assertSame("X#?FOO{}\n"),
-    ?assertSame("X?FOO{}\n").
+    ?assertSame("X?FOO{}\n"),
+    ?assertFormat("X#foo{a = 1,}\n", "X#foo{a = 1}\n").
 
 record_index(Config) when is_list(Config) ->
     ?assertSame("#foo.bar\n"),
@@ -2145,7 +2152,8 @@ list_comprehension(Config) when is_list(Config) ->
         "    Value\n"
         " || {string, _, Value} <- ValuesR\n"
         "]).\n"
-    ).
+    ),
+    ?assertFormat("[A || A <- List,]\n", "[A || A <- List]\n").
 
 map_comprehension(Config) when is_list(Config) ->
     ?assertFormat("#{X=>X||X<-List}", "#{X => X || X <- List}\n"),
@@ -2213,7 +2221,8 @@ map_comprehension(Config) when is_list(Config) ->
         "    X < 10\n"
         "}\n",
         25
-    ).
+    ),
+    ?assertFormat("#{A => A || A := B <- Map,}\n", "#{A => A || A := B <- Map}\n").
 
 binary_comprehension(Config) when is_list(Config) ->
     ?assertFormat("<<X||X<-List>>", "<<X || X <- List>>\n"),
@@ -2259,7 +2268,8 @@ binary_comprehension(Config) when is_list(Config) ->
         "    <<ALong, B>>\n"
         " || ALong = {_, _, _, {B, _}} <- All, lists:member(B, Keep)\n"
         ">>)\n"
-    ).
+    ),
+    ?assertFormat("<<A || <<A>> <= Bin,>>\n", "<<A || <<A>> <= Bin>>\n").
 
 call(Config) when is_list(Config) ->
     ?assertFormat("foo(\n)", "foo()\n"),
@@ -2364,7 +2374,8 @@ call(Config) when is_list(Config) ->
         "    Long,\n"
         "    Arguments\n"
         ")\n"
-    ).
+    ),
+    ?assertFormat("foo(1,)\n", "foo(1)\n").
 
 block(Config) when is_list(Config) ->
     ?assertFormat(
@@ -2566,7 +2577,8 @@ fun_expression(Config) when is_list(Config) ->
         "->\n"
         "    X\n"
         "end\n"
-    ).
+    ),
+    ?assertFormat("fun() -> ok;end.\n", "fun() -> ok end.\n").
 
 case_expression(Config) when is_list(Config) ->
     ?assertFormat(
@@ -2767,6 +2779,14 @@ case_expression(Config) when is_list(Config) ->
         "    ?macro(1);\n"
         "    ?macro(2)\n"
         "end\n"
+    ),
+    ?assertFormat(
+        "case 1 of\n"
+        "    1 -> ok;\n"
+        "end\n",
+        "case 1 of\n"
+        "    1 -> ok\n"
+        "end\n"
     ).
 
 maybe_expression(Config) when is_list(Config) ->
@@ -2810,6 +2830,26 @@ maybe_expression(Config) when is_list(Config) ->
         "    % comment else before\n"
         "    1 -> ok\n"
         "    % comment else after\n"
+        "end\n"
+    ),
+    ?assertFormat(
+        "maybe\n"
+        "    1 ?= 1,\n"
+        "end\n",
+        "maybe\n"
+        "    1 ?= 1\n"
+        "end\n"
+    ),
+    ?assertFormat(
+        "maybe\n"
+        "    ok\n"
+        "else\n"
+        "    4 -> ok;\n"
+        "end\n",
+        "maybe\n"
+        "    ok\n"
+        "else\n"
+        "    4 -> ok\n"
         "end\n"
     ).
 
@@ -3049,6 +3089,14 @@ receive_expression(Config) when is_list(Config) ->
         "        )\n"
         "        %% after after for receive\n"
         "end\n"
+    ),
+    ?assertFormat(
+        "receive\n"
+        "    1 -> ok;\n"
+        "end\n",
+        "receive\n"
+        "    1 -> ok\n"
+        "end\n"
     ).
 
 try_expression(Config) when is_list(Config) ->
@@ -3182,6 +3230,54 @@ try_expression(Config) when is_list(Config) ->
         "    ok\n"
         "    %% after after\n"
         "end\n"
+    ),
+    ?assertFormat(
+        "try\n"
+        "    ok,\n"
+        "after\n"
+        "    Expr\n"
+        "end\n",
+        "try\n"
+        "    ok\n"
+        "after\n"
+        "    Expr\n"
+        "end\n"
+    ),
+    ?assertFormat(
+        "try\n"
+        "    ok\n"
+        "after\n"
+        "    Expr,\n"
+        "end\n",
+        "try\n"
+        "    ok\n"
+        "after\n"
+        "    Expr\n"
+        "end\n"
+    ),
+    ?assertFormat(
+        "try Expr of\n"
+        "    _ -> ok;\n"
+        "after\n"
+        "    Expr\n"
+        "end\n",
+        "try Expr of\n"
+        "    _ -> ok\n"
+        "after\n"
+        "    Expr\n"
+        "end\n"
+    ),
+    ?assertFormat(
+        "try\n"
+        "    ok\n"
+        "catch\n"
+        "    _ -> throw;\n"
+        "end\n",
+        "try\n"
+        "    ok\n"
+        "catch\n"
+        "    _ -> throw\n"
+        "end\n"
     ).
 
 if_expression(Config) when is_list(Config) ->
@@ -3225,6 +3321,30 @@ if_expression(Config) when is_list(Config) ->
         "        Expression\n"
         "end\n",
         25
+    ),
+    ?assertFormat(
+        "if\n"
+        "    true -> ok;\n"
+        "end\n",
+        "if\n"
+        "    true -> ok\n"
+        "end\n"
+    ),
+    ?assertFormat(
+        "if\n"
+        "    true, -> ok\n"
+        "end\n",
+        "if\n"
+        "    true -> ok\n"
+        "end\n"
+    ),
+    ?assertFormat(
+        "if\n"
+        "    true; -> ok\n"
+        "end\n",
+        "if\n"
+        "    true -> ok\n"
+        "end\n"
     ).
 
 macro(Config) when is_list(Config) ->
@@ -3250,7 +3370,8 @@ macro(Config) when is_list(Config) ->
         ")\n",
         23
     ),
-    ?assertSame("?macro(Expr when Guard1; Guard2)\n").
+    ?assertSame("?macro(Expr when Guard1; Guard2)\n"),
+    ?assertFormat("?foo(X,)\n", "?foo(X)\n").
 
 function(Config) when is_list(Config) ->
     ?assertSame("f() -> ok.\n"),
@@ -3294,7 +3415,10 @@ function(Config) when is_list(Config) ->
         "bar(X) -> ok. % comment\n",
         "% comment\n"
         "bar(X) -> ok.\n"
-    ).
+    ),
+    ?assertFormat("foo(1,) -> ok.\n", "foo(1) -> ok.\n"),
+    ?assertFormat("foo() -> ok,.\n", "foo() -> ok.\n"),
+    ?assertFormat("foo() -> ok;.\n", "foo() -> ok.\n").
 
 attribute(Config) when is_list(Config) ->
     ?assertFormat("-else .", "-else.\n"),
@@ -3353,7 +3477,8 @@ attribute(Config) when is_list(Config) ->
         "-type str() :: string().\n"
         "\n"
         "-type int() :: integer().\n"
-    ).
+    ),
+    ?assertFormat("-attr(1,2,).\n", "-attr(1, 2).\n").
 
 exportimport(Config) when is_list(Config) ->
     ?assertSame("-export([bar/2, baz/3]).\n"),
@@ -3920,7 +4045,9 @@ spec(Config) when is_list(Config) ->
         "    Long,\n"
         "    Arguments\n"
         ") -> ok.\n"
-    ).
+    ),
+    ?assertFormat("-spec foo(1,) -> ok.\n", "-spec foo(1) -> ok.\n"),
+    ?assertFormat("-spec foo() -> ok;.\n", "-spec foo() -> ok.\n").
 
 define(Config) when is_list(Config) ->
     ?assertSame(
@@ -3965,7 +4092,8 @@ define(Config) when is_list(Config) ->
         ").\n"
     ),
     ?assertSame("-define(ANY_MODE(Mode), Mode when Mode =:= inline; Mode =:= async).\n"),
-    ?assertSame("-define(CATCH, C:E:S).\n").
+    ?assertSame("-define(CATCH, C:E:S).\n"),
+    ?assertFormat("-define(FOO(A,), A).\n", "-define(FOO(A), A).\n").
 
 type(Config) when is_list(Config) ->
     ?assertSame(
@@ -4125,7 +4253,8 @@ type(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "-type foo() :: ?FOO:?BAR().\n"
-    ).
+    ),
+    ?assertFormat("-type foo() :: bar(1,).\n", "-type foo() :: bar(1).\n").
 
 exprs(Config) when is_list(Config) ->
     ?assertSame(

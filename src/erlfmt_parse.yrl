@@ -118,6 +118,7 @@ spec_fun -> atom_or_var_or_macro : '$1'.
 spec_fun -> atom_or_var_or_macro ':' atom_or_var_or_macro : {remote, ?range_anno('$1', '$3'), '$1', '$3'}.
 
 type_sigs -> type_sig : {['$1'], ?anno('$1')}.
+type_sigs -> type_sig ';' : {['$1'], ?anno('$1')}.
 type_sigs -> type_sig ';' type_sigs : {['$1' | ?val('$3')], ?anno('$3')}.
 
 type_sig -> type_argument_list '->' type :
@@ -195,6 +196,7 @@ function -> function_clauses :
     {function, ?anno(hd('$1')), '$1'}.
 
 function_clauses -> function_clause : ['$1'].
+function_clauses -> function_clause ';' : ['$1'].
 function_clauses -> function_clause ';' function_clauses : ['$1' | '$3'].
 
 function_clause -> atom_or_var pat_argument_list clause_guard clause_body :
@@ -292,6 +294,7 @@ list -> '[' ']' : {list, ?range_anno('$1', '$2'), []}.
 list -> '[' list_exprs ']' : {list, ?range_anno('$1', '$3'), '$2'}.
 
 list_exprs -> expr : ['$1'].
+list_exprs -> expr ',' : ['$1'].
 list_exprs -> expr '|' expr : [{cons, ?range_anno('$1', '$3'), '$1', '$3'}].
 list_exprs -> expr ',' list_exprs : ['$1' | '$3'].
 
@@ -299,6 +302,7 @@ binary -> '<<' '>>' : {bin,?range_anno('$1', '$2'),[]}.
 binary -> '<<' bin_elements '>>' : {bin,?range_anno('$1', '$3'),'$2'}.
 
 bin_elements -> bin_element : ['$1'].
+bin_elements -> bin_element ',' : ['$1'].
 bin_elements -> bin_element ',' bin_elements : ['$1'|'$3'].
 
 bin_element -> bit_expr :
@@ -340,6 +344,7 @@ binary_comprehension -> '<<' expr_max '||' lc_exprs '>>' :
     {bc, ?range_anno('$1', '$5'), '$2', '$4'}.
 
 lc_exprs -> lc_expr : ['$1'].
+lc_exprs -> lc_expr ',' : ['$1'].
 lc_exprs -> lc_expr ',' lc_exprs : ['$1'|'$3'].
 
 lc_expr -> expr : '$1'.
@@ -389,6 +394,7 @@ record_tuple -> '{' '}' : {[], ?anno('$2')}.
 record_tuple -> '{' record_fields '}' : {'$2', ?anno('$3')}.
 
 record_fields -> record_field : ['$1'].
+record_fields -> record_field ',' : ['$1'].
 record_fields -> record_field ',' record_fields : ['$1' | '$3'].
 
 record_field -> record_field_name '=' expr : {record_field,?range_anno('$1', '$3'),'$1','$3'}.
@@ -403,6 +409,7 @@ function_call -> expr_max_remote argument_list :
 if_expr -> 'if' if_clauses 'end' : {'if',?range_anno('$1', '$3'),'$2'}.
 
 if_clauses -> if_clause : ['$1'].
+if_clauses -> if_clause ';' : ['$1'].
 if_clauses -> if_clause ';' if_clauses : ['$1' | '$3'].
 
 if_clause -> guard clause_body :
@@ -412,6 +419,7 @@ case_expr -> 'case' expr 'of' cr_clauses 'end' :
     {'case', ?range_anno('$1', '$5'), '$2', '$4'}.
 
 cr_clauses -> cr_clause : ['$1'].
+cr_clauses -> cr_clause ';' : ['$1'].
 cr_clauses -> cr_clause ';' cr_clauses : ['$1' | '$3'].
 
 maybe_expr -> 'maybe' exprs 'end' :
@@ -461,6 +469,7 @@ integer_or_var_or_macro -> var : '$1'.
 integer_or_var_or_macro -> macro_call_none : '$1'.
 
 fun_clauses -> fun_clause : ['$1'].
+fun_clauses -> fun_clause ';' : ['$1'].
 fun_clauses -> fun_clause ';' fun_clauses : ['$1' | '$3'].
 
 fun_clause -> pat_argument_list clause_guard clause_body :
@@ -488,6 +497,7 @@ try_catch -> 'after' exprs 'end' :
         {none, ?anno('$3'), '$1', '$2'}.
 
 try_clauses -> try_clause : ['$1'].
+try_clauses -> try_clause ';' : ['$1'].
 try_clauses -> try_clause ';' try_clauses : ['$1' | '$3'].
 
 try_clause -> pat_expr clause_guard clause_body :
@@ -573,29 +583,37 @@ type_argument_list -> '(' ')' : {[], ?range_anno('$1', '$2')}.
 type_argument_list -> '(' types ')' : {'$2', ?range_anno('$1', '$3')}.
 
 anno_exprs -> expr : {['$1'], ?anno('$1')}.
+anno_exprs -> expr ',' : {['$1'], ?anno('$1')}.
 anno_exprs -> expr ',' anno_exprs : {['$1' | ?val('$3')], ?anno('$3')}.
 
 exprs -> expr : ['$1'].
+exprs -> expr ',' : ['$1'].
 exprs -> expr ',' exprs : ['$1' | '$3'].
 
 pat_exprs -> pat_expr : ['$1'].
+pat_exprs -> pat_expr ',' : ['$1'].
 pat_exprs -> pat_expr ',' pat_exprs : ['$1' | '$3'].
 
 anno_types -> type : {['$1'], ?anno('$1')}.
 anno_types -> type ',' anno_types : {['$1' | ?val('$3')], ?range_anno('$1', '$3')}.
 
 types -> type : ['$1'].
+types -> type ',' : ['$1'].
 types -> type ',' types : ['$1' | '$3'].
 
 macro_exprs -> macro_expr : ['$1'].
+macro_exprs -> macro_expr ',' : ['$1'].
 macro_exprs -> macro_expr ',' macro_exprs : ['$1' | '$3'].
 
 vars -> var : ['$1'].
+vars -> var ',' : ['$1'].
 vars -> var ',' vars : ['$1' | '$3'].
 
 guard -> guard_or : {guard_or, ?range_anno(hd(?val('$1')), '$1'), ?val('$1')}.
 
 guard_or -> anno_exprs :
+    {[{guard_and, ?range_anno(hd(?val('$1')), '$1'), ?val('$1')}], ?anno('$1')}.
+guard_or -> anno_exprs ';' :
     {[{guard_and, ?range_anno(hd(?val('$1')), '$1'), ?val('$1')}], ?anno('$1')}.
 guard_or -> anno_exprs ';' guard_or :
     {[{guard_and, ?range_anno(hd(?val('$1')), '$1'), ?val('$1')} | ?val('$3')], ?anno('$3')}.
