@@ -314,10 +314,9 @@ string_to_algebra(Text) ->
 tripple_quoted_to_algebra(Quote, LinesWithFinalQuote) ->
     {Lines, FinalQuote} = splitlast(LinesWithFinalQuote, []),
     IndentToRemove = calculate_indentation(Quote, FinalQuote, []),
-    CleanedLinesD = [string(remove_indentation(Line, IndentToRemove)) || Line <- Lines],
-    LinesD = fold_doc(fun erlfmt_algebra:line/2, CleanedLinesD),
-    QuoteD = string(Quote),
-    line(QuoteD, line(LinesD, QuoteD)).
+    CleanedLinesD =
+        [Quote] ++ [format_tripple_line(Line, IndentToRemove) || Line <- Lines] ++ [Quote],
+    join_tripple_lines(CleanedLinesD, 1).
 
 splitlast([T], Acc) -> {lists:reverse(Acc), T};
 splitlast([H | T], Acc) -> splitlast(T, [H | Acc]).
@@ -325,8 +324,19 @@ splitlast([H | T], Acc) -> splitlast(T, [H | Acc]).
 calculate_indentation(Quote, Quote, Acc) -> lists:reverse(Acc);
 calculate_indentation(Quote, [I | Rest], Acc) -> calculate_indentation(Quote, Rest, [I | Acc]).
 
+%% empty lines have no indentation
+format_tripple_line([], _Indent) -> [];
+format_tripple_line(Line, Indent) -> remove_indentation(Line, Indent).
+
 remove_indentation(Line, []) -> Line;
 remove_indentation([H | LineRest], [H | IndentRest]) -> remove_indentation(LineRest, IndentRest).
+
+join_tripple_lines([Line], 1) ->
+    string(Line);
+join_tripple_lines([Line, [] | Rest], EmptyLines) ->
+    join_tripple_lines([Line | Rest], EmptyLines + 1);
+join_tripple_lines([Line | Rest], EmptyLines) ->
+    concat(string(Line), line(EmptyLines), join_tripple_lines(Rest, 1)).
 
 string_lines_to_algebra([LastLine]) ->
     string(["\"" | LastLine]);

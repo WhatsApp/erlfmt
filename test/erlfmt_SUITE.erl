@@ -99,6 +99,7 @@
     snapshot_enclosing_range_no_leak/1,
     snapshot_range_reinjected/1,
     snapshot_tripple_string/1,
+    snapshot_tripple_crash/1,
     contains_pragma/1,
     insert_pragma/1,
     overlong_warning/1,
@@ -182,7 +183,8 @@ groups() ->
             {group, otp_27_snapshot_tests}
         ]},
         {otp_27_snapshot_tests, [parallel], [
-            snapshot_tripple_string
+            snapshot_tripple_string,
+            snapshot_tripple_crash
         ]},
         {error_tests, [parallel], [
             error_ignore_begin_ignore,
@@ -1110,6 +1112,8 @@ snapshot_insert_pragma_with(Config) when is_list(Config) ->
     snapshot_same("pragma.erl", [{pragma, insert} | Config]).
 
 snapshot_tripple_string(Config) -> snapshot_formatted("tripple_string.erl", Config).
+
+snapshot_tripple_crash(Config) -> snapshot_same("tripple_crash.erl", Config).
 
 snapshot_same(Module, Config) ->
     Pragma = proplists:get_value(pragma, Config, ignore),
