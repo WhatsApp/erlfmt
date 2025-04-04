@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.6.1 (04.04.2025)
+
+### Fixes
+
+  - Fix crash when formatting an indented tripple quoted string with empty lines
+
 ## v1.6.0 (29.01.2025)
 
 ### Enhancements
