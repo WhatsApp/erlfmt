@@ -42,7 +42,7 @@ jobs:
           otp-version: ${{matrix.otp-version}}
           rebar3-version: ${{matrix.rebar3-version}}
       - name: Cache Hex packages
-        uses: actions/cache@v1
+        uses: actions/cache@v4
         with:
           path: ~/.cache/rebar3/hex/hexpm/packages
           key: ${{ runner.os }}-hex-${{ hashFiles(format('{0}{1}', github.workspace, '/rebar.lock')) }}
@@ -64,7 +64,7 @@ jobs:
           otp-version: 26
           rebar3-version: 3.22
       - name: Cache Dialyzer PLTs
-        uses: actions/cache@v1
+        uses: actions/cache@v4
         with:
           path: ~/.cache/rebar3/rebar3_*.plt
           key: ${{ runner.os }}-dialyzer-${{ hashFiles(format('{0}{1}', github.workspace, '/rebar.config')) }}
