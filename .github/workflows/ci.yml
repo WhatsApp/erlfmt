@@ -70,12 +70,5 @@ jobs:
           key: ${{ runner.os }}-dialyzer-${{ hashFiles(format('{0}{1}', github.workspace, '/rebar.config')) }}
           restore-keys: |
             ${{ runner.os }}-dialyzer-
-      - name: Cache Dialyzer PLTs
-        uses: actions/cache@v1
-        with:
-          path: ~/.cache/rebar3/rebar3_*.plt
-          key: ${{ runner.os }}-dialyzer-${{ hashFiles(format('{0}{1}', github.workspace, '/rebar.config')) }}
-          restore-keys: |
-            ${{ runner.os }}-dialyzer-
       - name: Dialyzer
         run: rebar3 dialyzer
