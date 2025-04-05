@@ -1054,7 +1054,7 @@ Erlang code.
 
 %% XXX. To be refined.
 -type error_description() :: term().
--type error_info() :: {erl_anno:line(), module(), error_description()}.
+-type error_info() :: {erl_anno:location(), module(), error_description()}.
 -type token() :: erlfmt_scan:token().
 
 %% mkop(Op, Arg) -> {op,Anno,Op,Arg}.
@@ -1086,10 +1086,10 @@ Erlang code.
     ErrorInfo :: error_info().
 parse_node([{'-', A1}, {atom, A2, spec} | Tokens]) ->
     NewTokens = [{'-', A1}, {'spec', A2} | Tokens],
-    parse(NewTokens);
+    ensure_error_location(parse(NewTokens));
 parse_node([{'-', A1}, {atom, A2, callback} | Tokens]) ->
     NewTokens = [{'-', A1}, {'callback', A2} | Tokens],
-    parse(NewTokens);
+    ensure_error_location(parse(NewTokens));
 parse_node([{'-', A1}, {atom, A2, define} | Tokens]) ->
     NewTokens1 = [{'-', A1}, {define_expr, A2} | Tokens],
     case parse(NewTokens1) of
@@ -1102,7 +1102,7 @@ parse_node([{'-', A1}, {atom, A2, define} | Tokens]) ->
                     Res;
                 _ ->
                     NewTokens3 = [{'-', A1}, {define_clause, A2} | Tokens],
-                    parse(NewTokens3)
+                    ensure_error_location(parse(NewTokens3))
             end
     end;
 parse_node(Tokens) ->
@@ -1112,9 +1112,20 @@ parse_node(Tokens) ->
         Error ->
             case parse([{standalone_exprs, element(2, hd(Tokens))} | Tokens]) of
                 {ok, _} = Res -> Res;
-                _ -> Error
+                _ -> ensure_error_location(Error)
             end
     end.
+
+ensure_error_location({ok, _} = Res) ->
+    Res;
+ensure_error_location({error, {AnnoOrLoc, Mod, Description}}) ->
+    {error, {error_location(AnnoOrLoc), Mod, Description}}.
+
+-spec error_location(erlfmt_scan:anno() | erl_anno:location()) -> erl_anno:location().
+error_location(#{location := Loc}) ->
+    Loc;
+error_location(Loc) ->
+    Loc.
 
 %% unwrap single-expr definitions, wrapped in guards by the parser
 build_macro_def(
