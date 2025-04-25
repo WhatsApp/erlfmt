@@ -52,8 +52,8 @@ jobs:
       - uses: actions/checkout@v2
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: 26
-          rebar3-version: 3.22
+          otp-version: 27
+          rebar3-version: 3.24
       - name: Cache Dialyzer PLTs
         uses: actions/cache@v4
         with:
