@@ -538,15 +538,11 @@ parse(Tokens) ->
     end.
 
 ignore_state_pre(PreComments, FileName, Acc) ->
-    case ignore_state(PreComments, FileName, Acc) of
-        'end' -> false;
-        Other -> Other
-    end.
+    ignore_state(PreComments, FileName, Acc).
 
 ignore_state_post(PostComments, FileName, Acc) ->
     case ignore_state(PostComments, FileName, Acc) of
         ignore -> false;
-        'end' -> false;
         Other -> Other
     end.
 
@@ -570,7 +566,7 @@ ignore_state([Line | Lines], FileName, Loc, Rest, Acc0) ->
             "erlfmt-ignore-begin" ++ R when ?IS_IGNORE_REASON(R) ->
                 throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'begin', Acc0}}});
             "erlfmt-ignore-end" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= 'begin' ->
-                'end';
+                false;
             "erlfmt-ignore-end" ++ R when ?IS_IGNORE_REASON(R) ->
                 throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'end', Acc0}}});
             % New-style erlfmt:ignore
@@ -583,7 +579,7 @@ ignore_state([Line | Lines], FileName, Loc, Rest, Acc0) ->
             "erlfmt:ignore-begin" ++ R when ?IS_IGNORE_REASON(R) ->
                 throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'begin', Acc0}}});
             "erlfmt:ignore-end" ++ R when ?IS_IGNORE_REASON(R), Acc0 =:= 'begin' ->
-                'end';
+                false;
             "erlfmt:ignore-end" ++ R when ?IS_IGNORE_REASON(R) ->
                 throw({error, {FileName, Loc, ?MODULE, {invalid_ignore, 'end', Acc0}}});
             _ ->

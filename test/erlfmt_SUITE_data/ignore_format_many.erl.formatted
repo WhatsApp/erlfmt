@@ -40,6 +40,11 @@ f() -> ok. % this is ok
 g() -> ok. % this is also ok
 % erlfmt:ignore-end I'm done with this style
 
+% erlfmt:ignore-begin Here we go again...
+a1() -> ok. % again
+a2() -> ok. % ditto
+% erlfmt:ignore-end Now I'm really done
+
 % blah
 h() -> ok.
 
