@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.6.2 (25.04.2025)
+
+### Fixes
+
+  - Fix crash when two erlfmt-ignore-begin/end blocks immediately followed
+
 ## v1.6.1 (04.04.2025)
 
 ### Fixes
