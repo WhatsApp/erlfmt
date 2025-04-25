@@ -12,25 +12,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-20.04
-            otp-version: 21.3
-            rebar3-version: 3.15
-          - os: ubuntu-20.04
-            otp-version: '22.3'
-            rebar3-version: 3.16
-          - os: ubuntu-20.04
-            otp-version: 23.3
-            rebar3-version: 3.19
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             otp-version: 24.3
             rebar3-version: 3.22
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             otp-version: 25.3
             rebar3-version: 3.22
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             otp-version: 26
             rebar3-version: 3.22
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             otp-version: 27
             rebar3-version: 3.23
     runs-on: ${{ matrix.os }}
