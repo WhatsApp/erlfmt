@@ -54,8 +54,8 @@ We did a survey of what other formatters and style guides have chosen.
 - HTML: [80](https://developers.google.com/style/html-formatting)
 - Facebook General: 80
 - Google:
-    * Java Formatter: [100](https://google.github.io/styleguide/javaguide.html#:~:text=Java%20code%20has%20a%20column%20limit%20of%20100%20characters)
-    * Python: [80](https://google.github.io/styleguide/pyguide.html)
+  - Java Formatter: [100](https://google.github.io/styleguide/javaguide.html#:~:text=Java%20code%20has%20a%20column%20limit%20of%20100%20characters)
+  - Python: [80](https://google.github.io/styleguide/pyguide.html)
 - GitHub: at 120 a horizontal scrollbar is added
 - ReSharper: [100](https://www.jetbrains.com/help/resharper/Using_EditorConfig.html#what_is)
 - CPP: [80](https://google.github.io/styleguide/cppguide.html#Line_Length)
@@ -89,4 +89,3 @@ for i in {70..120}; do
     rg '@generated|yeccpre\.hrl' --files-without-match $@ | xargs erlfmt --print-width $i | wc -l
 done
 ```
-

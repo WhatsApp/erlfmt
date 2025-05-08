@@ -1,4 +1,4 @@
-## Formatting Decisions
+# Formatting Decisions
 
 Formatting decision documents are intended to explain our reasoning for making certain formatting decisions.
 Typically these documents contain a set of goals, which are found close to the top of the document,
@@ -11,13 +11,15 @@ After version 1.0.0 these decisions will be much harder to back track on,
 but what might be unclear is that before version 1.0.0 these decisions are still very much up for debate.
 
 Debating on formatting decisions is easy:
-  - Read the document
-  - If you see that we unfairly judged an alternative against our goals, this is a feedback opportunity
-  - If you think that the goals that we created are not fair, this is a feedback opportunity
+
+- Read the document
+- If you see that we unfairly judged an alternative against our goals, this is a feedback opportunity
+- If you think that the goals that we created are not fair, this is a feedback opportunity
 
 Feedback can be given by:
-  - [Creating an github issue](https://github.com/WhatsApp/erlfmt/issues/new)
-  - Or commenting on the active pull request
+
+- [Creating an github issue](https://github.com/WhatsApp/erlfmt/issues/new)
+- Or commenting on the active pull request
 
 See [Pull Requests](https://github.com/WhatsApp/erlfmt/pulls) for incoming formatting decisions and the list below for merged formatting decisions.
 
@@ -25,13 +27,13 @@ As always, you can preferably provide feedback, by simply trying out the `erlfmt
 
 ## Merged Formatting Decisions
 
-  - [DefaultWidth](./FormattingDecisionDefaultWidth.md)
-  - [Ignore](./FormattingDecisionIgnore.md)
-  - [Comments](./FormattingDecisionComments.md)
-  - [Pipes](./FormattingDecisionPipes.md)
-  - [Commas in Lists](./FormattingDecisionCommas.md)
-  - [Number of Spaces](./FormattingDecisionSpaces.md)
-  - [Multiline Lists](./FormattingDecisionLists.md)
-  - [List Comprehensions](./FormattingDecisionListComprehensions.md)
-  - [When with Multiline Guards](./FormattingDecisionWhenMultilineGuards.md)
-  - [Formatting Decision: Left Associative Equal and Dolon Operators](./FormattingDecisionAssociative.md)
+- [DefaultWidth](./FormattingDecisionDefaultWidth.md)
+- [Ignore](./FormattingDecisionIgnore.md)
+- [Comments](./FormattingDecisionComments.md)
+- [Pipes](./FormattingDecisionPipes.md)
+- [Commas in Lists](./FormattingDecisionCommas.md)
+- [Number of Spaces](./FormattingDecisionSpaces.md)
+- [Multiline Lists](./FormattingDecisionLists.md)
+- [List Comprehensions](./FormattingDecisionListComprehensions.md)
+- [When with Multiline Guards](./FormattingDecisionWhenMultilineGuards.md)
+- [Formatting Decision: Left Associative Equal and Dolon Operators](./FormattingDecisionAssociative.md)
