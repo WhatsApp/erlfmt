@@ -30,7 +30,7 @@ map_comprehension
 binary_comprehension
 tuple
 record_expr record_name record_field_name record_tuple record_field record_fields
-map_expr map_tuple
+map_expr map_tuple begin_block
 if_expr if_clause if_clauses case_expr cr_clause cr_clauses receive_expr maybe_expr
 fun_expr fun_clause fun_clauses
 atom_or_var atom_or_var_or_macro integer_or_var_or_macro
@@ -250,7 +250,7 @@ expr_max -> map_comprehension : '$1'.
 expr_max -> binary_comprehension : '$1'.
 expr_max -> tuple : '$1'.
 expr_max -> '(' expr ')' : set_parens('$2').
-expr_max -> 'begin' exprs 'end' : {block,?range_anno('$1', '$3'),'$2'}.
+expr_max -> begin_block : '$1'.
 expr_max -> if_expr : '$1'.
 expr_max -> case_expr : '$1'.
 expr_max -> maybe_expr : '$1'.
@@ -406,7 +406,11 @@ record_field_name -> atom_or_var_or_macro : '$1'.
 function_call -> expr_max_remote argument_list :
     {call, ?range_anno('$1', '$2'), '$1', ?val('$2')}.
 
-if_expr -> 'if' if_clauses 'end' : {'if',?range_anno('$1', '$3'),'$2'}.
+begin_block -> 'begin' 'end' : {block, ?range_anno('$1', '$2'), []}.
+begin_block -> 'begin' exprs 'end' : {block, ?range_anno('$1', '$3'), '$2'}.
+
+if_expr -> 'if' 'end' : {'if', ?range_anno('$1', '$2'), []}.
+if_expr -> 'if' if_clauses 'end' : {'if', ?range_anno('$1', '$3'), '$2'}.
 
 if_clauses -> if_clause : ['$1'].
 if_clauses -> if_clause ';' : ['$1'].
@@ -415,6 +419,8 @@ if_clauses -> if_clause ';' if_clauses : ['$1' | '$3'].
 if_clause -> guard clause_body :
     {clause, ?range_anno('$1', '$2'), empty, '$1', ?val('$2')}.
 
+case_expr -> 'case' expr 'of' 'end' :
+    {'case', ?range_anno('$1', '$4'), '$2', []}.
 case_expr -> 'case' expr 'of' cr_clauses 'end' :
     {'case', ?range_anno('$1', '$5'), '$2', '$4'}.
 
@@ -422,8 +428,13 @@ cr_clauses -> cr_clause : ['$1'].
 cr_clauses -> cr_clause ';' : ['$1'].
 cr_clauses -> cr_clause ';' cr_clauses : ['$1' | '$3'].
 
+maybe_expr -> 'maybe' 'end' :
+    {'maybe', ?range_anno('$1', '$2'), []}.
 maybe_expr -> 'maybe' exprs 'end' :
     {'maybe', ?range_anno('$1', '$3'), '$2'}.
+maybe_expr -> 'maybe' 'else' cr_clauses 'end' :
+    Else = {else_clause, ?range_anno('$2', '$4'), '$3'},
+    {'maybe', ?range_anno('$1', '$4'), [], Else}.
 maybe_expr -> 'maybe' exprs 'else' cr_clauses 'end' :
     Else = {else_clause, ?range_anno('$3', '$5'), '$4'},
     {'maybe', ?range_anno('$1', '$5'), '$2', Else}.
@@ -437,6 +448,8 @@ cr_clause -> expr clause_guard clause_body :
 cr_clause -> macro_call_expr :
     '$1'.
 
+receive_expr -> 'receive' 'end' :
+        {'receive', ?range_anno('$1', '$2'), empty}.
 receive_expr -> 'receive' cr_clauses 'end' :
         Clauses = {clauses, ?range_anno('$1', '$3'), '$2'},
         {'receive',?range_anno('$1', '$3'),Clauses}.
@@ -454,6 +467,9 @@ fun_expr -> 'fun' atom_or_var_or_macro '/' integer_or_var_or_macro :
 fun_expr -> 'fun' atom_or_var_or_macro ':' atom_or_var_or_macro '/' integer_or_var_or_macro :
     Anno = ?range_anno('$1', '$6'),
     {'fun',Anno,{function,Anno,'$2','$4','$6'}}.
+fun_expr -> 'fun' 'end' :
+    Anno = ?range_anno('$1', '$2'),
+    {'fun', Anno, {clauses, Anno, []}}.
 fun_expr -> 'fun' fun_clauses 'end' :
     Anno = ?range_anno('$1', '$3'),
     {'fun',Anno,{clauses,Anno,'$2'}}.
@@ -490,11 +506,11 @@ try_expr -> 'try' exprs try_catch :
     {'try', ?range_anno('$1', '$3'), Body, none, TryClauses, After}.
 
 try_catch -> 'catch' try_clauses 'end' :
-        {{clauses, ?range_anno('$1', '$3'), '$2'}, ?anno('$3'), '$1', []}.
+    {{clauses, ?range_anno('$1', '$3'), '$2'}, ?anno('$3'), '$1', []}.
 try_catch -> 'catch' try_clauses 'after' exprs 'end' :
-        {{clauses, ?range_anno('$1', '$3'), '$2'}, ?anno('$5'), '$1', '$4'}.
+    {{clauses, ?range_anno('$1', '$3'), '$2'}, ?anno('$5'), '$1', '$4'}.
 try_catch -> 'after' exprs 'end' :
-        {none, ?anno('$3'), '$1', '$2'}.
+    {none, ?anno('$3'), '$1', '$2'}.
 
 try_clauses -> try_clause : ['$1'].
 try_clauses -> try_clause ';' : ['$1'].

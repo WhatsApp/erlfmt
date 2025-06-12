@@ -73,7 +73,9 @@
     update_edgecase/1,
     sigils/1,
     doc_attributes/1,
-    doc_macros/1
+    doc_macros/1,
+    incomplete/1,
+    maybe_incomplete/1
 ]).
 
 suite() ->
@@ -97,7 +99,7 @@ init_per_group(_GroupName, Config) ->
 end_per_group(_GroupName, _Config) ->
     ok.
 
-init_per_testcase(maybe_expression, Config) ->
+init_per_testcase(Maybe, Config) when Maybe =:= maybe_expression; Maybe =:= maybe_incomplete ->
     case has_feature(maybe_expr, Config) of
         true -> Config;
         false -> {skip, "Maybe feature not present in the runtime system"}
@@ -122,11 +124,13 @@ groups() ->
             fun_expression,
             case_expression,
             maybe_expression,
+            maybe_incomplete,
             receive_expression,
             try_expression,
             if_expression,
             macro,
-            doc_macros
+            doc_macros,
+            incomplete
         ]},
         {forms, [parallel], [
             function,
@@ -4422,3 +4426,37 @@ doc_macros(Config) when is_list(Config) ->
     ?assertSame("?MODULEDOC(\"Test\").\n?MODULEDOC(#{since => <<\"1.0.0\">>}).\n"),
     ?assertSame("?DOC(\"Test\").\n?DOC(#{since => <<\"1.0.0\">>}).\ntest() -> ok.\n"),
     ?assertSame("?DOC(\"Test\").\n?DOC(#{since => <<\"1.0.0\">>}).\n-type t() :: ok.\n").
+
+incomplete(Config) when is_list(Config) ->
+    ?assertSame(
+        "case X of\n"
+        "end.\n"
+    ),
+    ?assertSame(
+        "receive\n"
+        "end.\n"
+    ),
+    ?assertSame(
+        "if\n"
+        "end.\n"
+    ),
+    ?assertSame(
+        "fun\n"
+        "end.\n"
+    ),
+    ?assertSame(
+        "begin\n"
+        "end.\n"
+    ).
+
+maybe_incomplete(Config) when is_list(Config) ->
+    ?assertSame(
+        "maybe\n"
+        "end.\n"
+    ),
+    ?assertSame(
+        "maybe\n"
+        "else\n"
+        "    ok -> ok\n"
+        "end.\n"
+    ).
