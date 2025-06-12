@@ -235,7 +235,17 @@ drop_initial_white_space(Rest) ->
 
 -spec stringify_tokens([erl_scan:token()]) -> string().
 stringify_tokens(Tokens) ->
-    lists:flatmap(fun erl_scan:text/1, Tokens).
+    lists:flatmap(fun token_text/1, Tokens).
+
+-spec token_text(erl_scan:token()) -> string().
+token_text(Token) ->
+    case erl_scan:text(Token) of
+        %% sigil_suffix might miss the text field
+        undefined when is_record(Token, sigil_suffix, 3) ->
+            "";
+        Text ->
+            Text
+    end.
 
 -spec split_tokens([erl_scan:token()], [erl_scan:token()]) ->
     {[token()], [erl_scan:token()], [comment()], [token()]}.
