@@ -1012,7 +1012,7 @@ dotted(Config) when is_list(Config) ->
 map_comprehension(Config) when is_list(Config) ->
     ?assertMatch(
         {mc, _, {map_field_assoc, _, {var, _, 'A'}, {var, _, 'B'}}, [
-            {generate, _, {map_field_exact, _, {var, _, 'A'}, {var, _, 'B'}}, {var, _, 'M'}}
+            {generate, _, '<-', {map_field_exact, _, {var, _, 'A'}, {var, _, 'B'}}, {var, _, 'M'}}
         ]},
         parse_expr("#{A => B || A := B <- M}")
     ).

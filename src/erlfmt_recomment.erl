@@ -181,13 +181,15 @@ insert_nested({Comprehension, Meta, Expr0, LcExprs0}, Comments0) when
 insert_nested({Field, Meta, Key0, Value0}, Comments0) when
     Field =:= map_field_assoc;
     Field =:= map_field_exact;
-    Field =:= record_field;
-    Field =:= generate;
-    Field =:= b_generate
+    Field =:= record_field
 ->
     {Key, Comments1} = insert_expr(Key0, Comments0),
     {Value, Comments} = insert_expr(Value0, Comments1),
     {{Field, Meta, Key, Value}, Comments};
+insert_nested({generate, Meta, Op, Key0, Value0}, Comments0) ->
+    {Key, Comments1} = insert_expr(Key0, Comments0),
+    {Value, Comments} = insert_expr(Value0, Comments1),
+    {{generate, Meta, Op, Key, Value}, Comments};
 %% no internal comments in record_indexm record_field, or bin_element
 insert_nested({record_index, _, _, _} = Node, Comments) ->
     {put_pre_comments(Node, Comments), []};

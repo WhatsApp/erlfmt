@@ -75,7 +75,8 @@
     doc_attributes/1,
     doc_macros/1,
     incomplete/1,
-    maybe_incomplete/1
+    maybe_incomplete/1,
+    strict_generators/1
 ]).
 
 suite() ->
@@ -92,6 +93,11 @@ init_per_group(otp_27_features, Config) ->
     case erlang:system_info(otp_release) >= "27" of
         true -> Config;
         false -> {skip, "Skipping tests for features from OTP >= 27"}
+    end;
+init_per_group(otp_28_features, Config) ->
+    case erlang:system_info(otp_release) >= "28" of
+        true -> Config;
+        false -> {skip, "Skipping tests for features from OTP >= 28"}
     end;
 init_per_group(_GroupName, Config) ->
     Config.
@@ -174,6 +180,9 @@ groups() ->
         {otp_27_features, [parallel], [
             sigils,
             doc_attributes
+        ]},
+        {otp_28_features, [parallel], [
+            strict_generators
         ]}
     ].
 
@@ -182,6 +191,7 @@ all() ->
         {group, expressions},
         {group, forms},
         {group, otp_27_features},
+        {group, otp_28_features},
         comment
     ].
 
@@ -4460,3 +4470,8 @@ maybe_incomplete(Config) when is_list(Config) ->
         "    ok -> ok\n"
         "end.\n"
     ).
+
+strict_generators(Config) when is_list(Config) ->
+    ?assertSame("[X || X <:- Xs]\n"),
+    ?assertSame("[{K, V} || K := V <:- M]\n"),
+    ?assertSame("[X || <<X>> <:= Xs]\n").

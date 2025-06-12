@@ -186,10 +186,8 @@ do_expr_to_algebra({mc, _Meta, Expr, LcExprs}) ->
     comprehension_to_algebra(Expr, LcExprs, <<"#{">>, <<"}">>);
 do_expr_to_algebra({bc, _Meta, Expr, LcExprs}) ->
     comprehension_to_algebra(Expr, LcExprs, <<"<<">>, <<">>">>);
-do_expr_to_algebra({generate, _Meta, Left, Right}) ->
-    field_to_algebra(<<"<-">>, Left, Right);
-do_expr_to_algebra({b_generate, _Meta, Left, Right}) ->
-    field_to_algebra(<<"<=">>, Left, Right);
+do_expr_to_algebra({generate, _Meta, Op, Left, Right}) ->
+    field_to_algebra(atom_to_binary(Op), Left, Right);
 do_expr_to_algebra({call, Meta, Name, Args}) ->
     concat(expr_to_algebra(Name), call(Meta, Args, <<"(">>, <<")">>));
 do_expr_to_algebra({macro_call, _Meta, Name, none}) ->
