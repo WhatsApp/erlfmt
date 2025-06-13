@@ -76,7 +76,8 @@
     doc_macros/1,
     incomplete/1,
     maybe_incomplete/1,
-    strict_generators/1
+    strict_generators/1,
+    zip_generators/1
 ]).
 
 suite() ->
@@ -182,7 +183,8 @@ groups() ->
             doc_attributes
         ]},
         {otp_28_features, [parallel], [
-            strict_generators
+            strict_generators,
+            zip_generators
         ]}
     ].
 
@@ -4475,3 +4477,16 @@ strict_generators(Config) when is_list(Config) ->
     ?assertSame("[X || X <:- Xs]\n"),
     ?assertSame("[{K, V} || K := V <:- M]\n"),
     ?assertSame("[X || <<X>> <:= Xs]\n").
+
+zip_generators(Config) when is_list(Config) ->
+    ?assertSame("[{X, Y} || X <- Xs && Y <- Ys]\n"),
+    ?assertFormat(
+        "[{X, Y} || X <- Xs && Y <- Ys, X < Y]\n",
+        "[\n"
+        "    {X, Y}\n"
+        " || X <- Xs &&\n"
+        "        Y <- Ys,\n"
+        "    X < Y\n"
+        "]\n",
+        16
+    ).

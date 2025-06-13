@@ -25,7 +25,7 @@ pid dotted_special dotted_seq
 pat_expr pat_expr_max map_pat_expr record_pat_expr
 pat_argument_list pat_exprs
 list list_exprs
-list_comprehension lc_expr lc_exprs
+list_comprehension lc_expr lc_exprs zc_exprs
 map_comprehension
 binary_comprehension
 tuple
@@ -51,7 +51,7 @@ macro_name macro_def_expr macro_def_expr_body macro_def_type macro_def_clause.
 Terminals
 char integer float atom string var
 
-'(' ')' ',' '->' '{' '}' '[' ']' '|' '||' '<-' '<:-' ';' ':' '#' '.' '?='
+'(' ')' ',' '->' '{' '}' '[' ']' '|' '||' '<-' '<:-' ';' ':' '#' '.' '?=' '&&'
 'after' 'begin' 'case' 'try' 'catch' 'end' 'fun' 'if' 'of' 'receive' 'when' 'maybe' 'else'
 'andalso' 'orelse'
 'bnot' 'not'
@@ -346,6 +346,11 @@ binary_comprehension -> '<<' expr_max '||' lc_exprs '>>' :
 lc_exprs -> lc_expr : ['$1'].
 lc_exprs -> lc_expr ',' : ['$1'].
 lc_exprs -> lc_expr ',' lc_exprs : ['$1'|'$3'].
+lc_exprs -> zc_exprs : ['$1'].
+lc_exprs -> zc_exprs ',' lc_exprs : ['$1' | '$3'].
+
+zc_exprs -> lc_expr '&&' lc_expr : ?mkop2('$1', '$2', '$3').
+zc_exprs -> lc_expr '&&' zc_exprs : ?mkop2('$1', '$2', '$3').
 
 lc_expr -> expr : '$1'.
 lc_expr -> expr '<-' expr : {generate, ?range_anno('$1', '$3'), '<-', '$1', '$3'}.
@@ -806,7 +811,9 @@ Erlang code.
 
 -type af_qualifier() :: af_generator() | af_filter().
 
--type af_generator() :: {'generate', anno(), Op :: atom(), af_pattern(), abstract_expr()}.
+-type af_generator() ::
+    {'generate', anno(), Op :: atom(), af_pattern(), abstract_expr()} |
+    {'op', anno(), '&&', af_generator(), af_generator()}.
 
 -type af_filter() :: abstract_expr().
 
