@@ -78,7 +78,7 @@ to_algebra({attribute, Meta, {atom, _, import}, [Name, {list, Anno, Imports}]}) 
     Doc = call(Meta, [Name, GroupedImports], <<"-import(">>, <<")">>),
     combine_comments_with_dot(Meta, Doc);
 to_algebra({attribute, Meta, {atom, _, RawName} = Name, [Value]}) when
-    RawName =:= type; RawName =:= opaque; RawName =:= spec; RawName =:= callback
+    RawName =:= type; RawName =:= opaque; RawName =:= spec; RawName =:= callback; RawName =:= nominal
 ->
     ValueD = next_break_fits(expr_to_algebra(Value), enabled),
     Doc = concat([<<"-">>, expr_to_algebra(Name), <<" ">>, ValueD]),

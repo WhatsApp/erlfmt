@@ -77,7 +77,8 @@
     incomplete/1,
     maybe_incomplete/1,
     strict_generators/1,
-    zip_generators/1
+    zip_generators/1,
+    nominal_type/1
 ]).
 
 suite() ->
@@ -184,7 +185,8 @@ groups() ->
         ]},
         {otp_28_features, [parallel], [
             strict_generators,
-            zip_generators
+            zip_generators,
+            nominal_type
         ]}
     ].
 
@@ -4489,4 +4491,15 @@ zip_generators(Config) when is_list(Config) ->
         "    X < Y\n"
         "]\n",
         16
+    ).
+
+nominal_type(Config) when is_list(Config) ->
+    ?assertSame(
+        "-nominal foo() :: #foo{a :: integer(), b :: module:type()}.\n"
+    ),
+    ?assertSame(
+        "-nominal foo() :: {<<>>, <<_:8>>, <<_:_*4>>, <<_:8, _:_*4>>}.\n"
+    ),
+    ?assertSame(
+        "-nominal foo() :: {fun(), fun((...) -> mod:bar()), fun(() -> integer())}.\n"
     ).
