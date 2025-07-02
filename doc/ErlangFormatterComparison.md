@@ -22,17 +22,17 @@ but in this document, when we mention `rebar3_format` we are referring to the re
 
 One of the biggest lacking features with current Erlang formatters is the handling of macros.  For example:
 
-* `erl_tidy`
-    * Crashes on some macros (`argument`, `?NAME`, and `compute`)
-    * On some, prints the whole containing function in a huge, single, ugly line (`match`)
-* `streamroller`
-    * Requires that all macros are defined
-    * Skips the whole file, if it contains a marco it can’t handle.
-* `rebar3_format`
-    * Cannot handle most macros in the example (functions `argument`, `match`, `?NAME` and `compute`)
-    * Skips the whole file in these cases
-    * Syntax error on double question mark
-    * Loses parenthesis in `IMPORTANT_PARENS`, which changes the answer of `?IMPORTANT_PARENS(2 + 1)` from 9 to 5.
+- `erl_tidy`
+  - Crashes on some macros (`argument`, `?NAME`, and `compute`)
+  - On some, prints the whole containing function in a huge, single, ugly line (`match`)
+- `streamroller`
+  - Requires that all macros are defined
+  - Skips the whole file, if it contains a marco it can’t handle.
+- `rebar3_format`
+  - Cannot handle most macros in the example (functions `argument`, `match`, `?NAME` and `compute`)
+  - Skips the whole file in these cases
+  - Syntax error on double question mark
+  - Loses parenthesis in `IMPORTANT_PARENS`, which changes the answer of `?IMPORTANT_PARENS(2 + 1)` from 9 to 5.
 
 `erlfmt` forked the erlang parser to make sure that it can handle macros and can handle all of the following macros and format them.
 

@@ -11,9 +11,9 @@ We chose to format multi line lists with [each element on their own line](each-e
 
 Goals:
 
-  - Minimize the diff when changing a single line.
-  - [Welcoming to new comers](#welcoming-to-new-comers), because we want erlang to be growing community.
-  - [Popular with current users](#analysis), it would be great if the style we pick is already a popular style
+- Minimize the diff when changing a single line.
+- [Welcoming to new comers](#welcoming-to-new-comers), because we want erlang to be growing community.
+- [Popular with current users](#analysis), it would be great if the style we pick is already a popular style
 
 Readability would also be a goal, but it seems depending on who we ask each style can be seen as more readable than the other,
 which makes it seem as though this is subjective and would require a study to resolve.
@@ -24,9 +24,9 @@ Here you follows all the candidates we evaluated against our goals.
 
 ## Each Element On Their Own Line
 
-  - ✅ Welcoming to new comers
-  - ✅ Minimize the diff when changing a single line
-  - ✅ Popular with current users
+- ✅ Welcoming to new comers
+- ✅ Minimize the diff when changing a single line
+- ✅ Popular with current users
 
 `erlfmt` formats multiline lists with each element on a separate line:
 
@@ -63,9 +63,9 @@ I_Decided_To_Change_My_Variable_Name = [
 
 ### IO Format Tilde P
 
-  - ✅ Popular with current users
-  - ❌ Minimize the diff when changing a single line
-  - ❌ Welcoming to new comers
+- ✅ Popular with current users
+- ❌ Minimize the diff when changing a single line
+- ❌ Welcoming to new comers
 
 `IO Format Tilde P` represents the format of lists printed by `io:format("~p", [MyList])`.
 
@@ -108,28 +108,34 @@ $ pcregrep -r --include=".*\.erl" --include=".*\.hrl" "\[(.*),(\s)*$" . | grep -
 The results were inconclusive, they show that both styles `io:format ~p` and having each element on their own line are both relatively popular, with no clear winner.
 
 WhatsApp:
-  - tildep: x
-  - newline: 5x
+
+- tildep: x
+- newline: 5x
 
 OTP:
-  - tildep: 18095
-  - newline: 3415
+
+- tildep: 18095
+- newline: 3415
 
 [Inaka repos](#inaka):
-  - tildep: 115
-  - newline: 408
+
+- tildep: 115
+- newline: 408
 
 [Kazoo](https://github.com/2600hz/kazoo):
-  - tildep: 229
-  - newline: 36
+
+- tildep: 229
+- newline: 36
 
 [MongooseIM](https://github.com/esl/MongooseIM):
-  - tildep: 1991
-  - newline: 700
+
+- tildep: 1991
+- newline: 700
 
 [ejabberd](https://github.com/processone/ejabberd):
-  - tildep: 1599
-  - newline: 32
+
+- tildep: 1599
+- newline: 32
 
 ## Welcoming to new comers
 
@@ -138,10 +144,10 @@ Making our format familiar to programmers from other languages, this could help 
 
 The following style guides from other languages exclusively places each element on their own line:
 
-  - [Guido van Rossum's style guide for Python](https://www.python.org/dev/peps/pep-0008/#multiline-if-statements)
-  - [Google's Java style guide](https://google.github.io/styleguide/javaguide.html#s4.8.3.1-array-initializers)
-  - [Javascript's Prettier](https://prettier.io/docs/en/rationale.html#multi-line-objects)
-  - [Elixir Style Guide](https://github.com/christopheradams/elixir_style_guide)
+- [Guido van Rossum's style guide for Python](https://www.python.org/dev/peps/pep-0008/#multiline-if-statements)
+- [Google's Java style guide](https://google.github.io/styleguide/javaguide.html#s4.8.3.1-array-initializers)
+- [Javascript's Prettier](https://prettier.io/docs/en/rationale.html#multi-line-objects)
+- [Elixir Style Guide](https://github.com/christopheradams/elixir_style_guide)
 
 ## Appendix
 
