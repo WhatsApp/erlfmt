@@ -240,14 +240,14 @@ write_formatted(FileName, Formatted, Out) ->
             print_error_info({OutFileName, 0, file, Reason1}),
             error
     end,
-    {ok, OriginalBin} = file:read_file(FileName),
+    {ok, OriginalBin} = read_file(FileName),
     case unicode:characters_to_binary(Formatted) of
         OriginalBin -> ok;
         FormattedBin -> write_file(OutFileName, FormattedBin)
     end.
 
 write_file(OutFileName, FormattedBin) ->
-    case file:write_file(OutFileName, unicode:characters_to_binary(FormattedBin)) of
+    case file:write_file(OutFileName, unicode:characters_to_binary(FormattedBin), [raw]) of
         ok ->
             ok;
         {error, Reason2} ->
@@ -263,7 +263,7 @@ out_file(FileName, {path, Path}) ->
 check_file(FileName, Options) ->
     case erlfmt:format_file(FileName, Options) of
         {ok, Formatted, FormatWarnings} ->
-            {ok, OriginalBin} = file:read_file(FileName),
+            {ok, OriginalBin} = read_file(FileName),
             FormattedBin = unicode:characters_to_binary(Formatted),
             case FormattedBin of
                 OriginalBin -> {ok, Formatted, FormatWarnings};
@@ -464,11 +464,11 @@ specified_files(List) ->
 expand_files("-", Files) ->
     [stdin | Files];
 expand_files(NewFile, Files) when is_integer(hd(NewFile)) ->
-    case filelib:is_regular(NewFile) of
+    case filelib:is_regular(NewFile, prim_file) of
         true ->
             [NewFile | Files];
         false ->
-            case filelib:wildcard(NewFile) of
+            case filelib:wildcard(NewFile, ".", prim_file) of
                 [] ->
                     Files;
                 NewFiles ->
@@ -508,3 +508,9 @@ parallel_loop(Fun, List, N, Refs0, ReducedResult0) ->
         {'DOWN', _Ref, process, _, Crash} ->
             exit(Crash)
     end.
+
+-if(?OTP_RELEASE >= 27).
+read_file(FileName) -> file:read_file(FileName, [raw]).
+-else.
+read_file(FileName) -> file:read_file(FileName).
+-endif.

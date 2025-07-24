@@ -416,11 +416,19 @@ read_file(FileName, Action) ->
     end.
 
 % Return file as one big string (with '\n' as line separator).
+-if(?OTP_RELEASE >= 27).
+read_file_or_stdin(stdin) ->
+    read_stdin([]);
+read_file_or_stdin(FileName) ->
+    {ok, Bin} = file:read_file(FileName, [raw]),
+    unicode:characters_to_list(Bin).
+-else.
 read_file_or_stdin(stdin) ->
     read_stdin([]);
 read_file_or_stdin(FileName) ->
     {ok, Bin} = file:read_file(FileName),
     unicode:characters_to_list(Bin).
+-endif.
 
 read_stdin(Acc) ->
     case io:get_line("") of
