@@ -6,27 +6,28 @@ This document conforms to the decisions already made for [lists](./FormattingDec
 and does not rehash decisions already taken in that document.
 
 This document focuses on list comprehensions that are broken up over multiple lines, because of:
-  - a long function name,
-  - long parameters,
-  - long generators
-  - long filters
-  - etc.
+
+- a long function name,
+- long parameters,
+- long generators
+- long filters
+- etc.
 
 We will choose a format that best conforms to our goals:
 
-  - Create/keep differentiation between the generator, body and filters.
-  - Consistent with formatting of [Lists](./FormattingDecisionLists.md)
-  - Handles multiline expressions consistently.
-  - Consistent indenting by 4, to aid writability
+- Create/keep differentiation between the generator, body and filters.
+- Consistent with formatting of [Lists](./FormattingDecisionLists.md)
+- Handles multiline expressions consistently.
+- Consistent indenting by 4, to aid writability
 
 Here you can see all the other candidates we evaluated against our goals.
 
 ## Expanded
 
-  - ✅ Differentiating
-  - ✅ Consistent Lists
-  - ✅ Multiline expressions
-  - ❌ Indenting by 4
+- ✅ Differentiating
+- ✅ Consistent Lists
+- ✅ Multiline expressions
+- ❌ Indenting by 4
 
 We considered indenting the filter expressions by 3.
 
@@ -62,10 +63,10 @@ Here is an example with a multiline expression, that shows what a long argument 
 
 ## Expanded with consistent 4 spacing
 
-  - ✅ Differentiating
-  - ✅ Consistent with lists
-  - ✅ Handles multiline expression consistently
-  - ❌ Indenting by 4
+- ✅ Differentiating
+- ✅ Consistent with lists
+- ✅ Handles multiline expression consistently
+- ❌ Indenting by 4
 
 The one negative in the previous example is inconsistent indentation, where `filter(B)` was indented by 3 spaces.
 This alternative tries to correct that, but now we have a misalignment between `{A, B}` and `filter(B)` by a single space.
@@ -80,10 +81,10 @@ This alternative tries to correct that, but now we have a misalignment between `
 
 ## Dedent double pipes
 
-  - ✅ Differentiating
-  - ❌ Consistent with lists
-  - ✅ Handles multiline expression consistently
-  - ✅ Indenting by 4
+- ✅ Differentiating
+- ❌ Consistent with lists
+- ✅ Handles multiline expression consistently
+- ✅ Indenting by 4
 
 We also considered dedenting the double pipes to the left.
 
@@ -106,10 +107,10 @@ This doesn't seem very consistent with how lists are formatted.
 
 ## Dedent double pipes, just a little
 
-  - ✅ Differentiating
-  - ✅ Consistent with lists
-  - ✅ Handles multiline expression consistently
-  - ✅ Indenting by 4
+- ✅ Differentiating
+- ✅ Consistent with lists
+- ✅ Handles multiline expression consistently
+- ✅ Indenting by 4
 
 This is the formatting `erlfmt` chose.
 Another alternative is dedenting the double pipes to the left, but just a little:
@@ -146,10 +147,10 @@ Here is an example with a multiline expression, that shows what a long argument 
 
 ## Two spaces after double pipes
 
-  - ✅ Differentiating
-  - ✅ Consistent with lists
-  - ✅ Handles multiline expression consistently
-  - ✅ Indenting by 4
+- ✅ Differentiating
+- ✅ Consistent with lists
+- ✅ Handles multiline expression consistently
+- ✅ Indenting by 4
 
 `erlfmt` chose the above format over this one, purely because this alternative had much larger complexity and seems to require inventing a new operator in the algebra.
 We can also considered dedenting the pipes, with two spaces after, to keep expressions aligned:
@@ -186,10 +187,10 @@ Here is an example with a multiline expression, that shows what a long argument 
 
 ## Double pipes on their own line
 
-  - ✅ Differentiating
-  - ❌ Consistent with lists
-  - ✅ Handles multiline expression consistently
-  - ✅ Indenting by 4
+- ✅ Differentiating
+- ❌ Consistent with lists
+- ✅ Handles multiline expression consistently
+- ✅ Indenting by 4
 
 We also considered giving the double pipes their own line.
 
@@ -212,10 +213,10 @@ We also considered giving the double pipes their own line.
 
 ## Compressed
 
-  - ✅ Differentiating
-  - ❌ Consistent with lists
-  - ❌ Handles multiline expression consistently
-  - ✅ Indenting by 4
+- ✅ Differentiating
+- ❌ Consistent with lists
+- ❌ Handles multiline expression consistently
+- ✅ Indenting by 4
 
 The compressed option is inconsistent with how `erlfmt` formats lists,
 but does make differentiation clear.
@@ -239,10 +240,10 @@ There is also a problem with how to indent multiline expressions consistently:
 
 ## Compressed with 4 spaces
 
-  - ✅ Differentiating
-  - ❌ Consistent with lists
-  - ❌ Handles multiline expression consistently
-  - ✅ Indenting by 4
+- ✅ Differentiating
+- ❌ Consistent with lists
+- ❌ Handles multiline expression consistently
+- ✅ Indenting by 4
 
 We could also consider an option where indentations are made with four spaces.
 
