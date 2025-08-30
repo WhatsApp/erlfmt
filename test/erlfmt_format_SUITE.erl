@@ -295,7 +295,40 @@ sigils(Config) when is_list(Config) ->
     ),
     ?assertSame("~s\"\"\"\n\\tabc\n\\tdef\n\"\"\"\n"),
     ?assertSame("\"\"\"\nTest\nMultiline\n\"\"\"\n"),
-    ?assertSame("~\"\"\"\nTest\nMultiline\n\"\"\"\n").
+    ?assertSame("~\"\"\"\nTest\nMultiline\n\"\"\"\n"),
+    %% Test multiline sigils in lists - preserves sigils unchanged (no mixed syntax bug)
+    ?assertSame("[~\"\n    foo\n    \"].\n"),
+    ?assertSame("[~\"\"\"\n    foo\n    bar\n    \"\"\"].\n"),
+    %% Test sigils with prefixes and modifiers in lists
+    ?assertSame("[~s\"\n    foo\n    \"].\n"),
+    ?assertSame("[~b\"\n    foo\n    \"x].\n"),
+    %% Test mixed regular and sigil strings in lists
+    ?assertFormat(
+        "[\"regular\n    multiline\", ~\"sigil\n    multiline\"].\n",
+        "[\n"
+        "    \"regular\\n\"\n"
+        "    \"    multiline\",\n"
+        "    ~\"sigil\n    multiline\"\n"
+        "].\n"
+    ),
+    %% Test sigils in tuples
+    ?assertSame("{~\"\n    foo\n    \", bar}.\n"),
+    %% Test sigils in function calls
+    ?assertSame("foo(~\"\n    multiline\n    \").\n"),
+    %% Test sigils in function arguments with other expressions
+    ?assertFormat(
+        "foo(\"regular\n    string\", ~\"sigil\n    string\", atom).\n",
+        "foo(\n"
+        "    \"regular\\n\"\n"
+        "    \"    string\",\n"
+        "    ~\"sigil\n    string\",\n"
+        "    atom\n"
+        ").\n"
+    ),
+    %% Test sigils in maps
+    ?assertSame("#{key => ~\"\n    value\n    \"}.\n"),
+    %% Test sigils in records
+    ?assertSame("#rec{field = ~\"\n    value\n    \"}.\n").
 
 dotted(Config) when is_list(Config) ->
     ?assertSame("<0.1.2>\n"),

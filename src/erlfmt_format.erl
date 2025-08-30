@@ -259,9 +259,12 @@ do_expr_to_algebra({clauses, _Meta, Clauses}) ->
     clauses_to_algebra(Clauses);
 do_expr_to_algebra({body, _Meta, Exprs}) ->
     block_to_algebra(Exprs);
-do_expr_to_algebra({sigil, _Meta, Prefix, Content, Suffix}) ->
+do_expr_to_algebra({sigil, _Meta, Prefix, {Atomic, ContentMeta, _Value}, Suffix}) when
+    ?IS_ATOMIC(Atomic)
+->
     PrefixDoc = concat(<<"~">>, do_expr_to_algebra(Prefix)),
-    concat(concat(PrefixDoc, do_expr_to_algebra(Content)), do_expr_to_algebra(Suffix));
+    Text = erlfmt_scan:get_anno(text, ContentMeta),
+    concat(concat(PrefixDoc, string(Text)), do_expr_to_algebra(Suffix));
 do_expr_to_algebra({sigil_prefix, _Meta, ''}) ->
     <<"">>;
 do_expr_to_algebra({sigil_prefix, _Meta, SigilName}) ->
