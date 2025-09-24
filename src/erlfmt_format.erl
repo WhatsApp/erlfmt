@@ -264,7 +264,11 @@ do_expr_to_algebra({sigil, _Meta, Prefix, {Atomic, ContentMeta, _Value}, Suffix}
 ->
     PrefixDoc = concat(<<"~">>, do_expr_to_algebra(Prefix)),
     Text = erlfmt_scan:get_anno(text, ContentMeta),
-    concat(concat(PrefixDoc, string(Text)), do_expr_to_algebra(Suffix));
+    SigilDoc = concat(concat(PrefixDoc, string(Text)), do_expr_to_algebra(Suffix)),
+    case string:find(Text, "\n") of
+        nomatch -> SigilDoc;
+        _ -> concat([force_breaks(), SigilDoc])
+    end;
 do_expr_to_algebra({sigil_prefix, _Meta, ''}) ->
     <<"">>;
 do_expr_to_algebra({sigil_prefix, _Meta, SigilName}) ->
