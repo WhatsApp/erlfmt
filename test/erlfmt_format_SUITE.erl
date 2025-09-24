@@ -305,15 +305,8 @@ sigils(Config) when is_list(Config) ->
         "    \"\n"
         "].\n"
     ),
-    ?assertFormat(
-        "[~\"\"\"\n    foo\n    bar\n    \"\"\"].\n",
-        "[\n"
-        "    ~\"\"\"\n"
-        "    foo\n"
-        "    bar\n"
-        "    \"\"\"\n"
-        "].\n"
-    ),
+    %% Triple-quoted sigils don't cause container breaks (they handle indentation properly)
+    ?assertSame("[~\"\"\"\n    foo\n    bar\n    \"\"\"].\n"),
     %% Test sigils with prefixes and modifiers in lists
     ?assertFormat(
         "[~s\"\n    foo\n    \"].\n",

@@ -259,16 +259,24 @@ do_expr_to_algebra({clauses, _Meta, Clauses}) ->
     clauses_to_algebra(Clauses);
 do_expr_to_algebra({body, _Meta, Exprs}) ->
     block_to_algebra(Exprs);
+do_expr_to_algebra({sigil, _Meta, Prefix, {string, ContentMeta, _Value}, Suffix}) ->
+    PrefixDoc = concat(<<"~">>, do_expr_to_algebra(Prefix)),
+    Text = erlfmt_scan:get_anno(text, ContentMeta),
+    SigilDoc = concat(concat(PrefixDoc, string(Text)), do_expr_to_algebra(Suffix)),
+    case string:split(Text, "\n", all) of
+        % Triple-quoted sigils don't need force_breaks
+        ["\"\"\"" ++ _ | _] -> SigilDoc;
+        % Single-line sigils don't need force_breaks
+        [_] -> SigilDoc;
+        % Multi-line non-triple-quoted sigils need force_breaks
+        _ -> concat([force_breaks(), SigilDoc])
+    end;
 do_expr_to_algebra({sigil, _Meta, Prefix, {Atomic, ContentMeta, _Value}, Suffix}) when
     ?IS_ATOMIC(Atomic)
 ->
     PrefixDoc = concat(<<"~">>, do_expr_to_algebra(Prefix)),
     Text = erlfmt_scan:get_anno(text, ContentMeta),
-    SigilDoc = concat(concat(PrefixDoc, string(Text)), do_expr_to_algebra(Suffix)),
-    case string:find(Text, "\n") of
-        nomatch -> SigilDoc;
-        _ -> concat([force_breaks(), SigilDoc])
-    end;
+    concat(concat(PrefixDoc, string(Text)), do_expr_to_algebra(Suffix));
 do_expr_to_algebra({sigil_prefix, _Meta, ''}) ->
     <<"">>;
 do_expr_to_algebra({sigil_prefix, _Meta, SigilName}) ->
