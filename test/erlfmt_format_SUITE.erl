@@ -307,6 +307,26 @@ sigils(Config) when is_list(Config) ->
     ),
     %% Triple-quoted sigils don't cause container breaks (they handle indentation properly)
     ?assertSame("[~\"\"\"\n    foo\n    bar\n    \"\"\"].\n"),
+    %% Triple-quoted sigils with prefixes also don't break containers
+    ?assertSame("[~s\"\"\"\n    content\n    with prefix\n    \"\"\"].\n"),
+    %% Triple-quoted sigils in tuples don't break containers
+    ?assertSame("{~\"\"\"\n    tuple content\n    \"\"\", other}.\n"),
+    %% Triple-quoted sigils in function calls don't break containers
+    ?assertSame("process(~\"\"\"\n    function arg\n    \"\"\").\n"),
+    %% Edge case: minimal triple-quoted sigil content
+    ?assertSame("[~\"\"\"\n\"\"\"].\n"),
+    %% Mixed triple-quoted and regular multiline sigils show different behavior
+    ?assertFormat(
+        "[~\"\"\"\n    triple quoted\n    \"\"\", ~\"\n    regular multiline\n    \"].\n",
+        "[\n"
+        "    ~\"\"\"\n"
+        "    triple quoted\n"
+        "    \"\"\",\n"
+        "    ~\"\n"
+        "    regular multiline\n"
+        "    \"\n"
+        "].\n"
+    ),
     %% Test sigils with prefixes and modifiers in lists
     ?assertFormat(
         "[~s\"\n    foo\n    \"].\n",
