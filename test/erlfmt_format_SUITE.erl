@@ -3389,7 +3389,8 @@ macro(Config) when is_list(Config) ->
         23
     ),
     ?assertSame("?macro(Expr when Guard1; Guard2)\n"),
-    ?assertFormat("?foo(X,)\n", "?foo(X)\n").
+    ?assertFormat("?foo(X,)\n", "?foo(X)\n"),
+    ?assertSame("?macro(Expr, t1() | t2())\n").
 
 function(Config) when is_list(Config) ->
     ?assertSame("f() -> ok.\n"),

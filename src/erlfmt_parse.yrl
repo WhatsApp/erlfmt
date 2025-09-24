@@ -590,6 +590,7 @@ macro_string -> '?' '?' atom_or_var :
     {macro_string, ?range_anno('$1', '$3'), '$3'}.
 
 macro_expr -> expr : '$1'.
+macro_expr -> expr '|' expr : ?mkop2('$1', '$2', '$3').
 macro_expr -> expr 'when' macro_expr_guard : ?mkop2('$1', '$2', '$3').
 
 macro_expr_guard -> expr : {guard_or, ?anno('$1'), ['$1']}.
