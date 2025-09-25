@@ -271,12 +271,6 @@ do_expr_to_algebra({sigil, _Meta, Prefix, {string, ContentMeta, _Value}, Suffix}
         % Multi-line non-triple-quoted sigils need force_breaks
         _ -> concat([force_breaks(), SigilDoc])
     end;
-do_expr_to_algebra({sigil, _Meta, Prefix, {Atomic, ContentMeta, _Value}, Suffix}) when
-    ?IS_ATOMIC(Atomic)
-->
-    PrefixDoc = concat(<<"~">>, do_expr_to_algebra(Prefix)),
-    Text = erlfmt_scan:get_anno(text, ContentMeta),
-    concat(concat(PrefixDoc, string(Text)), do_expr_to_algebra(Suffix));
 do_expr_to_algebra({sigil_prefix, _Meta, ''}) ->
     <<"">>;
 do_expr_to_algebra({sigil_prefix, _Meta, SigilName}) ->
