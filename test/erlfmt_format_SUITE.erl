@@ -295,7 +295,194 @@ sigils(Config) when is_list(Config) ->
     ),
     ?assertSame("~s\"\"\"\n\\tabc\n\\tdef\n\"\"\"\n"),
     ?assertSame("\"\"\"\nTest\nMultiline\n\"\"\"\n"),
-    ?assertSame("~\"\"\"\nTest\nMultiline\n\"\"\"\n").
+    ?assertSame("~\"\"\"\nTest\nMultiline\n\"\"\"\n"),
+    %% Test multiline sigils in lists cause list to break
+    ?assertFormat(
+        "[~\"\n"
+        "    foo\n"
+        "    \"].\n",
+        "[\n"
+        "    ~\"\n"
+        "    foo\n"
+        "    \"\n"
+        "].\n"
+    ),
+    %% Triple-quoted sigils cause container breaks like regular multiline sigils
+    ?assertSame(
+        "[\n"
+        "    ~\"\"\"\n"
+        "    foo\n"
+        "    bar\n"
+        "    \"\"\"\n"
+        "].\n"
+    ),
+    %% Triple-quoted sigils with prefixes also break containers
+    ?assertFormat(
+        "[~s\"\"\"\n"
+        "    content\n"
+        "    with prefix\n"
+        "    \"\"\"].\n",
+        "[\n"
+        "    ~s\"\"\"\n"
+        "    content\n"
+        "    with prefix\n"
+        "    \"\"\"\n"
+        "].\n"
+    ),
+    %% Triple-quoted sigils in tuples break containers
+    ?assertFormat(
+        "{~\"\"\"\n"
+        "    tuple content\n"
+        "    \"\"\", other}.\n",
+        "{\n"
+        "    ~\"\"\"\n"
+        "    tuple content\n"
+        "    \"\"\",\n"
+        "    other\n"
+        "}.\n"
+    ),
+    %% Triple-quoted sigils in function calls break containers
+    ?assertFormat(
+        "process(~\"\"\"\n"
+        "    function arg\n"
+        "    \"\"\").\n",
+        "process(\n"
+        "    ~\"\"\"\n"
+        "    function arg\n"
+        "    \"\"\"\n"
+        ").\n"
+    ),
+    %% Edge case: minimal triple-quoted sigil content still breaks containers
+    ?assertFormat(
+        "[~\"\"\"\n"
+        "\"\"\"].\n",
+        "[\n"
+        "    ~\"\"\"\n"
+        "\"\"\"\n"
+        "].\n"
+    ),
+    %% Mixed triple-quoted and regular multiline sigils show different behavior
+    ?assertFormat(
+        "[~\"\"\"\n"
+        "    triple quoted\n"
+        "    \"\"\", ~\"\n"
+        "    regular multiline\n"
+        "    \"].\n",
+        "[\n"
+        "    ~\"\"\"\n"
+        "    triple quoted\n"
+        "    \"\"\",\n"
+        "    ~\"\n"
+        "    regular multiline\n"
+        "    \"\n"
+        "].\n"
+    ),
+    %% Test sigils with prefixes and modifiers in lists
+    ?assertFormat(
+        "[~s\"\n"
+        "    foo\n"
+        "    \"].\n",
+        "[\n"
+        "    ~s\"\n"
+        "    foo\n"
+        "    \"\n"
+        "].\n"
+    ),
+    ?assertFormat(
+        "[~b\"\n"
+        "    foo\n"
+        "    \"x].\n",
+        "[\n"
+        "    ~b\"\n"
+        "    foo\n"
+        "    \"x\n"
+        "].\n"
+    ),
+    %% Test mixed regular and sigil strings in lists
+    ?assertFormat(
+        "[\"regular\n"
+        "    multiline\", ~\"sigil\n"
+        "    multiline\"].\n",
+        "[\n"
+        "    \"regular\\n\"\n"
+        "    \"    multiline\",\n"
+        "    ~\"sigil\n"
+        "    multiline\"\n"
+        "].\n"
+    ),
+    %% Test sigils in tuples
+    ?assertFormat(
+        "{~\"\n"
+        "    foo\n"
+        "    \", bar}.\n",
+        "{\n"
+        "    ~\"\n"
+        "    foo\n"
+        "    \",\n"
+        "    bar\n"
+        "}.\n"
+    ),
+    %% Test sigils in function calls
+    ?assertFormat(
+        "foo(~\"\n"
+        "    multiline\n"
+        "    \").\n",
+        "foo(\n"
+        "    ~\"\n"
+        "    multiline\n"
+        "    \"\n"
+        ").\n"
+    ),
+    %% Test sigils in function arguments with other expressions
+    ?assertFormat(
+        "foo(\"regular\n"
+        "    string\", ~\"sigil\n"
+        "    string\", atom).\n",
+        "foo(\n"
+        "    \"regular\\n\"\n"
+        "    \"    string\",\n"
+        "    ~\"sigil\n"
+        "    string\",\n"
+        "    atom\n"
+        ").\n"
+    ),
+    %% Test sigils in maps
+    ?assertFormat(
+        "#{key => ~\"\n"
+        "    value\n"
+        "    \"}.\n",
+        "#{\n"
+        "    key =>\n"
+        "        ~\"\n"
+        "    value\n"
+        "    \"\n"
+        "}.\n"
+    ),
+    %% Test sigils in records
+    ?assertFormat(
+        "#rec{field = ~\"\n"
+        "    value\n"
+        "    \"}.\n",
+        "#rec{\n"
+        "    field =\n"
+        "        ~\"\n"
+        "    value\n"
+        "    \"\n"
+        "}.\n"
+    ),
+    %% Test sigils cause containers to break but preserve sigil content
+    ?assertFormat(
+        "test() ->\n"
+        "    [~\"\n"
+        "    \", b, c].\n",
+        "test() ->\n"
+        "    [\n"
+        "        ~\"\n"
+        "    \",\n"
+        "        b,\n"
+        "        c\n"
+        "    ].\n"
+    ).
 
 dotted(Config) when is_list(Config) ->
     ?assertSame("<0.1.2>\n"),
