@@ -307,36 +307,59 @@ sigils(Config) when is_list(Config) ->
         "    \"\n"
         "].\n"
     ),
-    %% Triple-quoted sigils don't cause container breaks (they handle indentation properly)
+    %% Triple-quoted sigils cause container breaks like regular multiline sigils
     ?assertSame(
-        "[~\"\"\"\n"
+        "[\n"
+        "    ~\"\"\"\n"
         "    foo\n"
         "    bar\n"
-        "    \"\"\"].\n"
+        "    \"\"\"\n"
+        "].\n"
     ),
-    %% Triple-quoted sigils with prefixes also don't break containers
-    ?assertSame(
+    %% Triple-quoted sigils with prefixes also break containers
+    ?assertFormat(
         "[~s\"\"\"\n"
         "    content\n"
         "    with prefix\n"
-        "    \"\"\"].\n"
+        "    \"\"\"].\n",
+        "[\n"
+        "    ~s\"\"\"\n"
+        "    content\n"
+        "    with prefix\n"
+        "    \"\"\"\n"
+        "].\n"
     ),
-    %% Triple-quoted sigils in tuples don't break containers
-    ?assertSame(
+    %% Triple-quoted sigils in tuples break containers
+    ?assertFormat(
         "{~\"\"\"\n"
         "    tuple content\n"
-        "    \"\"\", other}.\n"
+        "    \"\"\", other}.\n",
+        "{\n"
+        "    ~\"\"\"\n"
+        "    tuple content\n"
+        "    \"\"\",\n"
+        "    other\n"
+        "}.\n"
     ),
-    %% Triple-quoted sigils in function calls don't break containers
-    ?assertSame(
+    %% Triple-quoted sigils in function calls break containers
+    ?assertFormat(
         "process(~\"\"\"\n"
         "    function arg\n"
-        "    \"\"\").\n"
+        "    \"\"\").\n",
+        "process(\n"
+        "    ~\"\"\"\n"
+        "    function arg\n"
+        "    \"\"\"\n"
+        ").\n"
     ),
-    %% Edge case: minimal triple-quoted sigil content
-    ?assertSame(
+    %% Edge case: minimal triple-quoted sigil content still breaks containers
+    ?assertFormat(
         "[~\"\"\"\n"
-        "\"\"\"].\n"
+        "\"\"\"].\n",
+        "[\n"
+        "    ~\"\"\"\n"
+        "\"\"\"\n"
+        "].\n"
     ),
     %% Mixed triple-quoted and regular multiline sigils show different behavior
     ?assertFormat(
