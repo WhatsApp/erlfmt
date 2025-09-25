@@ -53,7 +53,8 @@
     exclude_check/1,
     exclude_absolute_check/1,
     range_check_full/1,
-    range_check_partial/1
+    range_check_partial/1,
+    out_full_test/1
 ]).
 
 suite() ->
@@ -101,7 +102,8 @@ groups() ->
             exclude_check,
             exclude_absolute_check,
             range_check_full,
-            range_check_partial
+            range_check_partial,
+            out_full_test
         ]}
     ].
 
@@ -272,6 +274,26 @@ range_check_partial(Config) when is_list(Config) ->
     %% Since the file is already formatted in the first place,
     %% we reuse stdio_test which compare against original file.
     stdio_test("attributes.erl", "--range=1,2", Config).
+
+out_full_test(Config) when is_list(Config) ->
+    DataDir = ?config(data_dir, Config),
+    OutDir = ?config(priv_dir, Config),
+    CmdBase = "cd " ++ DataDir ++ " && " ++ escript(),
+
+    %% Test --out-full option preserves full path
+    Unformatted = "subdir/unformatted.erl",
+    CmdUnformatted = CmdBase ++ " -O " ++ OutDir ++ " " ++ Unformatted,
+    OutputUnformatted = os:cmd(CmdUnformatted),
+    ?assertEqual("", OutputUnformatted),
+    ExpectedUnformatted = filename:join(OutDir, Unformatted),
+    ?assertEqual({ok, <<"-module(unformatted).\n">>}, file:read_file(ExpectedUnformatted)),
+
+    Formatted = "subdir/formatted.erl",
+    CmdFormatted = CmdBase ++ " -O " ++ OutDir ++ " " ++ Formatted,
+    OutputFormatted = os:cmd(CmdFormatted),
+    ?assertEqual("", OutputFormatted),
+    ExpectedFormatted = filename:join(OutDir, Formatted),
+    ?assertEqual({error, enoent}, file:read_file(ExpectedFormatted)).
 
 %%--------------------------------------------------------------------
 %% HELPERS

@@ -15,7 +15,7 @@
 
 -export([opts/0, do/2, do/3]).
 
--type out() :: standard_out | {path, file:name_all()} | replace | check.
+-type out() :: standard_out | {path, file:name_all()} | {path_full, file:name_all()} | replace | check.
 
 -record(config, {
     verbose = false :: boolean(),
@@ -33,6 +33,7 @@ opts() ->
         {version, $v, "version", undefined, "print version"},
         {write, $w, "write", undefined, "modify formatted files in place"},
         {out, $o, "out", binary, "output directory"},
+        {out_full, $O, "out-full", binary, "output directory using full paths"},
         {verbose, undefined, "verbose", undefined, "include debug output"},
         {check, $c, "check", undefined,
             "Check if your files are formatted. "
@@ -108,6 +109,8 @@ with_parsed(Name, Config) ->
     end.
 
 -spec set_difference([file:name_all()], [file:name_all()]) -> [file:name_all()].
+set_difference(Files, []) ->
+    Files;
 set_difference(Files, Excludes) ->
     {ok, Cwd} = file:get_cwd(),
     AbsoluteFiles = maps:from_list([{resolve_path(Cwd, F), F} || F <- Files]),
@@ -232,18 +235,22 @@ write_formatted(_FileName, _Formatted, check) ->
 write_formatted(_FileName, Formatted, standard_out) ->
     io:put_chars(Formatted);
 write_formatted(FileName, Formatted, Out) ->
-    OutFileName = out_file(FileName, Out),
-    case filelib:ensure_dir(OutFileName) of
-        ok ->
-            ok;
-        {error, Reason1} ->
-            print_error_info({OutFileName, 0, file, Reason1}),
-            error
-    end,
     {ok, OriginalBin} = read_file(FileName),
     case unicode:characters_to_binary(Formatted) of
         OriginalBin -> ok;
-        FormattedBin -> write_file(OutFileName, FormattedBin)
+        FormattedBin ->
+            case out_file(FileName, Out) of
+                error ->
+                    error;
+                OutFileName ->
+                    case filelib:ensure_dir(OutFileName) of
+                        ok ->
+                            write_file(OutFileName, FormattedBin);
+                        {error, Reason1} ->
+                            print_error_info({OutFileName, 0, file, Reason1}),
+                            error
+                    end
+            end
     end.
 
 write_file(OutFileName, FormattedBin) ->
@@ -258,7 +265,15 @@ write_file(OutFileName, FormattedBin) ->
 out_file(FileName, replace) ->
     FileName;
 out_file(FileName, {path, Path}) ->
-    filename:join(Path, filename:basename(FileName)).
+    filename:join(Path, filename:basename(FileName));
+out_file(FileName, {path_full, Path}) ->
+    case filename:pathtype(FileName) of
+        relative ->
+            filename:join(Path, FileName);
+        _ ->
+            print_error_info(io_lib:format("only relative paths are supported for the out-full option, got: ~p", [Path])),
+            error
+    end.
 
 check_file(FileName, Options) ->
     case erlfmt:format_file(FileName, Options) of
@@ -322,6 +337,12 @@ parse_opts([{out, _Path} | _Rest], _Files, _Exclude, #config{out = Out}) when
     {error, "out or replace mode can't be combined check mode"};
 parse_opts([{out, Path} | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{out = {path, Path}});
+parse_opts([{out_full, _Path} | _Rest], _Files, _Exclude, #config{out = Out}) when
+    Out =/= standard_out
+->
+    {error, "out-full mode can't be combined with other output modes"};
+parse_opts([{out_full, Path} | Rest], Files, Exclude, Config) ->
+    parse_opts(Rest, Files, Exclude, Config#config{out = {path_full, Path}});
 parse_opts([verbose | Rest], Files, Exclude, Config) ->
     parse_opts(Rest, Files, Exclude, Config#config{verbose = true});
 parse_opts([check | _Rest], _Files, _Exclude, #config{out = Out}) when Out =/= standard_out ->
@@ -478,8 +499,10 @@ expand_files(NewFile, Files) when is_integer(hd(NewFile)) ->
 expand_files(NewFiles, Files) when is_list(NewFiles) ->
     lists:foldl(fun expand_files/2, Files, NewFiles).
 
-print_error_info(Info) ->
-    io:put_chars(standard_error, [erlfmt:format_error_info(Info), $\n]).
+print_error_info(Info) when is_tuple(Info) ->
+    io:put_chars(standard_error, [erlfmt:format_error_info(Info), $\n]);
+print_error_info(Info) when is_list(Info) ->
+    io:put_chars(standard_error, [Info, $\n]).
 
 parallel(Fun, List) ->
     N = erlang:system_info(schedulers) * 2,
