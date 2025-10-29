@@ -354,7 +354,7 @@ ThisVar =
 
 Diff for enabling rewriting right to left associativity for `=` and `::` too.
 
-```
+```sh
 diff --git a/src/erlfmt_format.erl b/src/erlfmt_format.erl
 index 66e32b4..698189e 100644
 --- a/src/erlfmt_format.erl
@@ -380,7 +380,7 @@ index 66e32b4..698189e 100644
 
 The diff for binary operator detection requires the diff of assoc to also be applied.
 
-```
+```sh
 diff --git a/src/erlfmt_format.erl b/src/erlfmt_format.erl
 index 66e32b4..bc95541 100644
 --- a/src/erlfmt_format.erl

@@ -150,30 +150,31 @@ Given we are now motivated to make it possible to exclude some things from the f
 
 Goals:
 
-  - Compatible: Usable inside all erlang files, including for example `rebar.config`
-  - Future Proof: We cannot foresee all exceptions.
-  - Localized: Encourages formatting most of the file
+- Compatible: Usable inside all erlang files, including for example `rebar.config`
+- Future Proof: We cannot foresee all exceptions.
+- Localized: Encourages formatting most of the file
 
 ### 1. Comment Off/On
 
 Use a comment that can turn formatting off and then later it back on.
 
 Prior Art:
-  - [Python Black](https://github.com/psf/black#the-black-code-style) comments around expression
-  - [YaPF](https://github.com/google/yapf#why-does-yapf-destroy-my-awesome-formatting) comments around or after expression
 
- - ✅ Compatible: Comments can be applied inside rebar.config files, etc.
- - ✅ Future Proof: Could be “abused” for not formatting other things
- - ❌ Localized: It is very easy to forget to turn the formatter on again and makes it easier to not format large pieces of code.
+- [Python Black](https://github.com/psf/black#the-black-code-style) comments around expression
+- [YaPF](https://github.com/google/yapf#why-does-yapf-destroy-my-awesome-formatting) comments around or after expression
+
+- ✅ Compatible: Comments can be applied inside rebar.config files, etc.
+- ✅ Future Proof: Could be “abused” for not formatting other things
+- ❌ Localized: It is very easy to forget to turn the formatter on again and makes it easier to not format large pieces of code.
 
 ### 2. Comment Off
 
 Use a comment that can turn formatting off for the next top-level expression to which the comment is attached to.
 Prior Art includes: Javascript's [Prettier](https://prettier.io/docs/en/ignore.html) comments before expression.
 
- - ✅ Compatible: Comments can be applied inside rebar.config files, etc.
- - ✅ Future Proof: Could be “abused” for not formatting other things
- - ✅ Localized: Less Comments than Off/On Alternative
+- ✅ Compatible: Comments can be applied inside rebar.config files, etc.
+- ✅ Future Proof: Could be “abused” for not formatting other things
+- ✅ Localized: Less Comments than Off/On Alternative
 
 This is the chosen option.
 
@@ -183,34 +184,34 @@ We already have `@format` pragma comment to opt in and out of formatting per fil
 We could reuse this and disable formatting for the entire file.
 Prior Art: This is what elixir formatter suggests to do in cases like this.
 
- - ✅ Compatible: Comments can be applied inside rebar.config files, etc.
- - ✅ Future Proof: Could be “abused” for not formatting other things
- - ❌ Localized: A whole file is not formatted
+- ✅ Compatible: Comments can be applied inside rebar.config files, etc.
+- ✅ Future Proof: Could be “abused” for not formatting other things
+- ❌ Localized: A whole file is not formatted
 
 ### 4. No Line Breakings
 
 Strictly follow the user-provided line breaks inside lists, don’t remove them when re-formatting.
 Prior Art: gofmt, has very little opinion about new lines in general.
 
- - ✅ Compatible: Comments can be applied inside rebar.config files, etc.
- - ❌ Future Proof: This only covers a specific case.
- - ❌ Localized: This affects all lists everywhere, which gives rise to more formatting discussion between users, which exactly contradicts the project goal.
+- ✅ Compatible: Comments can be applied inside rebar.config files, etc.
+- ❌ Future Proof: This only covers a specific case.
+- ❌ Localized: This affects all lists everywhere, which gives rise to more formatting discussion between users, which exactly contradicts the project goal.
 
 ### 5. Limited no line breaking
 
 A fusion between option 1 and 4 - strictly follow user-provided line breaks inside lists only in regions delimited by a special comment.
 
- - ✅ Compatible: Comments can be applied inside rebar.config files, etc.
- - ❌ Future Proof: For example this doesn't work with the DELTA_MATRIX
- - ✅ Localized: This only affects a specific list.
+- ✅ Compatible: Comments can be applied inside rebar.config files, etc.
+- ❌ Future Proof: For example this doesn't work with the DELTA_MATRIX
+- ✅ Localized: This only affects a specific list.
 
 ### 6. Marco or function call
 
 A macro could also change the indentation.
 
- - ❌ Compatible: This will require an include file and can not use macro inside rebar.config and other files
- - ✅ Future Proof: It can wrap any expression.
- - ✅ Localized: Easy to target an exact expression.
+- ❌ Compatible: This will require an include file and can not use macro inside rebar.config and other files
+- ✅ Future Proof: It can wrap any expression.
+- ✅ Localized: Easy to target an exact expression.
 
 ### 7. macro with magic name
 
@@ -230,12 +231,11 @@ gen_part({constructed, bif}, TypeName, {_Name, parts, Tag, _Type}) ->
                     "  end"])).
 ```
 
- - ❌ Compatible: A macro inside rebar.config and other files
- - ✅ Future Proof: It can wrap any expression.
- - ✅ Localized: Easy to target an exact expression.
-
+- ❌ Compatible: A macro inside rebar.config and other files
+- ✅ Future Proof: It can wrap any expression.
+- ✅ Localized: Easy to target an exact expression.
 
 ## References
 
-  - The discussion started in [issue 19](https://github.com/WhatsApp/erlfmt/issues/19), formatting of DSLish lists.
-  - Example of work around for DSLish lists and more examples like matrices, were discussed in [pull request 93](https://github.com/WhatsApp/erlfmt/pull/93)
+- The discussion started in [issue 19](https://github.com/WhatsApp/erlfmt/issues/19), formatting of DSLish lists.
+- Example of work around for DSLish lists and more examples like matrices, were discussed in [pull request 93](https://github.com/WhatsApp/erlfmt/pull/93)
