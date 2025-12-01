@@ -259,9 +259,16 @@ do_expr_to_algebra({clauses, _Meta, Clauses}) ->
     clauses_to_algebra(Clauses);
 do_expr_to_algebra({body, _Meta, Exprs}) ->
     block_to_algebra(Exprs);
-do_expr_to_algebra({sigil, _Meta, Prefix, Content, Suffix}) ->
+do_expr_to_algebra({sigil, _Meta, Prefix, {string, ContentMeta, _Value}, Suffix}) ->
     PrefixDoc = concat(<<"~">>, do_expr_to_algebra(Prefix)),
-    concat(concat(PrefixDoc, do_expr_to_algebra(Content)), do_expr_to_algebra(Suffix));
+    Text = erlfmt_scan:get_anno(text, ContentMeta),
+    SigilDoc = concat(concat(PrefixDoc, string(Text)), do_expr_to_algebra(Suffix)),
+    case string:split(Text, "\n", all) of
+        % Single-line sigils don't need force_breaks
+        [_] -> SigilDoc;
+        % Multi-line sigils (including triple-quoted) need force_breaks for containers
+        _ -> concat([force_breaks(), SigilDoc])
+    end;
 do_expr_to_algebra({sigil_prefix, _Meta, ''}) ->
     <<"">>;
 do_expr_to_algebra({sigil_prefix, _Meta, SigilName}) ->
