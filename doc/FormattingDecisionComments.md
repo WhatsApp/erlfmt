@@ -6,8 +6,10 @@ Currently `erlfmt` moves all trailing comments to the line above, so that all co
 
 After looking at documentation and doing an analyses we have concluded that [directly following comments](#single-comments-on-the-same-line) should also be supported in future.
 This does not include aligning comments, since:
-  - we could not find a popular enough convention of aligning to a specific column number and
-  - aligning comments can cause large diffs, from changing a single line for comments to be re-aligned.
+
+- we could not find a popular enough convention of aligning to a specific column number and
+- aligning comments can cause large diffs, from changing a single line for comments to be re-aligned.
+
 More details on this future change can be found in issue [#219](https://github.com/WhatsApp/erlfmt/issues/219)
 
 ## Documentation
@@ -21,6 +23,7 @@ More details on this future change can be found in issue [#219](https://github.c
 > 3. Comments about the module shall be without indentation and start with three percent characters (%%%)
 
 ### Erlang in Action (Book)
+
 Page 43, Section COMMENTS
 
 > Style-wise, comments that follow code on the same line are usually written with only a single % character, whereas comments that are on lines of their own are typically written starting with two % characters ...
@@ -43,24 +46,25 @@ Page 43, Section COMMENTS
 
 These are just examples:
 
- - Emacs formats single line comments to align.
- - In some places of OTP and RabbitMQ double percentage comments are used instead of single percentage comments:
-   * https://github.com/erlang/otp/blob/master/lib/compiler/src/beam_discasm.hrl#L32
-   * https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_server.erl#L562
-   * https://github.com/erlang/otp/blob/master/lib/stdlib/src/erl_tar.hrl#L32-L39
-   * https://github.com/rabbitmq/rabbitmq-server/blob/master/src/rabbit_memory_monitor.erl#L26-L32
-   * https://github.com/rabbitmq/rabbitmq-server/blob/master/src/rabbit_mirror_queue_misc.erl#L492
- - Elixir, in the erlang code, single percentage comments are used as double percentage comments:
-   * https://github.com/elixir-lang/elixir/blob/master/lib/elixir/src/elixir.erl#L309-L323
+- Emacs formats single line comments to align.
+- In some places of OTP and RabbitMQ double percentage comments are used instead of single percentage comments:
+  - https://github.com/erlang/otp/blob/master/lib/compiler/src/beam_discasm.hrl#L32
+  - https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_server.erl#L562
+  - https://github.com/erlang/otp/blob/master/lib/stdlib/src/erl_tar.hrl#L32-L39
+  - https://github.com/rabbitmq/rabbitmq-server/blob/master/src/rabbit_memory_monitor.erl#L26-L32
+  - https://github.com/rabbitmq/rabbitmq-server/blob/master/src/rabbit_mirror_queue_misc.erl#L492
+- Elixir, in the erlang code, single percentage comments are used as double percentage comments:
+  - https://github.com/elixir-lang/elixir/blob/master/lib/elixir/src/elixir.erl#L309-L323
 
 ### Analysis
 
 We have done a more thorough analysis of how comments are used in practice.
 
 It shows that mostly:
-  - `%%%` is used for standalone comments before the module attribute,
-  - `%%` is used for standalone comments, while
-  - `%` is used with comments that share a line with code.
+
+- `%%%` is used for standalone comments before the module attribute,
+- `%%` is used for standalone comments, while
+- `%` is used with comments that share a line with code.
 
 We also see a preference for the numbers of: `standalone > directly following > aligned` comments, where directly following comments still has a significant market share.
 We tried, but struggled to find enough of a pattern where comments are aligned at a specific column number in practice.
@@ -69,18 +73,18 @@ You can find the details of the analysis [here](./FormattingDecisionComments/Rea
 
 ## Goals
 
-  - Minimize diff when changing a single line, impacts surrounding context.
-  - Currently popular style
-  - Welcoming to new comers
+- Minimize diff when changing a single line, impacts surrounding context.
+- Currently popular style
+- Welcoming to new comers
 
 ## Aligning single percentage comments
 
 Sometimes single percentage comments are aligned.
 We have decided not to support this, as it violates one of our goals.
 
- - ❌ Minimize diff when changing a single line
- - ✅ Currently popular style
- - ❌ Welcoming to new comers
+- ❌ Minimize diff when changing a single line
+- ✅ Currently popular style
+- ❌ Welcoming to new comers
 
 Currently this is a relatively popular style in erlang, but not in too many communities outside of erlang.
 
@@ -141,9 +145,9 @@ We have also [seen](https://github.com/erlang/otp/blob/master/lib/stdlib/src/erl
 
 ## Erlang mode for Emacs
 
- - ✅ Minimize diff when changing a single line
- - ❌ Currently popular style
- - ❌ Welcoming to new comers
+- ✅ Minimize diff when changing a single line
+- ❌ Currently popular style
+- ❌ Welcoming to new comers
 
 The standard erlang mode for emacs puts the single quoted comments by default at position 48 on the line.
 This means that comments are not realigned based on line lengths, but always aligned at the same fixed column.
@@ -337,9 +341,9 @@ f() ->
 
 ## All comments always on a newline
 
- - ✅ Minimize diff when changing a single line
- - ✅ Currently popular style
- - ❌ Welcoming to new comers
+- ✅ Minimize diff when changing a single line
+- ✅ Currently popular style
+- ❌ Welcoming to new comers
 
 This was the easiest formatting of comments to implemented in a consistent manner.
 Standalone comments are by far the most popular comments in erlang, although it could be argued that moving following comments to the line above is not.
@@ -397,9 +401,9 @@ X =
 
 ## Single comments on the same line
 
- - ✅ Minimize diff when changing a single line
- - ✅ Currently popular style
- - ✅ Welcoming to new comers
+- ✅ Minimize diff when changing a single line
+- ✅ Currently popular style
+- ✅ Welcoming to new comers
 
 This is not only currently a popular style in the erlang community, but also in other languages.
 We believe this should be the chosen layout, but it will require a significant change to the formatting algorithm as stated at the top of this document.

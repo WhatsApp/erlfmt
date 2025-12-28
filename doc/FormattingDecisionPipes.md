@@ -1,4 +1,4 @@
-## Formatting Decision: Pipes
+# Formatting Decision: Pipes
 
 This is a document explaining our reasoning behind the formatting decision for pipes.
 
@@ -28,11 +28,13 @@ Our analysis is very naive and we hope it is good enough, but we are open to con
 We have decided to analyse the OTP and WhatsApp code base, since this was too big code bases we had access to.
 
 We `grep` `.hrl` and `.erl` files recursively for lines that end or start with a `|` character, disregarding:
-  - whitespace `\s*`
-  - lines that contain more than one `|` on the same line: `grep -v -E '\|.*\|'`
-  - lines that contain lists or comments `grep -v -E '(\]|\[|%)'`
+
+- whitespace `\s*`
+- lines that contain more than one `|` on the same line: `grep -v -E '\|.*\|'`
+- lines that contain lists or comments `grep -v -E '(\]|\[|%)'`
 
 Here follows our naive analysis script for reproducibility:
+
 ```sh
 # count lines that end with a pipe (suffix)
 grep -r -E --include "*\.hrl" --include "*\.erl" '\w+\s*\|\s*$' . | grep -v -E '\|.*\|' | grep -v -E '(\]|\[|%)' | wc -l
@@ -43,12 +45,14 @@ grep -r -E --include "*\.hrl" --include "*\.erl" '^\s+\|\s*\w+' . | grep -v -E '
 We found that both OTP and WhatsApp prefer pipes as a prefix.
 
 OTP:
-  - Pipes as a Suffix: 531
-  - Pipes as a Prefix: 734
+
+- Pipes as a Suffix: 531
+- Pipes as a Prefix: 734
 
 WhatsApp
-  - Pipes as a Suffix: x
-  - Pipes as a Prefix: 50x
+
+- Pipes as a Suffix: x
+- Pipes as a Prefix: 50x
 
 ## History
 
