@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.8.0 (23.02.2026)
+
+### Enhancements
+
+  - Support unions in macro arguments
+  - Preserve empty lines inside `maybe` expression bodies
+  - Add `--out-full` option
+  - Bypass file server to improve IO performance
+
+### Fixes
+
+  - Fix multiline sigil strings causing "formatter result not equivalent" error
+  - Fix non-idempotent formatting of multi-line binary strings
+  - Fix escript skip path losing shebang comments with `--require-pragma`
+
 ## v1.7.0 (13.06.2025)
 
 ### Enhancements
