@@ -23,20 +23,9 @@ The release process requires a few steps.
     Release title: Pick most significant feature
     Description: Copy ChangeLog contents
 ```
-6. Release to WhatsApp.
-   This could include building with an older version of erlang.
-   Also update the `rebar.config.script` with new version tag and reformat code base.
-   Here is an example of building with erlang version 22 on mac:
-```bash
-$ brew install erlang@22
-$ rm -rf _build/
-$ PATH="/usr/local/opt/erlang@22/bin:$PATH" rebar3 as release escriptize
-# check that it runs with erlang version 22
-$ PATH="/usr/local/opt/erlang@22/bin:$PATH" _build/release/bin/erlfmt -h
-# check that it runs with current erlang version
-$ _build/release/bin/erlfmt -h
-```
-7. Release to hex: `rebar3 hex publish`.
+6. Release to hex: `rebar3 hex publish`.
+7. Release to WhatsApp bumping thrird party code.
+
 
 If you have not used hex before, create `~/.config/rebar3/rebar.config` and include the contents `{plugins, [rebar3_hex]}`:
 ```bash
