@@ -528,8 +528,11 @@ break_behaviour(Meta, Values, Break) ->
     case Break =:= flex_break andalso not ForceOuter of
         true ->
             case Values of
-                [{bin_element, _, {string, _, _}, _, _}] ->
-                    no_break;
+                [{bin_element, _, {string, SMeta, _}, _, _}] ->
+                    case is_multiline_string(SMeta) of
+                        true -> #break{outer = false, inner = false};
+                        false -> no_break
+                    end;
                 [SoleElement] ->
                     case is_container(SoleElement) of
                         true -> no_break;
@@ -550,8 +553,8 @@ break_behaviour(Meta, Values, Break) ->
     end.
 
 %% Allow inlining binary literals
-is_tag({bin, _, [{bin_element, _, {string, _, _}, _, _}]}) ->
-    true;
+is_tag({bin, _, [{bin_element, _, {string, SMeta, _}, _, _}]}) ->
+    not is_multiline_string(SMeta);
 is_tag({bin, _, []}) ->
     true;
 %% Allow inlining argless macros
@@ -564,6 +567,14 @@ is_tag(Expr) ->
 
 is_container(Expr) ->
     lists:member(element(1, Expr), [tuple, bin, list, map, record, call, macro_call, lc, bc]).
+
+is_multiline_string(Meta) ->
+    Text = erlfmt_scan:get_anno(text, Meta),
+    case string:split(Text, "\n", all) of
+        [_] -> false;
+        [_, "\""] -> false;
+        _ -> true
+    end.
 
 surround_container(no_break, Left, Doc, Right) ->
     concat(Left, Doc, Right);

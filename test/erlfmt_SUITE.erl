@@ -53,6 +53,7 @@
     map_comprehension/1,
     snapshot_simple_comments/1,
     snapshot_big_binary/1,
+    snapshot_big_binary_string/1,
     snapshot_attributes/1,
     snapshot_escript/1,
     snapshot_emulator_args/1,
@@ -163,6 +164,7 @@ groups() ->
         {snapshot_tests, [parallel], [
             snapshot_simple_comments,
             snapshot_big_binary,
+            snapshot_big_binary_string,
             snapshot_attributes,
             snapshot_escript,
             snapshot_emulator_args,
@@ -1068,6 +1070,7 @@ parse_forms(String) ->
 snapshot_simple_comments(Config) -> snapshot_same("simple_comments.erl", Config).
 
 snapshot_big_binary(Config) -> snapshot_same("big_binary.erl", Config).
+snapshot_big_binary_string(Config) -> snapshot_same("big_binary_string.erl", Config).
 
 snapshot_attributes(Config) -> snapshot_same("attributes.erl", Config).
 
