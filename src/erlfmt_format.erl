@@ -259,9 +259,14 @@ do_expr_to_algebra({clauses, _Meta, Clauses}) ->
     clauses_to_algebra(Clauses);
 do_expr_to_algebra({body, _Meta, Exprs}) ->
     block_to_algebra(Exprs);
-do_expr_to_algebra({sigil, _Meta, Prefix, Content, Suffix}) ->
+do_expr_to_algebra({sigil, _Meta, Prefix, {string, SMeta, _}, Suffix}) ->
     PrefixDoc = concat(<<"~">>, do_expr_to_algebra(Prefix)),
-    concat(concat(PrefixDoc, do_expr_to_algebra(Content)), do_expr_to_algebra(Suffix));
+    ContentDoc = string(erlfmt_scan:get_anno(text, SMeta)),
+    SigilDoc = concat(concat(PrefixDoc, ContentDoc), do_expr_to_algebra(Suffix)),
+    case is_multiline_string(SMeta) of
+        true -> concat(force_breaks(), SigilDoc);
+        false -> SigilDoc
+    end;
 do_expr_to_algebra({sigil_prefix, _Meta, ''}) ->
     <<"">>;
 do_expr_to_algebra({sigil_prefix, _Meta, SigilName}) ->

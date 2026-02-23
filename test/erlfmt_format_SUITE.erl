@@ -295,7 +295,22 @@ sigils(Config) when is_list(Config) ->
     ),
     ?assertSame("~s\"\"\"\n\\tabc\n\\tdef\n\"\"\"\n"),
     ?assertSame("\"\"\"\nTest\nMultiline\n\"\"\"\n"),
-    ?assertSame("~\"\"\"\nTest\nMultiline\n\"\"\"\n").
+    ?assertSame("~\"\"\"\nTest\nMultiline\n\"\"\"\n"),
+    %% multiline sigil strings should not be split
+    ?assertSame(
+        "~\"Hello\n"
+        "             there\"\n"
+    ),
+    %% multiline sigil in a container should force the container to break
+    ?assertFormat(
+        "[~\"Hello\n"
+        "             there\", ok].\n",
+        "[\n"
+        "    ~\"Hello\n"
+        "             there\",\n"
+        "    ok\n"
+        "].\n"
+    ).
 
 dotted(Config) when is_list(Config) ->
     ?assertSame("<0.1.2>\n"),
