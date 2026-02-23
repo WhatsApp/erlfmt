@@ -15,7 +15,8 @@
 
 -export([opts/0, do/2, do/3]).
 
--type out() :: standard_out | {path, file:name_all()} | {path_full, file:name_all()} | replace | check.
+-type out() ::
+    standard_out | {path, file:name_all()} | {path_full, file:name_all()} | replace | check.
 
 -record(config, {
     verbose = false :: boolean(),
@@ -237,7 +238,8 @@ write_formatted(_FileName, Formatted, standard_out) ->
 write_formatted(FileName, Formatted, Out) ->
     {ok, OriginalBin} = read_file(FileName),
     case unicode:characters_to_binary(Formatted) of
-        OriginalBin -> ok;
+        OriginalBin ->
+            ok;
         FormattedBin ->
             case out_file(FileName, Out) of
                 error ->
@@ -271,7 +273,11 @@ out_file(FileName, {path_full, Path}) ->
         relative ->
             filename:join(Path, FileName);
         _ ->
-            print_error_info(io_lib:format("only relative paths are supported for the out-full option, got: ~p", [Path])),
+            print_error_info(
+                io_lib:format(
+                    "only relative paths are supported for the out-full option, got: ~p", [Path]
+                )
+            ),
             error
     end.
 
