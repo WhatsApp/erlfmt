@@ -845,8 +845,13 @@ clause_head_to_algebra(Head) ->
 
 maybe_expressions_to_algebra([Expression]) ->
     expr_to_algebra(Expression);
-maybe_expressions_to_algebra([Expression1 | Rest]) ->
-    line(concat(expr_to_algebra(Expression1), <<",">>), maybe_expressions_to_algebra(Rest)).
+maybe_expressions_to_algebra([Expression | [Next | _] = Rest]) ->
+    ExprD = expr_to_algebra(Expression),
+    RestD = maybe_expressions_to_algebra(Rest),
+    case has_empty_line_between(Expression, Next) of
+        true -> concat([ExprD, <<",">>, line(2), RestD]);
+        false -> line(concat(ExprD, <<",">>), RestD)
+    end.
 
 spec_clause_gaurds_to_algebra(Expr) ->
     Meta = element(2, Expr),

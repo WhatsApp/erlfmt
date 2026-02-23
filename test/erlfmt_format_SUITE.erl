@@ -2869,6 +2869,14 @@ maybe_expression(Config) when is_list(Config) ->
         "else\n"
         "    4 -> ok\n"
         "end\n"
+    ),
+    %% empty line preservation
+    ?assertSame(
+        "maybe\n"
+        "    ok ?= foo(),\n"
+        "\n"
+        "    bar()\n"
+        "end\n"
     ).
 
 receive_expression(Config) when is_list(Config) ->
