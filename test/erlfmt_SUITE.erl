@@ -103,6 +103,7 @@
     snapshot_sigil_crash/1,
     contains_pragma/1,
     insert_pragma/1,
+    skip_pragma_escript/1,
     overlong_warning/1,
     do_not_crash_on_bad_record/1,
     raw_string_anno/1
@@ -220,7 +221,8 @@ groups() ->
         ]},
         {pragma_tests, [parallel], [
             contains_pragma,
-            insert_pragma
+            insert_pragma,
+            skip_pragma_escript
         ]},
         {verbose_warning_tests, [parallel], [
             overlong_warning
@@ -1650,6 +1652,44 @@ insert_pragma(Config) when is_list(Config) ->
             "main(_) -> ok.\n"
         )
     ).
+
+%% When pragma is required but not present, the file should be skipped
+%% and returned unchanged. This tests that escript files with shebang
+%% headers are preserved correctly in the skip path.
+skip_pragma_escript(Config) when is_list(Config) ->
+    %% Shebang with emacs mode and emulator args followed by code
+    String1 =
+        "#!/usr/bin/env escript\n"
+        "%% -*- erlang -*-\n"
+        "%%! -smp enable -sname factorial -mnesia debug verbose\n"
+        "%% Sample escript\n"
+        "main([String]) ->\n"
+        "    io:fwrite(String).\n",
+    {skip, Skipped1} = erlfmt:format_string(String1, [{pragma, require}]),
+    ?assertEqual(String1, unicode:characters_to_list(Skipped1)),
+    %% Shebang with emulator args (no emacs mode) followed by code
+    String2 =
+        "#!/usr/bin/env escript\n"
+        "%%! -sname test_runner\n"
+        "\n"
+        "%% @doc Script to run tests\n"
+        "main(_) -> ok.\n",
+    {skip, Skipped2} = erlfmt:format_string(String2, [{pragma, require}]),
+    ?assertEqual(String2, unicode:characters_to_list(Skipped2)),
+    %% Shebang with emacs mode and emulator args, no comment, just code
+    String3 =
+        "#!/usr/bin/env escript\n"
+        "%% -*- erlang -*-\n"
+        "%%! -smp enable\n"
+        "main(_) -> ok.\n",
+    {skip, Skipped3} = erlfmt:format_string(String3, [{pragma, require}]),
+    ?assertEqual(String3, unicode:characters_to_list(Skipped3)),
+    %% Shebang only (no emulator args) followed by code
+    String4 =
+        "#!/usr/bin/env escript\n"
+        "main(_) -> ok.\n",
+    {skip, Skipped4} = erlfmt:format_string(String4, [{pragma, require}]),
+    ?assertEqual(String4, unicode:characters_to_list(Skipped4)).
 
 contains_pragma_string(String) ->
     case erlfmt:format_string(String, [{pragma, require}]) of

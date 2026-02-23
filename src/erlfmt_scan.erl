@@ -99,7 +99,7 @@ continue(#state{scan = Scan, inner = Inner, loc = Loc, buffer = Buffer}) ->
 continue(Scan, Inner0, Loc0, []) ->
     case Scan(Inner0, Loc0) of
         {{ok, [{'#', _}, {'!', _} | _] = Tokens0, Loc}, Inner} ->
-            {ShebangTokens, Comments, Buffer} = split_shebang(Tokens0),
+            {ShebangTokens, ConsumedTokens, Comments, Buffer} = split_shebang(Tokens0),
             Shebang = unicode:characters_to_list(stringify_tokens(ShebangTokens)),
             LastAnno = erl_anno:to_term(element(2, lists:last(ShebangTokens))),
             #{end_location := EndLoc} = atomic_anno(LastAnno),
@@ -108,7 +108,7 @@ continue(Scan, Inner0, Loc0, []) ->
                 scan = Scan,
                 inner = Inner,
                 loc = Loc,
-                original = ShebangTokens,
+                original = ConsumedTokens,
                 buffer = Buffer
             },
             {ok, [{shebang, Anno, Shebang}], Comments, State};
@@ -207,31 +207,33 @@ has_new_line(_) -> false.
 
 split_shebang(Tokens) ->
     {ShebangTokens, Rest0} = take_line(Tokens),
-    {ShebangComments, Rest} = take_shebang_comments(Rest0),
-    {ShebangTokens, ShebangComments, Rest}.
+    {ShebangComments, ConsumedTokens, Rest} = take_shebang_comments(Rest0, ShebangTokens),
+    {ShebangTokens, ConsumedTokens, ShebangComments, Rest}.
 
 take_line(Tokens) ->
     lists:splitwith(fun(Token) -> not has_new_line(Token) end, Tokens).
 
-take_shebang_comments([{white_space, _, _}, {comment, _, "%%!" ++ _} = Comment0 | Rest]) ->
+take_shebang_comments(
+    [{white_space, _, _} = WS, {comment, _, "%%!" ++ _} = Comment0 | Rest], Consumed
+) ->
     {Comment, []} = collect_comments([], Comment0),
-    {[Comment], drop_initial_white_space(Rest)};
-take_shebang_comments([
-    {white_space, _, _},
-    {comment, _, _} = Comment1,
-    {white_space, _, _},
-    {comment, _, "%%!" ++ _} = Comment2
-    | Rest
-]) ->
+    {Dropped, Rest1} = lists:splitwith(fun(T) -> element(1, T) =:= white_space end, Rest),
+    {[Comment], Consumed ++ [WS, Comment0] ++ Dropped, Rest1};
+take_shebang_comments(
+    [
+        {white_space, _, _} = WS1,
+        {comment, _, _} = Comment1,
+        {white_space, _, _} = WS2,
+        {comment, _, "%%!" ++ _} = Comment2
+        | Rest
+    ],
+    Consumed
+) ->
     {Comment, []} = collect_comments([Comment2], Comment1),
-    {[Comment], drop_initial_white_space(Rest)};
-take_shebang_comments(Tokens) ->
-    {[], Tokens}.
-
-drop_initial_white_space([{white_space, _, _} | Rest]) ->
-    drop_initial_white_space(Rest);
-drop_initial_white_space(Rest) ->
-    Rest.
+    {Dropped, Rest1} = lists:splitwith(fun(T) -> element(1, T) =:= white_space end, Rest),
+    {[Comment], Consumed ++ [WS1, Comment1, WS2, Comment2] ++ Dropped, Rest1};
+take_shebang_comments(Tokens, Consumed) ->
+    {[], Consumed, Tokens}.
 
 -spec stringify_tokens([erl_scan:token()]) -> string().
 stringify_tokens(Tokens) ->
