@@ -27,6 +27,9 @@ jobs:
           - os: ubuntu-24.04
             otp-version: 28
             rebar3-version: 3.25
+          - os: ubuntu-24.04
+            otp-version: OTP-29.0-rc1
+            rebar3-version: 3.26
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
