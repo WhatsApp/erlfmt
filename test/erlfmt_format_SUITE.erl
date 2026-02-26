@@ -80,7 +80,9 @@
     maybe_incomplete/1,
     strict_generators/1,
     zip_generators/1,
-    nominal_type/1
+    nominal_type/1,
+    native_record_decl/1,
+    export_import_record/1
 ]).
 
 suite() ->
@@ -102,6 +104,11 @@ init_per_group(otp_28_features, Config) ->
     case erlang:system_info(otp_release) >= "28" of
         true -> Config;
         false -> {skip, "Skipping tests for features from OTP >= 28"}
+    end;
+init_per_group(otp_29_features, Config) ->
+    case erlang:system_info(otp_release) >= "29" of
+        true -> Config;
+        false -> {skip, "Skipping tests for features from OTP >= 29"}
     end;
 init_per_group(_GroupName, Config) ->
     Config.
@@ -191,6 +198,10 @@ groups() ->
             strict_generators,
             zip_generators,
             nominal_type
+        ]},
+        {otp_29_features, [parallel], [
+            native_record_decl,
+            export_import_record
         ]}
     ].
 
@@ -200,6 +211,7 @@ all() ->
         {group, forms},
         {group, otp_27_features},
         {group, otp_28_features},
+        {group, otp_29_features},
         comment
     ].
 
@@ -4578,3 +4590,19 @@ nominal_type(Config) when is_list(Config) ->
     ?assertSame(
         "-nominal foo() :: {fun(), fun((...) -> mod:bar()), fun(() -> integer())}.\n"
     ).
+
+native_record_decl(Config) when is_list(Config) ->
+    ?assertSame("-record #empty{}.\n"),
+    ?assertSame("-record #a{x, y}.\n"),
+    ?assertSame("-record #c{x :: integer(), y = 0 :: integer()}.\n"),
+    ?assertSame(
+        "-record #d{\n"
+        "    f = 3.1416,\n"
+        "    l = [a, b, c]\n"
+        "}.\n"
+    ),
+    ?assertSame("-record #point{x = 0, y = 0, z = 0}.\n").
+
+export_import_record(Config) when is_list(Config) ->
+    ?assertSame("-export_record([a, b, c]).\n"),
+    ?assertSame("-import_record(mod, [a, b]).\n").
