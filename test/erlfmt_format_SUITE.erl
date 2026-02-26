@@ -49,6 +49,7 @@
     map_comprehension/1,
     binary_comprehension/1,
     call/1,
+    left_assoc_call/1,
     block/1,
     fun_expression/1,
     case_expression/1,
@@ -128,6 +129,7 @@ groups() ->
             {group, operators},
             {group, comprehensions},
             call,
+            left_assoc_call,
             block,
             fun_expression,
             case_expression,
@@ -2409,6 +2411,31 @@ call(Config) when is_list(Config) ->
         ")\n"
     ),
     ?assertFormat("foo(1,)\n", "foo(1)\n").
+
+left_assoc_call(Config) when is_list(Config) ->
+    ?assertSame("f(X)(Y)\n"),
+    ?assertSame("f(X)(Y)(Z)\n"),
+    ?assertSame("Mod:f(X)(Y)\n"),
+    %% Parens must be preserved for backwards compat with OTP < 29
+    ?assertSame("(f(X))(Y)\n"),
+    ?assertFormat(
+        "f(LongArg1, LongArg2)(ShortA, ShortB)",
+        "f(LongArg1, LongArg2)(\n"
+        "    ShortA, ShortB\n"
+        ")\n",
+        25
+    ),
+    ?assertFormat(
+        "f(X)(LongArg1, LongArg2)",
+        "f(X)(\n"
+        "    LongArg1,\n"
+        "    LongArg2\n"
+        ")\n",
+        20
+    ),
+    %% Calls on record field access
+    ?assertSame("R#foo.bar(X)\n"),
+    ?assertSame("R#foo.bar(X)(Y)\n").
 
 block(Config) when is_list(Config) ->
     ?assertFormat(

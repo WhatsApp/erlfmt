@@ -107,7 +107,8 @@
     skip_pragma_escript/1,
     overlong_warning/1,
     do_not_crash_on_bad_record/1,
-    raw_string_anno/1
+    raw_string_anno/1,
+    left_assoc_call/1
 ]).
 
 suite() ->
@@ -159,7 +160,8 @@ groups() ->
             do_not_crash_on_bad_record,
             raw_string_anno,
             dotted,
-            map_comprehension
+            map_comprehension,
+            left_assoc_call
         ]},
         {snapshot_tests, [parallel], [
             snapshot_simple_comments,
@@ -1826,3 +1828,21 @@ raw_string_anno(Config) when is_list(Config) ->
 unicode_string() ->
     "% Overlong, in bytes: "
     "色は匂へど 散りぬるを 我が世誰ぞ 常ならむ 有為の奥山 今日越えて 浅き夢見じ 酔ひもせず\n".
+
+left_assoc_call(Config) when is_list(Config) ->
+    ?assertMatch(
+        {call, _, {call, _, {atom, _, f}, [{var, _, 'X'}]}, [{var, _, 'Y'}]},
+        parse_expr("f(X)(Y)")
+    ),
+    ?assertMatch(
+        {call, _, {call, _, {call, _, {atom, _, f}, [{var, _, 'X'}]}, [{var, _, 'Y'}]}, [
+            {var, _, 'Z'}
+        ]},
+        parse_expr("f(X)(Y)(Z)")
+    ),
+    ?assertMatch(
+        {call, _, {call, _, {remote, _, {var, _, 'Mod'}, {atom, _, f}}, [{var, _, 'X'}]}, [
+            {var, _, 'Y'}
+        ]},
+        parse_expr("Mod:f(X)(Y)")
+    ).
