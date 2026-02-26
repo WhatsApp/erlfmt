@@ -20,7 +20,7 @@ node
 attribute attr_val
 function function_clauses function_clause
 clause_guard clause_body
-expr expr_max expr_max_remote
+expr expr_max expr_callee
 pid dotted_special dotted_seq
 pat_expr pat_expr_max map_pat_expr record_pat_expr
 pat_argument_list pat_exprs
@@ -229,13 +229,13 @@ expr -> expr ':=' expr : {map_field_exact, ?range_anno('$1', '$3'), '$1', '$3'}.
 expr -> prefix_op expr : ?mkop1('$1', '$2').
 expr -> expr '::' type : ?mkop2('$1', '$2', '$3').
 expr -> expr '?=' expr : ?mkop2('$1', '$2', '$3').
-expr -> map_expr : '$1'.
-expr -> function_call : '$1'.
-expr -> record_expr : '$1'.
-expr -> expr_max_remote : '$1'.
+expr -> expr_callee : '$1'.
 
-expr_max_remote -> expr_max ':' expr_max_remote : {remote,?range_anno('$1', '$3'),'$1','$3'}.
-expr_max_remote -> expr_max : '$1'.
+expr_callee -> expr_max ':' expr_callee : {remote,?range_anno('$1', '$3'),'$1','$3'}.
+expr_callee -> function_call : '$1'.
+expr_callee -> record_expr : '$1'.
+expr_callee -> map_expr : '$1'.
+expr_callee -> expr_max : '$1'.
 
 expr_max -> macro_call_expr : '$1'.
 expr_max -> macro_record_or_concatable : '$1'.
@@ -363,9 +363,7 @@ tuple -> '{' exprs '}' : {tuple,?range_anno('$1', '$3'),'$2'}.
 
 map_expr -> '#' map_tuple :
     {map, ?range_anno('$1', '$2'), ?val('$2')}.
-map_expr -> expr_max '#' map_tuple :
-    {map, ?range_anno('$1', '$3'), '$1', ?val('$3')}.
-map_expr -> map_expr '#' map_tuple :
+map_expr -> expr_callee '#' map_tuple :
     {map, ?range_anno('$1', '$3'), '$1', ?val('$3')}.
 
 map_tuple -> '{' '}' : {[], ?anno('$2')}.
@@ -379,13 +377,9 @@ record_expr -> '#' record_name '.' record_field_name :
     {record_index, ?range_anno('$1', '$4'), '$2', '$4'}.
 record_expr -> '#' record_name record_tuple :
     {record, ?range_anno('$1', '$3'), '$2', ?val('$3')}.
-record_expr -> expr_max '#' record_name '.' record_field_name :
+record_expr -> expr_callee '#' record_name '.' record_field_name :
     {record_field, ?range_anno('$1', '$5'), '$1', '$3', '$5'}.
-record_expr -> expr_max '#' record_name record_tuple :
-    {record, ?range_anno('$1', '$4'), '$1', '$3', ?val('$4')}.
-record_expr -> record_expr '#' record_name '.' record_field_name :
-    {record_field, ?range_anno('$1', '$5'), '$1', '$3', '$5'}.
-record_expr -> record_expr '#' record_name record_tuple :
+record_expr -> expr_callee '#' record_name record_tuple :
     {record, ?range_anno('$1', '$4'), '$1', '$3', ?val('$4')}.
 
 macro_record_or_concatable -> var macro_call_none '.' record_field_name :
@@ -410,7 +404,7 @@ record_name -> atom_or_var_or_macro : '$1'.
 
 record_field_name -> atom_or_var_or_macro : '$1'.
 
-function_call -> expr_max_remote argument_list :
+function_call -> expr_callee argument_list :
     {call, ?range_anno('$1', '$2'), '$1', ?val('$2')}.
 
 begin_block -> 'begin' 'end' : {block, ?range_anno('$1', '$2'), []}.
