@@ -337,11 +337,15 @@ dotted_seq -> integer '.' dotted_seq : ['$1' | '$3'].
 dotted_seq -> float '.' dotted_seq : ['$1' | '$3'].
 
 list_comprehension -> '[' expr '||' lc_exprs ']' :
-    {lc, ?range_anno('$1', '$5'), '$2', '$4'}.
+    {lc, ?range_anno('$1', '$5'), ['$2'], '$4'}.
+list_comprehension -> '[' expr ',' exprs '||' lc_exprs ']' :
+    {lc, ?range_anno('$1', '$7'), ['$2' | '$4'], '$6'}.
 map_comprehension -> '#' '{' expr '||' lc_exprs '}' :
-    {mc, ?range_anno('$1', '$6'), '$3', '$5'}.
+    {mc, ?range_anno('$1', '$6'), ['$3'], '$5'}.
+map_comprehension -> '#' '{' expr ',' exprs '||' lc_exprs '}' :
+    {mc, ?range_anno('$1', '$8'), ['$3' | '$5'], '$7'}.
 binary_comprehension -> '<<' expr_max '||' lc_exprs '>>' :
-    {bc, ?range_anno('$1', '$5'), '$2', '$4'}.
+    {bc, ?range_anno('$1', '$5'), ['$2'], '$4'}.
 
 lc_exprs -> lc_expr : ['$1'].
 lc_exprs -> lc_expr ',' : ['$1'].
