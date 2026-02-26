@@ -51,7 +51,7 @@ macro_name macro_def_expr macro_def_expr_body macro_def_type macro_def_clause.
 Terminals
 char integer float atom string var
 
-'(' ')' ',' '->' '{' '}' '[' ']' '|' '||' '<-' '<:-' ';' ':' '#' '.' '?=' '&&'
+'(' ')' ',' '->' '{' '}' '[' ']' '|' '||' '<-' '<:-' ';' ':' '#' '#_' '.' '?=' '&&'
 'after' 'begin' 'case' 'try' 'catch' 'end' 'fun' 'if' 'of' 'receive' 'when' 'maybe' 'else'
 'andalso' 'orelse'
 'bnot' 'not'
@@ -289,6 +289,8 @@ record_pat_expr -> '#' record_name '.' record_field_name :
         {record_index, ?range_anno('$1', '$4'), '$2', '$4'}.
 record_pat_expr -> '#' record_name record_tuple :
         {record, ?range_anno('$1', '$3'), '$2', ?val('$3')}.
+record_pat_expr -> '#_' record_tuple :
+        {record, ?range_anno('$1', '$2'), any_record_name('$1'), ?val('$2')}.
 
 list -> '[' ']' : {list, ?range_anno('$1', '$2'), []}.
 list -> '[' list_exprs ']' : {list, ?range_anno('$1', '$3'), '$2'}.
@@ -385,6 +387,12 @@ record_expr -> expr_callee '#' record_name '.' record_field_name :
     {record_field, ?range_anno('$1', '$5'), '$1', '$3', '$5'}.
 record_expr -> expr_callee '#' record_name record_tuple :
     {record, ?range_anno('$1', '$4'), '$1', '$3', ?val('$4')}.
+record_expr -> '#_' record_tuple :
+    {record, ?range_anno('$1', '$2'), any_record_name('$1'), ?val('$2')}.
+record_expr -> expr_callee '#_' '.' record_field_name :
+    {record_field, ?range_anno('$1', '$4'), '$1', any_record_name('$2'), '$4'}.
+record_expr -> expr_callee '#_' record_tuple :
+    {record, ?range_anno('$1', '$3'), '$1', any_record_name('$2'), ?val('$3')}.
 
 macro_record_or_concatable -> var macro_call_none '.' record_field_name :
     Anno = (?range_anno('$1', '$4'))#{macro_record => true},
@@ -1182,6 +1190,9 @@ record_fields([Other | _Fields]) ->
     ret_err(?anno(Other), "bad record field");
 record_fields([]) ->
     [].
+
+any_record_name({'#_', Anno}) ->
+    {var, maps:put(text, "_", Anno), '_'}.
 
 -spec ret_err(_, _) -> no_return().
 ret_err(Anno, S) ->

@@ -83,7 +83,8 @@
     nominal_type/1,
     native_record_decl/1,
     export_import_record/1,
-    native_record_external/1
+    native_record_external/1,
+    native_record_any/1
 ]).
 
 suite() ->
@@ -203,7 +204,8 @@ groups() ->
         {otp_29_features, [parallel], [
             native_record_decl,
             export_import_record,
-            native_record_external
+            native_record_external,
+            native_record_any
         ]}
     ].
 
@@ -4623,4 +4625,13 @@ native_record_external(Config) when is_list(Config) ->
     %% In patterns
     ?assertSame(
         "f(#mod:name{x = X}) -> X.\n"
+    ).
+
+native_record_any(Config) when is_list(Config) ->
+    ?assertSame("#_{x = 1, y = 2}\n"),
+    ?assertSame("R#_.field\n"),
+    ?assertSame("R#_{x = 1}\n"),
+    %% In patterns
+    ?assertSame(
+        "f(#_{x = X}) -> X.\n"
     ).
