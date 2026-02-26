@@ -82,7 +82,8 @@
     zip_generators/1,
     nominal_type/1,
     native_record_decl/1,
-    export_import_record/1
+    export_import_record/1,
+    native_record_external/1
 ]).
 
 suite() ->
@@ -201,7 +202,8 @@ groups() ->
         ]},
         {otp_29_features, [parallel], [
             native_record_decl,
-            export_import_record
+            export_import_record,
+            native_record_external
         ]}
     ].
 
@@ -4606,3 +4608,19 @@ native_record_decl(Config) when is_list(Config) ->
 export_import_record(Config) when is_list(Config) ->
     ?assertSame("-export_record([a, b, c]).\n"),
     ?assertSame("-import_record(mod, [a, b]).\n").
+
+native_record_external(Config) when is_list(Config) ->
+    %% Creation
+    ?assertSame("#mod:name{x = 1}\n"),
+    ?assertSame("#?MODULE:name{x = 1}\n"),
+    %% Field access
+    ?assertSame("R#mod:name.field\n"),
+    ?assertSame("R#?MODULE:name.field\n"),
+    %% Update
+    ?assertSame("R#mod:name{field = value}\n"),
+    %% Chained access
+    ?assertSame("R#mod:a.x#mod:b.y\n"),
+    %% In patterns
+    ?assertSame(
+        "f(#mod:name{x = X}) -> X.\n"
+    ).

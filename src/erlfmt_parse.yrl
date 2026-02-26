@@ -408,6 +408,8 @@ record_field -> record_field_name '::' type :
 record_field -> record_field_name : {record_field,?anno('$1'),'$1'}.
 
 record_name -> atom_or_var_or_macro : '$1'.
+record_name -> atom_or_var_or_macro ':' atom_or_var_or_macro :
+    {remote, ?range_anno('$1', '$3'), '$1', '$3'}.
 
 record_field_name -> atom_or_var_or_macro : '$1'.
 
