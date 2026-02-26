@@ -403,6 +403,9 @@ record_fields -> record_field ',' : ['$1'].
 record_fields -> record_field ',' record_fields : ['$1' | '$3'].
 
 record_field -> record_field_name '=' expr : {record_field,?range_anno('$1', '$3'),'$1','$3'}.
+record_field -> record_field_name '::' type :
+    {op, ?range_anno('$1', '$3'), '::', {record_field,?anno('$1'),'$1'}, '$3'}.
+record_field -> record_field_name : {record_field,?anno('$1'),'$1'}.
 
 record_name -> atom_or_var_or_macro : '$1'.
 
@@ -1150,6 +1153,8 @@ build_macro_def({'-', Anno}, {_, AttrAnno}, {Name, Body}) ->
 
 build_attribute({'-', Anno}, {atom, _, record} = Attr, [Name, Tuple]) ->
     {attribute, Anno, Attr, [Name, record_tuple(Tuple)]};
+build_attribute({'-', Anno}, {atom, _, record} = Attr, Values) ->
+    {attribute, Anno, Attr, Values};
 build_attribute({'-', Anno}, {atom, _, _} = Attr, Values) ->
     {attribute, Anno, Attr, Values};
 build_attribute({'-', Anno}, {Name, NameAnno}, Values) ->
