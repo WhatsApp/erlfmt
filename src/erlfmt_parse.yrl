@@ -20,7 +20,7 @@ node
 attribute attr_val
 function function_clauses function_clause
 clause_guard clause_body
-expr expr_max expr_max_remote
+expr expr_max expr_callee
 pid dotted_special dotted_seq
 pat_expr pat_expr_max map_pat_expr record_pat_expr
 pat_argument_list pat_exprs
@@ -51,7 +51,7 @@ macro_name macro_def_expr macro_def_expr_body macro_def_type macro_def_clause.
 Terminals
 char integer float atom string var
 
-'(' ')' ',' '->' '{' '}' '[' ']' '|' '||' '<-' '<:-' ';' ':' '#' '.' '?=' '&&'
+'(' ')' ',' '->' '{' '}' '[' ']' '|' '||' '<-' '<:-' ';' ':' '#' '#_' '.' '?=' '&&'
 'after' 'begin' 'case' 'try' 'catch' 'end' 'fun' 'if' 'of' 'receive' 'when' 'maybe' 'else'
 'andalso' 'orelse'
 'bnot' 'not'
@@ -229,13 +229,13 @@ expr -> expr ':=' expr : {map_field_exact, ?range_anno('$1', '$3'), '$1', '$3'}.
 expr -> prefix_op expr : ?mkop1('$1', '$2').
 expr -> expr '::' type : ?mkop2('$1', '$2', '$3').
 expr -> expr '?=' expr : ?mkop2('$1', '$2', '$3').
-expr -> map_expr : '$1'.
-expr -> function_call : '$1'.
-expr -> record_expr : '$1'.
-expr -> expr_max_remote : '$1'.
+expr -> expr_callee : '$1'.
 
-expr_max_remote -> expr_max ':' expr_max_remote : {remote,?range_anno('$1', '$3'),'$1','$3'}.
-expr_max_remote -> expr_max : '$1'.
+expr_callee -> expr_max ':' expr_callee : {remote,?range_anno('$1', '$3'),'$1','$3'}.
+expr_callee -> function_call : '$1'.
+expr_callee -> record_expr : '$1'.
+expr_callee -> map_expr : '$1'.
+expr_callee -> expr_max : '$1'.
 
 expr_max -> macro_call_expr : '$1'.
 expr_max -> macro_record_or_concatable : '$1'.
@@ -289,6 +289,8 @@ record_pat_expr -> '#' record_name '.' record_field_name :
         {record_index, ?range_anno('$1', '$4'), '$2', '$4'}.
 record_pat_expr -> '#' record_name record_tuple :
         {record, ?range_anno('$1', '$3'), '$2', ?val('$3')}.
+record_pat_expr -> '#_' record_tuple :
+        {record, ?range_anno('$1', '$2'), any_record_name('$1'), ?val('$2')}.
 
 list -> '[' ']' : {list, ?range_anno('$1', '$2'), []}.
 list -> '[' list_exprs ']' : {list, ?range_anno('$1', '$3'), '$2'}.
@@ -337,11 +339,15 @@ dotted_seq -> integer '.' dotted_seq : ['$1' | '$3'].
 dotted_seq -> float '.' dotted_seq : ['$1' | '$3'].
 
 list_comprehension -> '[' expr '||' lc_exprs ']' :
-    {lc, ?range_anno('$1', '$5'), '$2', '$4'}.
+    {lc, ?range_anno('$1', '$5'), ['$2'], '$4'}.
+list_comprehension -> '[' expr ',' exprs '||' lc_exprs ']' :
+    {lc, ?range_anno('$1', '$7'), ['$2' | '$4'], '$6'}.
 map_comprehension -> '#' '{' expr '||' lc_exprs '}' :
-    {mc, ?range_anno('$1', '$6'), '$3', '$5'}.
+    {mc, ?range_anno('$1', '$6'), ['$3'], '$5'}.
+map_comprehension -> '#' '{' expr ',' exprs '||' lc_exprs '}' :
+    {mc, ?range_anno('$1', '$8'), ['$3' | '$5'], '$7'}.
 binary_comprehension -> '<<' expr_max '||' lc_exprs '>>' :
-    {bc, ?range_anno('$1', '$5'), '$2', '$4'}.
+    {bc, ?range_anno('$1', '$5'), ['$2'], '$4'}.
 
 lc_exprs -> lc_expr : ['$1'].
 lc_exprs -> lc_expr ',' : ['$1'].
@@ -363,9 +369,7 @@ tuple -> '{' exprs '}' : {tuple,?range_anno('$1', '$3'),'$2'}.
 
 map_expr -> '#' map_tuple :
     {map, ?range_anno('$1', '$2'), ?val('$2')}.
-map_expr -> expr_max '#' map_tuple :
-    {map, ?range_anno('$1', '$3'), '$1', ?val('$3')}.
-map_expr -> map_expr '#' map_tuple :
+map_expr -> expr_callee '#' map_tuple :
     {map, ?range_anno('$1', '$3'), '$1', ?val('$3')}.
 
 map_tuple -> '{' '}' : {[], ?anno('$2')}.
@@ -379,14 +383,16 @@ record_expr -> '#' record_name '.' record_field_name :
     {record_index, ?range_anno('$1', '$4'), '$2', '$4'}.
 record_expr -> '#' record_name record_tuple :
     {record, ?range_anno('$1', '$3'), '$2', ?val('$3')}.
-record_expr -> expr_max '#' record_name '.' record_field_name :
+record_expr -> expr_callee '#' record_name '.' record_field_name :
     {record_field, ?range_anno('$1', '$5'), '$1', '$3', '$5'}.
-record_expr -> expr_max '#' record_name record_tuple :
+record_expr -> expr_callee '#' record_name record_tuple :
     {record, ?range_anno('$1', '$4'), '$1', '$3', ?val('$4')}.
-record_expr -> record_expr '#' record_name '.' record_field_name :
-    {record_field, ?range_anno('$1', '$5'), '$1', '$3', '$5'}.
-record_expr -> record_expr '#' record_name record_tuple :
-    {record, ?range_anno('$1', '$4'), '$1', '$3', ?val('$4')}.
+record_expr -> '#_' record_tuple :
+    {record, ?range_anno('$1', '$2'), any_record_name('$1'), ?val('$2')}.
+record_expr -> expr_callee '#_' '.' record_field_name :
+    {record_field, ?range_anno('$1', '$4'), '$1', any_record_name('$2'), '$4'}.
+record_expr -> expr_callee '#_' record_tuple :
+    {record, ?range_anno('$1', '$3'), '$1', any_record_name('$2'), ?val('$3')}.
 
 macro_record_or_concatable -> var macro_call_none '.' record_field_name :
     Anno = (?range_anno('$1', '$4'))#{macro_record => true},
@@ -405,12 +411,17 @@ record_fields -> record_field ',' : ['$1'].
 record_fields -> record_field ',' record_fields : ['$1' | '$3'].
 
 record_field -> record_field_name '=' expr : {record_field,?range_anno('$1', '$3'),'$1','$3'}.
+record_field -> record_field_name '::' type :
+    {op, ?range_anno('$1', '$3'), '::', {record_field,?anno('$1'),'$1'}, '$3'}.
+record_field -> record_field_name : {record_field,?anno('$1'),'$1'}.
 
 record_name -> atom_or_var_or_macro : '$1'.
+record_name -> atom_or_var_or_macro ':' atom_or_var_or_macro :
+    {remote, ?range_anno('$1', '$3'), '$1', '$3'}.
 
 record_field_name -> atom_or_var_or_macro : '$1'.
 
-function_call -> expr_max_remote argument_list :
+function_call -> expr_callee argument_list :
     {call, ?range_anno('$1', '$2'), '$1', ?val('$2')}.
 
 begin_block -> 'begin' 'end' : {block, ?range_anno('$1', '$2'), []}.
@@ -1152,6 +1163,8 @@ build_macro_def({'-', Anno}, {_, AttrAnno}, {Name, Body}) ->
 
 build_attribute({'-', Anno}, {atom, _, record} = Attr, [Name, Tuple]) ->
     {attribute, Anno, Attr, [Name, record_tuple(Tuple)]};
+build_attribute({'-', Anno}, {atom, _, record} = Attr, Values) ->
+    {attribute, Anno, Attr, Values};
 build_attribute({'-', Anno}, {atom, _, _} = Attr, Values) ->
     {attribute, Anno, Attr, Values};
 build_attribute({'-', Anno}, {Name, NameAnno}, Values) ->
@@ -1177,6 +1190,9 @@ record_fields([Other | _Fields]) ->
     ret_err(?anno(Other), "bad record field");
 record_fields([]) ->
     [].
+
+any_record_name({'#_', Anno}) ->
+    {var, maps:put(text, "_", Anno), '_'}.
 
 -spec ret_err(_, _) -> no_return().
 ret_err(Anno, S) ->

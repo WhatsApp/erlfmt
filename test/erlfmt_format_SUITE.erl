@@ -48,7 +48,9 @@
     list_comprehension/1,
     map_comprehension/1,
     binary_comprehension/1,
+    multi_value_comprehension/1,
     call/1,
+    left_assoc_call/1,
     block/1,
     fun_expression/1,
     case_expression/1,
@@ -78,7 +80,11 @@
     maybe_incomplete/1,
     strict_generators/1,
     zip_generators/1,
-    nominal_type/1
+    nominal_type/1,
+    native_record_decl/1,
+    export_import_record/1,
+    native_record_external/1,
+    native_record_any/1
 ]).
 
 suite() ->
@@ -100,6 +106,11 @@ init_per_group(otp_28_features, Config) ->
     case erlang:system_info(otp_release) >= "28" of
         true -> Config;
         false -> {skip, "Skipping tests for features from OTP >= 28"}
+    end;
+init_per_group(otp_29_features, Config) ->
+    case erlang:system_info(otp_release) >= "29" of
+        true -> Config;
+        false -> {skip, "Skipping tests for features from OTP >= 29"}
     end;
 init_per_group(_GroupName, Config) ->
     Config.
@@ -128,6 +139,7 @@ groups() ->
             {group, operators},
             {group, comprehensions},
             call,
+            left_assoc_call,
             block,
             fun_expression,
             case_expression,
@@ -177,7 +189,8 @@ groups() ->
         {comprehensions, [parallel], [
             list_comprehension,
             map_comprehension,
-            binary_comprehension
+            binary_comprehension,
+            multi_value_comprehension
         ]},
         {otp_27_features, [parallel], [
             sigils,
@@ -187,6 +200,12 @@ groups() ->
             strict_generators,
             zip_generators,
             nominal_type
+        ]},
+        {otp_29_features, [parallel], [
+            native_record_decl,
+            export_import_record,
+            native_record_external,
+            native_record_any
         ]}
     ].
 
@@ -196,6 +215,7 @@ all() ->
         {group, forms},
         {group, otp_27_features},
         {group, otp_28_features},
+        {group, otp_29_features},
         comment
     ].
 
@@ -2304,6 +2324,28 @@ binary_comprehension(Config) when is_list(Config) ->
     ),
     ?assertFormat("<<A || <<A>> <= Bin,>>\n", "<<A || <<A>> <= Bin>>\n").
 
+multi_value_comprehension(Config) when is_list(Config) ->
+    ?assertSame("[I, -I || I <- lists:seq(1, 5)]\n"),
+    ?assertSame("[K, V || K := V <- Map]\n"),
+    ?assertSame("[A, B, C || A <- As]\n"),
+    ?assertSame("#{K => V, K2 => V2 || K <- List}\n"),
+    ?assertFormat(
+        "[VeryLongExpr, AnotherExpr || X <- List]",
+        "[\n"
+        "    VeryLongExpr,\n"
+        "    AnotherExpr\n"
+        " || X <- List\n"
+        "]\n",
+        25
+    ),
+    %% Expressions should stay grouped when the comprehension is broken
+    ?assertSame(
+        "[\n"
+        "    expr(Var), expr2(Var)\n"
+        " || Var <- List\n"
+        "]\n"
+    ).
+
 call(Config) when is_list(Config) ->
     ?assertFormat("foo(\n)", "foo()\n"),
     ?assertSame("foo(1, 2, 3)\n"),
@@ -2409,6 +2451,31 @@ call(Config) when is_list(Config) ->
         ")\n"
     ),
     ?assertFormat("foo(1,)\n", "foo(1)\n").
+
+left_assoc_call(Config) when is_list(Config) ->
+    ?assertSame("f(X)(Y)\n"),
+    ?assertSame("f(X)(Y)(Z)\n"),
+    ?assertSame("Mod:f(X)(Y)\n"),
+    %% Parens must be preserved for backwards compat with OTP < 29
+    ?assertSame("(f(X))(Y)\n"),
+    ?assertFormat(
+        "f(LongArg1, LongArg2)(ShortA, ShortB)",
+        "f(LongArg1, LongArg2)(\n"
+        "    ShortA, ShortB\n"
+        ")\n",
+        25
+    ),
+    ?assertFormat(
+        "f(X)(LongArg1, LongArg2)",
+        "f(X)(\n"
+        "    LongArg1,\n"
+        "    LongArg2\n"
+        ")\n",
+        20
+    ),
+    %% Calls on record field access
+    ?assertSame("R#foo.bar(X)\n"),
+    ?assertSame("R#foo.bar(X)(Y)\n").
 
 block(Config) when is_list(Config) ->
     ?assertFormat(
@@ -4526,4 +4593,45 @@ nominal_type(Config) when is_list(Config) ->
     ),
     ?assertSame(
         "-nominal foo() :: {fun(), fun((...) -> mod:bar()), fun(() -> integer())}.\n"
+    ).
+
+native_record_decl(Config) when is_list(Config) ->
+    ?assertSame("-record #empty{}.\n"),
+    ?assertSame("-record #a{x, y}.\n"),
+    ?assertSame("-record #c{x :: integer(), y = 0 :: integer()}.\n"),
+    ?assertSame(
+        "-record #d{\n"
+        "    f = 3.1416,\n"
+        "    l = [a, b, c]\n"
+        "}.\n"
+    ),
+    ?assertSame("-record #point{x = 0, y = 0, z = 0}.\n").
+
+export_import_record(Config) when is_list(Config) ->
+    ?assertSame("-export_record([a, b, c]).\n"),
+    ?assertSame("-import_record(mod, [a, b]).\n").
+
+native_record_external(Config) when is_list(Config) ->
+    %% Creation
+    ?assertSame("#mod:name{x = 1}\n"),
+    ?assertSame("#?MODULE:name{x = 1}\n"),
+    %% Field access
+    ?assertSame("R#mod:name.field\n"),
+    ?assertSame("R#?MODULE:name.field\n"),
+    %% Update
+    ?assertSame("R#mod:name{field = value}\n"),
+    %% Chained access
+    ?assertSame("R#mod:a.x#mod:b.y\n"),
+    %% In patterns
+    ?assertSame(
+        "f(#mod:name{x = X}) -> X.\n"
+    ).
+
+native_record_any(Config) when is_list(Config) ->
+    ?assertSame("#_{x = 1, y = 2}\n"),
+    ?assertSame("R#_.field\n"),
+    ?assertSame("R#_{x = 1}\n"),
+    %% In patterns
+    ?assertSame(
+        "f(#_{x = X}) -> X.\n"
     ).

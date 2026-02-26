@@ -107,7 +107,9 @@
     skip_pragma_escript/1,
     overlong_warning/1,
     do_not_crash_on_bad_record/1,
-    raw_string_anno/1
+    raw_string_anno/1,
+    left_assoc_call/1,
+    multi_value_comprehension/1
 ]).
 
 suite() ->
@@ -159,7 +161,9 @@ groups() ->
             do_not_crash_on_bad_record,
             raw_string_anno,
             dotted,
-            map_comprehension
+            map_comprehension,
+            left_assoc_call,
+            multi_value_comprehension
         ]},
         {snapshot_tests, [parallel], [
             snapshot_simple_comments,
@@ -1015,7 +1019,7 @@ dotted(Config) when is_list(Config) ->
 
 map_comprehension(Config) when is_list(Config) ->
     ?assertMatch(
-        {mc, _, {map_field_assoc, _, {var, _, 'A'}, {var, _, 'B'}}, [
+        {mc, _, [{map_field_assoc, _, {var, _, 'A'}, {var, _, 'B'}}], [
             {generate, _, '<-', {map_field_exact, _, {var, _, 'A'}, {var, _, 'B'}}, {var, _, 'M'}}
         ]},
         parse_expr("#{A => B || A := B <- M}")
@@ -1826,3 +1830,35 @@ raw_string_anno(Config) when is_list(Config) ->
 unicode_string() ->
     "% Overlong, in bytes: "
     "色は匂へど 散りぬるを 我が世誰ぞ 常ならむ 有為の奥山 今日越えて 浅き夢見じ 酔ひもせず\n".
+
+left_assoc_call(Config) when is_list(Config) ->
+    ?assertMatch(
+        {call, _, {call, _, {atom, _, f}, [{var, _, 'X'}]}, [{var, _, 'Y'}]},
+        parse_expr("f(X)(Y)")
+    ),
+    ?assertMatch(
+        {call, _, {call, _, {call, _, {atom, _, f}, [{var, _, 'X'}]}, [{var, _, 'Y'}]}, [
+            {var, _, 'Z'}
+        ]},
+        parse_expr("f(X)(Y)(Z)")
+    ),
+    ?assertMatch(
+        {call, _, {call, _, {remote, _, {var, _, 'Mod'}, {atom, _, f}}, [{var, _, 'X'}]}, [
+            {var, _, 'Y'}
+        ]},
+        parse_expr("Mod:f(X)(Y)")
+    ).
+
+multi_value_comprehension(Config) when is_list(Config) ->
+    ?assertMatch(
+        {lc, _, [{var, _, 'I'}, {op, _, '-', {var, _, 'I'}}], _},
+        parse_expr("[I, -I || I <- List]")
+    ),
+    ?assertMatch(
+        {lc, _, [{var, _, 'X'}], _},
+        parse_expr("[X || X <- List]")
+    ),
+    ?assertMatch(
+        {mc, _, [{var, _, 'A'}, {var, _, 'B'}], _},
+        parse_expr("#{A, B || X <- List}")
+    ).

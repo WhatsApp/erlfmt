@@ -97,6 +97,9 @@ to_algebra({attribute, Meta, {atom, _, record}, [Name, {tuple, TMeta, Values} = 
             Doc = surround(HeadD, <<"">>, expr_to_algebra(Tuple), <<"">>, <<")">>),
             combine_comments_with_dot(Meta, Doc)
     end;
+to_algebra({attribute, Meta, {atom, _, record}, [RecordExpr]}) ->
+    Doc = concat(<<"-record ">>, expr_to_algebra(RecordExpr)),
+    combine_comments_with_dot(Meta, Doc);
 to_algebra({attribute, Meta, {atom, _, RawName} = Name, [Value]}) when
     RawName =:= doc; RawName =:= moduledoc
 ->
@@ -184,12 +187,12 @@ do_expr_to_algebra({record_field, Meta, Expr, Name, Key}) ->
     concat(wrap_if_integer(expr_to_algebra(Expr), Expr), record_access_to_algebra(Meta, Name, Key));
 do_expr_to_algebra({record_name, Meta, Name}) ->
     record_name_to_algebra(Meta, Name);
-do_expr_to_algebra({lc, _Meta, Expr, LcExprs}) ->
-    comprehension_to_algebra(Expr, LcExprs, <<"[">>, <<"]">>);
-do_expr_to_algebra({mc, _Meta, Expr, LcExprs}) ->
-    comprehension_to_algebra(Expr, LcExprs, <<"#{">>, <<"}">>);
-do_expr_to_algebra({bc, _Meta, Expr, LcExprs}) ->
-    comprehension_to_algebra(Expr, LcExprs, <<"<<">>, <<">>">>);
+do_expr_to_algebra({lc, _Meta, Exprs, LcExprs}) ->
+    comprehension_to_algebra(Exprs, LcExprs, <<"[">>, <<"]">>);
+do_expr_to_algebra({mc, _Meta, Exprs, LcExprs}) ->
+    comprehension_to_algebra(Exprs, LcExprs, <<"#{">>, <<"}">>);
+do_expr_to_algebra({bc, _Meta, Exprs, LcExprs}) ->
+    comprehension_to_algebra(Exprs, LcExprs, <<"<<">>, <<">>">>);
 do_expr_to_algebra({generate, _Meta, Op, Left, Right}) ->
     field_to_algebra(atom_to_binary(Op), Left, Right);
 do_expr_to_algebra({call, Meta, Name, Args}) ->
@@ -711,12 +714,15 @@ record_name_to_algebra(Meta, Name) ->
         false -> concat(<<"#">>, expr_to_algebra(Name))
     end.
 
-comprehension_to_algebra(Expr, [LcExpr | _] = LcExprs, Left, Right) ->
-    ExprD = expr_to_algebra(Expr),
+comprehension_to_algebra(Exprs, [LcExpr | _] = LcExprs, Left, Right) ->
+    ExprsD = lists:map(fun expr_to_algebra/1, Exprs),
+    ExprD = group(fold_doc(fun(D, Acc) -> break(concat(D, <<",">>), Acc) end, ExprsD)),
     LcExprsD = lists:map(fun expr_to_algebra/1, LcExprs),
     LcExprD = fold_doc(fun(D, Acc) -> break(concat(D, <<",">>), Acc) end, LcExprsD),
     PostBreak = maybe_force_breaks(has_any_break_between(LcExprs)),
-    PreBreak = concat(maybe_force_breaks(has_break_between(Expr, LcExpr)), break(<<"">>)),
+    PreBreak = concat(
+        maybe_force_breaks(has_break_between(lists:last(Exprs), LcExpr)), break(<<"">>)
+    ),
     IndentExpr = nest(concat(break(<<"">>), ExprD), ?INDENT, break),
     IdentLcs = nest(group(concat(PostBreak, LcExprD)), ?INDENT),
     group(concat([Left, IndentExpr, PreBreak, <<" || ">>, IdentLcs, break(<<"">>), Right])).
