@@ -90,3 +90,9 @@ In `erlfmt_parse` the following AST nodes have different definitions:
 * Representation for types is in general the same as for corresponding values.
   The `type` node is not used at all. This means new binary operators inside types
   are defined: `|`, `::`, and `..`.
+
+* Comprehension nodes (`lc`, `mc`, `bc`) always represent the expression(s) before
+  `||` as a list, even for single-value comprehensions. For example, `[X || X <- List]`
+  produces `{lc, Anno, [X], Generators}` and `[I, -I || I <- List]` produces
+  `{lc, Anno, [I, {op, _, '-', I}], Generators}`. In `erl_parse`, single-value
+  comprehensions use a bare expression instead of a list.

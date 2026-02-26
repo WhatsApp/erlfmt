@@ -48,6 +48,7 @@
     list_comprehension/1,
     map_comprehension/1,
     binary_comprehension/1,
+    multi_value_comprehension/1,
     call/1,
     left_assoc_call/1,
     block/1,
@@ -179,7 +180,8 @@ groups() ->
         {comprehensions, [parallel], [
             list_comprehension,
             map_comprehension,
-            binary_comprehension
+            binary_comprehension,
+            multi_value_comprehension
         ]},
         {otp_27_features, [parallel], [
             sigils,
@@ -2305,6 +2307,28 @@ binary_comprehension(Config) when is_list(Config) ->
         ">>)\n"
     ),
     ?assertFormat("<<A || <<A>> <= Bin,>>\n", "<<A || <<A>> <= Bin>>\n").
+
+multi_value_comprehension(Config) when is_list(Config) ->
+    ?assertSame("[I, -I || I <- lists:seq(1, 5)]\n"),
+    ?assertSame("[K, V || K := V <- Map]\n"),
+    ?assertSame("[A, B, C || A <- As]\n"),
+    ?assertSame("#{K => V, K2 => V2 || K <- List}\n"),
+    ?assertFormat(
+        "[VeryLongExpr, AnotherExpr || X <- List]",
+        "[\n"
+        "    VeryLongExpr,\n"
+        "    AnotherExpr\n"
+        " || X <- List\n"
+        "]\n",
+        25
+    ),
+    %% Expressions should stay grouped when the comprehension is broken
+    ?assertSame(
+        "[\n"
+        "    expr(Var), expr2(Var)\n"
+        " || Var <- List\n"
+        "]\n"
+    ).
 
 call(Config) when is_list(Config) ->
     ?assertFormat("foo(\n)", "foo()\n"),
