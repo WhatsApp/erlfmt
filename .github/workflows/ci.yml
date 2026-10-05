@@ -25,8 +25,9 @@ jobs:
             otp-version: 27
             rebar3-version: 3.23
           - os: ubuntu-24.04
-            otp-version: 28
+            otp-version: '28.5'
             rebar3-version: 3.25
+            elp: true
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -48,6 +49,21 @@ jobs:
         run: make test
       - name: Check format
         run: make checkfmt
+      - name: Setup ELP
+        if: matrix.elp
+        # setup-elp has no tagged releases yet: pin a commit
+        uses: erlef/setup-elp@7be8461ac17ddcf91ea0f8f01bee0452a3e05561
+        with:
+          elp-version: '2026-10-05'
+      # Both ELP steps are non-blocking until the clean-up PRs land.
+      - name: ELP Lint
+        if: matrix.elp
+        run: elp lint
+        continue-on-error: true
+      - name: eqWAlizer
+        if: matrix.elp
+        run: elp eqwalize-all --bail-on-error
+        continue-on-error: true
 
   dialyzer:
     runs-on: ubuntu-latest
