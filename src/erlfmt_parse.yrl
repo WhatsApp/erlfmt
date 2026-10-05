@@ -702,6 +702,7 @@ comp_op -> '=/=' : '$1'.
 
 Header
 "%% This file was automatically generated from the file \"erlfmt_parse.yrl\"."
+"%% @generated"
 "%%"
 "%% Copyright Ericsson AB 1996-2015. All Rights Reserved."
 "%%"
