@@ -141,9 +141,9 @@ split_code_into_maps(Text, {code, Formatted, Unformatted}) ->
     Spec = string:split(FirstLine, " ", all),
     case Spec of
         ["erl" ++ _, "formatted" | Key] ->
-            {text, maps:put(Key, Code, Formatted), Unformatted};
+            {text, Formatted#{Key => Code}, Unformatted};
         ["erl" ++ _, "unformatted" | Key] ->
-            {text, Formatted, maps:put(Key, Code, Unformatted)};
+            {text, Formatted, Unformatted#{Key => Code}};
         _ ->
             {text, Formatted, Unformatted}
     end.
