@@ -758,8 +758,8 @@ nodes_in_range(Nodes, StartLocation, EndLocation) ->
 
 node_intersects_range(Node, StartLocation, EndLocation) ->
     {Start, End} = get_location_range(Node),
-    ((Start < StartLocation) and (End > StartLocation)) or
-        ((Start >= StartLocation) and (Start < EndLocation)).
+    ((Start < StartLocation) andalso (End > StartLocation)) orelse
+        ((Start >= StartLocation) andalso (Start < EndLocation)).
 
 get_possible_locations([Option1, Option2 | _], Location, GetLoc) ->
     case GetLoc(Option1) of
