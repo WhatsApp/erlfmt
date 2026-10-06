@@ -233,7 +233,7 @@ do_expr_to_algebra({after_clause, _Meta, Expr, Body}) ->
 do_expr_to_algebra({'try', _Meta, Exprs, OfClauses, CatchClauses, After}) ->
     try_to_algebra(Exprs, OfClauses, CatchClauses, After);
 do_expr_to_algebra({'catch', _Meta, Exprs}) ->
-    ExprsD = lists:map(fun expr_to_algebra/1, Exprs),
+    ExprsD = [expr_to_algebra(Expr) || Expr <- Exprs],
     fold_doc(fun(Doc, Acc) -> concat(Doc, <<":">>, Acc) end, ExprsD);
 do_expr_to_algebra({'if', _Meta, Clauses}) ->
     surround_block(<<"if">>, Clauses, fun clauses_to_algebra/1, <<"end">>);
@@ -350,7 +350,7 @@ string_lines_to_algebra([Line | Lines]) ->
 
 %% there's always at least two elements in concat
 concat_to_algebra([Value1, Value2 | _] = Values) ->
-    ValuesD = lists:map(fun expr_to_algebra/1, Values),
+    ValuesD = [expr_to_algebra(Value) || Value <- Values],
     case has_break_between(Value1, Value2) of
         true ->
             concat(force_breaks(), group(fold_doc(fun erlfmt_algebra:line/2, ValuesD)));
@@ -653,7 +653,7 @@ join_inner_values(BreakFun, [{Value, ValueD} | [{Value2, _ValueD2} | _] = Values
 
 % fa_group_to_algebra, see fa_groups/1 that creates function/arity groups.
 fa_group_to_algebra([Value1, Value2 | _] = Values) ->
-    ValuesD = lists:map(fun expr_to_algebra/1, Values),
+    ValuesD = [expr_to_algebra(Value) || Value <- Values],
     {MaybeForceBreaks, BreakType} =
         case has_break_between(Value1, Value2) of
             true -> {force_breaks(), line()};
@@ -698,7 +698,7 @@ bin_size_to_algebra(Expr) ->
     concat(<<":">>, expr_to_algebra(Expr)).
 
 bin_types_to_algebra(Types) ->
-    TypesD = lists:map(fun expr_to_algebra/1, Types),
+    TypesD = [expr_to_algebra(Type) || Type <- Types],
     concat(<<"/">>, fold_doc(fun(Doc, Acc) -> concat([Doc, <<"-">>, Acc]) end, TypesD)).
 
 record_access_to_algebra(Meta, Name, Key) ->
@@ -713,7 +713,7 @@ record_name_to_algebra(Meta, Name) ->
 
 comprehension_to_algebra(Expr, [LcExpr | _] = LcExprs, Left, Right) ->
     ExprD = expr_to_algebra(Expr),
-    LcExprsD = lists:map(fun expr_to_algebra/1, LcExprs),
+    LcExprsD = [expr_to_algebra(Qualifier) || Qualifier <- LcExprs],
     LcExprD = fold_doc(fun(D, Acc) -> break(concat(D, <<",">>), Acc) end, LcExprsD),
     PostBreak = maybe_force_breaks(has_any_break_between(LcExprs)),
     PreBreak = concat(maybe_force_breaks(has_break_between(Expr, LcExpr)), break(<<"">>)),
@@ -875,7 +875,7 @@ guards_to_algebra(Guards, Separator) ->
     guards_to_algebra(Guards, Separator, fun expr_to_algebra/1).
 
 guards_to_algebra(Guards, Separator, GuardToAlgebra) ->
-    GuardsD = lists:map(GuardToAlgebra, Guards),
+    GuardsD = [GuardToAlgebra(Guard) || Guard <- Guards],
     Doc = fold_doc(fun(GuardD, Acc) -> break(concat(GuardD, Separator), Acc) end, GuardsD),
     group(concat(maybe_force_breaks(has_any_break_between(Guards)), Doc)).
 
@@ -1009,11 +1009,11 @@ combine_post_comments([Comment | _] = Comments, Meta, Doc) ->
     end.
 
 comments_to_algebra(Comments) ->
-    CommentsD = lists:map(fun comment_to_algebra/1, Comments),
+    CommentsD = [comment_to_algebra(Comment) || Comment <- Comments],
     fold_doc(fun(C, Acc) -> concat(C, line(2), Acc) end, CommentsD).
 
 comment_to_algebra({comment, _Meta, Lines}) ->
-    LinesD = lists:map(fun erlfmt_algebra:string/1, Lines),
+    LinesD = [erlfmt_algebra:string(Line) || Line <- Lines],
     fold_doc(fun erlfmt_algebra:line/2, LinesD).
 
 comments_with_pre_dot(Meta) ->
