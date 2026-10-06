@@ -87,7 +87,7 @@ markdown_files(Config) when is_list(Config) ->
 find_markdown_filenames_in(Path) ->
     {ok, BaseFilenames} = file:list_dir_all(Path),
     Filenames =
-        lists:map(fun(Filename) -> filename:join([Path, Filename]) end, BaseFilenames),
+        [filename:join([Path, Filename]) || Filename <- BaseFilenames],
     lists:filter(fun(Filename) -> filename:extension(Filename) == ".md" end, Filenames).
 
 markdown_string(Config) when is_list(Config) ->
