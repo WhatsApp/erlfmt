@@ -12,6 +12,8 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License
 
+-include_lib("stdlib/include/assert.hrl").
+
 %% Smarter comparisons for lists and maps.
 %% It reports main differences rather whole structures,
 %% making the diagnostic easier to read.
