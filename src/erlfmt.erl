@@ -41,7 +41,9 @@
 -type config_option() :: {pragma, pragma()} | {print_width, pos_integer()} | verbose.
 -type config() :: [config_option()].
 
-%% needed because of getopt being weird
+%% needed because of getopt being weird: it is only a dependency in the
+%% test and release profiles, so Dialyzer can't find it otherwise.
+% elp:ignore W0048 (no_dialyzer_attribute)
 -dialyzer({nowarn_function, [init/1, main/1]}).
 
 -define(DEFAULT_WIDTH, 100).

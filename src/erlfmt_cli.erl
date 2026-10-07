@@ -114,6 +114,8 @@ set_difference(Files, []) ->
     Files;
 set_difference(Files, Excludes) ->
     {ok, Cwd} = file:get_cwd(),
+    %% Map comprehensions need OTP 26, and erlfmt supports older releases.
+    % elp:ignore W0036 (unnecessary_map_from_list_around_comprehension)
     AbsoluteFiles = maps:from_list([{resolve_path(Cwd, F), F} || F <- Files]),
     AbsoluteExcludes = [resolve_path(Cwd, E) || E <- Excludes],
     maps:values(maps:without(AbsoluteExcludes, AbsoluteFiles)).
@@ -132,7 +134,9 @@ resolve_path2([<<"..">> | T1], [_H2 | T2]) -> resolve_path2(T1, T2);
 resolve_path2([H1 | T1], Components) -> resolve_path2(T1, [H1 | Components]);
 resolve_path2([], Components) -> lists:reverse(Components).
 
-%% needed because of getopt
+%% needed because of getopt: it is only a dependency in the test and
+%% release profiles, so Dialyzer can't find it otherwise.
+% elp:ignore W0048 (no_dialyzer_attribute)
 -dialyzer({nowarn_function, [unprotected_with_config/2]}).
 
 -spec unprotected_with_config(string(), parsed()) -> ok.
