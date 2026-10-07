@@ -55,11 +55,11 @@ jobs:
         uses: erlef/setup-elp@7be8461ac17ddcf91ea0f8f01bee0452a3e05561
         with:
           elp-version: '2026-10-05'
-      # Both ELP steps are non-blocking until the clean-up PRs land.
+      # Explicit JSON output makes `elp lint` fail on any finding.
       - name: ELP Lint
         if: matrix.elp
-        run: elp lint
-        continue-on-error: true
+        run: elp lint --format json
+      # Non-blocking until the existing eqWAlizer errors are fixed.
       - name: eqWAlizer
         if: matrix.elp
         run: elp eqwalize-all --bail-on-error
