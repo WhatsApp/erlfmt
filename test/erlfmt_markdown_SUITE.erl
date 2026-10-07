@@ -121,11 +121,11 @@ check_markdown(Content) ->
     maps:map(
         fun(Key, FormattedCode) ->
             check_fmt(FormattedCode, FormattedCode),
-            case maps:find(Key, Unformatted) of
-                error ->
-                    ignore;
-                {ok, UnformattedCode} ->
-                    check_fmt(UnformattedCode, FormattedCode)
+            case Unformatted of
+                #{Key := UnformattedCode} ->
+                    check_fmt(UnformattedCode, FormattedCode);
+                #{} ->
+                    ignore
             end
         end,
         Formatted
