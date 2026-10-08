@@ -72,16 +72,13 @@ test_one_distinc_item(_) ->
 
 %% Helper ensuring comparison of mismatching lists give the expected message.
 check_list_equal_message(L0, L1, Msg) ->
-    case (catch ?assertListEqual(L0, L1)) of
-        ok ->
-            ct:fail("Got 'ok', was expecting exception: ~p", [Msg]);
-        % Erlang doc: For exceptions of class error, that is, run-time errors,
-        %             {'EXIT',{Reason,Stack}} is returned.
-        % ?assertListEqual follows ?assert API and returns Reason as:
-        %             {assert, [infos]}
-        {'EXIT', {{assert, Info}, _ST}} ->
-            Comment = [C || {comment, C} <- Info],
-            ?assertEqual([Msg], Comment);
+    try ?assertListEqual(L0, L1) of
         X ->
             ct:fail("Expected exception: ~p~nGot: ~p", [Msg, X])
+    catch
+        % ?assertListEqual follows the ?assert API and fails with:
+        %             {assert, [infos]}
+        error:{assert, Info} ->
+            Comment = [C || {comment, C} <- Info],
+            ?assertEqual([Msg], Comment)
     end.
