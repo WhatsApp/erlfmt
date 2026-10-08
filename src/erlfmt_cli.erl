@@ -316,11 +316,9 @@ check_stdin(Options) ->
     io:setopts(standard_io, CurrentOpts),
     Result.
 
--dialyzer({no_improper_lists, [read_stdin/1]}).
-
 read_stdin(Data) ->
     case io:get_chars(standard_io, "", 4096) of
-        MoreData when is_binary(MoreData) -> read_stdin([Data | MoreData]);
+        MoreData when is_binary(MoreData) -> read_stdin([Data, MoreData]);
         eof -> {ok, Data};
         {error, Reason} -> {error, Reason}
     end.
