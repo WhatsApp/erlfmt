@@ -108,7 +108,7 @@ $ erlfmt -w './otp/lib/*/{src,include}/*.{erl,hrl}'
 
 ### Requirements
 
-erlfmt requires Erlang/OTP 21+ and works on all platforms.
+erlfmt requires Erlang/OTP 24+ and works on all platforms.
 
 ### Integrations
 

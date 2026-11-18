@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.9.0 (18.11.2026)
+
+### Enhancements
+
+  - Support OTP 29 left-associative function application, e.g. `f(X)(Y)`
+  - Support OTP 29 multi-valued comprehensions (EEP 78), e.g. `[X, -X || X <- List]`
+  - Support OTP 29 native records (EEP 79): native record declarations, external native
+    records (`#mod:name{...}`), any-record syntax (`#_{...}`), and the `-export_record` and
+    `-import_record` attributes
+
+### Changes
+
+  - Require Erlang/OTP 24+
+
+### AST changes
+
+  - Comprehension nodes (`lc`, `mc`, `bc`) always hold the expressions before `||` as a list,
+    even for single-value comprehensions
+
 ## v1.8.0 (23.02.2026)
 
 ### Enhancements
