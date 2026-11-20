@@ -13,6 +13,9 @@
 %% limitations under the License.
 -module(rebar3_fmt_prv).
 
+%% The providers and rebar_state modules are provided by rebar3 at
+%% runtime, and are not available to ELP, hence the elp:ignore comments.
+
 -behaviour(provider).
 
 -export([init/1, do/1, format_error/1]).
@@ -23,6 +26,7 @@
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
     Provider =
+        % elp:ignore W0017 (undefined_function)
         providers:create([
             {name, ?PROVIDER},
             {module, ?MODULE},
@@ -33,11 +37,14 @@ init(State) ->
             {short_desc, "Erlang code formatter"},
             {desc, "Erlang code formatter"}
         ]),
+    % elp:ignore W0017 (undefined_function)
     {ok, rebar_state:add_provider(State, Provider)}.
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()}.
 do(State) ->
+    % elp:ignore W0017 (undefined_function)
     ConfigOpts = rebar_state:get(State, erlfmt, []),
+    % elp:ignore W0017 (undefined_function)
     case rebar_state:command_parsed_args(State) of
         {ArgOpts, []} ->
             erlfmt_cli:do("rebar3 fmt", ArgOpts, ConfigOpts);

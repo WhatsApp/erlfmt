@@ -48,6 +48,8 @@
 
 -module(erlfmt_algebra).
 
+%% Documents are built from improper lists on purpose, for performance.
+% elp:ignore W0048 (no_dialyzer_attribute)
 -dialyzer(no_improper_lists).
 
 -define(newline, <<"\n">>).
