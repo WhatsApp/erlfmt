@@ -16,7 +16,6 @@
 
 -module(assert_diagnostic).
 
--include_lib("stdlib/include/assert.hrl").
 -include_lib("test/assert_diagnostic.hrl").
 
 -export([

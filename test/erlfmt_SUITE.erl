@@ -15,7 +15,6 @@
 
 -include_lib("common_test/include/ct.hrl").
 -include_lib("stdlib/include/assert.hrl").
--include_lib("test/assert_diagnostic.hrl").
 
 %% Test server callbacks
 -export([
