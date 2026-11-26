@@ -28,6 +28,8 @@
 
 -export([
     every_answer_is_what_computing_gives/1,
+    a_same_size_write_keeping_mtime_is_seen/1,
+    another_cache_finds_a_result_by_key_and_content/1,
     holds_only_outside_the_racy_window/1,
     store_keeps_every_key_used_within_retention/1,
     store_commit_without_news_changes_nothing/1,
@@ -44,6 +46,8 @@ suite() ->
 all() ->
     [
         every_answer_is_what_computing_gives,
+        a_same_size_write_keeping_mtime_is_seen,
+        another_cache_finds_a_result_by_key_and_content,
         holds_only_outside_the_racy_window,
         store_keeps_every_key_used_within_retention,
         store_commit_without_news_changes_nothing,
@@ -81,6 +85,11 @@ end_per_testcase(_Case, _Config) ->
     %% Which cache the next run opens: a new one forgets the last run, as
     %% another run shape would, so only the store can answer.
     name = 0 :: non_neg_integer(),
+    %% When a run may keep a file's last result without reading it.
+    strategy = metadata :: erlfmt_cache:strategy(),
+    %% Counts the answers from a stat, across every case: the property must
+    %% exercise them.
+    by_stat :: counters:counters_ref(),
     %% Answers that weren't what computing gives.
     wrong = [] :: [term()]
 }).
@@ -99,20 +108,27 @@ step() ->
         {1, forget}
     ]).
 
+%% With either strategy, through writes, same-size writes that put the mtime
+%% back, runs under other keys and runs of other caches: every answer, from a
+%% stat, the last run or the store, is what computing gives, and the content
+%% strategy never answers from a stat.
 every_answer_is_what_computing_gives(Config) ->
     Dir = ?config(dir, Config),
+    ByStat = counters:new(1, []),
     Property = ?FORALL(
-        Steps,
-        proper_types:list(step()),
+        {Steps, Strategy},
+        {proper_types:list(step()), proper_types:oneof([metadata, content])},
         begin
             CaseDir = filename:join(Dir, integer_to_list(erlang:unique_integer([positive]))),
+            Model0 = #model{strategy = Strategy, by_stat = ByStat},
             #model{wrong = Wrong} = lists:foldl(
-                fun(Step, Model) -> simulate(CaseDir, Step, Model) end, #model{}, Steps
+                fun(Step, Model) -> simulate(CaseDir, Step, Model) end, Model0, Steps
             ),
             ?WHENFAIL(ct:pal("wrong answers: ~p", [Wrong]), Wrong =:= [])
         end
     ),
-    ?assert(proper:quickcheck(Property, [{numtests, 1000}, {max_size, 40}, {to_file, user}])).
+    ?assert(proper:quickcheck(Property, [{numtests, 1000}, {max_size, 40}, {to_file, user}])),
+    ?assert(counters:get(ByStat, 1) > 0, "no answer came from a stat").
 
 simulate(_Dir, {advance, Seconds}, #model{now = Now} = Model) ->
     Model#model{now = Now + Seconds};
@@ -130,14 +146,18 @@ simulate(Dir, {run, Key}, #model{wrong = Wrong} = Model) ->
 
 %% One run, started now: every answer, from the stat, the last run or the
 %% store, is what computing gives.
-run(Dir, Key, #model{now = Now, content = Content, name = Name} = Model) ->
-    Cache0 = erlfmt_cache:open(Dir, integer_to_list(Name), #{started_at => Now}),
+run(Dir, Key, #model{now = Now, content = Content, name = Name, strategy = Strategy} = Model) ->
+    Options = #{started_at => Now, strategy => Strategy},
+    Cache0 = erlfmt_cache:open(Dir, integer_to_list(Name), Options),
     Expected = compute(Key, Content),
     CacheKey = erlfmt_cache:digest_term(Key),
     Stat = stat(Model),
     {Answer, Cache} =
         case erlfmt_cache:get_by_stat(Cache0, <<"file">>, CacheKey, Stat) of
+            {ok, _} when Strategy =:= content ->
+                {content_strategy_trusted_a_stat, Cache0};
             {ok, Expected} ->
+                counters:add(Model#model.by_stat, 1, 1),
                 {ok, Cache0};
             {ok, Stale} ->
                 {{stale_by_stat, Stale}, Cache0};
@@ -166,6 +186,53 @@ stat(#model{content = Content, mtime = Mtime, ctime = Ctime}) ->
         major_device = 1,
         mode = 8#100644
     }).
+
+%% The case the property finds only sometimes, on a real file: a same-size
+%% write that puts the mtime back, after a stat was trusted. Only the ctime
+%% tells. Waits out the racy window, as timestamps are read in seconds.
+a_same_size_write_keeping_mtime_is_seen(Config) ->
+    Dir = ?config(dir, Config),
+    File = filename:join(Dir, "f"),
+    ok = file:write_file(File, <<"aaaa">>),
+    timer:sleep(3000),
+    {Key, Content} = {erlfmt_cache:digest_term(1), erlfmt_cache:digest(<<"aaaa">>)},
+    {ok, Stat} = erlfmt_cache:stat(File),
+    First = erlfmt_cache:open(Dir, "files", #{}),
+    ok = erlfmt_cache:put(First, <<"f">>, Key, Stat, Content, 1),
+    ok = erlfmt_cache:save(First),
+    Second = erlfmt_cache:open(Dir, "files", #{}),
+    ?assertEqual({ok, 1}, erlfmt_cache:get_by_stat(Second, <<"f">>, Key, Stat)),
+    {ok, #file_info{mtime = Mtime}} = file:read_file_info(File, [{time, posix}]),
+    ok = file:write_file(File, <<"bbbb">>),
+    ok = file:write_file_info(File, #file_info{mtime = Mtime, atime = Mtime}, [{time, posix}]),
+    {ok, Changed} = erlfmt_cache:stat(File),
+    ?assertEqual(miss, erlfmt_cache:get_by_stat(Second, <<"f">>, Key, Changed)),
+    ok = erlfmt_cache:save(Second).
+
+another_cache_finds_a_result_by_key_and_content(Config) ->
+    Dir = ?config(dir, Config),
+    File = filename:join(Dir, "f"),
+    ok = file:write_file(File, <<"x">>),
+    {ok, Stat} = erlfmt_cache:stat(File),
+    Content = erlfmt_cache:digest(<<"x">>),
+    {One, Two} = {erlfmt_cache:digest_term(1), erlfmt_cache:digest_term(2)},
+    A = erlfmt_cache:open(Dir, "a", #{}),
+    ok = erlfmt_cache:put(A, <<"f">>, One, Stat, Content, 7),
+    ok = erlfmt_cache:save(A),
+    ?assertMatch(
+        [#{path := <<"f">>, key := One, content := Content, result := 7}],
+        erlfmt_cache:entries(erlfmt_cache:open(Dir, "a", #{}))
+    ),
+    B = erlfmt_cache:load_store(erlfmt_cache:open(Dir, "b", #{})),
+    ?assertEqual([], erlfmt_cache:entries(B)),
+    ?assertEqual({ok, 7}, erlfmt_cache:get_by_content(B, <<"f">>, One, Stat, Content)),
+    ?assertEqual(miss, erlfmt_cache:get_by_content(B, <<"g">>, One, Stat, Content), "another path"),
+    ?assertEqual(miss, erlfmt_cache:get_by_content(B, <<"f">>, Two, Stat, Content), "another key"),
+    Other = erlfmt_cache:digest(<<"y">>),
+    ?assertEqual(
+        miss, erlfmt_cache:get_by_content(B, <<"f">>, One, Stat, Other), "another content"
+    ),
+    ok = erlfmt_cache:save(B).
 
 holds_only_outside_the_racy_window(_Config) ->
     At = 1000,
