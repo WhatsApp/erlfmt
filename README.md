@@ -106,6 +106,31 @@ You can then run it from the command line:
 $ erlfmt -w './otp/lib/*/{src,include}/*.{erl,hrl}'
 ```
 
+### Caching
+
+With `--cache`, `--check` and `--write` only read and format the files that
+changed since the last run, and print, exit and write exactly what they would
+without it:
+
+```
+$ rebar3 fmt --check --cache
+```
+
+or in your `rebar.config`:
+
+```erlang formatted rebarconfig3
+{erlfmt, [check, cache]}.
+```
+
+A file whose size, timestamps, inode and mode haven't changed isn't read
+again; a file that changed is read, and isn't formatted again if erlfmt saw the
+same contents before, with the same options and the same erlfmt and OTP. What
+formatting it found, warnings and errors included, is reported as it was. The
+cache is kept in `erlfmt/` in rebar3's
+global cache directory (`~/.cache/rebar3`, or `$REBAR_CACHE_DIR`), shared by
+all your projects and checkouts; `--cache-location` puts it elsewhere. Deleting
+it only makes the next run slower.
+
 ### Requirements
 
 erlfmt requires Erlang/OTP 24+ and works on all platforms.
